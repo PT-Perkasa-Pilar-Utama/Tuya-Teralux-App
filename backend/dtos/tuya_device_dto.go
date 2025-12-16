@@ -31,7 +31,6 @@ type TuyaCommandsRequestDTO struct {
 
 // TuyaIRACCommandDTO represents a single IR AC command request
 type TuyaIRACCommandDTO struct {
-	InfraredID string `json:"infrared_id" binding:"required"`
 	RemoteID   string `json:"remote_id" binding:"required"`
 	Code       string `json:"code" binding:"required"`
 	Value      int    `json:"value"`
@@ -52,4 +51,11 @@ type TuyaDevicesResponseDTO struct {
 // TuyaDeviceResponseDTO represents the response for getting a single device
 type TuyaDeviceResponseDTO struct {
 	Device TuyaDeviceDTO `json:"device"`
+}
+
+// StandardResponse represents the standardized API response structure
+type StandardResponse struct {
+	Status  bool        `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }

@@ -62,8 +62,8 @@ fun SmartACScreen(
     // Fetch initial state
     LaunchedEffect(Unit) {
         try {
-            val response = RetrofitClient.instance.getDeviceById(token, deviceId)
-            val statuses = response.device.status
+            val response = RetrofitClient.instance.getDeviceById("Bearer $token", deviceId)
+            val statuses = response.data.device.status
             
             // DEBUG: Log all statuses
             rawStatus = statuses?.joinToString("\n") { "${it.code}: ${it.value}" } ?: "No Status"
@@ -140,7 +140,7 @@ fun SmartACScreen(
                     code = code,
                     value = value
                 )
-                val response = RetrofitClient.instance.sendIRACCommand(token, request)
+                val response = RetrofitClient.instance.sendIRACCommand("Bearer $token", request)
                 // if (response.isSuccessful) { ... } // Already saved optimistically
             } catch (e: Exception) {
                 e.printStackTrace()

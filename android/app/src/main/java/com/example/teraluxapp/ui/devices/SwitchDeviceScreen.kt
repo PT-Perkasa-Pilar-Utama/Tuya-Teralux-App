@@ -57,8 +57,8 @@ fun SwitchDeviceScreen(
         switch2On = cached.switch2
 
         try {
-            val response = RetrofitClient.instance.getDeviceById(token, deviceId)
-            val statuses = response.device.status
+            val response = RetrofitClient.instance.getDeviceById("Bearer $token", deviceId)
+            val statuses = response.data.device.status
             // Update from API
             statuses?.forEach { status ->
                 when (status.code) {
@@ -85,7 +85,7 @@ fun SwitchDeviceScreen(
             try {
                 val cmd = Command(code, value)
                 val request = CommandRequest(listOf(cmd))
-                val response = RetrofitClient.instance.sendDeviceCommand(token, deviceId, request)
+                val response = RetrofitClient.instance.sendDeviceCommand("Bearer $token", deviceId, request)
                 if (response.isSuccessful) {
                     // Update cache again (just in case)
                     prefs.saveSwitchState(deviceId, switch1On, switch2On)

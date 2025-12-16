@@ -1,6 +1,7 @@
 package com.example.teraluxapp.data.network
 
 import com.example.teraluxapp.data.model.AuthResponse
+import com.example.teraluxapp.data.model.BaseResponse
 import com.example.teraluxapp.data.model.DeviceResponse
 import com.example.teraluxapp.data.model.SingleDeviceResponse
 import retrofit2.http.GET
@@ -11,33 +12,32 @@ import retrofit2.http.Body
 import retrofit2.Response
 
 interface ApiService {
-    @POST("api/tuya/auth")
-    suspend fun authenticate(): AuthResponse
+    @GET("api/tuya/auth")
+    suspend fun authenticate(): BaseResponse<AuthResponse>
 
     @GET("api/tuya/devices")
     suspend fun getDevices(
-        @Header("access_token") token: String,
-        @Header("tuya_uid") uid: String
-    ): Response<DeviceResponse>
+        @Header("Authorization") token: String
+    ): Response<BaseResponse<DeviceResponse>>
 
     @POST("api/tuya/devices/{id}/commands")
     suspend fun sendDeviceCommand(
-        @Header("access_token") token: String,
+        @Header("Authorization") token: String,
         @Path("id") deviceId: String,
         @Body request: CommandRequest
-    ): Response<CommandResponse>
+    ): Response<BaseResponse<CommandResponse>>
 
     @GET("api/tuya/devices/{id}")
     suspend fun getDeviceById(
-        @Header("access_token") token: String,
+        @Header("Authorization") token: String,
         @Path("id") deviceId: String
-    ): SingleDeviceResponse
+    ): BaseResponse<SingleDeviceResponse>
 
     @POST("api/tuya/ir-ac/command")
     suspend fun sendIRACCommand(
-        @Header("access_token") token: String,
+        @Header("Authorization") token: String,
         @Body request: IRACCommandRequest
-    ): Response<CommandResponse>
+    ): Response<BaseResponse<CommandResponse>>
 }
 
 data class CommandRequest(val commands: List<Command>)

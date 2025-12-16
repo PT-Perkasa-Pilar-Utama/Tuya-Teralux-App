@@ -13,6 +13,7 @@ type Config struct {
 	TuyaClientSecret string
 	TuyaBaseURL      string
 	TuyaUserID       string
+	ApiKey           string
 }
 
 var AppConfig *Config
@@ -35,6 +36,7 @@ func LoadConfig() {
 		TuyaClientSecret: os.Getenv("TUYA_ACCESS_SECRET"),
 		TuyaBaseURL:      os.Getenv("TUYA_BASE_URL"),
 		TuyaUserID:       os.Getenv("TUYA_USER_ID"),
+		ApiKey:           os.Getenv("API_KEY"),
 	}
 
 	// Refresh log level after loading config
