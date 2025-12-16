@@ -20,11 +20,11 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<BaseResponse<DeviceResponse>>
 
-    @POST("api/tuya/devices/{id}/commands")
+    @POST("api/tuya/devices/{id}/commands/switch")
     suspend fun sendDeviceCommand(
         @Header("Authorization") token: String,
         @Path("id") deviceId: String,
-        @Body request: CommandRequest
+        @Body request: Command
     ): Response<BaseResponse<CommandResponse>>
 
     @GET("api/tuya/devices/{id}")
@@ -33,20 +33,20 @@ interface ApiService {
         @Path("id") deviceId: String
     ): BaseResponse<SingleDeviceResponse>
 
-    @POST("api/tuya/ir-ac/command")
+    @POST("api/tuya/devices/{id}/commands/ir")
     suspend fun sendIRACCommand(
         @Header("Authorization") token: String,
+        @Path("id") infraredId: String,
         @Body request: IRACCommandRequest
     ): Response<BaseResponse<CommandResponse>>
 }
 
-data class CommandRequest(val commands: List<Command>)
+
 data class Command(val code: String, val value: Any)
 data class CommandResponse(val success: Boolean)
 
 // IR AC Command (for Smart IR Hub)
 data class IRACCommandRequest(
-    val infrared_id: String,
     val remote_id: String,
     val code: String,
     val value: Int
