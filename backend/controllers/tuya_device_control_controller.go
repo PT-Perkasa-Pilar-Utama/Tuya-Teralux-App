@@ -28,7 +28,7 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 	// Get access token from context (set by middleware)
 	accessToken := c.MustGet("access_token").(string)
 
-	var req dtos.TuyaCommandsRequestDTO
+	var req dtos.TuyaCommandDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
@@ -38,7 +38,9 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 		return
 	}
 
-	success, err := ctrl.useCase.SendCommand(accessToken, deviceID, req.Commands)
+	// Wrap single command in slice for usecase
+	commands := []dtos.TuyaCommandDTO{req}
+	success, err := ctrl.useCase.SendCommand(accessToken, deviceID, commands)
 	if err != nil {
 		log.Printf("ERROR: SendCommand failed: %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{

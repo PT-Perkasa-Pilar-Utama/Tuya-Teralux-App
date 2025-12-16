@@ -135,12 +135,11 @@ fun SmartACScreen(
             isProcessing = true
             try {
                 val request = IRACCommandRequest(
-                    infrared_id = infraredId,
                     remote_id = deviceId,
                     code = code,
                     value = value
                 )
-                val response = RetrofitClient.instance.sendIRACCommand("Bearer $token", request)
+                val response = RetrofitClient.instance.sendIRACCommand("Bearer $token", infraredId, request)
                 // if (response.isSuccessful) { ... } // Already saved optimistically
             } catch (e: Exception) {
                 e.printStackTrace()
