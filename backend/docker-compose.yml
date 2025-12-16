@@ -1,0 +1,9 @@
+services:
+  app:
+    image: ghcr.io/farismnrr/teralux-backend:latest
+    container_name: teralux-backend
+    ports:
+      - "8084:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
