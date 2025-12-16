@@ -7,9 +7,25 @@ import (
 )
 
 // SetupTuyaAuthRoutes registers Tuya authentication routes
-func SetupTuyaAuthRoutes(router *gin.Engine, controller *controllers.TuyaAuthController) {
+func SetupTuyaAuthRoutes(router *gin.RouterGroup, controller *controllers.TuyaAuthController) {
 	api := router.Group("/api/tuya")
 	{
-		api.POST("/auth", controller.Authenticate)
+		// Authenticate with Tuya
+		// URL: /api/tuya/auth
+		// Method: GET
+		// Headers:
+		//    X-API-KEY: <your_api_key>
+		// Body: None
+		// Response: {
+		//    "status": true,
+		//    "message": "Authentication successful",
+		//    "data": {
+		//      "access_token": "...",
+		//      "expire_time": 7200,
+		//      "refresh_token": "...",
+		//      "uid": "..."
+		//    }
+		// }
+		api.GET("/auth", controller.Authenticate)
 	}
 }

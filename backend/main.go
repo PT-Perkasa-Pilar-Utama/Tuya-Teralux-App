@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"teralux_app/controllers"
+	"teralux_app/middlewares"
+	"teralux_app/routes"
 	"teralux_app/services"
 	"teralux_app/usecases"
 	"teralux_app/utils"
@@ -33,14 +35,17 @@ func main() {
 	tuyaGetDeviceByIDController := controllers.NewTuyaGetDeviceByIDController(tuyaGetDeviceByIDUseCase)
 	tuyaDeviceControlController := controllers.NewTuyaDeviceControlController(tuyaDeviceControlUseCase)
 
-	// Routes
-	api := router.Group("/api")
+	// Public Routes (Protected by API Key)
+	authGroup := router.Group("/")
+	authGroup.Use(middlewares.ApiKeyMiddleware())
+	routes.SetupTuyaAuthRoutes(authGroup, tuyaAuthController)
+
+	// Protected Routes
+	protected := router.Group("/")
+	protected.Use(middlewares.AuthMiddleware())
 	{
-		api.POST("/tuya/auth", tuyaAuthController.Authenticate)
-		api.GET("/tuya/devices", tuyaGetAllDevicesController.GetAllDevices)
-		api.GET("/tuya/devices/:id", tuyaGetDeviceByIDController.GetDeviceByID)
-		api.POST("/tuya/devices/:id/commands", tuyaDeviceControlController.SendCommand)
-		api.POST("/tuya/ir-ac/command", tuyaDeviceControlController.SendIRACCommand)
+		routes.SetupTuyaDeviceRoutes(protected, tuyaGetAllDevicesController, tuyaGetDeviceByIDController)
+		routes.SetupTuyaControlRoutes(protected, tuyaDeviceControlController)
 	}
 	// Start server
 	log.Println("Server starting on :8080")

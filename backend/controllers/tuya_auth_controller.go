@@ -25,14 +25,18 @@ func (c *TuyaAuthController) Authenticate(ctx *gin.Context) {
 	// Call use case
 	token, err := c.useCase.Authenticate()																																																																									
 	if err != nil {
-		errorResponse := dtos.ErrorResponseDTO{
-			Error:   "Authentication failed",
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
 			Message: err.Error(),
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse)
+			Data:    nil,
+		})
 		return
 	}
 
 	// Return success response
-	ctx.JSON(http.StatusOK, token)
+	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+		Status:  true,
+		Message: "Authentication successful",
+		Data:    token,
+	})
 }

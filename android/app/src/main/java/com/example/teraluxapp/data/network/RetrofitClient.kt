@@ -13,6 +13,17 @@ object RetrofitClient {
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(FailoverInterceptor())
+        .addInterceptor { chain ->
+            val original = chain.request()
+            val builder = original.newBuilder()
+            
+            // Only add API Key for Auth endpoint
+            if (original.url.encodedPath.contains("api/tuya/auth")) {
+                builder.header("X-API-KEY", com.example.teraluxapp.BuildConfig.API_KEY)
+            }
+            
+            chain.proceed(builder.build())
+        }
         .addInterceptor(logging)
         .build()
 

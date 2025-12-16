@@ -5,6 +5,7 @@ import (
 	"teralux_app/dtos"
 	"teralux_app/usecases"
 
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,39 +26,33 @@ func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	// Get device ID from URL parameter
 	deviceID := ctx.Param("id")
 	if deviceID == "" {
-		errorResponse := dtos.ErrorResponseDTO{
-			Error:   "Missing device ID",
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
 			Message: "device ID is required",
-		}
-		ctx.JSON(http.StatusBadRequest, errorResponse)
+			Data:    nil,
+		})
 		return
 	}
 
-	// Get access token from header
-	accessToken := ctx.GetHeader("access_token")
-	if accessToken == "" {
-		errorResponse := dtos.ErrorResponseDTO{
-			Error:   "Missing access token",
-			Message: "access_token header is required",
-		}
-		ctx.JSON(http.StatusUnauthorized, errorResponse)
-		return
-	}
+	// Get access token from context (set by middleware)
+	accessToken := ctx.MustGet("access_token").(string)
 
 	// Call use case
 	device, err := c.useCase.GetDeviceByID(accessToken, deviceID)
 	if err != nil {
-		errorResponse := dtos.ErrorResponseDTO{
-			Error:   "Failed to fetch device",
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
 			Message: err.Error(),
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse)
+			Data:    nil,
+		})
 		return
 	}
 
 	// Return success response
-	response := dtos.TuyaDeviceResponseDTO{
-		Device: *device,
-	}
-	ctx.JSON(http.StatusOK, response)
+	// Return success response
+	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+		Status:  true,
+		Message: "Device fetched successfully",
+		Data:    dtos.TuyaDeviceResponseDTO{Device: *device},
+	})
 }

@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"teralux_app/dtos"
 	"teralux_app/usecases"
-
-	"log"
+	"teralux_app/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,39 +25,37 @@ func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) 
 // GetAllDevices handles GET /api/tuya/devices endpoint
 func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	// Get access token from header
-	accessToken := ctx.GetHeader("access_token")
-	if accessToken == "" {
-		errorResponse := dtos.ErrorResponseDTO{
-			Error:   "Missing access token",
-			Message: "access_token header is required",
-		}
-		ctx.JSON(http.StatusUnauthorized, errorResponse)
-		return
-	}
+	// Get access token from context (set by middleware)
+	accessToken := ctx.MustGet("access_token").(string)
 
-	// Call use case
-	uid := ctx.GetHeader("tuya_uid")
-	log.Printf("DEBUG: Received tuya_uid header: '%s'", uid)
+	// Use Tuya User ID from environment/config
+	uid := utils.AppConfig.TuyaUserID
 	if uid == "" {
-		errorResponse := dtos.ErrorResponseDTO{
-			Error:   "Missing user ID",
-			Message: "tuya_uid header is required",
-		}
-		ctx.JSON(http.StatusUnauthorized, errorResponse)
+		log.Println("ERROR: TUYA_USER_ID is not set in environment")
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Server configuration error: TUYA_USER_ID missing",
+			Data:    nil,
+		})
 		return
 	}
+	log.Printf("DEBUG: Using TUYA_USER_ID from env: '%s'", uid)
 
 	devices, err := c.useCase.GetAllDevices(accessToken, uid)
 	if err != nil {
 		log.Printf("Error fetching devices: %v", err)
-		errorResponse := dtos.ErrorResponseDTO{
-			Error:   "Failed to fetch devices",
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
 			Message: err.Error(),
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse)
+			Data:    nil,
+		})
 		return
 	}
 
 	// Return success response
-	ctx.JSON(http.StatusOK, devices)
+	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+		Status:  true,
+		Message: "Devices fetched successfully",
+		Data:    devices,
+	})
 }
