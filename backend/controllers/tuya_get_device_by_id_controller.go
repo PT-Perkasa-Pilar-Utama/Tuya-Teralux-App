@@ -49,7 +49,6 @@ func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	}
 
 	// Return success response
-	// Return success response
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "Device fetched successfully",
