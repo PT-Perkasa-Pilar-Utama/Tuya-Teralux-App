@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/url"
 	"teralux_app/controllers"
 	"teralux_app/middlewares"
 	"teralux_app/routes"
@@ -10,14 +11,55 @@ import (
 	"teralux_app/utils"
 
 	"github.com/gin-gonic/gin"
+
+	"teralux_app/docs" // Import generated docs
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title           Teralux API
+// @version         1.0
+// @description     This is the API server for Teralux App.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name    API Support
+// @contact.url     http://www.swagger.io/support
+// @contact.email   support@swagger.io
+
+// @license.name    Apache 2.0
+// @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host            localhost:8080
+// @BasePath        /
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-KEY
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 func main() {
 	// Load configuration
 	utils.LoadConfig()
 
+	// Update Swagger Configuration from ENV
+	if swaggerURL := utils.AppConfig.SwaggerBaseURL; swaggerURL != "" {
+		parsedURL, err := url.Parse(swaggerURL)
+		if err != nil {
+			log.Printf("Warning: Invalid SWAGGER_BASE_URL: %v", err)
+		} else {
+			docs.SwaggerInfo.Host = parsedURL.Host
+			docs.SwaggerInfo.Schemes = []string{parsedURL.Scheme}
+		}
+	}
+
 	// Initialize Gin router
 	router := gin.Default()
+
+	// Swagger Route
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Initialize dependency chain: service -> usecase -> controller
 	tuyaAuthService := services.NewTuyaAuthService()

@@ -1,0 +1,325 @@
+basePath: /
+definitions:
+  controllers.SensorDataResponse:
+    properties:
+      battery_percentage:
+        type: integer
+      humidity:
+        type: integer
+      status_text:
+        type: string
+      temp_unit:
+        type: string
+      temperature:
+        type: number
+    type: object
+  dtos.StandardResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  dtos.TuyaAuthResponseDTO:
+    properties:
+      access_token:
+        type: string
+      expire_time:
+        type: integer
+      refresh_token:
+        type: string
+      uid:
+        type: string
+    type: object
+  dtos.TuyaCommandDTO:
+    properties:
+      code:
+        type: string
+      value: {}
+    required:
+    - code
+    - value
+    type: object
+  dtos.TuyaDeviceDTO:
+    properties:
+      category:
+        type: string
+      create_time:
+        type: integer
+      custom_name:
+        type: string
+      gateway_id:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      ip:
+        type: string
+      local_key:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+      online:
+        type: boolean
+      product_name:
+        type: string
+      status:
+        items:
+          $ref: '#/definitions/dtos.TuyaDeviceStatusDTO'
+        type: array
+      update_time:
+        type: integer
+    type: object
+  dtos.TuyaDeviceResponseDTO:
+    properties:
+      device:
+        $ref: '#/definitions/dtos.TuyaDeviceDTO'
+    type: object
+  dtos.TuyaDeviceStatusDTO:
+    properties:
+      code:
+        type: string
+      value: {}
+    type: object
+  dtos.TuyaIRACCommandDTO:
+    properties:
+      code:
+        type: string
+      remote_id:
+        type: string
+      value:
+        type: integer
+    required:
+    - code
+    - remote_id
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is the API server for Teralux App.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Teralux API
+  version: "1.0"
+paths:
+  /api/tuya/auth:
+    get:
+      consumes:
+      - application/json
+      description: Authenticates the user and retrieves a Tuya access token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TuyaAuthResponseDTO'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Authenticate with Tuya
+      tags:
+      - Authentication
+  /api/tuya/devices:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all devices associated with the Tuya user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dtos.TuyaDeviceDTO'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Devices
+      tags:
+      - Devices
+  /api/tuya/devices/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific device by its ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TuyaDeviceResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Device by ID
+      tags:
+      - Devices
+  /api/tuya/devices/{id}/commands/ir:
+    post:
+      consumes:
+      - application/json
+      description: Sends an infrared command to an AC via a specific IR device
+      parameters:
+      - description: Infrared Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: IR AC Command Payload
+        in: body
+        name: command
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.TuyaIRACCommandDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Send IR AC Command
+      tags:
+      - Device Control
+  /api/tuya/devices/{id}/commands/switch:
+    post:
+      consumes:
+      - application/json
+      description: Sends a command to a specific Tuya device
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Command Payload
+        in: body
+        name: command
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.TuyaCommandDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Send Command to Device
+      tags:
+      - Device Control
+  /api/tuya/devices/{id}/sensor:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves sensor data (temperature, humidity, etc.) for a specific
+        device
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/controllers.SensorDataResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Sensor Data
+      tags:
+      - Sensors
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-KEY
+    type: apiKey
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

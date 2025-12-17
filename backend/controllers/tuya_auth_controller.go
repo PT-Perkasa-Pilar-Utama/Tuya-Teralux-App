@@ -21,6 +21,15 @@ func NewTuyaAuthController(useCase *usecases.TuyaAuthUseCase) *TuyaAuthControlle
 }
 
 // Authenticate handles POST /api/tuya/auth endpoint
+// @Summary      Authenticate with Tuya
+// @Description  Authenticates the user and retrieves a Tuya access token
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  dtos.StandardResponse{data=dtos.TuyaAuthResponseDTO}
+// @Failure      500  {object}  dtos.StandardResponse
+// @Security     ApiKeyAuth
+// @Router       /api/tuya/auth [get]
 func (c *TuyaAuthController) Authenticate(ctx *gin.Context) {
 	// Call use case
 	token, err := c.useCase.Authenticate()																																																																									

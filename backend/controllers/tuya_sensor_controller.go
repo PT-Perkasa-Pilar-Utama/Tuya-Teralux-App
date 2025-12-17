@@ -31,6 +31,17 @@ type SensorDataResponse struct {
 }
 
 // GetSensorData handles GET /api/tuya/devices/:id/sensor endpoint
+// @Summary      Get Sensor Data
+// @Description  Retrieves sensor data (temperature, humidity, etc.) for a specific device
+// @Tags         Sensors
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string                 true  "Device ID"
+// @Success      200  {object}  dtos.StandardResponse{data=controllers.SensorDataResponse}
+// @Failure      400  {object}  dtos.StandardResponse
+// @Failure      500  {object}  dtos.StandardResponse
+// @Security     BearerAuth
+// @Router       /api/tuya/devices/{id}/sensor [get]
 func (c *TuyaSensorController) GetSensorData(ctx *gin.Context) {
 	deviceID := ctx.Param("id")
 	if deviceID == "" {

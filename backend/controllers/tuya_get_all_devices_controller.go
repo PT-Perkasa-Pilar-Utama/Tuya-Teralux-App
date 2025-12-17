@@ -23,6 +23,15 @@ func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) 
 }
 
 // GetAllDevices handles GET /api/tuya/devices endpoint
+// @Summary      Get All Devices
+// @Description  Retrieves a list of all devices associated with the Tuya user
+// @Tags         Devices
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  dtos.StandardResponse{data=[]dtos.TuyaDeviceDTO}
+// @Failure      500  {object}  dtos.StandardResponse
+// @Security     BearerAuth
+// @Router       /api/tuya/devices [get]
 func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	// Get access token from header
 	// Get access token from context (set by middleware)
