@@ -24,7 +24,12 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
+		var accessToken string
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			accessToken = parts[1]
+		} else if len(parts) == 1 {
+			accessToken = parts[0]
+		} else {
 			c.JSON(http.StatusUnauthorized, dtos.StandardResponse{
 				Status:  false,
 				Message: "Invalid Authorization header format. Expected 'Bearer <token>'",
@@ -33,7 +38,6 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		accessToken := parts[1]
 		c.Set("access_token", accessToken)
 
 		// 2. Parse X-TUYA-UID Header (Optional generally, but populated if present)

@@ -23,6 +23,18 @@ func NewTuyaDeviceControlController(useCase *usecases.TuyaDeviceControlUseCase) 
 }
 
 // SendCommand handles the request to send commands to a device
+// @Summary      Send Command to Device
+// @Description  Sends a command to a specific Tuya device
+// @Tags         Device Control
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string                 true  "Device ID"
+// @Param        command body      dtos.TuyaCommandDTO    true  "Command Payload"
+// @Success      200  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.StandardResponse
+// @Failure      500  {object}  dtos.StandardResponse
+// @Security     BearerAuth
+// @Router       /api/tuya/devices/{id}/commands/switch [post]
 func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 	deviceID := c.Param("id")
 	// Get access token from context (set by middleware)
@@ -59,6 +71,18 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 }
 
 // SendIRACCommand handles the request to send a command to an IR air conditioner
+// @Summary      Send IR AC Command
+// @Description  Sends an infrared command to an AC via a specific IR device
+// @Tags         Device Control
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string                 true  "Infrared Device ID"
+// @Param        command body      dtos.TuyaIRACCommandDTO true  "IR AC Command Payload"
+// @Success      200  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.StandardResponse
+// @Failure      500  {object}  dtos.StandardResponse
+// @Security     BearerAuth
+// @Router       /api/tuya/devices/{id}/commands/ir [post]
 func (ctrl *TuyaDeviceControlController) SendIRACCommand(c *gin.Context) {
 	// Get access token from context (set by middleware)
 	accessToken := c.MustGet("access_token").(string)

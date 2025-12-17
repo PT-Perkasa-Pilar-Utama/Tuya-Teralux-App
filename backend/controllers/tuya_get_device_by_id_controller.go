@@ -22,6 +22,17 @@ func NewTuyaGetDeviceByIDController(useCase *usecases.TuyaGetDeviceByIDUseCase) 
 }
 
 // GetDeviceByID handles GET /api/tuya/devices/:id endpoint
+// @Summary      Get Device by ID
+// @Description  Retrieves details of a specific device by its ID
+// @Tags         Devices
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string                 true  "Device ID"
+// @Success      200  {object}  dtos.StandardResponse{data=dtos.TuyaDeviceResponseDTO}
+// @Failure      400  {object}  dtos.StandardResponse
+// @Failure      500  {object}  dtos.StandardResponse
+// @Security     BearerAuth
+// @Router       /api/tuya/devices/{id} [get]
 func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	// Get device ID from URL parameter
 	deviceID := ctx.Param("id")

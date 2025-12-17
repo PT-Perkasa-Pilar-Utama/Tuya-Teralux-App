@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"teralux_app/dtos"
 	"teralux_app/services"
@@ -204,6 +205,11 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string) (*dto
 			UpdateTime:  device.UpdateTime,
 		})
 	}
+
+	// Sort devices by CreateTime Ascending (Oldest first)
+	sort.Slice(deviceDTOs, func(i, j int) bool {
+		return deviceDTOs[i].CreateTime < deviceDTOs[j].CreateTime
+	})
 
 	return &dtos.TuyaDevicesResponseDTO{
 		Devices: deviceDTOs,

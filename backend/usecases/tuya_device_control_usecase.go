@@ -57,9 +57,6 @@ func NewTuyaDeviceControlUseCase(service *services.TuyaDeviceService) *TuyaDevic
 //     "msg": "success"
 //   }
 func (uc *TuyaDeviceControlUseCase) SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error) {
-	// ... implementation ...
-	// (Existing implementation remains changed, just adding comments)
-	// Get config
 	config := utils.GetConfig()
 
 	// 1. Fetch Device Detais to get correct GatewayID (InfraredID)
@@ -150,6 +147,90 @@ func (uc *TuyaDeviceControlUseCase) SendIRACCommand(accessToken, infraredID, rem
 
 	if !resp.Success {
 		log.Printf("ERROR: Tuya IR API Command Failed. Code: %d, Msg: %s", resp.Code, resp.Msg)
+		
+		if resp.Code == 30100 {
+			log.Printf("WARNING: Tuya IR API 30100 detected. Attempting fallback to Standard Device Control for device %s...", infraredID)
+			
+			// Map IR command to Standard DP
+			var fallbackCode string
+			var fallbackValue interface{}
+			fallbackValue = value
+
+			switch code {
+			case "temp":
+				fallbackCode = "T"
+				// Value is integer 16-30, same as input
+			case "power":
+				if value == 1 {
+					fallbackCode = "PowerOn"
+					fallbackValue = "PowerOn"
+				} else {
+					fallbackCode = "PowerOff"
+					fallbackValue = "PowerOff"
+				}
+			case "mode":
+				fallbackCode = "M"
+				// Value is integer 0-4
+			case "wind":
+				fallbackCode = "F"
+				// Value is integer 0-3
+			default:
+				// Try using code as is
+				fallbackCode = code
+			}
+
+			log.Printf("DEBUG: Fallback mapping: %s -> %s, %v -> %v", code, fallbackCode, value, fallbackValue)
+
+			// Construct Standard Command Entity (not DTO, need Entity for service)
+			fallbackCommands := []entities.TuyaCommand{
+				{
+					Code:  fallbackCode,
+					Value: fallbackValue,
+				},
+			}
+
+			fallbackUrlPath := fmt.Sprintf("/v1.0/devices/%s/commands", remoteID)
+			fallbackFullURL := config.TuyaBaseURL + fallbackUrlPath
+
+			// Generate fallback signature
+			// Re-create request body for signature calculation
+			fallbackReqBody := entities.TuyaCommandRequest{Commands: fallbackCommands}
+			fallbackJsonBody, _ := json.Marshal(fallbackReqBody)
+
+			// Calculate content hash
+			hFallback := sha256.New()
+			hFallback.Write(fallbackJsonBody)
+			fallbackContentHash := hex.EncodeToString(hFallback.Sum(nil))
+
+			// Generate string to sign
+			fallbackStringToSign := utils.GenerateTuyaStringToSign("POST", fallbackContentHash, "", fallbackUrlPath)
+
+			// Generate signature
+			fallbackSignature := utils.GenerateTuyaSignature(config.TuyaClientID, config.TuyaClientSecret, accessToken, timestamp, fallbackStringToSign)
+
+			// Prepare headers
+			fallbackHeaders := map[string]string{
+				"client_id":    config.TuyaClientID,
+				"sign":         fallbackSignature,
+				"t":            timestamp,
+				"sign_method":  signMethod,
+				"access_token": accessToken,
+			}
+			
+			log.Printf("DEBUG: Fallback Legacy Call: DeviceID=%s, URL=%s, Body=%s", remoteID, fallbackFullURL, string(fallbackJsonBody))
+			fallbackResp, fallbackErr := uc.service.SendCommand(fallbackFullURL, fallbackHeaders, fallbackCommands)
+			if fallbackErr != nil {
+				return false, fallbackErr
+			}
+			
+			if !fallbackResp.Success {
+				log.Printf("ERROR: Fallback Legacy API Failed. Code: %d, Msg: %s", fallbackResp.Code, fallbackResp.Msg)
+				return false, fmt.Errorf("tuya Legacy API failed: %s (code: %d)", fallbackResp.Msg, fallbackResp.Code)
+			}
+			
+			return fallbackResp.Result, nil
+		}
+
 		return false, fmt.Errorf("tuya IR API failed: %s (code: %d)", resp.Msg, resp.Code)
 	}
 

@@ -73,8 +73,6 @@ push:
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(GHCR_REPO):$(DOCKER_TAG) --push .
 	@echo "✅ Image pushed to $(GHCR_REPO):$(DOCKER_TAG)"
 
-# --- Docker Compose Configuration ---
-
 # Pull latest image for Docker Compose
 pull-docker:
 	@echo "📥 Pulling latest Docker image..."
@@ -93,10 +91,14 @@ stop-compose:
 # Update running container using Watchtower
 update:
 	@echo "🔄 Checking for updates with Watchtower..."
+	@export $$(grep -v '^#' .env | grep -v '^$$' | xargs) && \
 	docker run --rm \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		--env DOCKER_API_VERSION=1.45 \
+		--env REPO_USER=farismnrr \
+		--env REPO_PASS="$${CR_PAT:-$$GITHUB_TOKEN}" \
 		containrrr/watchtower \
+		--debug \
 		--run-once \
 		$(DOCKER_IMAGE_NAME)
 
