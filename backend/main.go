@@ -59,7 +59,14 @@ func main() {
 	router := gin.Default()
 
 	// Swagger Route
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.GET("/swagger/*any", func(c *gin.Context) {
+		if c.Param("any") == "" || c.Param("any") == "/" || c.Param("any") == "/index.html" {
+			c.Header("Content-Type", "text/html; charset=utf-8")
+			c.String(200, docs.CustomSwaggerHTML)
+		} else {
+			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+		}
+	})
 
 	// Initialize dependency chain: service -> usecase -> controller
 	tuyaAuthService := services.NewTuyaAuthService()
@@ -86,6 +93,7 @@ func main() {
 	// Protected Routes
 	protected := router.Group("/")
 	protected.Use(middlewares.AuthMiddleware())
+	protected.Use(middlewares.TuyaErrorMiddleware())
 	{
 		routes.SetupTuyaDeviceRoutes(protected, tuyaGetAllDevicesController, tuyaGetDeviceByIDController, tuyaSensorController)
 		routes.SetupTuyaControlRoutes(protected, tuyaDeviceControlController)

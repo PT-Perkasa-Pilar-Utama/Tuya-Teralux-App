@@ -206,6 +206,65 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string) (*dto
 		})
 	}
 
+	// Group "infrared_ac" devices into "wnykq" (Smart IR) devices
+	if config.GetAllDevicesResponseType == "0" {
+		var finalDevices []dtos.TuyaDeviceDTO
+		var irDevices []dtos.TuyaDeviceDTO
+		var smartIRIndices []int
+
+		// 1. Separate IR AC devices and identify Smart IR hubs
+		for _, d := range deviceDTOs {
+			if d.Category == "infrared_ac" {
+				irDevices = append(irDevices, d)
+			} else {
+				finalDevices = append(finalDevices, d)
+			}
+		}
+
+		// 2. Find Smart IR hubs in the final list
+		for i, d := range finalDevices {
+			if d.Category == "wnykq" {
+				smartIRIndices = append(smartIRIndices, i)
+			}
+		}
+
+		// 3. Assign IR devices to hubs
+		if len(smartIRIndices) > 0 && len(irDevices) > 0 {
+			// Map Hub ID to Index for direct access
+			hubMap := make(map[string]int)
+			for _, idx := range smartIRIndices {
+				hubMap[finalDevices[idx].ID] = idx
+			}
+
+			var orphanIRs []dtos.TuyaDeviceDTO
+
+			for _, ir := range irDevices {
+				if targetIdx, ok := hubMap[ir.GatewayID]; ok {
+					// Match found by GatewayID
+					finalDevices[targetIdx].Collections = append(finalDevices[targetIdx].Collections, ir)
+				} else if ir.GatewayID == "" {
+					// No GatewayID? Fallback: Add to the FIRST Smart IR hub
+					firstHubIdx := smartIRIndices[0]
+					finalDevices[firstHubIdx].Collections = append(finalDevices[firstHubIdx].Collections, ir)
+				} else {
+					// Has GatewayID but parent not found in list -> Keep as orphan
+					orphanIRs = append(orphanIRs, ir)
+				}
+			}
+
+			// Add orphans back to main list
+			if len(orphanIRs) > 0 {
+				finalDevices = append(finalDevices, orphanIRs...)
+			}
+		} else {
+			// No Hubs found or no IR devices? Keep original list (including un-nested IR devices if no hub)
+			finalDevices = append(finalDevices, irDevices...)
+		}
+
+		// Update the main list with the grouped result
+		deviceDTOs = finalDevices
+	}
+
 	// Sort devices by CreateTime Ascending (Oldest first)
 	sort.Slice(deviceDTOs, func(i, j int) bool {
 		return deviceDTOs[i].CreateTime < deviceDTOs[j].CreateTime
@@ -213,6 +272,6 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string) (*dto
 
 	return &dtos.TuyaDevicesResponseDTO{
 		Devices: deviceDTOs,
-		Total:   len(devicesResponse.Result),
+		Total:   len(deviceDTOs),
 	}, nil
 }

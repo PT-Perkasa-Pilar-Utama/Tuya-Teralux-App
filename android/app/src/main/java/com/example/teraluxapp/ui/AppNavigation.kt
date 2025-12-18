@@ -77,7 +77,7 @@ fun AppNavigation() {
             // - kt, ktkzq = AC controller -> SmartACScreen
             when {
                 // Switch/Multi-function categories -> SwitchDeviceScreen
-                category in listOf("dgnzk", "kg", "cz", "pc", "clkg", "cjkg", "tdq", "kgq", "tgkg", "tgq", "dj", "dd") -> {
+                category in listOf("dgnzk", "kg", "cz", "pc", "clkg", "cjkg", "tdq", "kgq", "tgkg", "tgq", "dj", "dd", "dlq") -> {
                     SwitchDeviceScreen(
                         deviceId = deviceId,
                         deviceName = name,

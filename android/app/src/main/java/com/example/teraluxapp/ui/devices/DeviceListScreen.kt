@@ -37,7 +37,13 @@ fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: Strin
             try {
                 val response = RetrofitClient.instance.getDevices("Bearer $token")
                 if (response.isSuccessful && response.body() != null) {
-                    devices = response.body()!!.data.devices
+                    val rawDevices = response.body()!!.data.devices
+                    val flatList = ArrayList<Device>()
+                    for (d in rawDevices) {
+                        flatList.add(d)
+                        d.collections?.let { flatList.addAll(it) }
+                    }
+                    devices = flatList
                 } else {
                     val errorBody = response.errorBody()?.string()
                     error = "Failed: ${response.code()}"

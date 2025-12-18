@@ -27,14 +27,36 @@ func SetupTuyaDeviceRoutes(
 		//    "data": {
 		//      "devices": [
 		//        {
-		//          "id": "...",
-		//          "name": "...",
-		//          "category": "...",
-		//          "product_name": "...",
+		//          "id": "device_id",
+		//          "name": "Device Name",
+		//          "category": "category_code",
+		//          "product_name": "Product Name",
 		//          "online": true,
-		//          "icon": "...",
+		//          "icon": "http://img.url",
 		//          "status": [
 		//            { "code": "switch_1", "value": true }
+		//          ],
+		//          "custom_name": "Custom Name",
+		//          "model": "Model Info",
+		//          "ip": "192.168.1.x",
+		//          "local_key": "key",
+		//          "gateway_id": "gateway_id",
+		//          "create_time": 1600000000,
+		//          "update_time": 1600000000,
+		//          "collections": [
+		//             {
+		//                "id": "sub_device_id",
+		//                "name": "Sub Device",
+		//                "category": "infrared_ac",
+		//                "product_name": "AC",
+		//                "online": true,
+		//                "icon": "http://img.url",
+		//                "status": [],
+		//                "local_key": "key",
+		//                "gateway_id": "parent_id",
+		//                "create_time": 1600000000,
+		//                "update_time": 1600000000
+		//             }
 		//          ]
 		//        }
 		//      ],
@@ -54,9 +76,23 @@ func SetupTuyaDeviceRoutes(
 		//    "message": "Device fetched successfully",
 		//    "data": {
 		//      "device": {
-		//          "id": "...",
-		//          "name": "...",
-		//          ...
+		//          "id": "device_id",
+		//          "name": "Device Name",
+		//          "category": "category_code",
+		//          "product_name": "Product Name",
+		//          "online": true,
+		//          "icon": "http://img.url",
+		//          "status": [
+		//             { "code": "switch_1", "value": true }
+		//          ],
+		//          "custom_name": "Custom Name",
+		//          "model": "Model Info",
+		//          "ip": "192.168.1.x",
+		//          "local_key": "key",
+		//          "gateway_id": "gateway_id",
+		//          "create_time": 1600000000,
+		//          "update_time": 1600000000,
+		//          "collections": []
 		//      }
 		//    }
 		// }

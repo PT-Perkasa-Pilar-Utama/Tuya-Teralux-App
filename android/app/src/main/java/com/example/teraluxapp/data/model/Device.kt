@@ -12,7 +12,8 @@ data class Device(
     @SerializedName("status") val status: List<DeviceStatus>?,
     @SerializedName("ip") val ip: String?,
     @SerializedName("local_key") val localKey: String?,
-    @SerializedName("gateway_id") val gatewayId: String?
+    @SerializedName("gateway_id") val gatewayId: String?,
+    @SerializedName("collections") val collections: List<Device>?
 )
 
 data class DeviceStatus(

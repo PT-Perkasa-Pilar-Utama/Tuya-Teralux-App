@@ -33,7 +33,6 @@ func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) 
 // @Security     BearerAuth
 // @Router       /api/tuya/devices [get]
 func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
-	// Get access token from header
 	// Get access token from context (set by middleware)
 	accessToken := ctx.MustGet("access_token").(string)
 
