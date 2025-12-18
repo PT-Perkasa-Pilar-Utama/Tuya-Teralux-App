@@ -15,6 +15,7 @@ type Config struct {
 	TuyaUserID       string
 	ApiKey           string
 	SwaggerBaseURL   string
+	GetAllDevicesResponseType string
 }
 
 var AppConfig *Config
@@ -39,6 +40,7 @@ func LoadConfig() {
 		TuyaUserID:       os.Getenv("TUYA_USER_ID"),
 		ApiKey:           os.Getenv("API_KEY"),
 		SwaggerBaseURL:   os.Getenv("SWAGGER_BASE_URL"),
+		GetAllDevicesResponseType: os.Getenv("GET_ALL_DEVICES_RESPONSE"),
 	}
 
 	// Refresh log level after loading config

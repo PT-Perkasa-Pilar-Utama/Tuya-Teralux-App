@@ -64,7 +64,7 @@ start-docker:
 # Push to GHCR (reads env vars)
 push:
 	@echo "🔐 Logging in to GHCR..."
-	@export $$(grep -v '^#' .env | grep -v '^$$' | xargs) && \
+	@export $$(grep -v '^#' .env | grep -v '^$$' | sed 's/#.*//g' | xargs) && \
 	(echo "$${CR_PAT:-$$GITHUB_TOKEN}" | docker login ghcr.io -u farismnrr --password-stdin)
 	@echo "🚀 Setting up Docker Buildx..."
 	# Create a new builder instance if it doesn't exist, or use the existing one

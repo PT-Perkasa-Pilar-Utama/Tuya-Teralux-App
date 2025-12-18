@@ -16,6 +16,7 @@ type TuyaDeviceDTO struct {
 	GatewayID   string                `json:"gateway_id"`
 	CreateTime  int64                 `json:"create_time"`
 	UpdateTime  int64                 `json:"update_time"`
+	Collections []TuyaDeviceDTO       `json:"collections,omitempty"`
 }
 
 // TuyaCommandDTO represents a single command

@@ -45,6 +45,17 @@ class DevicePreferences(context: Context) {
         android.util.Log.d("DevicePreferences", "Loaded switch state for $deviceId: $state")
         return state
     }
+
+    fun saveGenericSwitchState(deviceId: String, code: String, value: Boolean) {
+        prefs.edit().putBoolean("${deviceId}_${code}", value).apply()
+        android.util.Log.d("DevicePreferences", "Saved generic state for $deviceId code $code: $value")
+    }
+
+    fun getGenericSwitchState(deviceId: String, code: String): Boolean {
+        val value = prefs.getBoolean("${deviceId}_${code}", false)
+        android.util.Log.d("DevicePreferences", "Loaded generic state for $deviceId code $code: $value")
+        return value
+    }
 }
 
 data class SwitchState(
