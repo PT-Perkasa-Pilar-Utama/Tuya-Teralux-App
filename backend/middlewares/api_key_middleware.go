@@ -8,18 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ApiKeyMiddleware checks for X-API-KEY header
+// ApiKeyMiddleware validates the presence and correctness of the X-API-KEY header.
+// It ensures that only clients with the correct API key can access the protected endpoints.
+//
+// @return gin.HandlerFunc The Gin middleware handler.
+// @throws 500 If the server API key configuration is missing.
+// @throws 401 If the provided API key is invalid or missing.
 func ApiKeyMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		apiKey := c.GetHeader("X-API-KEY")
-		// Use config
 		config := utils.GetConfig()
 		validApiKey := config.ApiKey
 
 		if validApiKey == "" {
 			utils.LogError("ApiKeyMiddleware: API_KEY is not set in server config!")
-			// If API_KEY is not configured on server, we might want to fail open or closed.
-			// Falsing closed (500) is safer to alert admin.
 			c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 				Status:  false,
 				Message: "Server misconfiguration: API_KEY not set",

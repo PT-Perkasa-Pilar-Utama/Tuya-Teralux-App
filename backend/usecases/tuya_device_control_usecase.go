@@ -14,47 +14,34 @@ import (
 	"strings"
 )
 
-// TuyaDeviceControlUseCase handles device control business logic
+// TuyaDeviceControlUseCase handles the business logic for controlling Tuya devices.
+// It supports both standard device control (switches, lights) and specialized IR air conditioner control.
 type TuyaDeviceControlUseCase struct {
 	service *services.TuyaDeviceService
 }
 
-// NewTuyaDeviceControlUseCase creates a new TuyaDeviceControlUseCase instance
+// NewTuyaDeviceControlUseCase initializes a new TuyaDeviceControlUseCase.
+//
+// @param service The TuyaDeviceService used for API communication.
+// @return *TuyaDeviceControlUseCase A pointer to the initialized usecase.
 func NewTuyaDeviceControlUseCase(service *services.TuyaDeviceService) *TuyaDeviceControlUseCase {
 	return &TuyaDeviceControlUseCase{
 		service: service,
 	}
 }
 
-// SendIRACCommand sends a command to an IR air conditioner
+// SendIRACCommand sends a specific command to an Infrared (IR) controlled Air Conditioner.
+// It first attempts to resolve the correct gateway/infrared ID before sending the command.
+// If the primary IR command fails with specific error codes (e.g., 30100), it attempts a fallback to standard device control.
 //
-// Tuya API Documentation:
-// URL: https://openapi.tuyacn.com/v2.0/infrareds/{infrared_id}/air-conditioners/{remote_id}/command
-// Method: POST
-//
-// Headers:
-//   - client_id: Your Tuya Client ID
-//   - access_token: Valid Bearer Token (needed for signature, passed in header if required by specific endpoints, here used for signature)
-//   - sign: HMAC-SHA256(client_id + access_token + t + stringToSign)
-//   - t: timestamp (ms)
-//   - sign_method: HMAC-SHA256
-//
-// StringToSign Format:
-//   POST\n{content_hash}\n\n{url}
-//
-// Request Body:
-//   {
-//     "code": "temp",   // Command code (e.g., "power", "mode", "temp", "wind")
-//     "value": 24       // Command value (e.g., 0/1 for power, 16-30 for temp)
-//   }
-//
-// Response:
-//   {
-//     "success": true,
-//     "result": true,
-//     "code": 200,
-//     "msg": "success"
-//   }
+// @param accessToken The valid OAuth 2.0 access token.
+// @param infraredID The ID of the IR blaster device (or virtual ID).
+// @param remoteID The ID of the configured remote control for the AC.
+// @param code The command code (e.g., "temp", "mode", "power", "wind").
+// @param value The value for the command (e.g., 24 for temp, 1 for power on).
+// @return bool True if the command was executed successfully.
+// @return error An error if the command failed after all attempts.
+// @throws error If the API returns a failure code that cannot be handled by fallback logic.
 func (uc *TuyaDeviceControlUseCase) SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error) {
 	config := utils.GetConfig()
 
@@ -236,24 +223,15 @@ func (uc *TuyaDeviceControlUseCase) SendIRACCommand(accessToken, infraredID, rem
 	return resp.Result, nil
 }
 
-// SendCommand sends commands to a device (standard or legacy)
+// SendCommand sends a set of commands to a standard Tuya device.
+// It generates the necessary signatures and headers, then dispatches the request via the service layer.
 //
-// Tuya API Documentation (Standard v1.0 / iot-03):
-// URL: https://openapi.tuyacn.com/v1.0/iot-03/devices/{device_id}/commands
-// Method: POST
-//
-// Headers:
-//   - client_id, access_token, sign, t, sign_method (Same as above)
-//
-// Request Body:
-//   {
-//     "commands": [
-//       { "code": "switch_1", "value": true }
-//     ]
-//   }
-//
-// NOTE: This endpoint strictly enforces "Standard Instruction Set". If device has no standard mapping (only DPs),
-// it will return specific error codes (like 2008). In that case, we fallback to the LEGACY endpoint.
+// @param accessToken The valid OAuth 2.0 access token.
+// @param deviceID The unique ID of the device to control.
+// @param commands A list of TuyaCommandDTOs representing the instructions.
+// @return bool True if the command was executed successfully.
+// @return error An error if the API request fails or returns an error code.
+// @throws error If the command fails, including specific retry logic for legacy switch commands involving naming mismatch.
 func (uc *TuyaDeviceControlUseCase) SendCommand(accessToken, deviceID string, commands []dtos.TuyaCommandDTO) (bool, error) {
 	// Get config
 	config := utils.GetConfig()

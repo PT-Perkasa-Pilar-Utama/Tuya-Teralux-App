@@ -12,40 +12,36 @@ import (
 	"time"
 )
 
-// TuyaGetAllDevicesUseCase handles get all devices business logic for Tuya
+// TuyaGetAllDevicesUseCase orchestrates the retrieval and aggregation of device data.
+// It combines the user's device list, individual device specifications, and real-time status.
 type TuyaGetAllDevicesUseCase struct {
 	service *services.TuyaDeviceService
 }
 
-// NewTuyaGetAllDevicesUseCase creates a new TuyaGetAllDevicesUseCase instance
+// NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
+//
+// @param service The TuyaDeviceService used for API interactions.
+// @return *TuyaGetAllDevicesUseCase A pointer to the initialized usecase.
 func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService) *TuyaGetAllDevicesUseCase {
 	return &TuyaGetAllDevicesUseCase{
 		service: service,
 	}
 }
 
-// GetAllDevices retrieves all devices from Tuya API
+// GetAllDevices retrieves the complete list of devices for a user, including statuses and specs.
+// It performs multiple API calls: fetching the device list, fetching specifications for each, and batch-fetching real-time status.
+// It also handles device categorization and grouping (e.g., grouping IR ACs under a Smart IR Hub).
 //
 // Tuya API Interactions:
-// 
-// 1. List Devices by User:
-//    URL: https://openapi.tuyacn.com/v1.0/users/{uid}/devices
-//    Method: GET
-//    Auth: Standard Token Auth
+// 1. List Devices by User: GET /v1.0/users/{uid}/devices
+// 2. Get Device Specifications: GET /v1.0/iot-03/devices/{device_id}/specification
+// 3. Batch Get Device Status: GET /v1.0/iot-03/devices/status
 //
-// 2. Get Device Specifications (for each device):
-//    URL: https://openapi.tuyacn.com/v1.0/iot-03/devices/{device_id}/specification
-//    Method: GET
-//    Purpose: Retrieves function definitions (DP codes) and status mappings. 
-//             Crucial for identifying valid command codes (e.g., switch1 vs switch_1).
-//
-// 3. Batch Get Device Status:
-//    URL: https://openapi.tuyacn.com/v1.0/iot-03/devices/status?device_ids=id1,id2...
-//    Method: GET
-//    Purpose: Retrieves real-time online/offline status and current DP values for multiple devices.
-//
-// Response Aggregation:
-//    Combines basic device info, static specifications, and dynamic real-time status into a unified DTO.
+// @param accessToken The valid OAuth 2.0 access token.
+// @param uid The Tuya User ID for whom to fetch devices.
+// @return *dtos.TuyaDevicesResponseDTO The aggregated list of devices.
+// @return error An error if fetching the device list fails.
+// @throws error If the API returns a failure (e.g., invalid token).
 func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string) (*dtos.TuyaDevicesResponseDTO, error) {
 	// Get config
 	config := utils.GetConfig()

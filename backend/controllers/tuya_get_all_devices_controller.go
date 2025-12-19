@@ -32,10 +32,8 @@ func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) 
 // @Security     BearerAuth
 // @Router       /api/tuya/devices [get]
 func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
-	// Get access token from context (set by middleware)
 	accessToken := ctx.MustGet("access_token").(string)
 
-	// Use Tuya User ID from environment/config
 	uid := utils.AppConfig.TuyaUserID
 	if uid == "" {
 		utils.LogError("TUYA_USER_ID is not set in environment")
@@ -59,7 +57,6 @@ func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 		return
 	}
 
-	// Return success response
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "Devices fetched successfully",

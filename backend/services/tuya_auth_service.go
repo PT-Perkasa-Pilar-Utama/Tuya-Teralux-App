@@ -10,35 +10,40 @@ import (
 	"time"
 )
 
-// TuyaAuthService is a simple HTTP client wrapper for Tuya API
+// TuyaAuthService handles the OAuth 2.0 authentication flow with the Tuya Cloud API.
 type TuyaAuthService struct {
 	client *http.Client
 }
 
-// NewTuyaAuthService creates a new TuyaAuthService instance
+// NewTuyaAuthService initializes a new instance of TuyaAuthService.
+//
+// @return *TuyaAuthService The initialized authentication service with a default timeout configuration.
 func NewTuyaAuthService() *TuyaAuthService {
 	return &TuyaAuthService{
 		client: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
-// FetchToken makes HTTP request to Tuya API with provided URL and headers
+// FetchToken obtains a new access token from the Tuya API.
+//
+// @param url The complete API endpoint URL for token retrieval (e.g., /v1.0/token?grant_type=1).
+// @param headers A map containing the necessary signing headers (client_id, sign, t, sign_method, nonce, etc.).
+// @return *entities.TuyaAuthResponse The structured response containing the access token, refresh token, and expiration time.
+// @return error An error if the HTTP request fails, status code is not 200, or the response body cannot be parsed.
+// @throws error If the Tuya API returns a non-200 status code indicating authentication failure.
 func (s *TuyaAuthService) FetchToken(url string, headers map[string]string) (*entities.TuyaAuthResponse, error) {
 	utils.LogDebug("FetchToken: requesting %s", url)
 
-	// Create HTTP request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		utils.LogError("FetchToken: failed to create request: %v", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
 
-	// Execute request
 	resp, err := s.client.Do(req)
 	if err != nil {
 		utils.LogError("FetchToken: failed to execute request: %v", err)
@@ -46,23 +51,18 @@ func (s *TuyaAuthService) FetchToken(url string, headers map[string]string) (*en
 	}
 	defer resp.Body.Close()
 
-	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		utils.LogError("FetchToken: failed to read response: %v", err)
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	// DEBUG LOG RAW BODY
 	utils.LogDebug("FetchToken Response Body: %s", string(body))
-
-	// Check status code
 	if resp.StatusCode != http.StatusOK {
 		utils.LogError("FetchToken: API returned status %d: %s", resp.StatusCode, string(body))
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse response
 	var authResponse entities.TuyaAuthResponse
 	if err := json.Unmarshal(body, &authResponse); err != nil {
 		utils.LogError("FetchToken: failed to parse response: %v", err)
@@ -70,6 +70,5 @@ func (s *TuyaAuthService) FetchToken(url string, headers map[string]string) (*en
 	}
 
 	utils.LogDebug("FetchToken success: token received, expires in %d seconds", authResponse.Result.ExpireTime)
-
 	return &authResponse, nil
 }

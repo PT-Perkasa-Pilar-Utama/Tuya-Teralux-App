@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"teralux_app/docs" // Import generated docs
+	"teralux_app/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -40,10 +40,8 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
 func main() {
-	// Load configuration
 	utils.LoadConfig()
 
-	// Update Swagger Configuration from ENV
 	if swaggerURL := utils.AppConfig.SwaggerBaseURL; swaggerURL != "" {
 		parsedURL, err := url.Parse(swaggerURL)
 		if err != nil {
@@ -54,10 +52,8 @@ func main() {
 		}
 	}
 
-	// Initialize Gin router
 	router := gin.Default()
 
-	// Swagger Route
 	router.GET("/swagger/*any", func(c *gin.Context) {
 		if c.Param("any") == "" || c.Param("any") == "/" || c.Param("any") == "/index.html" {
 			c.Header("Content-Type", "text/html; charset=utf-8")
@@ -67,13 +63,18 @@ func main() {
 		}
 	})
 
-	// Initialize dependency chain: service -> usecase -> controller
+	badgerService, err := services.NewBadgerService("./tmp/badger")
+	if err != nil {
+		utils.LogInfo("Warning: Failed to initialize BadgerDB: %v", err)
+	} else {
+		defer badgerService.Close()
+	}
+
 	tuyaAuthService := services.NewTuyaAuthService()
 	tuyaAuthUseCase := usecases.NewTuyaAuthUseCase(tuyaAuthService)
 
-	tuyaDeviceService := services.NewTuyaDeviceService()
+	tuyaDeviceService := services.NewTuyaDeviceService(badgerService)
 
-	// Initialize Get All Devices chain
 	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService)
 	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService)
 	tuyaDeviceControlUseCase := usecases.NewTuyaDeviceControlUseCase(tuyaDeviceService)
@@ -84,21 +85,21 @@ func main() {
 	tuyaGetDeviceByIDController := controllers.NewTuyaGetDeviceByIDController(tuyaGetDeviceByIDUseCase)
 	tuyaDeviceControlController := controllers.NewTuyaDeviceControlController(tuyaDeviceControlUseCase)
 	tuyaSensorController := controllers.NewTuyaSensorController(tuyaSensorUseCase)
+	cacheController := controllers.NewCacheController(badgerService)
 
-	// Public Routes (Protected by API Key)
 	authGroup := router.Group("/")
 	authGroup.Use(middlewares.ApiKeyMiddleware())
 	routes.SetupTuyaAuthRoutes(authGroup, tuyaAuthController)
 
-	// Protected Routes
 	protected := router.Group("/")
 	protected.Use(middlewares.AuthMiddleware())
 	protected.Use(middlewares.TuyaErrorMiddleware())
 	{
 		routes.SetupTuyaDeviceRoutes(protected, tuyaGetAllDevicesController, tuyaGetDeviceByIDController, tuyaSensorController)
 		routes.SetupTuyaControlRoutes(protected, tuyaDeviceControlController)
+		routes.SetupCacheRoutes(protected, cacheController)
 	}
-	// Start server
+	
 	utils.LogInfo("Server starting on :8080")
 	if err := router.Run(":8080"); err != nil {
 		utils.LogInfo("Failed to start server: %v", err)

@@ -20,6 +20,24 @@ Backend service for the Teralux application, built with Go.
 
 ---
 
+## 📚 API Documentation (Swagger)
+
+The project uses [Swaggo](https://github.com/swaggo/swag) to generate Swagger/OpenAPI documentation.
+
+- **Access**: When the server is running, visit `http://localhost:8080/swagger/index.html` to view the interactive API docs.
+- **Update Docs**: If you modify API comments, run `swag init` (or `make build` if configured) to regenerate the documentation.
+
+## ⚡ Caching
+
+The application uses **BadgerDB**, a fast embedded key-value store, for caching purposes to enhance performance.
+
+- **Storage**: Data is cached locally on disk/memory using Badger.
+- **Management**: 
+  - There is an API endpoint to flush the cache if needed: `DELETE /api/cache/flush`.
+  - This is useful for clearing stale data without restarting the server.
+
+---
+
 ## 🏃 Running the Application
 
 You can run the application manually (directly on your machine) or using Docker. The project includes a `Makefile` to simplify these commands.
@@ -86,6 +104,5 @@ The `Makefile` includes several utility commands to manage the project:
 | `make start-compose` | Start the Docker Compose stack |
 | `make stop-compose` | Stop the Docker Compose stack |
 | `make update` | Update running container using Watchtower |
-| `make test` | Run all unit tests |
 | `make clean` | Clean build artifacts |
 | `make kill` | Kill any process running on port 8080 |

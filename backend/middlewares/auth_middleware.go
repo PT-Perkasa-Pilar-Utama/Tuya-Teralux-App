@@ -9,11 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AuthMiddleware handles authentication and header parsing
+// AuthMiddleware processes the Authorization header to extract the Bearer token.
+// It also optionally parses the "X-TUYA-UID" header and stores it in the context.
+//
+// @return gin.HandlerFunc The Gin middleware handler.
+// @throws 401 If the Authorization header is missing or malformed.
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		utils.LogDebug("AuthMiddleware: processing request")
-		// 1. Parse Authorization Header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			utils.LogWarn("AuthMiddleware: missing Authorization Header")
@@ -44,13 +47,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 		c.Set("access_token", accessToken)
 		utils.LogDebug("AuthMiddleware: token parsed successfully")
-
-		// 2. Parse X-TUYA-UID Header (Optional generally, but populated if present)
-		// Controllers that strictly require it should check strictness, 
-		// but for now we just parse it into context if it exists.
-		// However, based on previous code, GetAllDevices STRICTLY required it. 
-		// Let's parse it here. If a controller needs it, it can check c.Get("tuya_uid").
-		
+	
 		tuyaUID := c.GetHeader("X-TUYA-UID") 
 		if tuyaUID != "" {
 			c.Set("tuya_uid", tuyaUID)
