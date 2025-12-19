@@ -37,9 +37,7 @@ func NewTuyaDeviceControlController(useCase *usecases.TuyaDeviceControlUseCase) 
 // @Router       /api/tuya/devices/{id}/commands/switch [post]
 func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 	deviceID := c.Param("id")
-	// Get access token from context (set by middleware)
 	accessToken := c.MustGet("access_token").(string)
-	
 	utils.LogDebug("SendCommand: received request for device %s", deviceID)
 
 	var req dtos.TuyaCommandDTO
@@ -53,7 +51,6 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 		return
 	}
 
-	// Wrap single command in slice for usecase
 	commands := []dtos.TuyaCommandDTO{req}
 	success, err := ctrl.useCase.SendCommand(accessToken, deviceID, commands)
 	if err != nil {
@@ -88,7 +85,6 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/tuya/devices/{id}/commands/ir [post]
 func (ctrl *TuyaDeviceControlController) SendIRACCommand(c *gin.Context) {
-	// Get access token from context (set by middleware)
 	accessToken := c.MustGet("access_token").(string)
 
 	var req dtos.TuyaIRACCommandDTO

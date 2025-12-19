@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Log levels
+// LogLevel constants define the severity of log messages.
 const (
 	LevelDebug = iota
 	LevelInfo
@@ -20,13 +20,14 @@ var (
 	levelNames      = []string{"DEBUG", "INFO", "WARN", "ERROR"}
 )
 
+// init initializes the logger configuration on package startup.
 func init() {
 	UpdateLogLevel()
 }
 
-// UpdateLogLevel re-reads the LOG_LEVEL from environment variables
+// UpdateLogLevel reads the 'LOG_LEVEL' environment variable and updates the current log level.
+// Valid values: DEBUG, INFO, WARN, ERROR. Defaults to INFO if invalid or unset.
 func UpdateLogLevel() {
-	// Read LOG_LEVEL from environment
 	envLevel := os.Getenv("LOG_LEVEL")
 	switch strings.ToUpper(envLevel) {
 	case "DEBUG":
@@ -42,12 +43,20 @@ func UpdateLogLevel() {
 	}
 }
 
-// shouldLog checks if the message should be logged based on current level
+// shouldLog determines if a message with the given level should be logged.
+//
+// @param level The severity level of the message.
+// @return bool True if the level is greater than or equal to the current log level.
 func shouldLog(level int) bool {
 	return level >= currentLogLevel
 }
 
-// logMessage formats and prints the log message
+// logMessage formats and prints a log message to stdout.
+// It includes a timestamp and the log level prefix.
+//
+// @param level The severity level of the message.
+// @param format The format string (printf style).
+// @param v The arguments for the format string.
 func logMessage(level int, format string, v ...interface{}) {
 	if !shouldLog(level) {
 		return
@@ -56,29 +65,37 @@ func logMessage(level int, format string, v ...interface{}) {
 	msg := fmt.Sprintf(format, v...)
 	timestamp := time.Now().Format("2006/01/02 15:04:05")
 	prefix := levelNames[level]
-
-	// Use standard log package or fmt
-	// Using fmt to control specific format requested by user (resembling the provided log snippet)
-	// format: yyyy/mm/dd HH:MM:SS LEVEL: Message
 	fmt.Printf("%s %s: %s\n", timestamp, prefix, msg)
 }
 
-// LogDebug logs a debug message
+// LogDebug logs a message at DEBUG level.
+//
+// @param format The format string.
+// @param v The arguments.
 func LogDebug(format string, v ...interface{}) {
 	logMessage(LevelDebug, format, v...)
 }
 
-// LogInfo logs an info message
+// LogInfo logs a message at INFO level.
+//
+// @param format The format string.
+// @param v The arguments.
 func LogInfo(format string, v ...interface{}) {
 	logMessage(LevelInfo, format, v...)
 }
 
-// LogWarn logs a warning message
+// LogWarn logs a message at WARN level.
+//
+// @param format The format string.
+// @param v The arguments.
 func LogWarn(format string, v ...interface{}) {
 	logMessage(LevelWarn, format, v...)
 }
 
-// LogError logs an error message
+// LogError logs a message at ERROR level.
+//
+// @param format The format string.
+// @param v The arguments.
 func LogError(format string, v ...interface{}) {
 	logMessage(LevelError, format, v...)
 }

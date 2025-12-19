@@ -33,7 +33,6 @@ func NewTuyaAuthController(useCase *usecases.TuyaAuthUseCase) *TuyaAuthControlle
 // @Router       /api/tuya/auth [get]
 func (c *TuyaAuthController) Authenticate(ctx *gin.Context) {
 	utils.LogDebug("Authenticate request received")
-	// Call use case
 	token, err := c.useCase.Authenticate()																																																																									
 	if err != nil {
 		utils.LogError("Authenticate failed: %v", err)
@@ -45,7 +44,6 @@ func (c *TuyaAuthController) Authenticate(ctx *gin.Context) {
 		return
 	}
 
-	// Return success response
 	utils.LogDebug("Authentication successful")
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,

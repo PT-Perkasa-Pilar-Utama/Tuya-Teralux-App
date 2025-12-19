@@ -34,7 +34,6 @@ func NewTuyaGetDeviceByIDController(useCase *usecases.TuyaGetDeviceByIDUseCase) 
 // @Security     BearerAuth
 // @Router       /api/tuya/devices/{id} [get]
 func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
-	// Get device ID from URL parameter
 	deviceID := ctx.Param("id")
 	if deviceID == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
@@ -45,12 +44,8 @@ func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 		return
 	}
 
-	// Get access token from context (set by middleware)
 	accessToken := ctx.MustGet("access_token").(string)
-
 	utils.LogDebug("GetDeviceByID: requesting device %s", deviceID)
-
-	// Call use case
 	device, err := c.useCase.GetDeviceByID(accessToken, deviceID)
 	if err != nil {
 		utils.LogError("GetDeviceByID failed: %v", err)
@@ -62,7 +57,6 @@ func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 		return
 	}
 
-	// Return success response
 	utils.LogDebug("GetDeviceByID success")
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,

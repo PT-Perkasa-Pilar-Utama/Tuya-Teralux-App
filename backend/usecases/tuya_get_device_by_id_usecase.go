@@ -11,32 +11,32 @@ import (
 	"time"
 )
 
-// TuyaGetDeviceByIDUseCase handles get device by ID business logic for Tuya
+// TuyaGetDeviceByIDUseCase retrieves detailed information for a specific device.
 type TuyaGetDeviceByIDUseCase struct {
 	service *services.TuyaDeviceService
 }
 
-// NewTuyaGetDeviceByIDUseCase creates a new TuyaGetDeviceByIDUseCase instance
+// NewTuyaGetDeviceByIDUseCase initializes a new TuyaGetDeviceByIDUseCase.
+//
+// @param service The TuyaDeviceService used regarding API requests.
+// @return *TuyaGetDeviceByIDUseCase A pointer to the initialized usecase.
 func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService) *TuyaGetDeviceByIDUseCase {
 	return &TuyaGetDeviceByIDUseCase{
 		service: service,
 	}
 }
 
-// GetDeviceByID retrieves a single device by ID from Tuya API
+// GetDeviceByID fetches the details of a single device from the Tuya API.
 //
 // Tuya API Documentation (Get Device):
 // URL: https://openapi.tuyacn.com/v1.0/devices/{device_id}
 // Method: GET
 //
-// Headers:
-//   - client_id, sign, t, sign_method, access_token
-//
-// StringToSign:
-//   GET\n{content_hash}\n\n{url}
-//
-// Response:
-//   Standard Device Info + Status DPs
+// @param accessToken The valid OAuth 2.0 access token.
+// @param deviceID The unique ID of the device to fetch.
+// @return *dtos.TuyaDeviceDTO The detailed device information object.
+// @return error An error if the request fails.
+// @throws error If the API returns a failure response.
 func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) (*dtos.TuyaDeviceDTO, error) {
 	// Get config
 	config := utils.GetConfig()

@@ -1,5 +1,13 @@
 package docs
 
+// CustomSwaggerHTML is the custom HTML template for the Swagger UI.
+// It overrides the default interface to inject a custom script that automatically
+// captures the access token from the login response and applies it to the "Authorize" button.
+//
+// Key Features:
+// - Custom Styles: Applies local stylesheets.
+// - Auto-Authorization: Intercepts the response from /api/tuya/auth, extracts the access_token,
+//   and programmatically triggers the Swagger UI authorization action with "Bearer <token>".
 const CustomSwaggerHTML = `<!DOCTYPE html>
 <html lang="en">
   <head>

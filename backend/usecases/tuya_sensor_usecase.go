@@ -5,19 +5,29 @@ import (
 	"teralux_app/dtos"
 )
 
-// TuyaSensorUseCase handles sensor data business logic
+// TuyaSensorUseCase handles retrieval and interpretation of sensor data.
+// It parses raw device status values (like temperature, humidity) into formatted DTOs.
 type TuyaSensorUseCase struct {
 	getDeviceUseCase *TuyaGetDeviceByIDUseCase
 }
 
-// NewTuyaSensorUseCase creates a new TuyaSensorUseCase instance
+// NewTuyaSensorUseCase initializes a new TuyaSensorUseCase.
+//
+// @param getDeviceUseCase The usecase dependency for fetching raw device data.
+// @return *TuyaSensorUseCase A pointer to the initialized usecase.
 func NewTuyaSensorUseCase(getDeviceUseCase *TuyaGetDeviceByIDUseCase) *TuyaSensorUseCase {
 	return &TuyaSensorUseCase{
 		getDeviceUseCase: getDeviceUseCase,
 	}
 }
 
-// GetSensorData retrieves and parses sensor data for a specific device
+// GetSensorData retrieves, interprets, and formats sensor readings for a specific device.
+// It converts raw values (often integers scaled by 10) into human-readable floats and generates descriptive status text.
+//
+// @param accessToken The valid OAuth 2.0 access token.
+// @param deviceID The device ID of the sensor.
+// @return *dtos.SensorDataDTO The structured sensor data containing temperature, humidity, and status.
+// @return error An error if fetching the device data fails.
 func (uc *TuyaSensorUseCase) GetSensorData(accessToken, deviceID string) (*dtos.SensorDataDTO, error) {
 	device, err := uc.getDeviceUseCase.GetDeviceByID(accessToken, deviceID)
 	if err != nil {

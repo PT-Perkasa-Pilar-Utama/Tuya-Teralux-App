@@ -11,44 +11,36 @@ import (
 	"time"
 )
 
-// TuyaAuthUseCase handles authentication business logic for Tuya
+// TuyaAuthUseCase handles the core business logic for Tuya API authentication.
+// It orchestrates signature generation, timestamp creation, and service interaction.
 type TuyaAuthUseCase struct {
 	service *services.TuyaAuthService
 }
 
-// NewTuyaAuthUseCase creates a new TuyaAuthUseCase instance
+// NewTuyaAuthUseCase creates a new instance of TuyaAuthUseCase.
+//
+// @param service The TuyaAuthService used to perform the actual HTTP requests.
+// @return *TuyaAuthUseCase A pointer to the initialized usecase.
 func NewTuyaAuthUseCase(service *services.TuyaAuthService) *TuyaAuthUseCase {
 	return &TuyaAuthUseCase{
 		service: service,
 	}
 }
 
-// Authenticate retrieves access token from Tuya API
+// Authenticate performs the full authentication flow to retrieve an access token.
+// It handles signature generation (HMAC-SHA256), timestamp creation, and header preparation.
 //
 // Tuya API Documentation (Get Token):
 // URL: https://openapi.tuyacn.com/v1.0/token?grant_type=1
 // Method: GET
 //
-// Headers:
-//   - client_id: Your Tuya Client ID
-//   - sign: HMAC-SHA256(client_id + t + stringToSign)
-//   - t: timestamp (ms)
-//   - sign_method: HMAC-SHA256
-//
 // StringToSign Format:
 //   GET\n{content_hash}\n\n{url}
 //   (content_hash is SHA256 of empty string for GET)
 //
-// Response:
-//   {
-//     "success": true,
-//     "result": {
-//       "access_token": "...",
-//       "refresh_token": "...",
-//       "expire_time": 7200,
-//       "uid": "..."
-//     }
-//   }
+// @return *dtos.TuyaAuthResponseDTO The data transfer object containing the access token, refresh token, and expiration time.
+// @return error An error if configuration is missing, signature generation fails, or the API call returns an error.
+// @throws error if the API returns a non-success status code (e.g., invalid client ID).
 func (uc *TuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
 	// Get config
 	config := utils.GetConfig()

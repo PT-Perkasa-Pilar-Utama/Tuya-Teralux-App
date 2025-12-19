@@ -7,27 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupTuyaAuthRoutes registers Tuya authentication routes
+// SetupTuyaAuthRoutes registers authentication-related endpoints for Tuya.
+//
+// @param router The Gin router group to attach routes to.
+// @param controller The handler controller for authentication logic.
 func SetupTuyaAuthRoutes(router *gin.RouterGroup, controller *controllers.TuyaAuthController) {
 	utils.LogDebug("SetupTuyaAuthRoutes initialized")
 	api := router.Group("/api/tuya")
 	{
-		// Authenticate with Tuya
-		// URL: /api/tuya/auth
-		// Method: GET
-		// Headers:
-		//    X-API-KEY: <your_api_key>
-		// Body: None
-		// Response: {
-		//    "status": true,
-		//    "message": "Authentication successful",
-		//    "data": {
-		//      "access_token": "...",
-		//      "expire_time": 7200,
-		//      "refresh_token": "...",
-		//      "uid": "..."
-		//    }
-		// }
+		// GET /api/tuya/auth
+		// Initiates the Tuya authentication process to retrieve an access token.
 		api.GET("/auth", controller.Authenticate)
 	}
 }
