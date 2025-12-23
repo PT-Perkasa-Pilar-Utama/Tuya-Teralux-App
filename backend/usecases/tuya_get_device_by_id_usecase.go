@@ -3,6 +3,7 @@ package usecases
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"teralux_app/dtos"
@@ -14,15 +15,18 @@ import (
 // TuyaGetDeviceByIDUseCase retrieves detailed information for a specific device.
 type TuyaGetDeviceByIDUseCase struct {
 	service *services.TuyaDeviceService
+	cache   *services.BadgerService
 }
 
 // NewTuyaGetDeviceByIDUseCase initializes a new TuyaGetDeviceByIDUseCase.
 //
 // param service The TuyaDeviceService used regarding API requests.
+// param cache The BadgerService used for caching device details.
 // return *TuyaGetDeviceByIDUseCase A pointer to the initialized usecase.
-func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService) *TuyaGetDeviceByIDUseCase {
+func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService, cache *services.BadgerService) *TuyaGetDeviceByIDUseCase {
 	return &TuyaGetDeviceByIDUseCase{
 		service: service,
+		cache:   cache,
 	}
 }
 
@@ -38,6 +42,20 @@ func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService) *TuyaGetDe
 // return error An error if the request fails.
 // @throws error If the API returns a failure response.
 func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) (*dtos.TuyaDeviceDTO, error) {
+	// 1. Try Cache First
+	cacheKey := fmt.Sprintf("tuya_device_%s", deviceID)
+	cachedData, err := uc.cache.Get(cacheKey)
+	if err == nil && cachedData != nil {
+		var cachedDTO dtos.TuyaDeviceDTO
+		if err := json.Unmarshal(cachedData, &cachedDTO); err == nil {
+			utils.LogDebug("GetDeviceByID: Cache HIT for device %s", deviceID)
+			return &cachedDTO, nil
+		}
+		utils.LogError("GetDeviceByID: failed to unmarshal cached value: %v", err)
+	} else {
+		utils.LogDebug("GetDeviceByID: Cache MISS for device %s (err: %v)", deviceID, err)
+	}
+
 	// Get config
 	config := utils.GetConfig()
 
@@ -107,6 +125,14 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 		LocalKey:    deviceResponse.Result.LocalKey,
 		CreateTime:  deviceResponse.Result.CreateTime,
 		UpdateTime:  deviceResponse.Result.UpdateTime,
+	}
+
+	// 2. Save to Cache
+	if jsonData, err := json.Marshal(dto); err == nil {
+		uc.cache.Set(cacheKey, jsonData)
+		utils.LogDebug("GetDeviceByID: Saved device %s to cache", deviceID)
+	} else {
+		utils.LogError("GetDeviceByID: Failed to marshal device for cache: %v", err)
 	}
 
 	return dto, nil

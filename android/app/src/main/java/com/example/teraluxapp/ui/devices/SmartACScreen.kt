@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,6 +49,7 @@ fun SmartACScreen(
     var windIndex by remember { mutableStateOf(0) } // 0=auto, 1=low, 2=medium, 3=high
     var isOn by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
+    var isDeviceOnline by remember { mutableStateOf(false) }
     
     val modeLabels = listOf("Cool", "Heat", "Auto", "Fan", "Dry")
     val modeEmojis = listOf("❄️", "🔥", "🔄", "💨", "💧")
@@ -63,56 +65,60 @@ fun SmartACScreen(
     LaunchedEffect(Unit) {
         try {
             val response = RetrofitClient.instance.getDeviceById("Bearer $token", deviceId)
-            val statuses = response.data?.device?.status
+            val dev = response.data?.device
+            if (dev != null) {
+                isDeviceOnline = dev.online
+                val statuses = dev.status
             
-            // DEBUG: Log all statuses
-            rawStatus = statuses?.joinToString("\n") { "${it.code}: ${it.value}" } ?: "No Status"
-            statuses?.forEach { 
-                android.util.Log.d("SmartACScreen", "Status: ${it.code} = ${it.value}") 
-            }
-            
-            // Check if status is empty (stateless IR)
-            if (statuses.isNullOrEmpty()) {
-                val cached = prefs.getACState(deviceId)
-                isOn = cached.isOn
-                temp = cached.temp
-                modeIndex = cached.mode
-                windIndex = cached.speed
-                android.util.Log.d("SmartACScreen", "Loaded cached state: $cached")
-            } else {
-                statuses.forEach { status ->
-                    val code = status.code.lowercase()
-                    when (code) {
-                        "switch", "power" -> isOn = status.value.toString().toBoolean()
-                        "temp_set", "t", "temp" -> {
-                            val t = status.value.toString().toDoubleOrNull()?.toInt()
-                            if (t != null) temp = t
-                        }
-                        "mode" -> {
-                            val modeStr = status.value.toString().lowercase()
-                            modeIndex = when (modeStr) {
-                                "cool", "cold" -> 0
-                                "heat", "hot" -> 1
-                                "auto" -> 2
-                                "fan", "wind" -> 3
-                                "dry", "wet" -> 4
-                                else -> 0
+                // DEBUG: Log all statuses
+                rawStatus = statuses?.joinToString("\n") { "${it.code}: ${it.value}" } ?: "No Status"
+                statuses?.forEach { 
+                    android.util.Log.d("SmartACScreen", "Status: ${it.code} = ${it.value}") 
+                }
+                
+                // Check if status is empty (stateless IR)
+                if (statuses.isNullOrEmpty()) {
+                    val cached = prefs.getACState(deviceId)
+                    isOn = cached.isOn
+                    temp = cached.temp
+                    modeIndex = cached.mode
+                    windIndex = cached.speed
+                    android.util.Log.d("SmartACScreen", "Loaded cached state: $cached")
+                } else {
+                    statuses.forEach { status ->
+                        val code = status.code.lowercase()
+                        when (code) {
+                            "switch", "power" -> isOn = status.value.toString().toBoolean()
+                            "temp_set", "t", "temp" -> {
+                                val t = status.value.toString().toDoubleOrNull()?.toInt()
+                                if (t != null) temp = t
                             }
-                        }
-                        "fan_speed_enum", "wind" -> {
-                            val fanStr = status.value.toString().lowercase()
-                            windIndex = when (fanStr) {
-                                "auto" -> 0
-                                "low" -> 1
-                                "medium" -> 2
-                                "high" -> 3
-                                else -> 0
+                            "mode" -> {
+                                val modeStr = status.value.toString().lowercase()
+                                modeIndex = when (modeStr) {
+                                    "cool", "cold" -> 0
+                                    "heat", "hot" -> 1
+                                    "auto" -> 2
+                                    "fan", "wind" -> 3
+                                    "dry", "wet" -> 4
+                                    else -> 0
+                                }
+                            }
+                            "fan_speed_enum", "wind" -> {
+                                val fanStr = status.value.toString().lowercase()
+                                windIndex = when (fanStr) {
+                                    "auto" -> 0
+                                    "low" -> 1
+                                    "medium" -> 2
+                                    "high" -> 3
+                                    else -> 0
+                                }
                             }
                         }
                     }
+                    // Save loaded state to cache
+                    prefs.saveACState(deviceId, isOn, temp, modeIndex, windIndex)
                 }
-                // Save loaded state to cache
-                prefs.saveACState(deviceId, isOn, temp, modeIndex, windIndex)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -152,7 +158,20 @@ fun SmartACScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(deviceName, fontWeight = FontWeight.Bold) },
+                title = { 
+                    Column {
+                        Text(deviceName, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                             Box(modifier = Modifier.size(6.dp).background(if (isDeviceOnline) Color(0xFF4CAF50) else Color.Red, androidx.compose.foundation.shape.CircleShape))
+                             Spacer(modifier = Modifier.width(4.dp))
+                             Text(
+                                 text = if (isDeviceOnline) "Online" else "Offline",
+                                 style = MaterialTheme.typography.labelSmall,
+                                 color = if (isDeviceOnline) Color(0xFF4CAF50) else Color.Red
+                             )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -172,7 +191,8 @@ fun SmartACScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                .alpha(if (isDeviceOnline) 1f else 0.5f),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {

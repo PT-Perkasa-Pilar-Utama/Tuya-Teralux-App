@@ -25,6 +25,7 @@ type TuyaDeviceResponse struct {
 type TuyaDevice struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
+	RemoteName  string                 `json:"remote_name"`
 	UID         string                 `json:"uid"`
 	LocalKey    string                 `json:"local_key"`
 	Category    string                 `json:"category"`
@@ -53,6 +54,7 @@ type TuyaDevice struct {
 	Functions   []TuyaDeviceFunction   `json:"functions"`
 	StatusRange map[string]interface{} `json:"status_range"`
 }
+
 
 // TuyaDeviceStatus represents the status of a device property
 type TuyaDeviceStatus struct {

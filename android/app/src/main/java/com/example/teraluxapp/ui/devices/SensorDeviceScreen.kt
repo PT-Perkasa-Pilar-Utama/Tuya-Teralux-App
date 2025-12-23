@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -35,10 +36,14 @@ fun SensorDeviceScreen(
     var statusText by remember { mutableStateOf("Loading...") }
     var tempUnit by remember { mutableStateOf("°C") }
     var isLoading by remember { mutableStateOf(true) }
+    var isDeviceOnline by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
             try {
+                val devResp = RetrofitClient.instance.getDeviceById("Bearer $token", deviceId)
+                isDeviceOnline = devResp.data?.device?.online == true
+
                 val response = RetrofitClient.instance.getSensorData("Bearer $token", deviceId)
                 if (response.isSuccessful && response.body()?.status == true) {
                     val data = response.body()?.data
@@ -66,7 +71,20 @@ fun SensorDeviceScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(deviceName, fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { 
+                    Column {
+                        Text(deviceName, fontWeight = FontWeight.Bold, color = Color.White)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                             Box(modifier = Modifier.size(6.dp).background(if (isDeviceOnline) Color.Green else Color.Red, androidx.compose.foundation.shape.CircleShape))
+                             Spacer(modifier = Modifier.width(4.dp))
+                             Text(
+                                 text = if (isDeviceOnline) "Online" else "Offline",
+                                 style = MaterialTheme.typography.labelSmall,
+                                 color = if (isDeviceOnline) Color.Green else Color.Red
+                             )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -84,6 +102,7 @@ fun SensorDeviceScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .alpha(if (isDeviceOnline) 1f else 0.5f)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(

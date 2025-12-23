@@ -5,7 +5,6 @@ type TuyaDeviceDTO struct {
 	ID                string                `json:"id"`
 	RemoteID          string                `json:"remote_id,omitempty"`
 	Name              string                `json:"name"`
-	RemoteName        string                `json:"remote_name,omitempty"`
 	Category          string                `json:"category"`
 	RemoteCategory    string                `json:"remote_category,omitempty"`
 	ProductName       string                `json:"product_name"`
@@ -49,8 +48,9 @@ type TuyaDeviceStatusDTO struct {
 
 // TuyaDevicesResponseDTO represents the response for getting all devices
 type TuyaDevicesResponseDTO struct {
-	Devices []TuyaDeviceDTO `json:"devices"`
-	Total   int             `json:"total"`
+	Devices          []TuyaDeviceDTO `json:"devices"`
+	TotalDevices     int             `json:"total_devices"`
+	CurrentPageCount int             `json:"current_page_count"`
 }
 
 // TuyaDeviceResponseDTO represents the response for getting a single device

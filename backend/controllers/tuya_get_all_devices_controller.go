@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"teralux_app/dtos"
 	"teralux_app/usecases"
 	"teralux_app/utils"
@@ -27,7 +28,10 @@ func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) 
 // @Tags         Devices
 // @Accept       json
 // @Produce      json
-// @Success      200  {object}  dtos.StandardResponse{data=[]dtos.TuyaDeviceDTO}
+// @Param        page      query  int     false  "Page number"
+// @Param        limit     query  int     false  "Items per page"
+// @Param        category  query  string  false  "Filter by category"
+// @Success      200  {object}  dtos.StandardResponse{data=dtos.TuyaDevicesResponseDTO}
 // @Failure      500  {object}  dtos.StandardResponse
 // @Security     BearerAuth
 // @Router       /api/tuya/devices [get]
@@ -46,7 +50,32 @@ func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	}
 	utils.LogDebug("Using TUYA_USER_ID from env: '%s'", uid)
 
-	devices, err := c.useCase.GetAllDevices(accessToken, uid)
+	// Parse optional query parameters
+	pageStr := ctx.Query("page")
+	limitStr := ctx.Query("limit")
+	category := ctx.Query("category")
+
+	page := 0
+	limit := 0
+	var errConv error
+
+	if pageStr != "" {
+		page, errConv = strconv.Atoi(pageStr)
+		if errConv != nil {
+			utils.LogWarn("Invalid page parameter: %v", errConv)
+			page = 0 // Default to 0 (ignored)
+		}
+	}
+
+	if limitStr != "" {
+		limit, errConv = strconv.Atoi(limitStr)
+		if errConv != nil {
+			utils.LogWarn("Invalid limit parameter: %v", errConv)
+			limit = 0 // Default to 0 (ignored)
+		}
+	}
+
+	devices, err := c.useCase.GetAllDevices(accessToken, uid, page, limit, category)
 	if err != nil {
 		utils.LogError("Error fetching devices: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

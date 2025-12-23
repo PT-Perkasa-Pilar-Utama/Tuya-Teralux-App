@@ -67,17 +67,12 @@ definitions:
         type: string
       name:
         type: string
+        description: "Device name (uses remote_name if available)"
       online:
         type: boolean
       product_name:
         type: string
-      remote_category:
-        type: string
-      remote_icon:
-        type: string
       remote_id:
-        type: string
-      remote_name:
         type: string
       remote_product_name:
         type: string
@@ -98,6 +93,17 @@ definitions:
       code:
         type: string
       value: {}
+    type: object
+  dtos.TuyaDevicesResponseDTO:
+    properties:
+      current_page_count:
+        type: integer
+      devices:
+        items:
+          $ref: '#/definitions/dtos.TuyaDeviceDTO'
+        type: array
+      total_devices:
+        type: integer
     type: object
   dtos.TuyaIRACCommandDTO:
     properties:
@@ -136,13 +142,11 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Flush all cache
@@ -180,6 +184,19 @@ paths:
       - application/json
       description: 'Retrieves a list of all devices. Response format depends on GET_ALL_DEVICES_RESPONSE_TYPE:
         0 (Nested/Default), 1 (Flat), 2 (Merged). Sorted alphabetically by Name.'
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
       produces:
       - application/json
       responses:
@@ -190,9 +207,7 @@ paths:
             - $ref: '#/definitions/dtos.StandardResponse'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/dtos.TuyaDeviceDTO'
-                  type: array
+                  $ref: '#/definitions/dtos.TuyaDevicesResponseDTO'
               type: object
         "500":
           description: Internal Server Error

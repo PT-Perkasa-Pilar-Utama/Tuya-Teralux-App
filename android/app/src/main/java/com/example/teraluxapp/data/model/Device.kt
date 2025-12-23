@@ -22,8 +22,10 @@ data class DeviceStatus(
 )
 
 data class DeviceResponse(
+
     @SerializedName("devices") val devices: List<Device>,
-    @SerializedName("total") val total: Int
+    @SerializedName("total_devices") val totalDevices: Int,
+    @SerializedName("current_page_count") val currentPageCount: Int
 )
 
 data class SingleDeviceResponse(

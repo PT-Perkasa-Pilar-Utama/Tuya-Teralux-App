@@ -18,7 +18,10 @@ interface ApiService {
 
     @GET("api/tuya/devices")
     suspend fun getDevices(
-        @Header("Authorization") token: String
+        @Header("Authorization") token: String,
+        @retrofit2.http.Query("page") page: Int? = null,
+        @retrofit2.http.Query("limit") limit: Int? = null,
+        @retrofit2.http.Query("category") category: String? = null
     ): Response<BaseResponse<DeviceResponse>>
 
     @POST("api/tuya/devices/{id}/commands/switch")

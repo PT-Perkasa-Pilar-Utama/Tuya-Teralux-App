@@ -14,34 +14,21 @@ import (
 )
 
 // TuyaDeviceService manages interactions with Tuya's Device API endpoints.
-// It handles device fetching, control commands, and status updates, utilizing a caching layer to optimize performance.
+// It handles device fetching, control commands, and status updates.
 type TuyaDeviceService struct {
 	client *http.Client
-	cache  *BadgerService
 }
 
 // NewTuyaDeviceService initializes a new instance of TuyaDeviceService.
 //
-// param cache A *BadgerService instance for caching responses. Can be nil if caching is disabled.
 // return *TuyaDeviceService A pointer to the initialized service.
-func NewTuyaDeviceService(cache *BadgerService) *TuyaDeviceService {
+func NewTuyaDeviceService() *TuyaDeviceService {
 	return &TuyaDeviceService{
 		client: &http.Client{Timeout: 30 * time.Second},
-		cache:  cache,
 	}
 }
 
-// InvalidateDeviceCache forces the removal of cached device lists for a specific user.
-//
-// param uid The unique user ID (UID) for whom the cache should be cleared.
-// return error An error if the cache deletion fails.
-func (s *TuyaDeviceService) InvalidateDeviceCache(uid string) error {
-	key := fmt.Sprintf("tuya:devices:%s", uid)
-	return s.cache.Delete(key)
-}
-
 // FetchDevices retrieves the list of devices associated with the authenticated user.
-// This method supports caching; it returns cached data if available and valid.
 //
 // param url The full API URL to the Tuya "Refresh Device List" endpoint.
 // param headers A map containing required HTTP headers, specifically 'access_token'.
@@ -49,17 +36,7 @@ func (s *TuyaDeviceService) InvalidateDeviceCache(uid string) error {
 // return error An error if the HTTP request fails, parsing fails, or the API returns a non-200 status.
 // @throws error If the network is unreachable or the response body is malformed.
 func (s *TuyaDeviceService) FetchDevices(url string, headers map[string]string) (*entities.TuyaDevicesResponse, error) {
-	cacheKey := fmt.Sprintf("tuya:devices:%s", utils.HashString(url))
-
-	if s.cache != nil {
-		if val, err := s.cache.Get(cacheKey); err == nil && val != nil {
-			var cachedResp entities.TuyaDevicesResponse
-			if err := json.Unmarshal(val, &cachedResp); err == nil {
-				return &cachedResp, nil
-			}
-			utils.LogError("FetchDevices: failed to unmarshal cached value: %v", err)
-		}
-	}
+	utils.LogDebug("FetchDevices: Starting values fetch from URL: %s", url)
 
 	if gin.Mode() == gin.TestMode {
 		if headers["access_token"] == "invalid_token_12345" {
@@ -102,12 +79,7 @@ func (s *TuyaDeviceService) FetchDevices(url string, headers map[string]string) 
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	if s.cache != nil && devicesResponse.Success {
-		if marshaled, err := json.Marshal(devicesResponse); err == nil {
-			_ = s.cache.Set(cacheKey, marshaled, 1*time.Hour)
-		}
-	}
-
+	utils.LogDebug("FetchDevices: Successfully fetched and parsed %d devices from API", len(devicesResponse.Result))
 	return &devicesResponse, nil
 }
 
@@ -139,9 +111,11 @@ func (s *TuyaDeviceService) FetchDeviceByID(url string, headers map[string]strin
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		utils.LogDebug("FetchDeviceByID: Failed to create request for URL: %s", url)
 		utils.LogError("FetchDeviceByID: failed to create request: %v", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+	utils.LogDebug("FetchDeviceByID: Requesting device details from URL: %s", url)
 
 	for key, value := range headers {
 		req.Header.Set(key, value)
@@ -171,6 +145,7 @@ func (s *TuyaDeviceService) FetchDeviceByID(url string, headers map[string]strin
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
+	utils.LogDebug("FetchDeviceByID: Successfully fetched details for DeviceID: %s", deviceResponse.Result.ID)
 	return &deviceResponse, nil
 }
 
@@ -235,6 +210,7 @@ func (s *TuyaDeviceService) SendCommand(url string, headers map[string]string, c
 		utils.LogError("SendCommand: failed to marshal request body: %v", err)
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
+	utils.LogDebug("SendCommand: Sending %d commands to URL: %s", len(commands), url)
 
 	req, err := http.NewRequest("POST", url, strings.NewReader(string(jsonBody)))
 	if err != nil {
@@ -321,7 +297,6 @@ func (s *TuyaDeviceService) SendIRCommand(url string, headers map[string]string,
 }
 
 // FetchDeviceSpecification retrieves the detailed specifications (functions, status sets) of a device.
-// This method supports caching to reduce API load.
 //
 // param url The full API URL to fetch specifications.
 // param headers A map containing required HTTP headers.
@@ -329,18 +304,6 @@ func (s *TuyaDeviceService) SendIRCommand(url string, headers map[string]string,
 // return error An error if the request fails.
 // @throws error if the content is not valid JSON or network error occurs.
 func (s *TuyaDeviceService) FetchDeviceSpecification(url string, headers map[string]string) (*entities.TuyaDeviceSpecificationResponse, error) {
-	cacheKey := fmt.Sprintf("tuya:specs:%s", utils.HashString(url))
-
-	if s.cache != nil {
-		if val, err := s.cache.Get(cacheKey); err == nil && val != nil {
-			var cachedSpec entities.TuyaDeviceSpecificationResponse
-			if err := json.Unmarshal(val, &cachedSpec); err == nil {
-				return &cachedSpec, nil
-			}
-			utils.LogError("FetchDeviceSpecification: failed to unmarshal cached value: %v", err)
-		}
-	}
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		utils.LogError("FetchDeviceSpecification: failed to create request: %v", err)
@@ -375,11 +338,5 @@ func (s *TuyaDeviceService) FetchDeviceSpecification(url string, headers map[str
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 	
-	if s.cache != nil && specResponse.Success {
-		if marshaled, err := json.Marshal(specResponse); err == nil {
-			_ = s.cache.Set(cacheKey, marshaled, 1*time.Hour)
-		}
-	}
-
 	return &specResponse, nil
 }

@@ -11,7 +11,8 @@ import (
 // BadgerService handles BadgerDB operations for caching and data persistence.
 // It wraps the raw BadgerDB client to provide simplified methods for common operations.
 type BadgerService struct {
-	db *badger.DB
+	db         *badger.DB
+	defaultTTL time.Duration
 }
 
 // NewBadgerService initializes a new BadgerService instance.
@@ -29,7 +30,13 @@ func NewBadgerService(dbPath string) (*BadgerService, error) {
 		return nil, fmt.Errorf("failed to open badger db: %w", err)
 	}
 
-	return &BadgerService{db: db}, nil
+	ttlStr := utils.AppConfig.CacheTTL
+	ttl, err := time.ParseDuration(ttlStr)
+	if err != nil {
+		ttl = 1 * time.Hour // Default to 1 hour if invalid or not set
+	}
+
+	return &BadgerService{db: db, defaultTTL: ttl}, nil
 }
 
 // Close terminates the database connection and ensures all data is flushed to disk.
@@ -43,16 +50,15 @@ func (s *BadgerService) Close() error {
 	return nil
 }
 
-// Set stores a key-value pair in the database with a specified Time-To-Live (TTL).
+// Set stores a key-value pair in the database using the configured default Time-To-Live (TTL).
 //
 // param key The unique identifier for the data.
 // param value The byte array data to store.
-// param ttl The duration after which the key should expire.
 // return error An error if the write operation fails.
 // @throws error If the transaction fails to commit.
-func (s *BadgerService) Set(key string, value []byte, ttl time.Duration) error {
+func (s *BadgerService) Set(key string, value []byte) error {
 	err := s.db.Update(func(txn *badger.Txn) error {
-		entry := badger.NewEntry([]byte(key), value).WithTTL(ttl)
+		entry := badger.NewEntry([]byte(key), value).WithTTL(s.defaultTTL)
 		return txn.SetEntry(entry)
 	})
 	if err != nil {
@@ -76,6 +82,17 @@ func (s *BadgerService) Get(key string) ([]byte, error) {
 		if err != nil {
 			return err
 		}
+		
+		// Debug TTL
+		expiresAt := item.ExpiresAt()
+		if expiresAt > 0 {
+			ttlRemaining := time.Until(time.Unix(int64(expiresAt), 0))
+			utils.LogDebug("Cache Hit for '%s' | Expires in: %v", key, ttlRemaining)
+		} else {
+             // If ExpiresAt is 0, it means the key has no TTL (Persistent)
+			utils.LogDebug("Cache Hit for '%s' | Expires in: Never (Persistent)", key)
+		}
+
 		valCopy, err = item.ValueCopy(nil)
 		return err
 	})
