@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -22,6 +24,12 @@ import com.example.teraluxapp.data.model.Device
 import com.example.teraluxapp.data.network.RetrofitClient
 import kotlinx.coroutines.launch
 
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import coil.compose.AsyncImage
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.draw.alpha
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: String, category: String, deviceName: String, gatewayId: String?) -> Unit) {
@@ -29,15 +37,22 @@ fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: Strin
     var devices by remember { mutableStateOf<List<Device>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var page by remember { mutableIntStateOf(1) }
+    var totalDevices by remember { mutableIntStateOf(0) }
+    val limit = 6
 
-    val fetchDevices = {
+    val fetchDevices = { pageNum: Int ->
         scope.launch {
             isLoading = true
             error = null
             try {
-                val response = RetrofitClient.instance.getDevices("Bearer $token")
+                // Pass page and limit=6
+                val response = RetrofitClient.instance.getDevices("Bearer $token", page = pageNum, limit = limit)
                 if (response.isSuccessful && response.body() != null) {
-                    val rawDevices = response.body()?.data?.devices ?: emptyList()
+                    val body = response.body()!!.data
+                    val rawDevices = body?.devices ?: emptyList()
+                    totalDevices = body?.totalDevices ?: 0
+                    
                     val flatList = ArrayList<Device>()
                     for (d in rawDevices) {
                         flatList.add(d)
@@ -57,8 +72,8 @@ fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: Strin
         }
     }
 
-    LaunchedEffect(Unit) {
-        fetchDevices()
+    LaunchedEffect(page) {
+        fetchDevices(page)
     }
 
     Scaffold(
@@ -66,100 +81,183 @@ fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: Strin
             TopAppBar(
                 title = { Text("My Devices") },
                 actions = {
-                    IconButton(onClick = { fetchDevices() }) {
+                    IconButton(onClick = { fetchDevices(page) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else if (error != null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(text = error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { fetchDevices() }) {
+                        Button(onClick = { fetchDevices(page) }) {
                             Text("Retry")
                         }
                     }
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize()
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(8.dp), // Reduced padding
+                    verticalArrangement = Arrangement.spacedBy(8.dp) // Reduced spacing
                 ) {
-                    items(devices) { device ->
-                        DeviceItem(device = device, onClick = { onDeviceClick(device.id, device.category, device.name, device.gatewayId) })
+                    val firstRowDevices = devices.take(3)
+                    val secondRowDevices = if (devices.size > 3) devices.drop(3).take(3) else emptyList()
+
+                    // Row 1
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp) // Reduced spacing
+                    ) {
+                        for (i in 0 until 3) {
+                            if (i < firstRowDevices.size) {
+                                val device = firstRowDevices[i]
+                                DeviceItem(
+                                    device = device,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onDeviceClick(device.id, device.category, device.name, device.gatewayId) }
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
+
+                    // Row 2
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp) // Reduced spacing
+                    ) {
+                        for (i in 0 until 3) {
+                            if (i < secondRowDevices.size) {
+                                val device = secondRowDevices[i]
+                                DeviceItem(
+                                    device = device,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onDeviceClick(device.id, device.category, device.name, device.gatewayId) }
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Pagination Controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = { if (page > 1) page-- },
+                    enabled = page > 1
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous")
+                    Spacer(Modifier.width(8.dp))
+                    Text("Prev")
+                }
+
+                Text("Page $page of ${if (totalDevices > 0) kotlin.math.ceil(totalDevices.toDouble() / limit).toInt() else 1}")
+
+                val maxPage = if (totalDevices > 0) kotlin.math.ceil(totalDevices.toDouble() / limit).toInt() else 1
+                Button(
+                    onClick = { if (page < maxPage) page++ },
+                    enabled = page < maxPage
+                ) {
+                    Text("Next")
+                    Spacer(Modifier.width(8.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next")
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun DeviceItem(device: Device, onClick: () -> Unit) {
+fun DeviceItem(device: Device, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val saturationMatrix = remember { ColorMatrix() }
+    LaunchedEffect(device.online) {
+        saturationMatrix.setToSaturation(if (device.online) 1f else 0f)
+    }
+
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(1f) // Square shape
+            .padding(4.dp)
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (device.online) MaterialTheme.colorScheme.surface else Color.LightGray.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Column(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween // Distribute space
-        ) {
-            // Top: Status Dot
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxSize()
+                    .alpha(if (device.online) 1f else 0.6f), // Dim content if offline
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(
-                            color = if (device.online) Color.Green else Color.Gray,
-                            shape = RoundedCornerShape(50)
-                        )
+                Spacer(modifier = Modifier.height(16.dp)) // Space for badge
+
+                // Icon
+                val iconUrl = "https://images.tuyacn.com/${device.icon}"
+                AsyncImage(
+                    model = iconUrl,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    placeholder = rememberVectorPainter(Icons.Default.Home),
+                    error = rememberVectorPainter(Icons.Default.Home),
+                    colorFilter = ColorFilter.colorMatrix(saturationMatrix)
                 )
-            }
 
-            // Center: Icon
-            Icon(
-                imageVector = Icons.Default.Home, // Placeholder icon
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = if (device.online) MaterialTheme.colorScheme.primary else Color.Gray
-            )
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Bottom: Name
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Name
                 Text(
                     text = device.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    color = if (device.online) Color.Unspecified else Color.Gray
                 )
+            }
+
+            // Status Badge
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp),
+                shape = RoundedCornerShape(4.dp),
+                color = if (device.online) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
+            ) {
                 Text(
                     text = if (device.online) "Online" else "Offline",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (device.online) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (device.online) Color(0xFF2E7D32) else Color.Gray,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
         }

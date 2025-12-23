@@ -13,6 +13,7 @@ object RetrofitClient {
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(FailoverInterceptor())
+        .addInterceptor(AuthInterceptor())
         .addInterceptor { chain ->
             val original = chain.request()
             val builder = original.newBuilder()

@@ -6,7 +6,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.teraluxapp.ui.devices.SmartACScreen
+import androidx.compose.runtime.LaunchedEffect
+import com.example.teraluxapp.utils.SessionManager
 import com.example.teraluxapp.ui.devices.SmartACScreen
 import com.example.teraluxapp.ui.devices.SwitchDeviceScreen
 import com.example.teraluxapp.ui.devices.SensorDeviceScreen
@@ -18,6 +19,14 @@ import java.net.URLEncoder
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+
+    LaunchedEffect(Unit) {
+        SessionManager.logoutEvent.collect {
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {

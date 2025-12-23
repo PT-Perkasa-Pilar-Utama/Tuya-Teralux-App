@@ -46,15 +46,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -124,6 +122,26 @@ const docTemplate = `{
                     "Devices"
                 ],
                 "summary": "Get All Devices",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -136,10 +154,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dtos.TuyaDeviceDTO"
-                                            }
+                                            "$ref": "#/definitions/dtos.TuyaDevicesResponseDTO"
                                         }
                                     }
                                 }
@@ -505,9 +520,6 @@ const docTemplate = `{
                 "remote_category": {
                     "type": "string"
                 },
-                "remote_icon": {
-                    "type": "string"
-                },
                 "remote_id": {
                     "type": "string"
                 },
@@ -543,6 +555,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "value": {}
+            }
+        },
+        "dtos.TuyaDevicesResponseDTO": {
+            "type": "object",
+            "properties": {
+                "current_page_count": {
+                    "type": "integer"
+                },
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TuyaDeviceDTO"
+                    }
+                },
+                "total_devices": {
+                    "type": "integer"
+                }
             }
         },
         "dtos.TuyaIRACCommandDTO": {

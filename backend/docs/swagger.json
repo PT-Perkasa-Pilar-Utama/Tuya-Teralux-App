@@ -40,15 +40,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -118,6 +116,26 @@
                     "Devices"
                 ],
                 "summary": "Get All Devices",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -130,10 +148,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dtos.TuyaDeviceDTO"
-                                            }
+                                            "$ref": "#/definitions/dtos.TuyaDevicesResponseDTO"
                                         }
                                     }
                                 }
@@ -488,7 +503,8 @@
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Device name (uses remote_name if available)"
                 },
                 "online": {
                     "type": "boolean"
@@ -499,13 +515,7 @@
                 "remote_category": {
                     "type": "string"
                 },
-                "remote_icon": {
-                    "type": "string"
-                },
                 "remote_id": {
-                    "type": "string"
-                },
-                "remote_name": {
                     "type": "string"
                 },
                 "remote_product_name": {
@@ -537,6 +547,23 @@
                     "type": "string"
                 },
                 "value": {}
+            }
+        },
+        "dtos.TuyaDevicesResponseDTO": {
+            "type": "object",
+            "properties": {
+                "current_page_count": {
+                    "type": "integer"
+                },
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TuyaDeviceDTO"
+                    }
+                },
+                "total_devices": {
+                    "type": "integer"
+                }
             }
         },
         "dtos.TuyaIRACCommandDTO": {

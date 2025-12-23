@@ -73,10 +73,10 @@ func main() {
 	tuyaAuthService := services.NewTuyaAuthService()
 	tuyaAuthUseCase := usecases.NewTuyaAuthUseCase(tuyaAuthService)
 
-	tuyaDeviceService := services.NewTuyaDeviceService(badgerService)
+	tuyaDeviceService := services.NewTuyaDeviceService()
 
-	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService)
-	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService)
+	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, badgerService)
+	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, badgerService)
 	tuyaDeviceControlUseCase := usecases.NewTuyaDeviceControlUseCase(tuyaDeviceService)
 	tuyaSensorUseCase := usecases.NewTuyaSensorUseCase(tuyaGetDeviceByIDUseCase)
 
