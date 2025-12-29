@@ -66,20 +66,24 @@ start-docker-dev:
 	@echo "🚀 Starting Dev Docker container..."
 	docker run --rm -it -p 8080:8080 --env-file .env $(DOCKER_IMAGE_NAME):dev
 
-# Push to GHCR (reads env vars)
+# Push to GHCR via GitHub Actions
 push:
-	@echo "🔐 Logging in to GHCR..."
-	@export $$(grep -v '^#' .env | grep -v '^$$' | sed 's/#.*//g' | xargs) && \
-	(echo "$${CR_PAT:-$$GITHUB_TOKEN}" | docker login ghcr.io -u farismnrr --password-stdin)
-	@read -p "Enter tag to push (default: latest): " TAG; \
-	TAG=$${TAG:-latest}; \
-	echo "🚀 Setting up Docker Buildx..."; \
-	docker buildx inspect multi-arch-builder > /dev/null 2>&1 || docker buildx create --name multi-arch-builder --use; \
-	echo "🚀 Building and Pushing '$$TAG' (Multi-arch: amd64, arm64)..."; \
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=false -t $(GHCR_REPO):$$TAG --push .; \
-	echo "🚀 Building and Pushing 'dev' (Multi-arch: amd64, arm64)..."; \
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):dev --push .; \
-	echo "✅ Images pushed to GHCR (Tags: $$TAG, dev)"
+	@echo "🚀 Triggering GitHub Actions workflow for Docker push..."
+	@command -v gh >/dev/null 2>&1 || ( \
+		if command -v apt-get >/dev/null 2>&1; then \
+			echo "⬇️  Installing GitHub CLI via apt..."; \
+			SUDO=$$(command -v sudo >/dev/null 2>&1 && echo sudo || echo); \
+			$$SUDO apt-get update && $$SUDO apt-get install -y gh || { echo "❌ Failed to install gh"; exit 1; }; \
+		else \
+			echo "❌ GitHub CLI 'gh' not found and auto-install is not configured for this OS."; \
+			echo "   Install from https://cli.github.com/ then rerun 'make push'"; \
+			exit 1; \
+		fi \
+	)
+	@TAG="$${TAG:-latest}"; \
+	echo "📦 Using tag '$$TAG'"; \
+	gh workflow run backend-docker-publish.yml -f tag="$$TAG"; \
+	echo "✅ Workflow dispatched. Track with 'gh run watch --latest'"
 
 # Pull latest image for Docker Compose
 pull-docker:
