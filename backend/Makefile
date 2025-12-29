@@ -1,6 +1,6 @@
 # Teralux App Backend - Makefile for Development Automation
 
-.PHONY: help dev start install-watch build build-docker start-docker push pull-docker start-compose stop-compose update test clean kill migrate-up migrate-down migrate-version
+.PHONY: help dev start install-watch build build-docker start-docker push push-local pull-docker start-compose stop-compose update test clean kill migrate-up migrate-down migrate-version
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo "  make build-docker     - Build Docker image"
 	@echo "  make start-docker     - Run Docker image (with .env)"
 	@echo "  make push             - Push Docker image to GHCR"
+	@echo "  make push-local       - Build+push Docker image locally (no CI)"
 	@echo "  make pull-docker      - Pull latest image for Docker Compose"
 	@echo "  make start-compose    - Start Docker Compose stack (pulls first)"
 	@echo "  make stop-compose     - Stop Docker Compose stack"
@@ -85,27 +86,34 @@ push:
 	gh workflow run backend-docker-publish.yml -f tag="$$TAG"; \
 	echo "✅ Workflow dispatched. Track with 'gh run watch --latest'"
 
+# Push to GHCR locally (multi-arch) without GitHub Actions
+push-local:
+	@echo "🔐 Logging in to GHCR..."
+	@export $$(grep -v '^#' .env | grep -v '^$$' | sed 's/#.*//g' | xargs) && \
+	(echo "$$${CR_PAT:-$$GITHUB_TOKEN}" | docker login ghcr.io -u farismnrr --password-stdin)
+	@TAG="$${TAG:-latest}"; \
+	echo "🚀 Using tag '$$TAG'"; \
+	docker buildx inspect multi-arch-builder > /dev/null 2>&1 || docker buildx create --name multi-arch-builder --use; \
+	echo "🚀 Building and pushing '$$TAG' (multi-arch: amd64, arm64)..."; \
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=false -t $(GHCR_REPO):$$TAG --push .; \
+	echo "🚀 Building and pushing 'dev' (multi-arch: amd64, arm64)..."; \
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):dev --push .; \
+	echo "✅ Images pushed to GHCR (Tags: $$TAG, dev)"
+
 # Pull latest image for Docker Compose
 pull-docker:
 	@echo "📥 Pulling Docker images..."
 	docker compose pull
-	docker compose -f docker-compose.dev.yml pull
 
 # Start Docker Compose (Production/Latest)
 start-compose:
 	@echo "🚀 Starting Docker Compose (Latest)..."
 	docker compose -f docker-compose.yml up -d
 
-# Start Docker Compose (Dev)
-start-compose-dev:
-	@echo "🚀 Starting Docker Compose (Dev)..."
-	docker compose -f docker-compose.dev.yml up -d
-
 # Stop Docker Compose
 stop-compose:
 	@echo "🛑 Stopping Docker Compose usage..."
 	docker compose -f docker-compose.yml down
-	docker compose -f docker-compose.dev.yml down
 
 # Update running container using Watchtower
 update:

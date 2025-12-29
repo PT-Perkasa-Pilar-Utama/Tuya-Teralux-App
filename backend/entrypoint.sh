@@ -3,35 +3,30 @@ set -e
 
 echo "🚀 Starting Teralux Backend..."
 
-if [ "$AUTO_MIGRATE" = "true" ]; then
-  # Wait for Database to be ready
-  echo "⏳ Waiting for Database to be ready..."
-  # Check if using MySQL or Postgres (defaulting to MySQL for checks if needed, but here using pg_isready is specific to postgres!)
-  # The user moved to MySQL. pg_isready is WRONG for MySQL.
-  # I need to use mysqladmin ping or similar, OR just rely on the app/migrate tool to retry?
-  # The Dockerfile installs postgresql-client, I should install default-mysql-client or similar.
-  # The migrate tool handles connection, but waiting is good.
-  # Let's fix the wait logic too.
-  
-  until mysqladmin ping -h "$DB_HOST" -P "$DB_PORT" --silent; do
-      echo "Database is unavailable - sleeping"
-      sleep 2
-  done
+DB_TYPE="${DB_TYPE:-sqlite}"
+DB_SQLITE_PATH="${DB_SQLITE_PATH:-./tmp/teralux.db}"
 
-  echo "✅ Database is ready!"
+run_sqlite_migrations() {
+  mkdir -p "$(dirname "$DB_SQLITE_PATH")"
+  local abs_path
+  abs_path=$(realpath -m "$DB_SQLITE_PATH")
+  echo "🔄 Running SQLite migrations at $abs_path..."
+  migrate -path ./migrations -database "sqlite3://$abs_path" up
+}
 
-  # Run database migrations
-  echo "🔄 Running database migrations..."
-  migrate -path ./migrations -database "mysql://$DB_USER:$DB_PASSWORD@tcp($DB_HOST:$DB_PORT)/$DB_NAME?charset=utf8mb4&parseTime=True&loc=Local" up
-
-  if [ $? -eq 0 ]; then
-    echo "✅ Migrations completed successfully!"
-  else
-    echo "❌ Migration failed!"
+case "$DB_TYPE" in
+  sqlite)
+    run_sqlite_migrations || { echo "❌ SQLite migrations failed"; exit 1; }
+    ;;
+  mysql)
+    echo "ℹ️  Skipping migrations for MySQL (DB_TYPE=mysql)"
+    ;;
+  *)
+    echo "❌ Unsupported DB_TYPE: $DB_TYPE"
     exit 1
-  fi
-fi
+    ;;
+esac
 
 # Start the application
-echo "🚀 Starting application..."
+echo "🚀 Starting application... (DB_TYPE=$DB_TYPE)"
 exec ./main
