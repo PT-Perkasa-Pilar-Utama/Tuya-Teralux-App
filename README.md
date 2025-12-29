@@ -9,7 +9,7 @@ The project is divided into two main components:
 *   **`android/`**
     *   Contains the native Android mobile application source code.
     *   Built using **Kotlin** and **Jetpack Compose**.
-    *   Acts as the client interface for users to interact with their smart home environment.
+    *   Acts as the client interface for users to interact with smart home environment.
 
 *   **`backend/`**
     *   Contains the server-side logic and API implementation.
@@ -27,9 +27,7 @@ For detailed instructions on how to configure, build, and run the backend server
 To work on the mobile application:
 1.  Open the `android` directory in **Android Studio**.
 2.  Sync the Gradle project.
-3.  Ensure your `local.properties` is configured.
-    *   **Important**: You must define `API_KEY` in this file to match the backend's configuration.
-    *   Example: `API_KEY="your_backend_api_key_here"`
+3.  Ensure your `local.properties` is configured if necessary.
 4.  Run the application on an emulator or physical device.
 
 ## 🛠️ Key Technologies
