@@ -1,5 +1,20 @@
 basePath: /
 definitions:
+  dtos.CreateTeraluxRequestDTO:
+    properties:
+      mac_address:
+        type: string
+      name:
+        type: string
+    required:
+    - mac_address
+    - name
+    type: object
+  dtos.CreateTeraluxResponseDTO:
+    properties:
+      teralux_id:
+        type: string
+    type: object
   dtos.SensorDataDTO:
     properties:
       battery_percentage:
@@ -20,6 +35,28 @@ definitions:
         type: string
       status:
         type: boolean
+    type: object
+  dtos.TeraluxListResponseDTO:
+    properties:
+      teralux:
+        items:
+          $ref: '#/definitions/dtos.TeraluxResponseDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  dtos.TeraluxResponseDTO:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      mac_address:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
     type: object
   dtos.TuyaAuthResponseDTO:
     properties:
@@ -118,6 +155,13 @@ definitions:
     - code
     - remote_id
     type: object
+  dtos.UpdateTeraluxRequestDTO:
+    properties:
+      mac_address:
+        type: string
+      name:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -152,7 +196,175 @@ paths:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - 05. Flush
+      - Flush
+  /api/teralux:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all teralux devices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TeraluxListResponseDTO'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Teralux
+      tags:
+      - 03. Teralux
+    post:
+      consumes:
+      - application/json
+      description: Creates a new teralux device
+      parameters:
+      - description: Create Teralux Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateTeraluxRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.CreateTeraluxResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Create Teralux
+      tags:
+      - 03. Teralux
+  /api/teralux/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft deletes a teralux device by ID
+      parameters:
+      - description: Teralux ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete Teralux
+      tags:
+      - 03. Teralux
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single teralux device by ID
+      parameters:
+      - description: Teralux ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TeraluxResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Teralux by ID
+      tags:
+      - 03. Teralux
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing teralux device
+      parameters:
+      - description: Teralux ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Teralux Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateTeraluxRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Teralux
+      tags:
+      - 03. Teralux
   /api/tuya/auth:
     get:
       consumes:
@@ -220,7 +432,7 @@ paths:
       - BearerAuth: []
       summary: Get All Devices
       tags:
-      - 02. Devices
+      - 02. Tuya
   /api/tuya/devices/{id}:
     get:
       consumes:
@@ -257,7 +469,7 @@ paths:
       - BearerAuth: []
       summary: Get Device by ID
       tags:
-      - 02. Devices
+      - 02. Tuya
   /api/tuya/devices/{id}/commands/ir:
     post:
       consumes:
@@ -294,7 +506,7 @@ paths:
       - BearerAuth: []
       summary: Send IR AC Command
       tags:
-      - 03. Device Control
+      - 02. Tuya
   /api/tuya/devices/{id}/commands/switch:
     post:
       consumes:
@@ -331,7 +543,7 @@ paths:
       - BearerAuth: []
       summary: Send Command to Device
       tags:
-      - 03. Device Control
+      - 02. Tuya
   /api/tuya/devices/{id}/sensor:
     get:
       consumes:
@@ -368,7 +580,7 @@ paths:
       - BearerAuth: []
       summary: Get Sensor Data
       tags:
-      - 04. Device Sensor
+      - 02. Tuya
   /health:
     get:
       description: Check if the application and database are healthy
@@ -400,13 +612,7 @@ swagger: "2.0"
 tags:
 - description: Authentication endpoints
   name: 01. Auth
-- description: Device management endpoints
-  name: 02. Devices
-- description: Device control endpoints
-  name: 03. Device Control
-- description: Sensor data endpoints
-  name: 04. Device Sensor
-- description: Cache management endpoints
-  name: 05. Flush
-- description: Health check endpoints
-  name: 06. Health
+- description: Tuya related endpoints
+  name: 02. Tuya
+- description: Teralux device management endpoints
+  name: 03. Teralux

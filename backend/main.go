@@ -1,24 +1,19 @@
 package main
 
 import (
-	"net/url"
-	common_controllers "teralux_app/domain/common/controllers"
-	tuya_controllers "teralux_app/domain/tuya/controllers"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/middlewares"
-	common_routes "teralux_app/domain/common/routes"
-	tuya_routes "teralux_app/domain/tuya/routes"
-	"teralux_app/domain/common/infrastructure/persistence"
-	"teralux_app/domain/tuya/services"
-	"teralux_app/domain/tuya/usecases"
-	"teralux_app/domain/common/utils"
+
 
 	"github.com/gin-gonic/gin"
 
-	"teralux_app/docs"
+	"teralux_app/domain/common"
+	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/infrastructure/persistence"
+	"teralux_app/domain/common/middlewares"
+	"teralux_app/domain/common/utils"
+	"teralux_app/domain/teralux"
+	"teralux_app/domain/tuya"
 
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+
 )
 
 // @title           Teralux API
@@ -47,32 +42,13 @@ import (
 // @tag.name 01. Auth
 // @tag.description Authentication endpoints
 
-// @tag.name 02. Devices
-// @tag.description Device management endpoints
+// @tag.name 02. Tuya
+// @tag.description Tuya related endpoints
 
-// @tag.name 03. Device Control
-// @tag.description Device control endpoints
-
-// @tag.name 04. Device Sensor
-// @tag.description Sensor data endpoints
-
-// @tag.name 05. Flush
-// @tag.description Cache management endpoints
-
-// @tag.name 06. Health
-// @tag.description Health check endpoints
+// @tag.name 03. Teralux
+// @tag.description Teralux device management endpoints
 func main() {
 	utils.LoadConfig()
-
-	if swaggerURL := utils.AppConfig.SwaggerBaseURL; swaggerURL != "" {
-		parsedURL, err := url.Parse(swaggerURL)
-		if err != nil {
-			utils.LogInfo("Warning: Invalid SWAGGER_BASE_URL: %v", err)
-		} else {
-			docs.SwaggerInfo.Host = parsedURL.Host
-			docs.SwaggerInfo.Schemes = []string{parsedURL.Scheme}
-		}
-	}
 
 	// Initialize database connection
 	_, err := infrastructure.InitDB()
@@ -85,19 +61,7 @@ func main() {
 
 	router := gin.Default()
 
-	// Health check endpoint
-	healthController := common_controllers.NewHealthController()
-	router.GET("/health", healthController.CheckHealth)
-
-	router.GET("/swagger/*any", func(c *gin.Context) {
-		if c.Param("any") == "" || c.Param("any") == "/" || c.Param("any") == "/index.html" {
-			c.Header("Content-Type", "text/html; charset=utf-8")
-			c.String(200, docs.CustomSwaggerHTML)
-		} else {
-			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
-		}
-	})
-
+	// Initialize BadgerDB
 	badgerService, err := persistence.NewBadgerService("./tmp/badger")
 	if err != nil {
 		utils.LogInfo("Warning: Failed to initialize BadgerDB: %v", err)
@@ -105,38 +69,24 @@ func main() {
 		defer badgerService.Close()
 	}
 
-	tuyaAuthService := services.NewTuyaAuthService()
-	tuyaAuthUseCase := usecases.NewTuyaAuthUseCase(tuyaAuthService)
+	// Initialize Modules
+	commonModule := common.NewCommonModule(badgerService)
+	tuyaModule := tuya.NewTuyaModule(badgerService)
+	teraluxModule := teralux.NewTeraluxModule(badgerService)
 
-	tuyaDeviceService := services.NewTuyaDeviceService()
-
-	// Initialize Device State UseCase (needed by other use cases)
-	deviceStateUseCase := usecases.NewDeviceStateUseCase(badgerService)
-
-	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, badgerService, deviceStateUseCase)
-	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, badgerService, deviceStateUseCase)
-	tuyaDeviceControlUseCase := usecases.NewTuyaDeviceControlUseCase(tuyaDeviceService, deviceStateUseCase, badgerService)
-	tuyaSensorUseCase := usecases.NewTuyaSensorUseCase(tuyaGetDeviceByIDUseCase)
-
-	tuyaAuthController := tuya_controllers.NewTuyaAuthController(tuyaAuthUseCase)
-	tuyaGetAllDevicesController := tuya_controllers.NewTuyaGetAllDevicesController(tuyaGetAllDevicesUseCase)
-	tuyaGetDeviceByIDController := tuya_controllers.NewTuyaGetDeviceByIDController(tuyaGetDeviceByIDUseCase)
-	tuyaDeviceControlController := tuya_controllers.NewTuyaDeviceControlController(tuyaDeviceControlUseCase)
-	tuyaSensorController := tuya_controllers.NewTuyaSensorController(tuyaSensorUseCase)
-	cacheController := common_controllers.NewCacheController(badgerService)
-
-	authGroup := router.Group("/")
-	authGroup.Use(middlewares.ApiKeyMiddleware())
-	tuya_routes.SetupTuyaAuthRoutes(authGroup, tuyaAuthController)
-
+	// Register Routes
 	protected := router.Group("/")
 	protected.Use(middlewares.AuthMiddleware())
 	protected.Use(middlewares.TuyaErrorMiddleware())
-	{
-		tuya_routes.SetupTuyaDeviceRoutes(protected, tuyaGetAllDevicesController, tuyaGetDeviceByIDController, tuyaSensorController)
-		tuya_routes.SetupTuyaControlRoutes(protected, tuyaDeviceControlController)
-		common_routes.SetupCacheRoutes(protected, cacheController)
-	}
+
+	// 1. Common Routes (Health, Cache)
+	commonModule.RegisterRoutes(router, protected)
+
+	// 2. Tuya Routes (Auth, Device Control)
+	tuyaModule.RegisterRoutes(router, protected)
+
+	// 3. Teralux Routes (CRUD)
+	teraluxModule.RegisterRoutes(protected)
 	
 	utils.LogInfo("Server starting on :8080")
 	if err := router.Run(":8080"); err != nil {

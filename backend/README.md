@@ -20,7 +20,59 @@ Backend service for the Teralux application, built with Go.
 
 ---
 
-## 📚 API Documentation (Swagger)
+## �️ Database Configuration
+
+The application supports two database types: **SQLite** and **MySQL**. Configure via the `DB_TYPE` environment variable in your `.env` file.
+
+### SQLite (Default - Recommended for Development)
+
+```env
+DB_TYPE=sqlite
+DB_SQLITE_PATH=./tmp/teralux.db
+```
+
+**Features:**
+- ✅ **Auto-migration on Docker startup**: When running via Docker (`make start-docker` or `make start-compose`), the `entrypoint.sh` script automatically runs migrations from `./migrations` folder
+- ✅ **Zero configuration**: No external database server required
+- ✅ **Perfect for development and testing**
+- ⚠️ **Note**: Currently, migration files are in `domain/teralux/migrations/` but `entrypoint.sh` looks for `./migrations/` at root. You may need to copy or symlink migration files for auto-migration to work.
+
+### MySQL (Production)
+
+```env
+DB_TYPE=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_NAME=teralux_db
+```
+
+**Features:**
+- ✅ **Production-ready**: Scalable and robust
+- ✅ **Better for multi-instance deployments**
+- ⚠️ **Manual migration required**: The `entrypoint.sh` script **skips auto-migration** for MySQL
+- ⚠️ **You must manually run migrations** using a migration tool or execute SQL files from `domain/teralux/migrations/`:
+  ```bash
+  # Example using migrate tool
+  migrate -path ./domain/teralux/migrations -database "mysql://user:pass@tcp(host:3306)/dbname" up
+  ```
+
+### Migration Files
+
+Current migrations are located in:
+- `domain/teralux/migrations/000001_create_teralux_table.up.sql`
+- `domain/teralux/migrations/000002_create_devices_table.up.sql`  
+- `domain/teralux/migrations/000003_create_device_statuses_table.up.sql`
+
+**Tables Created:**
+1. **teralux** - Main teralux devices table with soft delete support
+2. **devices** - Device information table
+3. **device_statuses** - Device status tracking table
+
+---
+
+## �📚 API Documentation (Swagger)
 
 The project uses [Swaggo](https://github.com/swaggo/swag) to generate Swagger/OpenAPI documentation.
 

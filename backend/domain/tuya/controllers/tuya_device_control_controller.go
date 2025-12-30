@@ -26,7 +26,7 @@ func NewTuyaDeviceControlController(useCase *usecases.TuyaDeviceControlUseCase) 
 // SendCommand handles the request to send commands to a device
 // @Summary      Send Command to Device
 // @Description  Sends a command to a specific Tuya device
-// @Tags         03. Device Control
+// @Tags         02. Tuya
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string                 true  "Device ID"
@@ -83,7 +83,7 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 // SendIRACCommand handles the request to send a command to an IR air conditioner
 // @Summary      Send IR AC Command
 // @Description  Sends an infrared command to an AC via a specific IR device
-// @Tags         03. Device Control
+// @Tags         02. Tuya
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string                 true  "Infrared Device ID"

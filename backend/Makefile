@@ -1,6 +1,6 @@
 # Teralux App Backend - Makefile for Development Automation
 
-.PHONY: help dev start install-watch build build-docker start-docker push push-local pull-docker start-compose stop-compose update test clean kill migrate-up migrate-down migrate-version
+.PHONY: help dev start install-watch build build-docker start-docker push push-local pull-docker start-compose stop-compose update test clean kill migrate-up migrate-down migrate-version migrate-force
 
 # Default target
 help:
@@ -24,6 +24,7 @@ help:
 	@echo "  make migrate-up       - Run all pending migrations"
 	@echo "  make migrate-down     - Rollback last migration"
 	@echo "  make migrate-version  - Show current migration version"
+	@echo "  make migrate-force    - Force database to specific version (VERSION=N)"
 	@echo ""
 
 # Run development server with hot reload (requires air)
@@ -147,8 +148,7 @@ kill:
 	@lsof -ti:8080 | xargs -r kill -9 || echo "✅ No process running on port 8080"
 
 # --- Database Migration Configuration ---
-MIGRATE_VERSION = v4.18.1
-MIGRATE_URL = https://github.com/golang-migrate/migrate/releases/download/$(MIGRATE_VERSION)/migrate.linux-amd64.tar.gz
+# Note: We build from source to include SQLite support (prebuilt binaries don't have it)
 MIGRATE_BIN = $(shell go env GOPATH)/bin/migrate
 
 # Load environment variables
@@ -157,15 +157,18 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-# Database connection string from .env
-DB_URL = mysql://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)?charset=utf8mb4&parseTime=True&loc=Local
+# Database connection string from .env (supports both SQLite and MySQL)
+ifeq ($(DB_TYPE),mysql)
+    DB_URL = mysql://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)?charset=utf8mb4&parseTime=True&loc=Local
+else
+    # Default to SQLite
+    DB_URL = sqlite://$(DB_SQLITE_PATH)
+endif
 
-# Install golang-migrate if not found
+# Install golang-migrate from source with SQLite support
 $(MIGRATE_BIN):
-	@echo "📦 Installing golang-migrate..."
-	@mkdir -p $(shell go env GOPATH)/bin
-	@curl -L $(MIGRATE_URL) | tar xvz -C $(shell go env GOPATH)/bin
-	@chmod +x $(MIGRATE_BIN)
+	@echo "📦 Installing golang-migrate with SQLite support..."
+	@go install -tags 'sqlite mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	@echo "✅ golang-migrate installed successfully"
 
 # Run all pending migrations
@@ -184,3 +187,13 @@ migrate-down: $(MIGRATE_BIN)
 migrate-version: $(MIGRATE_BIN)
 	@echo "📊 Current migration version:"
 	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" version
+
+# Force database to a specific version (use: make migrate-force VERSION=3)
+migrate-force: $(MIGRATE_BIN)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "❌ Error: VERSION is required. Usage: make migrate-force VERSION=3"; \
+		exit 1; \
+	fi
+	@echo "⚠️  Forcing database to version $(VERSION)..."
+	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" force $(VERSION)
+	@echo "✅ Database forced to version $(VERSION)"
