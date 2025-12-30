@@ -5,9 +5,9 @@ CREATE TABLE IF NOT EXISTS device_statuses (
     name VARCHAR(255),
     code VARCHAR(255) NOT NULL,
     value INT,
-    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
     
     -- Foreign key constraint to devices table
     CONSTRAINT fk_device
@@ -24,3 +24,6 @@ CREATE INDEX idx_device_statuses_device_id ON device_statuses(device_id);
 
 -- Create index on code
 CREATE INDEX idx_device_statuses_code ON device_statuses(code);
+
+-- Create index on deleted_at for soft delete queries
+CREATE INDEX idx_device_statuses_deleted_at ON device_statuses(deleted_at);

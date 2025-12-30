@@ -24,7 +24,7 @@ func NewTuyaSensorController(useCase *usecases.TuyaSensorUseCase) *TuyaSensorCon
 // GetSensorData handles GET /api/tuya/devices/:id/sensor endpoint
 // @Summary      Get Sensor Data
 // @Description  Retrieves sensor data (temperature, humidity, etc.) for a specific device
-// @Tags         04. Device Sensor
+// @Tags         02. Tuya
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string                 true  "Device ID"

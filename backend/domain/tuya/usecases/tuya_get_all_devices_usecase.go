@@ -3,12 +3,10 @@ package usecases
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
 	"teralux_app/domain/tuya/dtos"
-	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/tuya/services"
 	"teralux_app/domain/common/utils"
 	tuya_utils "teralux_app/domain/tuya/utils"
@@ -19,20 +17,17 @@ import (
 // It combines the user's device list, individual device specifications, and real-time status.
 type TuyaGetAllDevicesUseCase struct {
 	service       *services.TuyaDeviceService
-	cache         *persistence.BadgerService
 	deviceStateUC *DeviceStateUseCase
 }
 
 // NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
 //
 // param service The TuyaDeviceService used for API interactions.
-// param cache The BadgerService used for caching device lists.
 // param deviceStateUC The DeviceStateUseCase for cleaning up orphaned states.
 // return *TuyaGetAllDevicesUseCase A pointer to the initialized usecase.
-func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, cache *persistence.BadgerService, deviceStateUC *DeviceStateUseCase) *TuyaGetAllDevicesUseCase {
+func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase) *TuyaGetAllDevicesUseCase {
 	return &TuyaGetAllDevicesUseCase{
 		service:       service,
-		cache:         cache,
 		deviceStateUC: deviceStateUC,
 	}
 }
@@ -58,24 +53,8 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	// Get config
 	config := utils.GetConfig()
 
-	// 1. Try Cache First
-	cacheKey := fmt.Sprintf("cache:devices:%s", uid)
-	var deviceDTOs []dtos.TuyaDeviceDTO
+    // Cache removal: Logic removed. Always fetch from API.
 
-	cachedData, err := uc.cache.Get(cacheKey)
-	if err == nil && cachedData != nil {
-		if err := json.Unmarshal(cachedData, &deviceDTOs); err == nil {
-			utils.LogDebug("GetAllDevices: Cache HIT for uid %s", uid)
-		} else {
-			utils.LogWarn("GetAllDevices: Cache corrupted for uid %s, fetching fresh data", uid)
-			cachedData = nil // Force refresh
-		}
-	} else {
-		utils.LogDebug("GetAllDevices: Cache MISS for uid %s (err: %v)", uid, err)
-	}
-
-	// 2. If Cache Miss, Fetch from API
-	if cachedData == nil {
 		// Generate timestamp in milliseconds
 		timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 		signMethod := "HMAC-SHA256"
@@ -157,6 +136,7 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 
 		// Transform entities to DTOs
 		var deviceIDs []string
+		var deviceDTOs []dtos.TuyaDeviceDTO
 
 		// Collect IDs first
 		for _, device := range devicesResponse.Result {
@@ -275,14 +255,6 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 			deviceDTOs = uc.processResponseMode0(deviceDTOs)
 		}
 
-		// 3. Save to Cache
-		if jsonData, err := json.Marshal(deviceDTOs); err == nil {
-			uc.cache.Set(cacheKey, jsonData)
-			utils.LogDebug("GetAllDevices: Saved %d devices to cache for uid %s", len(deviceDTOs), uid)
-		} else {
-			utils.LogError("GetAllDevices: Failed to marshal devices for cache: %v", err)
-		}
-
 		// 4. Cleanup orphaned device states
 		if uc.deviceStateUC != nil {
 			var allDeviceIDs []string
@@ -301,7 +273,6 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 				utils.LogWarn("GetAllDevices: Failed to cleanup orphaned states: %v", err)
 			}
 		}
-	}
 
 	// --- NEW: Filter by Category ---
 	if category != "" {

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/entities"
-	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/tuya/services"
 	"teralux_app/domain/common/utils"
 	tuya_utils "teralux_app/domain/tuya/utils"
@@ -21,20 +20,17 @@ import (
 type TuyaDeviceControlUseCase struct {
 	service          *services.TuyaDeviceService
 	deviceStateUC    *DeviceStateUseCase
-	cache            *persistence.BadgerService
 }
 
 // NewTuyaDeviceControlUseCase initializes a new TuyaDeviceControlUseCase.
 //
 // param service The TuyaDeviceService used for API communication.
 // param deviceStateUC The DeviceStateUseCase for saving device states.
-// param cache The BadgerService for cache invalidation.
 // return *TuyaDeviceControlUseCase A pointer to the initialized usecase.
-func NewTuyaDeviceControlUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase, cache *persistence.BadgerService) *TuyaDeviceControlUseCase {
+func NewTuyaDeviceControlUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase) *TuyaDeviceControlUseCase {
 	return &TuyaDeviceControlUseCase{
 		service:       service,
 		deviceStateUC: deviceStateUC,
-		cache:         cache,
 	}
 }
 
@@ -269,15 +265,8 @@ func (uc *TuyaDeviceControlUseCase) SendIRACCommand(accessToken, infraredID, rem
 		}
 	}
 
-	// Invalidate cache for this device
-	if uc.cache != nil {
-		cacheKey := fmt.Sprintf("cache:tuya_device:%s", remoteID)
-		if err := uc.cache.Delete(cacheKey); err != nil {
-			utils.LogWarn("Failed to invalidate cache for device %s: %v", remoteID, err)
-		} else {
-			utils.LogDebug("Cache invalidated for device %s", remoteID)
-		}
-	}
+	// Cache invalidation removed
+
 
 	return resp.Result, nil
 }
@@ -430,15 +419,8 @@ func (uc *TuyaDeviceControlUseCase) SendCommand(accessToken, deviceID string, co
 		}
 	}
 
-	// Invalidate cache for this device
-	if uc.cache != nil {
-		cacheKey := fmt.Sprintf("cache:tuya_device:%s", deviceID)
-		if err := uc.cache.Delete(cacheKey); err != nil {
-			utils.LogWarn("Failed to invalidate cache for device %s: %v", deviceID, err)
-		} else {
-			utils.LogDebug("Cache invalidated for device %s", deviceID)
-		}
-	}
+	// Cache invalidation removed
+
 
 	return resp.Result, nil
 }

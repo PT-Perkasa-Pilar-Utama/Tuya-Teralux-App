@@ -39,12 +39,289 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. Flush"
+                    "Flush"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/teralux": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of all teralux devices",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Teralux"
+                ],
+                "summary": "Get All Teralux",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TeraluxListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new teralux device",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Teralux"
+                ],
+                "summary": "Create Teralux",
+                "parameters": [
+                    {
+                        "description": "Create Teralux Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CreateTeraluxRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.CreateTeraluxResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/teralux/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a single teralux device by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Teralux"
+                ],
+                "summary": "Get Teralux by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TeraluxResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing teralux device",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Teralux"
+                ],
+                "summary": "Update Teralux",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Teralux Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateTeraluxRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft deletes a teralux device by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Teralux"
+                ],
+                "summary": "Delete Teralux",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -119,7 +396,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "02. Devices"
+                    "02. Tuya"
                 ],
                 "summary": "Get All Devices",
                 "parameters": [
@@ -185,7 +462,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "02. Devices"
+                    "02. Tuya"
                 ],
                 "summary": "Get Device by ID",
                 "parameters": [
@@ -246,7 +523,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Device Control"
+                    "02. Tuya"
                 ],
                 "summary": "Send IR AC Command",
                 "parameters": [
@@ -304,7 +581,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Device Control"
+                    "02. Tuya"
                 ],
                 "summary": "Send Command to Device",
                 "parameters": [
@@ -362,7 +639,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "04. Device Sensor"
+                    "02. Tuya"
                 ],
                 "summary": "Get Sensor Data",
                 "parameters": [
@@ -436,6 +713,29 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dtos.CreateTeraluxRequestDTO": {
+            "type": "object",
+            "required": [
+                "mac_address",
+                "name"
+            ],
+            "properties": {
+                "mac_address": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.CreateTeraluxResponseDTO": {
+            "type": "object",
+            "properties": {
+                "teralux_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.SensorDataDTO": {
             "type": "object",
             "properties": {
@@ -465,6 +765,40 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dtos.TeraluxListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "teralux": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TeraluxResponseDTO"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.TeraluxResponseDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mac_address": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -614,6 +948,17 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "dtos.UpdateTeraluxRequestDTO": {
+            "type": "object",
+            "properties": {
+                "mac_address": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -635,24 +980,12 @@ const docTemplate = `{
             "name": "01. Auth"
         },
         {
-            "description": "Device management endpoints",
-            "name": "02. Devices"
+            "description": "Tuya related endpoints",
+            "name": "02. Tuya"
         },
         {
-            "description": "Device control endpoints",
-            "name": "03. Device Control"
-        },
-        {
-            "description": "Sensor data endpoints",
-            "name": "04. Device Sensor"
-        },
-        {
-            "description": "Cache management endpoints",
-            "name": "05. Flush"
-        },
-        {
-            "description": "Health check endpoints",
-            "name": "06. Health"
+            "description": "Teralux device management endpoints",
+            "name": "03. Teralux"
         }
     ]
 }`
