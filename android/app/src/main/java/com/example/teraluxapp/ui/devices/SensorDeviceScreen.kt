@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teraluxapp.data.network.RetrofitClient
-import kotlinx.coroutines.launch
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,7 +75,9 @@ fun SensorDeviceScreen(
                     Column {
                         Text(deviceName, fontWeight = FontWeight.Bold, color = Color.White)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                             Box(modifier = Modifier.size(6.dp).background(if (isDeviceOnline) Color.Green else Color.Red, androidx.compose.foundation.shape.CircleShape))
+                             Box(modifier = Modifier.size(6.dp).background(if (isDeviceOnline) Color.Green else Color.Red,
+                                 CircleShape
+                             ))
                              Spacer(modifier = Modifier.width(4.dp))
                              Text(
                                  text = if (isDeviceOnline) "Online" else "Offline",
