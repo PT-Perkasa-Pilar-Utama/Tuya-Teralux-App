@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
@@ -67,7 +69,20 @@ dependencies {
     implementation(libs.logging.interceptor)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
+    
+    // Hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+    
+    // ViewModel
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    
+    // Testing
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

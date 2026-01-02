@@ -86,7 +86,7 @@ func main() {
 	tuyaModule.RegisterRoutes(router, protected)
 
 	// 3. Teralux Routes (CRUD)
-	teraluxModule.RegisterRoutes(protected)
+	teraluxModule.RegisterRoutes(router, protected)
 	
 	utils.LogInfo("Server starting on :8080")
 	if err := router.Run(":8080"); err != nil {

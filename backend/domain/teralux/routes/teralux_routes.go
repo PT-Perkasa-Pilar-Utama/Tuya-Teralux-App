@@ -11,10 +11,12 @@ import (
 
 // SetupTeraluxRoutes registers endpoints for teralux CRUD operations
 func SetupTeraluxRoutes(
-	router gin.IRouter,
+	publicRouter gin.IRouter,
+	protectedRouter gin.IRouter,
 	createController *teralux.CreateTeraluxController,
 	getAllController *teralux.GetAllTeraluxController,
 	getByIDController *teralux.GetTeraluxByIDController,
+	getByMACController *teralux.GetTeraluxByMACController,
 	updateController *teralux.UpdateTeraluxController,
 	deleteController *teralux.DeleteTeraluxController,
 
@@ -30,27 +32,34 @@ func SetupTeraluxRoutes(
 	updateDeviceStatusController *device_status.UpdateDeviceStatusController,
 	deleteDeviceStatusController *device_status.DeleteDeviceStatusController,
 ) {
-	// Teralux Routes
-	teraluxAPI := router.Group("/api/teralux")
+	// Public Teralux Routes (Registration and Check)
+	teraluxPublicAPI := publicRouter.Group("/api/teralux")
 	{
-		// POST /api/teralux - Create a new teralux
-		teraluxAPI.POST("", createController.CreateTeralux)
+		// POST /api/teralux - Create a new teralux (Public with API Key)
+		teraluxPublicAPI.POST("", createController.CreateTeralux)
 
-		// GET /api/teralux - Get all teralux
-		teraluxAPI.GET("", getAllController.GetAllTeralux)
+		// GET /api/teralux - Get all teralux (Public with API Key for check)
+		teraluxPublicAPI.GET("", getAllController.GetAllTeralux)
 
-		// GET /api/teralux/:id - Get teralux by ID
-		teraluxAPI.GET("/:id", getByIDController.GetTeraluxByID)
-
-		// PUT /api/teralux/:id - Update teralux
-		teraluxAPI.PUT("/:id", updateController.UpdateTeralux)
-
-		// DELETE /api/teralux/:id - Delete teralux (soft delete)
-		teraluxAPI.DELETE("/:id", deleteController.DeleteTeralux)
+		// GET /api/teralux/mac/:mac - Get teralux by MAC address (Public with API Key)
+		teraluxPublicAPI.GET("/mac/:mac", getByMACController.GetTeraluxByMAC)
 	}
 
-	// Device Routes
-	deviceAPI := router.Group("/api/devices")
+	// Protected Teralux Routes
+	teraluxProtectedAPI := protectedRouter.Group("/api/teralux")
+	{
+		// GET /api/teralux/:id - Get teralux by ID
+		teraluxProtectedAPI.GET("/:id", getByIDController.GetTeraluxByID)
+
+		// PUT /api/teralux/:id - Update teralux
+		teraluxProtectedAPI.PUT("/:id", updateController.UpdateTeralux)
+
+		// DELETE /api/teralux/:id - Delete teralux (soft delete)
+		teraluxProtectedAPI.DELETE("/:id", deleteController.DeleteTeralux)
+	}
+
+	// Device Routes (Protected)
+	deviceAPI := protectedRouter.Group("/api/devices")
 	{
 		deviceAPI.POST("", createDeviceController.CreateDevice)
 		deviceAPI.GET("", getAllDevicesController.GetAllDevices)
@@ -59,8 +68,8 @@ func SetupTeraluxRoutes(
 		deviceAPI.DELETE("/:id", deleteDeviceController.DeleteDevice)
 	}
 
-	// Device Status Routes
-	deviceStatusAPI := router.Group("/api/device-statuses")
+	// Device Status Routes (Protected)
+	deviceStatusAPI := protectedRouter.Group("/api/device-statuses")
 	{
 		deviceStatusAPI.POST("", createDeviceStatusController.CreateDeviceStatus)
 		deviceStatusAPI.GET("", getAllDeviceStatusesController.GetAllDeviceStatuses)

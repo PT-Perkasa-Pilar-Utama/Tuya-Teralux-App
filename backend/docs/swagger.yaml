@@ -643,7 +643,7 @@ paths:
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
       security:
-      - BearerAuth: []
+      - ApiKeyAuth: []
       summary: Get All Teralux
       tags:
       - 03. Teralux
@@ -679,7 +679,7 @@ paths:
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
       security:
-      - BearerAuth: []
+      - ApiKeyAuth: []
       summary: Create Teralux
       tags:
       - 03. Teralux
@@ -787,6 +787,42 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Teralux
+      tags:
+      - 03. Teralux
+  /api/teralux/mac/{mac}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a teralux device by its MAC address
+      parameters:
+      - description: MAC Address
+        in: path
+        name: mac
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TeraluxResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Teralux by MAC Address
       tags:
       - 03. Teralux
   /api/tuya/auth:

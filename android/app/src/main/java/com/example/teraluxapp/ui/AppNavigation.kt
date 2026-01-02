@@ -12,6 +12,8 @@ import com.example.teraluxapp.ui.devices.SmartACScreen
 import com.example.teraluxapp.ui.devices.SwitchDeviceScreen
 import com.example.teraluxapp.ui.devices.SensorDeviceScreen
 import com.example.teraluxapp.ui.devices.DeviceListScreen
+import com.example.teraluxapp.ui.teralux.StartupScreen
+import com.example.teraluxapp.ui.teralux.RegisterTeraluxScreen
 import com.example.teraluxapp.ui.login.LoginScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -22,13 +24,41 @@ fun AppNavigation() {
 
     LaunchedEffect(Unit) {
         SessionManager.logoutEvent.collect {
-            navController.navigate("login") {
+            navController.navigate("startup") {
                 popUpTo(0) { inclusive = true }
             }
         }
     }
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = "startup") {
+        composable("startup") {
+            StartupScreen(
+                onDeviceRegistered = {
+                    navController.navigate("login") {
+                        popUpTo("startup") { inclusive = true }
+                    }
+                },
+                onDeviceNotRegistered = { mac ->
+                    navController.navigate("register_teralux/$mac") {
+                        popUpTo("startup") { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(
+            route = "register_teralux/{mac}",
+            arguments = listOf(navArgument("mac") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val mac = backStackEntry.arguments?.getString("mac") ?: ""
+            RegisterTeraluxScreen(
+                macAddress = mac,
+                onRegistrationSuccess = {
+                    navController.navigate("login") {
+                        popUpTo("register_teralux/$mac") { inclusive = true }
+                    }
+                }
+            )
+        }
         composable("login") {
             LoginScreen(
                 onLoginSuccess = { token, uid ->
@@ -49,7 +79,6 @@ fun AppNavigation() {
             val uid = backStackEntry.arguments?.getString("uid") ?: ""
             DeviceListScreen(
                 token = token,
-                uid = uid,
                 onDeviceClick = { deviceId, category, deviceName, gatewayId ->
                     val encodedName = URLEncoder.encode(deviceName, "UTF-8")
                     val safeGatewayId = gatewayId ?: ""

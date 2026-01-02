@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teraluxapp.data.network.RetrofitClient
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,7 +136,7 @@ fun SensorDeviceScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.Top) {
                             Text(
-                                text = String.format("%.1f", temperature),
+                                text = String.format(Locale.US, "%.1f", temperature),
                                 fontSize = 56.sp, // Reduced from 72
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -275,7 +276,7 @@ fun SensorDeviceScreen(
                         
                         Box(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
                              Text(
-                                 text = String.format("%.1f%s", temperature, tempUnit),
+                                 text = String.format(Locale.US, "%.1f%s", temperature, tempUnit),
                                  modifier = Modifier.align(Alignment.CenterEnd),
                                  fontSize = 12.sp,
                                  color = Color(0xFF78909C),

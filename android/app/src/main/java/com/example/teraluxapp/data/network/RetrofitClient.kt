@@ -18,8 +18,8 @@ object RetrofitClient {
             val original = chain.request()
             val builder = original.newBuilder()
             
-            // Only add API Key for Auth endpoint
-            if (original.url.encodedPath.contains("api/tuya/auth")) {
+            val path = original.url.encodedPath
+            if (path.contains("api/tuya/auth") || path.contains("api/teralux")) {
                 builder.header("X-API-KEY", com.example.teraluxapp.BuildConfig.API_KEY)
             }
             

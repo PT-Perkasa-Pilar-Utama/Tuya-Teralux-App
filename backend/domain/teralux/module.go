@@ -11,6 +11,7 @@ import (
 	device_usecases "teralux_app/domain/teralux/usecases/device"
 	device_status_usecases "teralux_app/domain/teralux/usecases/device_status"
 	teralux_usecases "teralux_app/domain/teralux/usecases/teralux"
+	"teralux_app/domain/common/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +22,7 @@ type TeraluxModule struct {
 	CreateController    *teralux.CreateTeraluxController
 	GetAllController    *teralux.GetAllTeraluxController
 	GetByIDController   *teralux.GetTeraluxByIDController
+	GetByMACController  *teralux.GetTeraluxByMACController
 	UpdateController    *teralux.UpdateTeraluxController
 	DeleteController    *teralux.DeleteTeraluxController
 
@@ -50,6 +52,7 @@ func NewTeraluxModule(badger *persistence.BadgerService) *TeraluxModule {
 	createTeraluxUseCase := teralux_usecases.NewCreateTeraluxUseCase(teraluxRepository)
 	getAllTeraluxUseCase := teralux_usecases.NewGetAllTeraluxUseCase(teraluxRepository)
 	getTeraluxByIDUseCase := teralux_usecases.NewGetTeraluxByIDUseCase(teraluxRepository)
+	getTeraluxByMACUseCase := teralux_usecases.NewGetTeraluxByMACUseCase(teraluxRepository)
 	updateTeraluxUseCase := teralux_usecases.NewUpdateTeraluxUseCase(teraluxRepository)
 	deleteTeraluxUseCase := teralux_usecases.NewDeleteTeraluxUseCase(teraluxRepository)
 
@@ -72,6 +75,7 @@ func NewTeraluxModule(badger *persistence.BadgerService) *TeraluxModule {
 		CreateController:    teralux.NewCreateTeraluxController(createTeraluxUseCase),
 		GetAllController:    teralux.NewGetAllTeraluxController(getAllTeraluxUseCase),
 		GetByIDController:   teralux.NewGetTeraluxByIDController(getTeraluxByIDUseCase),
+		GetByMACController:  teralux.NewGetTeraluxByMACController(getTeraluxByMACUseCase),
 		UpdateController:    teralux.NewUpdateTeraluxController(updateTeraluxUseCase),
 		DeleteController:    teralux.NewDeleteTeraluxController(deleteTeraluxUseCase),
         
@@ -90,12 +94,18 @@ func NewTeraluxModule(badger *persistence.BadgerService) *TeraluxModule {
 }
 
 // RegisterRoutes registers Teralux routes
-func (m *TeraluxModule) RegisterRoutes(protected *gin.RouterGroup) {
+func (m *TeraluxModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
+	// Public Group with API Key
+	publicGroup := router.Group("/")
+	publicGroup.Use(middlewares.ApiKeyMiddleware())
+
 	routes.SetupTeraluxRoutes(
+		publicGroup,
 		protected,
 		m.CreateController,
 		m.GetAllController,
 		m.GetByIDController,
+		m.GetByMACController,
 		m.UpdateController,
 		m.DeleteController,
 		

@@ -1,11 +1,7 @@
 package com.example.teraluxapp.ui.devices
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,7 +29,8 @@ import androidx.compose.ui.draw.alpha
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: String, category: String, deviceName: String, gatewayId: String?) -> Unit) {
+fun DeviceListScreen(token: String,
+                     onDeviceClick: (deviceId: String, category: String, deviceName: String, gatewayId: String?) -> Unit) {
     val scope = rememberCoroutineScope()
     var devices by remember { mutableStateOf<List<Device>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -69,7 +66,6 @@ fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: Strin
                     }
                     devices = flatList
                 } else {
-                    val errorBody = response.errorBody()?.string()
                     error = "Failed: ${response.code()}"
                 }
             } catch (e: Exception) {
@@ -94,7 +90,6 @@ fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: Strin
                     IconButton(
                         onClick = {
                             scope.launch {
-                                isFlushing = true
                                 try {
                                     val response = RetrofitClient.instance.flushCache("Bearer $token")
                                     if (response.isSuccessful) {
@@ -106,7 +101,6 @@ fun DeviceListScreen(token: String, uid: String, onDeviceClick: (deviceId: Strin
                                 } catch (e: Exception) {
                                     snackbarHostState.showSnackbar("Error: ${e.message}")
                                 } finally {
-                                    isFlushing = false
                                 }
                             }
                         },
