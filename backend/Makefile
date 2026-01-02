@@ -96,7 +96,7 @@ push:
 	)
 	@TAG="$${TAG:-latest}"; \
 	echo "📦 Using tag '$$TAG'"; \
-	gh workflow run backend-docker-publish.yml -f tag="$$TAG"; \
+	gh workflow run backend-docker-publish.yml --ref "$$TAG" -f tag="$$TAG"; \
 	echo "✅ Workflow dispatched. Track with 'gh run watch --latest'"
 
 # Push to GHCR locally (multi-arch) without GitHub Actions
