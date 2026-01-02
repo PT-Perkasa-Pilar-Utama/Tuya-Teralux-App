@@ -1,7 +1,7 @@
 # Start with a lightweight Go base image
 # Using Debian-based image to avoid QEMU/Alpine compatibility issues (execve error)
 # and to support Go 1.24 required by dependencies.
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 
 # Set the current working directory inside the container
 WORKDIR /app
