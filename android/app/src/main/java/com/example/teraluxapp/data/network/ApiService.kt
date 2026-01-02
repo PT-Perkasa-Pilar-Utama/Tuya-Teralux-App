@@ -5,6 +5,10 @@ import com.example.teraluxapp.data.model.BaseResponse
 import com.example.teraluxapp.data.model.DeviceResponse
 import com.example.teraluxapp.data.model.SingleDeviceResponse
 import com.example.teraluxapp.data.model.SensorDataResponse
+import com.example.teraluxapp.data.model.TeraluxListResponse
+import com.example.teraluxapp.data.model.TeraluxResponseDTO
+import com.example.teraluxapp.data.model.CreateTeraluxRequest
+import com.example.teraluxapp.data.model.CreateTeraluxResponse
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
@@ -15,6 +19,17 @@ import retrofit2.Response
 interface ApiService {
     @GET("api/tuya/auth")
     suspend fun authenticate(): BaseResponse<AuthResponse>
+
+    // Teralux Device Check & Registration (Public with API Key)
+    @GET("api/teralux/mac/{mac}")
+    suspend fun getTeraluxByMAC(
+        @Path("mac") macAddress: String
+    ): BaseResponse<TeraluxResponseDTO>
+
+    @POST("api/teralux")
+    suspend fun registerTeralux(
+        @Body request: CreateTeraluxRequest
+    ): BaseResponse<CreateTeraluxResponse>
 
     @GET("api/tuya/devices")
     suspend fun getDevices(

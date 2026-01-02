@@ -32,7 +32,9 @@ object DeviceInfoUtils {
             // Ignore
         }
 
+
         // Try to get from WifiManager (Legacy approach, often returns 02:00:00:00:00:00 on newer Androids)
+        @Suppress("DEPRECATION")
         try {
             val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             val wInfo = wifiManager.connectionInfo

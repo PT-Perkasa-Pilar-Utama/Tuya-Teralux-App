@@ -604,7 +604,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Retrieves a list of all teralux devices",
@@ -648,7 +648,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Creates a new teralux device",
@@ -694,6 +694,67 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/teralux/mac/{mac}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves a teralux device by its MAC address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Teralux"
+                ],
+                "summary": "Get Teralux by MAC Address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "MAC Address",
+                        "name": "mac",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TeraluxResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }

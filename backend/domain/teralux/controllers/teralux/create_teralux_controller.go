@@ -31,7 +31,7 @@ func NewCreateTeraluxController(useCase *usecases.CreateTeraluxUseCase) *CreateT
 // @Success      201      {object}  dtos.StandardResponse{data=teralux_dtos.CreateTeraluxResponseDTO}
 // @Failure      400      {object}  dtos.StandardResponse
 // @Failure      500      {object}  dtos.StandardResponse
-// @Security     BearerAuth
+// @Security     ApiKeyAuth
 // @Router       /api/teralux [post]
 func (c *CreateTeraluxController) CreateTeralux(ctx *gin.Context) {
 	var req teralux_dtos.CreateTeraluxRequestDTO

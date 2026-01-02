@@ -32,7 +32,7 @@ func NewGetAllTeraluxController(useCase *usecases.GetAllTeraluxUseCase) *GetAllT
 // @Produce      json
 // @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxListResponseDTO}
 // @Failure      500  {object}  dtos.StandardResponse
-// @Security     BearerAuth
+// @Security     ApiKeyAuth
 // @Router       /api/teralux [get]
 func (c *GetAllTeraluxController) GetAllTeralux(ctx *gin.Context) {
 	// Execute use case
