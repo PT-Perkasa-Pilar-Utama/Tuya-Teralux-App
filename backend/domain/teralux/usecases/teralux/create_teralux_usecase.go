@@ -3,18 +3,17 @@ package usecases
 import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
-	"teralux_app/domain/teralux/repositories"
 
 	"github.com/google/uuid"
 )
 
 // CreateTeraluxUseCase handles the business logic for creating a new teralux
 type CreateTeraluxUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository TeraluxRepository
 }
 
 // NewCreateTeraluxUseCase creates a new instance of CreateTeraluxUseCase
-func NewCreateTeraluxUseCase(repository *repositories.TeraluxRepository) *CreateTeraluxUseCase {
+func NewCreateTeraluxUseCase(repository TeraluxRepository) *CreateTeraluxUseCase {
 	return &CreateTeraluxUseCase{
 		repository: repository,
 	}

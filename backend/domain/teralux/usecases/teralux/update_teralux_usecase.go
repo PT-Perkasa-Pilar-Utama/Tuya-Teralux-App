@@ -2,41 +2,36 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
-	"teralux_app/domain/teralux/repositories"
 )
 
-// UpdateTeraluxUseCase handles the business logic for updating a teralux
+// UpdateTeraluxUseCase handles updating an existing teralux
 type UpdateTeraluxUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository TeraluxRepository
 }
 
 // NewUpdateTeraluxUseCase creates a new instance of UpdateTeraluxUseCase
-func NewUpdateTeraluxUseCase(repository *repositories.TeraluxRepository) *UpdateTeraluxUseCase {
+func NewUpdateTeraluxUseCase(repository TeraluxRepository) *UpdateTeraluxUseCase {
 	return &UpdateTeraluxUseCase{
 		repository: repository,
 	}
 }
 
-// Execute updates an existing teralux record
+// Execute updates a teralux
 func (uc *UpdateTeraluxUseCase) Execute(id string, req *dtos.UpdateTeraluxRequestDTO) error {
-	// Check if teralux exists
-	teralux, err := uc.repository.GetByID(id)
+	// First check if exists
+	item, err := uc.repository.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	// Update fields if provided
-	if req.MacAddress != "" {
-		teralux.MacAddress = req.MacAddress
-	}
+	// Update fields
 	if req.Name != "" {
-		teralux.Name = req.Name
+		item.Name = req.Name
+	}
+	if req.MacAddress != "" {
+		item.MacAddress = req.MacAddress
 	}
 
-	// Save to database
-	if err := uc.repository.Update(teralux); err != nil {
-		return err
-	}
-
-	return nil
+	// Save changes
+	return uc.repository.Update(item)
 }
