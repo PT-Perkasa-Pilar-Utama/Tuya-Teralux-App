@@ -44,6 +44,18 @@ install-watch:
 	go install github.com/air-verse/air@latest
 	@echo "✅ Air installed successfully"
 
+# Install swaggo/swag for API documentation
+install-swagger:
+	@echo "📦 Installing Swag..."
+	go install github.com/swaggo/swag/cmd/swag@latest
+	@echo "✅ Swag installed successfully"
+
+# Generate Swagger documentation
+swagger:
+	@echo "📝 Generating Swagger documentation..."
+	@$(shell go env GOPATH)/bin/swag init -g main.go
+	@echo "✅ Swagger documentation updated"
+
 # Build release binary
 build:
 	@echo "🔨 Building release binary..."
@@ -132,8 +144,8 @@ update:
 
 # Run all tests
 test:
-	@echo "🧪 Running all tests..."
-	go test -v ./...
+	@go run scripts/test_runner.go
+
 
 # Clean build artifacts
 clean:

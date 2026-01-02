@@ -1,5 +1,39 @@
 basePath: /
 definitions:
+  dtos.CreateDeviceRequestDTO:
+    properties:
+      name:
+        type: string
+      teralux_id:
+        type: string
+    required:
+    - name
+    - teralux_id
+    type: object
+  dtos.CreateDeviceResponseDTO:
+    properties:
+      device_id:
+        type: string
+    type: object
+  dtos.CreateDeviceStatusRequestDTO:
+    properties:
+      code:
+        type: string
+      device_id:
+        type: string
+      name:
+        type: string
+      value:
+        type: integer
+    required:
+    - code
+    - device_id
+    type: object
+  dtos.CreateDeviceStatusResponseDTO:
+    properties:
+      status_id:
+        type: string
+    type: object
   dtos.CreateTeraluxRequestDTO:
     properties:
       mac_address:
@@ -14,6 +48,54 @@ definitions:
     properties:
       teralux_id:
         type: string
+    type: object
+  dtos.DeviceListResponseDTO:
+    properties:
+      devices:
+        items:
+          $ref: '#/definitions/dtos.DeviceResponseDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  dtos.DeviceResponseDTO:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      teralux_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dtos.DeviceStatusListResponseDTO:
+    properties:
+      statuses:
+        items:
+          $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
+        type: array
+      total:
+        type: integer
+    type: object
+  dtos.DeviceStatusResponseDTO:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      device_id:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      value:
+        type: integer
     type: object
   dtos.SensorDataDTO:
     properties:
@@ -155,6 +237,20 @@ definitions:
     - code
     - remote_id
     type: object
+  dtos.UpdateDeviceRequestDTO:
+    properties:
+      name:
+        type: string
+    type: object
+  dtos.UpdateDeviceStatusRequestDTO:
+    properties:
+      name:
+        type: string
+      value:
+        description: Pointer to allow 0 as a valid value update if needed, though
+          int is fine if 0 is not 'empty'
+        type: integer
+    type: object
   dtos.UpdateTeraluxRequestDTO:
     properties:
       mac_address:
@@ -197,6 +293,334 @@ paths:
       summary: Flush all cache
       tags:
       - Flush
+  /api/device-statuses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all device statuses
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Device Statuses
+      tags:
+      - 03. DeviceStatuses
+    post:
+      consumes:
+      - application/json
+      description: Creates a new device status
+      parameters:
+      - description: Create Device Status Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateDeviceStatusRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.CreateDeviceStatusResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Create Device Status
+      tags:
+      - 03. DeviceStatuses
+  /api/device-statuses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a device status
+      parameters:
+      - description: Device Status ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete Device Status
+      tags:
+      - 03. DeviceStatuses
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single device status by ID
+      parameters:
+      - description: Device Status ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Device Status by ID
+      tags:
+      - 03. DeviceStatuses
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing device status
+      parameters:
+      - description: Device Status ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Device Status Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateDeviceStatusRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Device Status
+      tags:
+      - 03. DeviceStatuses
+  /api/devices:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all devices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceListResponseDTO'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Devices
+      tags:
+      - 03. Devices
+    post:
+      consumes:
+      - application/json
+      description: Creates a new device under a teralux unit
+      parameters:
+      - description: Create Device Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateDeviceRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.CreateDeviceResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Create Device
+      tags:
+      - 03. Devices
+  /api/devices/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a device
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete Device
+      tags:
+      - 03. Devices
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single device by ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Device by ID
+      tags:
+      - 03. Devices
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing device
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Device Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateDeviceRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Device
+      tags:
+      - 03. Devices
   /api/teralux:
     get:
       consumes:

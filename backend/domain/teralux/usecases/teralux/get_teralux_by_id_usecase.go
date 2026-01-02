@@ -2,35 +2,32 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
-	"teralux_app/domain/teralux/repositories"
 )
 
-// GetTeraluxByIDUseCase handles the business logic for retrieving a single teralux by ID
+// GetTeraluxByIDUseCase handles retrieving a single teralux
 type GetTeraluxByIDUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository TeraluxRepository
 }
 
 // NewGetTeraluxByIDUseCase creates a new instance of GetTeraluxByIDUseCase
-func NewGetTeraluxByIDUseCase(repository *repositories.TeraluxRepository) *GetTeraluxByIDUseCase {
+func NewGetTeraluxByIDUseCase(repository TeraluxRepository) *GetTeraluxByIDUseCase {
 	return &GetTeraluxByIDUseCase{
 		repository: repository,
 	}
 }
 
-// Execute retrieves a single teralux by ID
+// Execute retrieves a teralux by ID
 func (uc *GetTeraluxByIDUseCase) Execute(id string) (*dtos.TeraluxResponseDTO, error) {
-	// Get teralux from repository
-	teralux, err := uc.repository.GetByID(id)
+	item, err := uc.repository.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Transform entity to DTO
 	return &dtos.TeraluxResponseDTO{
-		ID:         teralux.ID,
-		MacAddress: teralux.MacAddress,
-		Name:       teralux.Name,
-		CreatedAt:  teralux.CreatedAt,
-		UpdatedAt:  teralux.UpdatedAt,
+		ID:         item.ID,
+		MacAddress: item.MacAddress,
+		Name:       item.Name,
+		CreatedAt:  item.CreatedAt,
+		UpdatedAt:  item.UpdatedAt,
 	}, nil
 }

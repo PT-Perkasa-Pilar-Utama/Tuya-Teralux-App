@@ -2,16 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
-	"teralux_app/domain/teralux/repositories"
 )
 
-// GetAllTeraluxUseCase handles the business logic for retrieving all teralux records
+
+// GetAllTeraluxUseCase handles retrieving all teralux records
 type GetAllTeraluxUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository TeraluxRepository
 }
 
 // NewGetAllTeraluxUseCase creates a new instance of GetAllTeraluxUseCase
-func NewGetAllTeraluxUseCase(repository *repositories.TeraluxRepository) *GetAllTeraluxUseCase {
+func NewGetAllTeraluxUseCase(repository TeraluxRepository) *GetAllTeraluxUseCase {
 	return &GetAllTeraluxUseCase{
 		repository: repository,
 	}
@@ -19,22 +19,25 @@ func NewGetAllTeraluxUseCase(repository *repositories.TeraluxRepository) *GetAll
 
 // Execute retrieves all teralux records
 func (uc *GetAllTeraluxUseCase) Execute() (*dtos.TeraluxListResponseDTO, error) {
-	// Get all teralux from repository
 	teraluxList, err := uc.repository.GetAll()
 	if err != nil {
 		return nil, err
 	}
 
-	// Transform entities to DTOs
-	teraluxDTOs := make([]dtos.TeraluxResponseDTO, len(teraluxList))
-	for i, teralux := range teraluxList {
-		teraluxDTOs[i] = dtos.TeraluxResponseDTO{
-			ID:         teralux.ID,
-			MacAddress: teralux.MacAddress,
-			Name:       teralux.Name,
-			CreatedAt:  teralux.CreatedAt,
-			UpdatedAt:  teralux.UpdatedAt,
-		}
+	// Map to DTOs
+	var teraluxDTOs []dtos.TeraluxResponseDTO
+	for _, item := range teraluxList {
+		teraluxDTOs = append(teraluxDTOs, dtos.TeraluxResponseDTO{
+			ID:         item.ID,
+			MacAddress: item.MacAddress,
+			Name:       item.Name,
+			CreatedAt:  item.CreatedAt,
+			UpdatedAt:  item.UpdatedAt,
+		})
+	}
+	
+	if teraluxDTOs == nil {
+		teraluxDTOs = []dtos.TeraluxResponseDTO{}
 	}
 
 	return &dtos.TeraluxListResponseDTO{

@@ -10,13 +10,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.teraluxapp.data.network.RetrofitClient
+import com.example.teraluxapp.utils.DeviceInfoUtils
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(onLoginSuccess: (String, String) -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var macAddress by remember { mutableStateOf("Loading MAC...") }
+    
+    LaunchedEffect(Unit) {
+        macAddress = DeviceInfoUtils.getMacAddress(context)
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -24,6 +32,7 @@ fun LoginScreen(onLoginSuccess: (String, String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Tuya Device Manager", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "MAC: $macAddress", style = MaterialTheme.typography.bodySmall)
         
         Spacer(modifier = Modifier.height(32.dp))
 
