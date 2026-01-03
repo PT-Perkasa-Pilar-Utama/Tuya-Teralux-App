@@ -111,16 +111,6 @@ func (r *DeviceRepository) Delete(id string) error {
 	return nil
 }
 
-// GetByTuyaID retrieves a device by its Tuya ID
-func (r *DeviceRepository) GetByTuyaID(tuyaID string) (*entities.Device, error) {
-	var device entities.Device
-	err := r.db.Where("tuya_id = ?", tuyaID).First(&device).Error
-	if err != nil {
-		return nil, err
-	}
-	return &device, nil
-}
-
 // GetByRemoteID retrieves a device by its Remote ID
 func (r *DeviceRepository) GetByRemoteID(remoteID string) (*entities.Device, error) {
 	var device entities.Device

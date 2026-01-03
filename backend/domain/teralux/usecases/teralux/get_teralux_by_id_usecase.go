@@ -37,12 +37,21 @@ func (uc *GetTeraluxByIDUseCase) Execute(id string) (*dtos.TeraluxResponseDTO, e
 	deviceDTOs := make([]dtos.DeviceResponseDTO, len(devices))
 	for i, device := range devices {
 		deviceDTOs[i] = dtos.DeviceResponseDTO{
-			ID:        device.ID,
-			TeraluxID: device.TeraluxID,
-			Name:      device.Name,
-			Online:    device.Online,
-			CreatedAt: device.CreatedAt,
-			UpdatedAt: device.UpdatedAt,
+			ID:                device.ID,
+			TeraluxID:         device.TeraluxID,
+			Name:              device.Name,
+			RemoteID:          device.RemoteID,
+			Category:          device.Category,
+			RemoteCategory:    device.RemoteCategory,
+			ProductName:       device.ProductName,
+			RemoteProductName: device.RemoteProductName,
+			LocalKey:          device.LocalKey,
+			GatewayID:         device.GatewayID,
+			IP:                device.IP,
+			Model:             device.Model,
+			Icon:              device.Icon,
+			CreatedAt:         device.CreatedAt,
+			UpdatedAt:         device.UpdatedAt,
 		}
 	}
 
