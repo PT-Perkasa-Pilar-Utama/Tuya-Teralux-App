@@ -120,3 +120,23 @@ func (r *DeviceStatusRepository) Delete(id string) error {
 
 	return nil
 }
+
+// UpsertDeviceStatuses replaces all statuses for a device with new ones
+func (r *DeviceStatusRepository) UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error {
+// Start transaction
+return r.db.Transaction(func(tx *gorm.DB) error {
+// Delete all existing statuses for this device
+if err := tx.Where("device_id = ?", deviceID).Delete(&entities.DeviceStatus{}).Error; err != nil {
+return err
+}
+
+// Insert new statuses
+if len(statuses) > 0 {
+if err := tx.Create(&statuses).Error; err != nil {
+return err
+}
+}
+
+return nil
+})
+}

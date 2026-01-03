@@ -38,7 +38,6 @@ func (uc *CreateDeviceStatusUseCase) Execute(req *dtos.CreateDeviceStatusRequest
 	status := &entities.DeviceStatus{
 		ID:       id,
 		DeviceID: req.DeviceID,
-		Name:     req.Name,
 		Code:     req.Code,
 		Value:    req.Value,
 	}

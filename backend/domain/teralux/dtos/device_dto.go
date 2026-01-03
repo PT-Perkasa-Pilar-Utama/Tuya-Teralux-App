@@ -20,25 +20,32 @@ type UpdateDeviceRequestDTO struct {
 
 // DeviceResponseDTO represents the response format for a single device
 type DeviceResponseDTO struct {
-	ID                string    `json:"id"`
-	TeraluxID         string    `json:"teralux_id"`
-	Name              string    `json:"name"`
-	RemoteID          string    `json:"remote_id,omitempty"`
-	Category          string    `json:"category,omitempty"`
-	RemoteCategory    string    `json:"remote_category,omitempty"`
-	ProductName       string    `json:"product_name,omitempty"`
-	RemoteProductName string    `json:"remote_product_name,omitempty"`
-	Icon              string    `json:"icon,omitempty"`
-	CustomName        string    `json:"custom_name,omitempty"`
-	Model             string    `json:"model,omitempty"`
-	IP                string    `json:"ip,omitempty"`
-	LocalKey          string    `json:"local_key,omitempty"`
-	GatewayID         string    `json:"gateway_id,omitempty"`
-	CreateTime        int64     `json:"create_time,omitempty"`
-	UpdateTime        int64     `json:"update_time,omitempty"`
-	Collections       string    `json:"collections,omitempty"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                string            `json:"id"`
+	TeraluxID         string            `json:"teralux_id"`
+	Name              string            `json:"name"`
+	RemoteID          string            `json:"remote_id,omitempty"`
+	Category          string            `json:"category,omitempty"`
+	RemoteCategory    string            `json:"remote_category,omitempty"`
+	ProductName       string            `json:"product_name,omitempty"`
+	RemoteProductName string            `json:"remote_product_name,omitempty"`
+	Icon              string            `json:"icon,omitempty"`
+	CustomName        string            `json:"custom_name,omitempty"`
+	Model             string            `json:"model,omitempty"`
+	IP                string            `json:"ip,omitempty"`
+	LocalKey          string            `json:"local_key,omitempty"`
+	GatewayID         string            `json:"gateway_id,omitempty"`
+	CreateTime        int64             `json:"create_time,omitempty"`
+	UpdateTime        int64             `json:"update_time,omitempty"`
+	Collections       string            `json:"collections,omitempty"`
+	Status            []DeviceStatusDTO `json:"status,omitempty"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
+}
+
+// DeviceStatusDTO represents a device status for responses
+type DeviceStatusDTO struct {
+	Code  string `json:"code"`
+	Value string `json:"value"`
 }
 
 // DeviceListResponseDTO represents the response format for a list of devices

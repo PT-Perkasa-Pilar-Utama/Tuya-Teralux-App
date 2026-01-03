@@ -26,7 +26,6 @@ func (uc *GetDeviceStatusByIDUseCase) Execute(id string) (*dtos.DeviceStatusResp
 	return &dtos.DeviceStatusResponseDTO{
 		ID:        status.ID,
 		DeviceID:  status.DeviceID,
-		Name:      status.Name,
 		Code:      status.Code,
 		Value:     status.Value,
 		CreatedAt: status.CreatedAt,

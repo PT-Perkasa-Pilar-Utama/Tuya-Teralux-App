@@ -29,7 +29,6 @@ func (uc *GetAllDeviceStatusesUseCase) Execute() (*dtos.DeviceStatusListResponse
 		statusDTOs = append(statusDTOs, dtos.DeviceStatusResponseDTO{
 			ID:        status.ID,
 			DeviceID:  status.DeviceID,
-			Name:      status.Name,
 			Code:      status.Code,
 			Value:     status.Value,
 			CreatedAt: status.CreatedAt,

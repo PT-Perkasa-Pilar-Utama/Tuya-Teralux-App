@@ -95,11 +95,22 @@ definitions:
         type: string
       remote_product_name:
         type: string
+      status:
+        items:
+          $ref: '#/definitions/dtos.DeviceStatusDTO'
+        type: array
       teralux_id:
         type: string
       update_time:
         type: integer
       updated_at:
+        type: string
+    type: object
+  dtos.DeviceStatusDTO:
+    properties:
+      code:
+        type: string
+      value:
         type: string
     type: object
   dtos.DeviceStatusListResponseDTO:

@@ -1518,6 +1518,12 @@ const docTemplate = `{
                 "remote_product_name": {
                     "type": "string"
                 },
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.DeviceStatusDTO"
+                    }
+                },
                 "teralux_id": {
                     "type": "string"
                 },
@@ -1525,6 +1531,17 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.DeviceStatusDTO": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }
