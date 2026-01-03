@@ -23,7 +23,7 @@ func NewDeleteDeviceController(useCase *usecases.DeleteDeviceUseCase) *DeleteDev
 // DeleteDevice handles DELETE /api/devices/:id endpoint
 // @Summary      Delete Device
 // @Description  Deletes a device
-// @Tags         03. Devices
+// @Tags         04. Devices
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "Device ID"

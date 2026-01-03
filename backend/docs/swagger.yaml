@@ -40,9 +40,12 @@ definitions:
         type: string
       name:
         type: string
+      room_id:
+        type: string
     required:
     - mac_address
     - name
+    - room_id
     type: object
   dtos.CreateTeraluxResponseDTO:
     properties:
@@ -66,6 +69,8 @@ definitions:
         type: string
       name:
         type: string
+      online:
+        type: boolean
       teralux_id:
         type: string
       updated_at:
@@ -131,11 +136,17 @@ definitions:
     properties:
       created_at:
         type: string
+      devices:
+        items:
+          $ref: '#/definitions/dtos.DeviceResponseDTO'
+        type: array
       id:
         type: string
       mac_address:
         type: string
       name:
+        type: string
+      room_id:
         type: string
       updated_at:
         type: string
@@ -237,6 +248,19 @@ definitions:
     - code
     - remote_id
     type: object
+  dtos.TuyaSyncDeviceDTO:
+    properties:
+      create_time:
+        type: integer
+      id:
+        type: string
+      online:
+        type: boolean
+      remote_id:
+        type: string
+      update_time:
+        type: integer
+    type: object
   dtos.UpdateDeviceRequestDTO:
     properties:
       name:
@@ -256,6 +280,8 @@ definitions:
       mac_address:
         type: string
       name:
+        type: string
+      room_id:
         type: string
     type: object
 host: localhost:8080
@@ -292,7 +318,7 @@ paths:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - Flush
+      - 06. Flush
   /api/device-statuses:
     get:
       consumes:
@@ -318,7 +344,7 @@ paths:
       - BearerAuth: []
       summary: Get All Device Statuses
       tags:
-      - 03. DeviceStatuses
+      - 05. Device Statuses
     post:
       consumes:
       - application/json
@@ -354,7 +380,7 @@ paths:
       - BearerAuth: []
       summary: Create Device Status
       tags:
-      - 03. DeviceStatuses
+      - 05. Device Statuses
   /api/device-statuses/{id}:
     delete:
       consumes:
@@ -385,7 +411,7 @@ paths:
       - BearerAuth: []
       summary: Delete Device Status
       tags:
-      - 03. DeviceStatuses
+      - 05. Device Statuses
     get:
       consumes:
       - application/json
@@ -420,7 +446,7 @@ paths:
       - BearerAuth: []
       summary: Get Device Status by ID
       tags:
-      - 03. DeviceStatuses
+      - 05. Device Statuses
     put:
       consumes:
       - application/json
@@ -456,7 +482,7 @@ paths:
       - BearerAuth: []
       summary: Update Device Status
       tags:
-      - 03. DeviceStatuses
+      - 05. Device Statuses
   /api/devices:
     get:
       consumes:
@@ -482,7 +508,7 @@ paths:
       - BearerAuth: []
       summary: Get All Devices
       tags:
-      - 03. Devices
+      - 04. Devices
     post:
       consumes:
       - application/json
@@ -518,7 +544,7 @@ paths:
       - BearerAuth: []
       summary: Create Device
       tags:
-      - 03. Devices
+      - 04. Devices
   /api/devices/{id}:
     delete:
       consumes:
@@ -549,7 +575,7 @@ paths:
       - BearerAuth: []
       summary: Delete Device
       tags:
-      - 03. Devices
+      - 04. Devices
     get:
       consumes:
       - application/json
@@ -584,7 +610,7 @@ paths:
       - BearerAuth: []
       summary: Get Device by ID
       tags:
-      - 03. Devices
+      - 04. Devices
     put:
       consumes:
       - application/json
@@ -620,7 +646,7 @@ paths:
       - BearerAuth: []
       summary: Update Device
       tags:
-      - 03. Devices
+      - 04. Devices
   /api/teralux:
     get:
       consumes:
@@ -717,7 +743,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a single teralux device by ID
+      description: Retrieves a single teralux device by ID with its associated devices
       parameters:
       - description: Teralux ID
         in: path
@@ -728,7 +754,8 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Returns teralux with room_id and devices array (empty if no
+            devices)
           schema:
             allOf:
             - $ref: '#/definitions/dtos.StandardResponse'
@@ -1041,6 +1068,40 @@ paths:
       summary: Get Sensor Data
       tags:
       - 02. Tuya
+  /api/tuya/devices/sync:
+    get:
+      consumes:
+      - application/json
+      description: Fetches real-time status from Tuya. Does NOT update local DB. Returns
+        fresh device list.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dtos.TuyaSyncDeviceDTO'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - ApiKeyAuth: []
+      - BearerAuth: []
+      summary: Sync Teralux Device Status
+      tags:
+      - 02. Tuya
   /health:
     get:
       description: Check if the application and database are healthy
@@ -1057,7 +1118,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - Health
+      - 07. Health
 securityDefinitions:
   ApiKeyAuth:
     in: header
@@ -1076,3 +1137,11 @@ tags:
   name: 02. Tuya
 - description: Teralux device management endpoints
   name: 03. Teralux
+- description: Teralux specific devices endpoints
+  name: 04. Devices
+- description: Device status management endpoints
+  name: 05. Device Statuses
+- description: Cache management endpoints
+  name: 06. Flush
+- description: Health check endpoint
+  name: 07. Health

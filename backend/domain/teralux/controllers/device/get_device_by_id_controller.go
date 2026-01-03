@@ -12,7 +12,6 @@ import (
 // Force usage of teralux_dtos for Swagger
 var _ = teralux_dtos.DeviceResponseDTO{}
 
-
 // GetDeviceByIDController handles get device by ID requests
 type GetDeviceByIDController struct {
 	useCase *usecases.GetDeviceByIDUseCase
@@ -28,7 +27,7 @@ func NewGetDeviceByIDController(useCase *usecases.GetDeviceByIDUseCase) *GetDevi
 // GetDeviceByID handles GET /api/devices/:id endpoint
 // @Summary      Get Device by ID
 // @Description  Retrieves a single device by ID
-// @Tags         03. Devices
+// @Tags         04. Devices
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "Device ID"

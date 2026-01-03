@@ -118,12 +118,12 @@ func (m *MockDeviceStatusRepository) Delete(id string) error {
 
 // MockTeraluxRepository is a manual mock for TeraluxRepository
 type MockTeraluxRepository struct {
-	CreateFunc         func(teralux *entities.Teralux) error
-	GetAllFunc         func() ([]entities.Teralux, error)
-	GetByIDFunc        func(id string) (*entities.Teralux, error)
+	CreateFunc          func(teralux *entities.Teralux) error
+	GetAllFunc          func() ([]entities.Teralux, error)
+	GetByIDFunc         func(id string) (*entities.Teralux, error)
 	GetByMacAddressFunc func(macAddress string) (*entities.Teralux, error)
-	UpdateFunc         func(teralux *entities.Teralux) error
-	DeleteFunc         func(id string) error
+	UpdateFunc          func(teralux *entities.Teralux) error
+	DeleteFunc          func(id string) error
 }
 
 func (m *MockTeraluxRepository) Create(teralux *entities.Teralux) error {

@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-
 type TestEvent struct {
 	Time    time.Time `json:"Time"`
 	Action  string    `json:"Action"`
@@ -60,7 +59,7 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(stdout)
-	
+
 	// Stats
 	var totalPassed, totalFailed, totalSkipped int
 	pkgResults := make(map[string]*PackageResult)
@@ -111,14 +110,14 @@ func main() {
 				// Individual Test Failed
 				totalFailed++
 				pkgResults[event.Package].Failed++
-				
+
 				key := fmt.Sprintf("%s|%s", event.Package, event.Test)
 				failures = append(failures, TestFailure{
 					Package: event.Package,
 					Test:    event.Test,
 					Output:  testOutputs[key],
 				})
-				
+
 				fmt.Printf("%s✕ %s%s\n", ColorRed, event.Test, ColorReset)
 			} else if event.Package != "" {
 				// Package Failed
@@ -142,11 +141,11 @@ func main() {
 	}
 
 	cmd.Wait() // Wait for command to finish
-	
+
 	duration := time.Since(startTime)
 
 	fmt.Println()
-	
+
 	// Print Failures Details
 	if len(failures) > 0 {
 		fmt.Println(ColorBold + "Summary of Failures:" + ColorReset)
@@ -162,9 +161,9 @@ func main() {
 
 	// Final Summary
 	fmt.Println(ColorBold + "Test Suites:" + ColorReset + fmt.Sprintf(" %d passed, %d total", len(pkgResults), len(pkgResults))) // Simplified suites
-	
+
 	totalTests := totalPassed + totalFailed + totalSkipped
-	
+
 	fmt.Print(ColorBold + "Tests:       " + ColorReset)
 	if totalFailed > 0 {
 		fmt.Printf("%s%d failed%s, ", ColorRed, totalFailed, ColorReset)
@@ -173,8 +172,8 @@ func main() {
 		fmt.Printf("%s%d skipped%s, ", ColorYellow, totalSkipped, ColorReset)
 	}
 	fmt.Printf("%s%d passed%s, %d total\n", ColorGreen, totalPassed, ColorReset, totalTests)
-	
-	fmt.Printf(ColorBold + "Time:        " + ColorReset + "%.2fs\n", duration.Seconds())
+
+	fmt.Printf(ColorBold+"Time:        "+ColorReset+"%.2fs\n", duration.Seconds())
 
 	if totalFailed > 0 {
 		os.Exit(1)

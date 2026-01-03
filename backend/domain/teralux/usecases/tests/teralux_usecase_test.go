@@ -61,7 +61,8 @@ func TestCreateTeraluxUseCase(t *testing.T) {
 
 func TestGetTeraluxByIDUseCase(t *testing.T) {
 	mockRepo := &MockTeraluxRepository{}
-	useCase := usecases.NewGetTeraluxByIDUseCase(mockRepo)
+	mockDeviceRepo := &MockDeviceRepository{}
+	useCase := usecases.NewGetTeraluxByIDUseCase(mockRepo, mockDeviceRepo)
 
 	t.Run("Found", func(t *testing.T) {
 		expectedID := "teralux-123"

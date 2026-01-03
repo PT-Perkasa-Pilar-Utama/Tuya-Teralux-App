@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	tuya_dtos "teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/usecases"
-	"teralux_app/domain/common/utils"
 
 	"github.com/gin-gonic/gin"
 )

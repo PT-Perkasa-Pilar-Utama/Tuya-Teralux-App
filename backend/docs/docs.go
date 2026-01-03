@@ -39,7 +39,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Flush"
+                    "06. Flush"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -73,7 +73,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. DeviceStatuses"
+                    "05. Device Statuses"
                 ],
                 "summary": "Get All Device Statuses",
                 "responses": {
@@ -117,7 +117,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. DeviceStatuses"
+                    "05. Device Statuses"
                 ],
                 "summary": "Create Device Status",
                 "parameters": [
@@ -180,7 +180,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. DeviceStatuses"
+                    "05. Device Statuses"
                 ],
                 "summary": "Get Device Status by ID",
                 "parameters": [
@@ -239,7 +239,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. DeviceStatuses"
+                    "05. Device Statuses"
                 ],
                 "summary": "Update Device Status",
                 "parameters": [
@@ -295,7 +295,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. DeviceStatuses"
+                    "05. Device Statuses"
                 ],
                 "summary": "Delete Device Status",
                 "parameters": [
@@ -344,7 +344,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Devices"
+                    "04. Devices"
                 ],
                 "summary": "Get All Devices",
                 "responses": {
@@ -388,7 +388,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Devices"
+                    "04. Devices"
                 ],
                 "summary": "Create Device",
                 "parameters": [
@@ -451,7 +451,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Devices"
+                    "04. Devices"
                 ],
                 "summary": "Get Device by ID",
                 "parameters": [
@@ -510,7 +510,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Devices"
+                    "04. Devices"
                 ],
                 "summary": "Update Device",
                 "parameters": [
@@ -566,7 +566,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Devices"
+                    "04. Devices"
                 ],
                 "summary": "Delete Device",
                 "parameters": [
@@ -775,7 +775,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves a single teralux device by ID",
+                "description": "Retrieves a single teralux device by ID with its associated devices",
                 "consumes": [
                     "application/json"
                 ],
@@ -797,7 +797,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Returns teralux with room_id and devices array (empty if no devices)",
                         "schema": {
                             "allOf": [
                                 {
@@ -1039,6 +1039,64 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tuya/devices/sync": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches real-time status from Tuya. Does NOT update local DB. Returns fresh device list.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Tuya"
+                ],
+                "summary": "Sync Teralux Device Status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dtos.TuyaSyncDeviceDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
@@ -1295,7 +1353,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "Health"
+                    "07. Health"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -1372,13 +1430,17 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "mac_address",
-                "name"
+                "name",
+                "room_id"
             ],
             "properties": {
                 "mac_address": {
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "room_id": {
                     "type": "string"
                 }
             }
@@ -1416,6 +1478,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "online": {
+                    "type": "boolean"
                 },
                 "teralux_id": {
                     "type": "string"
@@ -1517,6 +1582,12 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.DeviceResponseDTO"
+                    }
+                },
                 "id": {
                     "type": "string"
                 },
@@ -1524,6 +1595,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "room_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -1678,6 +1752,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.TuyaSyncDeviceDTO": {
+            "type": "object",
+            "properties": {
+                "create_time": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "online": {
+                    "type": "boolean"
+                },
+                "remote_id": {
+                    "type": "string"
+                },
+                "update_time": {
+                    "type": "integer"
+                }
+            }
+        },
         "dtos.UpdateDeviceRequestDTO": {
             "type": "object",
             "properties": {
@@ -1705,6 +1799,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "room_id": {
                     "type": "string"
                 }
             }
@@ -1735,6 +1832,22 @@ const docTemplate = `{
         {
             "description": "Teralux device management endpoints",
             "name": "03. Teralux"
+        },
+        {
+            "description": "Teralux specific devices endpoints",
+            "name": "04. Devices"
+        },
+        {
+            "description": "Device status management endpoints",
+            "name": "05. Device Statuses"
+        },
+        {
+            "description": "Cache management endpoints",
+            "name": "06. Flush"
+        },
+        {
+            "description": "Health check endpoint",
+            "name": "07. Health"
         }
     ]
 }`

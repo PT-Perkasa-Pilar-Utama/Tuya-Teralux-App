@@ -8,7 +8,6 @@ import (
 	"teralux_app/domain/common/utils"
 )
 
-
 func TestJoinStrings(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -48,7 +47,7 @@ func TestJoinStrings(t *testing.T) {
 
 func TestHashString(t *testing.T) {
 	input := "test_string"
-	
+
 	// manually calculate hash
 	h := sha256.New()
 	h.Write([]byte(input))
@@ -69,7 +68,7 @@ func TestHashString(t *testing.T) {
 
 // Additional strings tests can be added here
 func TestToSnakeCase(t *testing.T) {
-    // Assuming ToSnakeCase exists in utils/strings.go ? 
-    // Checking file content from Step 35: Only JoinStrings and HashString were shown.
-    // So I won't add TestToSnakeCase unless I see it.
+	// Assuming ToSnakeCase exists in utils/strings.go ?
+	// Checking file content from Step 35: Only JoinStrings and HashString were shown.
+	// So I won't add TestToSnakeCase unless I see it.
 }

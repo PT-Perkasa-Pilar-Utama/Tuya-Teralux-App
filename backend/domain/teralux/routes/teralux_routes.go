@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 // SetupTeraluxRoutes registers endpoints for teralux CRUD operations
 func SetupTeraluxRoutes(
 	publicRouter gin.IRouter,
@@ -78,4 +77,3 @@ func SetupTeraluxRoutes(
 		deviceStatusAPI.DELETE("/:id", deleteDeviceStatusController.DeleteDeviceStatus)
 	}
 }
-

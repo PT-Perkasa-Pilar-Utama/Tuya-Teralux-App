@@ -3,10 +3,14 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/teralux/usecases/teralux"
+	teralux_dtos "teralux_app/domain/teralux/dtos"
+	usecases "teralux_app/domain/teralux/usecases/teralux"
 
 	"github.com/gin-gonic/gin"
 )
+
+// Force usage for Swagger
+var _ = teralux_dtos.TeraluxResponseDTO{}
 
 // GetTeraluxByMACController handles get teralux by MAC address requests
 type GetTeraluxByMACController struct {

@@ -23,7 +23,7 @@ func NewDeleteDeviceStatusController(useCase *usecases.DeleteDeviceStatusUseCase
 // DeleteDeviceStatus handles DELETE /api/device-statuses/:id endpoint
 // @Summary      Delete Device Status
 // @Description  Deletes a device status
-// @Tags         03. DeviceStatuses
+// @Tags         05. Device Statuses
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "Device Status ID"

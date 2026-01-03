@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/services"
-	"teralux_app/domain/common/utils"
 	tuya_utils "teralux_app/domain/tuya/utils"
 	"time"
 )
@@ -36,8 +36,9 @@ func NewTuyaAuthUseCase(service *services.TuyaAuthService) *TuyaAuthUseCase {
 // Method: GET
 //
 // StringToSign Format:
-//   GET\n{content_hash}\n\n{url}
-//   (content_hash is SHA256 of empty string for GET)
+//
+//	GET\n{content_hash}\n\n{url}
+//	(content_hash is SHA256 of empty string for GET)
 //
 // return *dtos.TuyaAuthResponseDTO The data transfer object containing the access token, refresh token, and expiration time.
 // return error An error if configuration is missing, signature generation fails, or the API call returns an error.
@@ -62,7 +63,7 @@ func (uc *TuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
 
 	// Generate string to sign
 	stringToSign := tuya_utils.GenerateTuyaStringToSign("GET", contentHash, "", urlPath)
-	
+
 	utils.LogDebug("Authenticate: generating signature for clientId=%s", config.TuyaClientID)
 
 	// Generate signature

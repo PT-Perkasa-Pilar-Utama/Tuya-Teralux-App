@@ -9,12 +9,19 @@ import com.example.teraluxapp.data.model.TeraluxListResponse
 import com.example.teraluxapp.data.model.TeraluxResponseDTO
 import com.example.teraluxapp.data.model.CreateTeraluxRequest
 import com.example.teraluxapp.data.model.CreateTeraluxResponse
+import com.example.teraluxapp.data.model.UpdateTeraluxRequest
+import com.example.teraluxapp.data.model.CreateDeviceRequest
+import com.example.teraluxapp.data.model.CreateDeviceResponse
+import com.example.teraluxapp.data.model.TuyaSyncDeviceDTO
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Body
 import retrofit2.Response
+import retrofit2.http.PUT
+import retrofit2.http.DELETE
+import retrofit2.http.Query
 
 interface ApiService {
     @GET("api/tuya/auth")
@@ -69,6 +76,36 @@ interface ApiService {
     suspend fun flushCache(
         @Header("Authorization") token: String
     ): Response<BaseResponse<Any?>>
+
+    @GET("api/teralux/{id}")
+    suspend fun getTeraluxById(
+        @Header("Authorization") token: String,
+        @Path("id") teraluxId: String
+    ): Response<BaseResponse<TeraluxResponseDTO>>
+
+    @PUT("api/teralux/{id}")
+    suspend fun updateTeralux(
+        @Header("Authorization") token: String,
+        @Path("id") teraluxId: String,
+        @Body request: UpdateTeraluxRequest
+    ): Response<BaseResponse<Any?>>
+
+    @POST("api/devices")
+    suspend fun createDevice(
+        @Header("Authorization") token: String,
+        @Body request: CreateDeviceRequest
+    ): Response<BaseResponse<CreateDeviceResponse>>
+
+    @DELETE("api/devices/{id}")
+    suspend fun deleteDevice(
+        @Header("Authorization") token: String,
+        @Path("id") deviceId: String
+    ): Response<BaseResponse<Any?>>
+
+    @GET("api/tuya/devices/sync")
+    suspend fun syncDevices(
+        @Header("Authorization") token: String
+    ): Response<BaseResponse<List<TuyaSyncDeviceDTO>>>
 }
 
 

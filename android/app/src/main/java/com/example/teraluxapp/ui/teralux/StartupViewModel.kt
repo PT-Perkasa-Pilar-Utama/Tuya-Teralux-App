@@ -33,6 +33,8 @@ class StartupViewModel @Inject constructor(
             teraluxRepository.checkDeviceRegistration(macAddress)
                 .onSuccess { teralux ->
                     _uiState.value = if (teralux != null) {
+                        // Save Teralux ID for later use
+                        com.example.teraluxapp.utils.PreferencesManager.saveTeraluxId(context, teralux.id)
                         StartupUiState.DeviceRegistered
                     } else {
                         StartupUiState.DeviceNotRegistered(macAddress)

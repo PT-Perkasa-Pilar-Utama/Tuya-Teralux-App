@@ -2,32 +2,57 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/entities"
 )
 
 // GetTeraluxByIDUseCase handles retrieving a single teralux
 type GetTeraluxByIDUseCase struct {
-	repository TeraluxRepository
+	repository       TeraluxRepository
+	deviceRepository DeviceRepository
 }
 
 // NewGetTeraluxByIDUseCase creates a new instance of GetTeraluxByIDUseCase
-func NewGetTeraluxByIDUseCase(repository TeraluxRepository) *GetTeraluxByIDUseCase {
+func NewGetTeraluxByIDUseCase(repository TeraluxRepository, deviceRepository DeviceRepository) *GetTeraluxByIDUseCase {
 	return &GetTeraluxByIDUseCase{
-		repository: repository,
+		repository:       repository,
+		deviceRepository: deviceRepository,
 	}
 }
 
-// Execute retrieves a teralux by ID
+// Execute retrieves a teralux by ID with its associated devices
 func (uc *GetTeraluxByIDUseCase) Execute(id string) (*dtos.TeraluxResponseDTO, error) {
 	item, err := uc.repository.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
+	// Fetch devices associated with this teralux
+	devices, err := uc.deviceRepository.GetByTeraluxID(id)
+	if err != nil {
+		// If error fetching devices, return teralux with empty devices array
+		devices = []entities.Device{}
+	}
+
+	// Convert devices to DTOs
+	deviceDTOs := make([]dtos.DeviceResponseDTO, len(devices))
+	for i, device := range devices {
+		deviceDTOs[i] = dtos.DeviceResponseDTO{
+			ID:        device.ID,
+			TeraluxID: device.TeraluxID,
+			Name:      device.Name,
+			Online:    device.Online,
+			CreatedAt: device.CreatedAt,
+			UpdatedAt: device.UpdatedAt,
+		}
+	}
+
 	return &dtos.TeraluxResponseDTO{
 		ID:         item.ID,
 		MacAddress: item.MacAddress,
+		RoomID:     item.RoomID,
 		Name:       item.Name,
 		CreatedAt:  item.CreatedAt,
 		UpdatedAt:  item.UpdatedAt,
+		Devices:    deviceDTOs,
 	}, nil
 }

@@ -5,8 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
-	"testing"
 	"teralux_app/domain/tuya/utils"
+	"testing"
 )
 
 func TestGenerateTuyaStringToSign(t *testing.T) {
@@ -14,10 +14,10 @@ func TestGenerateTuyaStringToSign(t *testing.T) {
 	contentHash := "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" // empty sha256
 	headers := ""
 	url := "/v1.0/devices"
-	
+
 	expected := "GET\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n\n/v1.0/devices"
 	result := utils.GenerateTuyaStringToSign(method, contentHash, headers, url)
-	
+
 	if result != expected {
 		t.Errorf("GenerateTuyaStringToSign() = %q; want %q", result, expected)
 	}

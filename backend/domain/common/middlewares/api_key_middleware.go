@@ -41,7 +41,7 @@ func ApiKeyMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		utils.LogDebug("ApiKeyMiddleware: Valid API Key")
 
 		c.Next()

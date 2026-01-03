@@ -24,7 +24,7 @@ func NewUpdateDeviceController(useCase *usecases.UpdateDeviceUseCase) *UpdateDev
 // UpdateDevice handles PUT /api/devices/:id endpoint
 // @Summary      Update Device
 // @Description  Updates an existing device
-// @Tags         03. Devices
+// @Tags         04. Devices
 // @Accept       json
 // @Produce      json
 // @Param        id       path      string                        true  "Device ID"

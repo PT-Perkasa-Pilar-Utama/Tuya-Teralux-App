@@ -24,7 +24,7 @@ func NewCreateDeviceController(useCase *usecases.CreateDeviceUseCase) *CreateDev
 // CreateDevice handles POST /api/devices endpoint
 // @Summary      Create Device
 // @Description  Creates a new device under a teralux unit
-// @Tags         03. Devices
+// @Tags         04. Devices
 // @Accept       json
 // @Produce      json
 // @Param        request  body      teralux_dtos.CreateDeviceRequestDTO  true  "Create Device Request"

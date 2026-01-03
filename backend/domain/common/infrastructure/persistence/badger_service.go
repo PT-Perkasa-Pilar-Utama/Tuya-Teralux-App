@@ -82,14 +82,14 @@ func (s *BadgerService) Get(key string) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		
+
 		// Debug TTL
 		expiresAt := item.ExpiresAt()
 		if expiresAt > 0 {
 			ttlRemaining := time.Until(time.Unix(int64(expiresAt), 0))
 			utils.LogDebug("Cache Hit for '%s' | Expires in: %v", key, ttlRemaining)
 		} else {
-             // If ExpiresAt is 0, it means the key has no TTL (Persistent)
+			// If ExpiresAt is 0, it means the key has no TTL (Persistent)
 			utils.LogDebug("Cache Hit for '%s' | Expires in: Never (Persistent)", key)
 		}
 

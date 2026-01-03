@@ -34,7 +34,7 @@ func (uc *GetAllDevicesUseCase) Execute() (*dtos.DeviceListResponseDTO, error) {
 			UpdatedAt: device.UpdatedAt,
 		})
 	}
-	
+
 	// Ensure empty slice is not nil for JSON
 	if deviceDTOs == nil {
 		deviceDTOs = []dtos.DeviceResponseDTO{}

@@ -3,9 +3,9 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	tuya_dtos "teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/usecases"
-	"teralux_app/domain/common/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +37,7 @@ func NewTuyaAuthController(useCase *usecases.TuyaAuthUseCase) *TuyaAuthControlle
 // @Router       /api/tuya/auth [get]
 func (c *TuyaAuthController) Authenticate(ctx *gin.Context) {
 	utils.LogDebug("Authenticate request received")
-	token, err := c.useCase.Authenticate()																																																																									
+	token, err := c.useCase.Authenticate()
 	if err != nil {
 		utils.LogError("Authenticate failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

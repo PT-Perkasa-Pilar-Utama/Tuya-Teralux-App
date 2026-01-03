@@ -5,11 +5,11 @@ package docs
 // captures the access token from the login response and applies it to the "Authorize" button.
 //
 // Key Features:
-// - Custom Styles: Applies local stylesheets.
-// - Auto-Authorization: Intercepts the response from /api/tuya/auth, extracts the access_token,
-//   and programmatically triggers the Swagger UI authorization action with "Bearer <token>".
-// - Auto-Teralux-ID: Intercepts the response from POST /api/teralux, extracts the teralux ID,
-//   stores it in localStorage, and auto-fills it in subsequent GET/UPDATE/DELETE operations.
+//   - Custom Styles: Applies local stylesheets.
+//   - Auto-Authorization: Intercepts the response from /api/tuya/auth, extracts the access_token,
+//     and programmatically triggers the Swagger UI authorization action with "Bearer <token>".
+//   - Auto-Teralux-ID: Intercepts the response from POST /api/teralux, extracts the teralux ID,
+//     stores it in localStorage, and auto-fills it in subsequent GET/UPDATE/DELETE operations.
 const CustomSwaggerHTML = `<!DOCTYPE html>
 <html lang="en">
   <head>

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
-	"teralux_app/domain/teralux/usecases/teralux"
+	usecases "teralux_app/domain/teralux/usecases/teralux"
 
 	"github.com/gin-gonic/gin"
 )

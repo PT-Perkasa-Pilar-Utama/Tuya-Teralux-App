@@ -3,8 +3,8 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/tuya/usecases"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,7 +45,7 @@ func (c *TuyaSensorController) GetSensorData(ctx *gin.Context) {
 	}
 
 	accessToken := ctx.MustGet("access_token").(string)
-	
+
 	utils.LogDebug("GetSensorData: requesting for device %s", deviceID)
 
 	data, err := c.useCase.GetSensorData(accessToken, deviceID)

@@ -3,10 +3,10 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
-	"teralux_app/domain/tuya/dtos"
-	"teralux_app/domain/tuya/entities"
 	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/tuya/dtos"
+	"teralux_app/domain/tuya/entities"
 	"time"
 )
 
@@ -42,7 +42,7 @@ func (uc *DeviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.D
 
 	// Create a map to merge commands (code -> value)
 	commandMap := make(map[string]interface{})
-	
+
 	// Add existing commands to map first
 	if existingState != nil && existingState.LastCommands != nil {
 		for _, cmd := range existingState.LastCommands {
@@ -50,7 +50,7 @@ func (uc *DeviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.D
 		}
 		utils.LogDebug("DeviceStateUseCase: Loaded %d existing commands for device %s", len(existingState.LastCommands), deviceID)
 	}
-	
+
 	// Merge/update with new commands
 	for _, cmd := range commands {
 		commandMap[cmd.Code] = cmd.Value
@@ -82,13 +82,13 @@ func (uc *DeviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.D
 
 	// Save to BadgerDB with persistent key (no TTL)
 	key := fmt.Sprintf("device_state:%s", deviceID)
-	
+
 	utils.LogDebug("DeviceStateUseCase: Saving merged state for device %s with %d total commands", deviceID, len(mergedCommands))
 	for i, cmd := range mergedCommands {
 		utils.LogDebug("  MergedCommand[%d]: code=%s, value=%v (type=%T)", i, cmd.Code, cmd.Value, cmd.Value)
 	}
 	utils.LogDebug("  JSON payload: %s", string(jsonData))
-	
+
 	if err := uc.cache.SetPersistent(key, jsonData); err != nil {
 		utils.LogError("DeviceStateUseCase: Failed to save state for device %s: %v", deviceID, err)
 		return fmt.Errorf("failed to save device state: %w", err)
@@ -105,7 +105,7 @@ func (uc *DeviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.D
 // return error An error if the retrieval operation fails.
 func (uc *DeviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceStateDTO, error) {
 	key := fmt.Sprintf("device_state:%s", deviceID)
-	
+
 	// Retrieve from BadgerDB
 	jsonData, err := uc.cache.Get(key)
 	if err != nil {
@@ -173,7 +173,7 @@ func (uc *DeviceStateUseCase) CleanupOrphanedStates(validDeviceIDs []string) err
 	for _, key := range allStateKeys {
 		// Extract device ID from key "device_state:{device_id}"
 		deviceID := key[len("device_state:"):]
-		
+
 		// If device ID is not in valid list, delete the state
 		if !validIDMap[deviceID] {
 			if err := uc.cache.Delete(key); err != nil {
