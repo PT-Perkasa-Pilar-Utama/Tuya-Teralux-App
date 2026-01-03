@@ -7,5 +7,5 @@ import com.example.teraluxapp.data.model.TeraluxResponseDTO
 
 interface TeraluxRepository {
     suspend fun checkDeviceRegistration(macAddress: String): Result<TeraluxResponseDTO?>
-    suspend fun registerDevice(macAddress: String, name: String): Result<CreateTeraluxResponse>
+    suspend fun registerDevice(macAddress: String, roomId: String, name: String): Result<CreateTeraluxResponse>
 }

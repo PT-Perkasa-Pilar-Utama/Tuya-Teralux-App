@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class Teralux(
     @SerializedName("id") val id: String,
     @SerializedName("mac_address") val macAddress: String,
+    @SerializedName("room_id") val roomId: String,
     @SerializedName("name") val name: String,
     @SerializedName("created_at") val createdAt: String,
     @SerializedName("updated_at") val updated_at: String
@@ -20,6 +21,7 @@ data class TeraluxListResponse(
 
 data class CreateTeraluxRequest(
     @SerializedName("mac_address") val macAddress: String,
+    @SerializedName("room_id") val roomId: String,
     @SerializedName("name") val name: String
 )
 

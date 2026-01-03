@@ -31,7 +31,7 @@ class LoginViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.value = LoginUiState.Error(
-                        error.message ?: "Login failed"
+                        error.message ?: "Login gagal. Silakan coba lagi."
                     )
                 }
         }
