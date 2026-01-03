@@ -28,11 +28,15 @@ type DeviceResponseDTO struct {
 	RemoteCategory    string    `json:"remote_category,omitempty"`
 	ProductName       string    `json:"product_name,omitempty"`
 	RemoteProductName string    `json:"remote_product_name,omitempty"`
+	Icon              string    `json:"icon,omitempty"`
+	CustomName        string    `json:"custom_name,omitempty"`
+	Model             string    `json:"model,omitempty"`
+	IP                string    `json:"ip,omitempty"`
 	LocalKey          string    `json:"local_key,omitempty"`
 	GatewayID         string    `json:"gateway_id,omitempty"`
-	IP                string    `json:"ip,omitempty"`
-	Model             string    `json:"model,omitempty"`
-	Icon              string    `json:"icon,omitempty"`
+	CreateTime        int64     `json:"create_time,omitempty"`
+	UpdateTime        int64     `json:"update_time,omitempty"`
+	Collections       string    `json:"collections,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }

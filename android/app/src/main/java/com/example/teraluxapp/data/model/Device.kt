@@ -12,11 +12,14 @@ data class Device(
     @SerializedName("remote_product_name") val remoteProductName: String?,  // For merged IR devices
     @SerializedName("online") val online: Boolean,
     @SerializedName("icon") val icon: String?,
-    @SerializedName("status") val status: List<DeviceStatus>?,
+    @SerializedName("custom_name") val customName: String?,
+    @SerializedName("model") val model: String?,
     @SerializedName("ip") val ip: String?,
     @SerializedName("local_key") val localKey: String?,
     @SerializedName("gateway_id") val gatewayId: String?,
-    @SerializedName("model") val model: String?,
+    @SerializedName("create_time") val createTime: Long?,
+    @SerializedName("update_time") val updateTime: Long?,
+    @SerializedName("status") val status: List<DeviceStatus>?,
     @SerializedName("collections") val collections: List<Device>?
 )
 
