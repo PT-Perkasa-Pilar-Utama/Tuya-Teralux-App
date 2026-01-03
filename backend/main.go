@@ -9,6 +9,7 @@ import (
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux"
+	teralux_entities "teralux_app/domain/teralux/entities"
 	teralux_repositories "teralux_app/domain/teralux/repositories"
 	"teralux_app/domain/tuya"
 )
@@ -66,6 +67,13 @@ func main() {
 	} else {
 		defer infrastructure.CloseDB()
 		utils.LogInfo("Database initialized successfully")
+
+		// Auto Migrate Device Entity
+		if err := infrastructure.DB.AutoMigrate(&teralux_entities.Device{}); err != nil {
+			utils.LogInfo("Warning: Failed to auto-migrate Device entity: %v", err)
+		} else {
+			utils.LogInfo("Device entity auto-migrated successfully")
+		}
 	}
 
 	router := gin.Default()
