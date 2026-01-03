@@ -11,7 +11,8 @@ type CreateDeviceStatusRequestDTO struct {
 
 // CreateDeviceStatusResponseDTO represents the response for creating a device status
 type CreateDeviceStatusResponseDTO struct {
-	ID string `json:"status_id"`
+	DeviceID string `json:"device_id"`
+	Code     string `json:"code"`
 }
 
 // UpdateDeviceStatusRequestDTO represents the request body for updating a device status
@@ -21,7 +22,6 @@ type UpdateDeviceStatusRequestDTO struct {
 
 // DeviceStatusResponseDTO represents the response format for a single device status
 type DeviceStatusResponseDTO struct {
-	ID        string    `json:"id"`
 	DeviceID  string    `json:"device_id"`
 	Code      string    `json:"code"`
 	Value     string    `json:"value"`

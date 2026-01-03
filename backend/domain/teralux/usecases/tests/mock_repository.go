@@ -58,13 +58,13 @@ func (m *MockDeviceRepository) Delete(id string) error {
 
 // MockDeviceStatusRepository is a manual mock for DeviceStatusRepository
 type MockDeviceStatusRepository struct {
-	CreateFunc               func(status *entities.DeviceStatus) error
-	GetAllFunc               func() ([]entities.DeviceStatus, error)
-	GetByDeviceIDFunc        func(deviceID string) ([]entities.DeviceStatus, error)
-	GetByDeviceIDAndCodeFunc func(deviceID, code string) (*entities.DeviceStatus, error)
-	GetByIDFunc              func(id string) (*entities.DeviceStatus, error)
-	UpdateFunc               func(status *entities.DeviceStatus) error
-	DeleteFunc               func(id string) error
+	CreateFunc                  func(status *entities.DeviceStatus) error
+	GetAllFunc                  func() ([]entities.DeviceStatus, error)
+	GetByDeviceIDFunc           func(deviceID string) ([]entities.DeviceStatus, error)
+	GetByDeviceIDAndCodeFunc    func(deviceID, code string) (*entities.DeviceStatus, error)
+	UpsertFunc                  func(status *entities.DeviceStatus) error
+	DeleteByDeviceIDAndCodeFunc func(deviceID, code string) error
+	UpsertDeviceStatusesFunc    func(deviceID string, statuses []entities.DeviceStatus) error
 }
 
 func (m *MockDeviceStatusRepository) Create(status *entities.DeviceStatus) error {
@@ -95,23 +95,23 @@ func (m *MockDeviceStatusRepository) GetByDeviceIDAndCode(deviceID, code string)
 	return nil, nil
 }
 
-func (m *MockDeviceStatusRepository) GetByID(id string) (*entities.DeviceStatus, error) {
-	if m.GetByIDFunc != nil {
-		return m.GetByIDFunc(id)
-	}
-	return nil, nil
-}
-
-func (m *MockDeviceStatusRepository) Update(status *entities.DeviceStatus) error {
-	if m.UpdateFunc != nil {
-		return m.UpdateFunc(status)
+func (m *MockDeviceStatusRepository) Upsert(status *entities.DeviceStatus) error {
+	if m.UpsertFunc != nil {
+		return m.UpsertFunc(status)
 	}
 	return nil
 }
 
-func (m *MockDeviceStatusRepository) Delete(id string) error {
-	if m.DeleteFunc != nil {
-		return m.DeleteFunc(id)
+func (m *MockDeviceStatusRepository) DeleteByDeviceIDAndCode(deviceID, code string) error {
+	if m.DeleteByDeviceIDAndCodeFunc != nil {
+		return m.DeleteByDeviceIDAndCodeFunc(deviceID, code)
+	}
+	return nil
+}
+
+func (m *MockDeviceStatusRepository) UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error {
+	if m.UpsertDeviceStatusesFunc != nil {
+		return m.UpsertDeviceStatusesFunc(deviceID, statuses)
 	}
 	return nil
 }

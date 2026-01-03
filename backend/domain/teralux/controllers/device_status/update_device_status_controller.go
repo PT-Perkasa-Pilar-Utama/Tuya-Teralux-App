@@ -21,25 +21,27 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 	}
 }
 
-// UpdateDeviceStatus handles PUT /api/device-statuses/:id endpoint
+// UpdateDeviceStatus handles PUT /api/device-statuses/:deviceId/:code endpoint
 // @Summary      Update Device Status
 // @Description  Updates an existing device status
 // @Tags         05. Device Statuses
 // @Accept       json
 // @Produce      json
-// @Param        id       path      string                              true  "Device Status ID"
+// @Param        deviceId path      string                              true  "Device ID"
+// @Param        code     path      string                              true  "Status Code"
 // @Param        request  body      teralux_dtos.UpdateDeviceStatusRequestDTO  true  "Update Device Status Request"
 // @Success      200      {object}  dtos.StandardResponse
 // @Failure      400      {object}  dtos.StandardResponse
 // @Failure      500      {object}  dtos.StandardResponse
 // @Security     BearerAuth
-// @Router       /api/device-statuses/{id} [put]
+// @Router       /api/device-statuses/{deviceId}/{code} [put]
 func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
-	id := ctx.Param("id")
-	if id == "" {
+	deviceID := ctx.Param("deviceId")
+	code := ctx.Param("code")
+	if deviceID == "" || code == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Device Status ID is required",
+			Message: "Device ID and Status Code are required",
 			Data:    nil,
 		})
 		return
@@ -55,7 +57,7 @@ func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.useCase.Execute(id, &req); err != nil {
+	if err := c.useCase.Execute(deviceID, code, &req); err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Failed to update device status: " + err.Error(),

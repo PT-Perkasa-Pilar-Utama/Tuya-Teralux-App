@@ -10,7 +10,7 @@ type DeviceStatusRepository interface {
 	GetAll() ([]entities.DeviceStatus, error)
 	GetByDeviceID(deviceID string) ([]entities.DeviceStatus, error)
 	GetByDeviceIDAndCode(deviceID, code string) (*entities.DeviceStatus, error)
-	GetByID(id string) (*entities.DeviceStatus, error)
-	Update(status *entities.DeviceStatus) error
-	Delete(id string) error
+	Upsert(status *entities.DeviceStatus) error
+	DeleteByDeviceIDAndCode(deviceID, code string) error
+	UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error
 }
