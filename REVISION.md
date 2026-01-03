@@ -1,43 +1,65 @@
-# Backend Revision Plan
+# REVISION.md - Comprehensive Refactor Summary
 
-This document outlines the pending revisions required to fix the "Permission Deny (1106)" error by ensuring the backend correctly stores and uses Tuya Device IDs.
+This document provides a full overview of all changes made during this session to the Teralux App Backend and requirements for the Android migration.
 
-## 1. Database Schema Refactor
-- **Target File**: `backend/domain/teralux/entities/device_entity.go`
-- **Action**: Modify `Device` struct to include comprehensive Tuya fields.
-- **Fields to Add**:
-    - `TuyaID` (string, index)
-    - `RemoteID` (string, index)
-    - `Category` (string)
-    - `RemoteCategory` (string)
-    - `ProductName` (string)
-    - `RemoteProductName` (string)
-    - `LocalKey` (string)
-    - `GatewayID` (string)
-    - `IP` (string)
-    - `Model` (string)
-    - `Icon` (string)
-- **Migration**: Ensure GORM `AutoMigrate` runs on startup to update the table schema.
+## 1. Database & Schema Changes
 
-## 2. Sync Logic Refactor (Auto-Upsert)
-- **Target File**: `backend/domain/tuya/usecases/sync_device_status_usecase.go`
-- **Action**: Update the `Execute` method to save fetched Tuya data into the database.
-- **Logic**:
-    1.  Fetch all devices from Tuya API.
-    2.  Iterate through the list (including flattened Collections).
-    3.  **Upsert**:
-        - Check if device exists by `TuyaID` or `RemoteID`.
-        - If exists: Update all fields (Name, Online, LocalKey, etc.).
-        - If new: Create a new record with a new Teralux UUID.
+### DeviceStatus Refactor
+- **Composite Primary Key**: Removed the standalone `id` field from `DeviceStatus`. It now uses a composite primary key consisting of `(device_id, code)`.
+- **Foreign Key Migration**: Updated migration files and entities to reflect the composite key structure.
+- **Tuya Fields**: Added comprehensive metadata fields to the `devices` table to store Tuya response data (Category, Model, IP, LocalKey, etc.).
 
-## 3. Control/Fetch Logic Refactor
-- **Target File**: `backend/domain/tuya/usecases/get_device_by_id_usecase.go` (and related controllers)
-- **Action**: Update logic to map Teralux UUID to Tuya ID before calling external APIs.
-- **Logic**:
-    1.  Receive request with Teralux UUID.
-    2.  Query Database for this UUID.
-    3.  Extract the stored `TuyaID` (or `RemoteID`) from the record.
-    4.  Use this valid ID to call the Tuya Open API.
+## 2. API & Route Changes
 
-## Summary
-Completing these steps will ensure that the backend relies on its own robust database for device mapping, preventing the use of internal UUIDs for external API calls, thus resolving the permission error.
+### Route Standardization
+- **Pluralization**: Standardized all DeviceStatus routes to use `/api/devices/statuses` (changed from `/api/device/statuses`).
+- **Endpoint Cleanup**: 
+    - Removed **independent** `POST` and `DELETE` routes for `DeviceStatus`.
+    - Kept: `GET /`, `GET /:deviceId`, `GET /:deviceId/:code`, and `PUT /:deviceId/:code`.
+
+### Create Device Automation
+- **format**: `POST /api/devices`
+- **Simplified Payload**: Removed manual `status` array. Now only requires Tuya `id`, `teralux_id`, and `name`.
+- **Auto-Sync**: Backend now automatically fetches all device details and its 20+ status codes directly from Tuya during creation.
+
+## 3. Logic & Business Rules
+
+### Automated Lifecycle
+- **Create**: statuses are now automatically populated from Tuya API response.
+- **Delete**: implemented cascading soft-delete. Deleting a device now automatically cleans up its associated statuses.
+- **Update**: statuses are upserted (Add if new, Update if exists) to prevent duplicates or orphaned records.
+
+### Quality & Security
+- **Security**: Disabled verbose GORM logging in production settings to prevent sensitive SQL queries from appearing in logs.
+- **Documentation**: Fixed Swagger UI 404 and asset loading issues. Documentation now accurately reflects the pluralized and automated API.
+- **Verification**: Implemented 31 unit tests covering all new business logic.
+
+---
+
+## 4. Android Migration Guide (Checklist)
+
+### 🛑 Breaking Changes
+1. **DeviceStatus ID**: Do **NOT** use `id` for device statuses. Identify them using `device_id` and `code`.
+2. **Create Payload**: Update `CreateDeviceRequestDTO` to remove `status` and add `id` (Tuya Device ID).
+
+### 🛠 Model Updates
+- **`Device.kt`**: Add these fields to match backend response:
+    - `remote_id`, `category`, `remote_category`, `product_name`, `icon`, `model`, `ip`, `local_key`, `gateway_id`.
+- **`DeviceStatus.kt`**: Remove `id` field. Ensure `Value` is handled as a `String` (backend stores everything as string for flexibility).
+
+### 🌐 API Interface Updates
+- Update base path for status endpoints to `/api/devices/statuses`.
+- Update `CreateDevice` call:
+    ```kotlin
+    // Old
+    createDevice(TeraluxID, Name, List<Status>)
+    // New
+    createDevice(TuyaID, TeraluxID, Name)
+    ```
+
+### 📱 UI Updates
+- You no longer need to pass captured statuses from the Tuya scan flow to the backend; simply passing the Tuya ID is enough.
+- Use `GET /api/devices/statuses/{deviceId}` to refresh the status list on the device detail screen.
+
+---
+**Status**: All backend changes are verified via E2E tests and strictly follow the Tuya response structure.
