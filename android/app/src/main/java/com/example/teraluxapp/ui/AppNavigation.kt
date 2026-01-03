@@ -62,8 +62,27 @@ fun AppNavigation() {
         composable("login") {
             LoginScreen(
                 onLoginSuccess = { token, uid ->
-                    navController.navigate("devices?token=$token&uid=$uid") {
+                    navController.navigate("room_status?token=$token&uid=$uid") {
                         popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(
+            route = "room_status?token={token}&uid={uid}",
+            arguments = listOf(
+                navArgument("token") { type = NavType.StringType },
+                navArgument("uid") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token") ?: ""
+            val uid = backStackEntry.arguments?.getString("uid") ?: ""
+            com.example.teraluxapp.ui.room.RoomStatusScreen(
+                token = token,
+                uid = uid,
+                onNavigateToDashboard = { t, u ->
+                    navController.navigate("devices?token=$t&uid=$u") {
+                        popUpTo("room_status?token=$token&uid=$uid") { inclusive = true }
                     }
                 }
             )
@@ -83,6 +102,11 @@ fun AppNavigation() {
                     val encodedName = URLEncoder.encode(deviceName, "UTF-8")
                     val safeGatewayId = gatewayId ?: ""
                     navController.navigate("device/$deviceId/$category/$encodedName?token=$token&gatewayId=$safeGatewayId")
+                },
+                onBack = {
+                    navController.navigate("room_status?token=$token&uid=$uid") {
+                        popUpTo("devices?token=$token&uid=$uid") { inclusive = true }
+                    }
                 }
             )
         }

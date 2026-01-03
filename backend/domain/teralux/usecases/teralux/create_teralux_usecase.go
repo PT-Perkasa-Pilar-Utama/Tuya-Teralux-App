@@ -28,6 +28,7 @@ func (uc *CreateTeraluxUseCase) Execute(req *dtos.CreateTeraluxRequestDTO) (*dto
 	teralux := &entities.Teralux{
 		ID:         id,
 		MacAddress: req.MacAddress,
+		RoomID:     req.RoomID,
 		Name:       req.Name,
 	}
 

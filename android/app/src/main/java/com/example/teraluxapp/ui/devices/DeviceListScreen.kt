@@ -30,7 +30,8 @@ import androidx.compose.ui.draw.alpha
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceListScreen(token: String,
-                     onDeviceClick: (deviceId: String, category: String, deviceName: String, gatewayId: String?) -> Unit) {
+                     onDeviceClick: (deviceId: String, category: String, deviceName: String, gatewayId: String?) -> Unit,
+                     onBack: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     var devices by remember { mutableStateOf<List<Device>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -85,6 +86,11 @@ fun DeviceListScreen(token: String,
         topBar = {
             TopAppBar(
                 title = { Text("My Devices") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 actions = {
                     // Cache flush button
                     IconButton(

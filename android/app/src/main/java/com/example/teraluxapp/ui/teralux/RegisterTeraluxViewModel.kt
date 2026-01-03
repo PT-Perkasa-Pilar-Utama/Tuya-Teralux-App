@@ -18,17 +18,17 @@ class RegisterTeraluxViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Idle)
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
     
-    fun registerDevice(macAddress: String, deviceName: String) {
+    fun registerDevice(macAddress: String, roomId: String, deviceName: String) {
         viewModelScope.launch {
             _uiState.value = RegisterUiState.Loading
             
-            teraluxRepository.registerDevice(macAddress, deviceName)
+            teraluxRepository.registerDevice(macAddress, roomId, deviceName)
                 .onSuccess {
                     _uiState.value = RegisterUiState.Success
                 }
                 .onFailure { error ->
                     _uiState.value = RegisterUiState.Error(
-                        error.message ?: "Registration failed"
+                        error.message ?: "Registrasi gagal. Silakan coba lagi."
                     )
                 }
         }

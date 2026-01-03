@@ -3,8 +3,10 @@ package com.example.teraluxapp.ui.teralux
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeviceHub
 import androidx.compose.material3.*
@@ -28,6 +30,7 @@ fun RegisterTeraluxScreen(
     viewModel: RegisterTeraluxViewModel = hiltViewModel()
 ) {
     var deviceName by remember { mutableStateOf("") }
+    var roomId by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
     
     // Animated background
@@ -90,16 +93,17 @@ fun RegisterTeraluxScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             // Icon with glow
             Surface(
-                modifier = Modifier.size(80.dp), // Reduce size slightly
+                modifier = Modifier.size(60.dp),
                 shape = CircleShape,
                 color = Color(0xFF10B981).copy(alpha = 0.2f),
-                shadowElevation = 16.dp
+                shadowElevation = 12.dp
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -115,18 +119,18 @@ fun RegisterTeraluxScreen(
                     Icon(
                         imageVector = Icons.Default.DeviceHub,
                         contentDescription = null,
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(32.dp),
                         tint = Color(0xFF34D399)
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp)) // Increased spacing
+            Spacer(modifier = Modifier.height(16.dp))
             
             // Title
             Text(
                 text = "Register Device",
-                fontSize = 32.sp, // Slightly smaller for balance
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 letterSpacing = 0.5.sp
@@ -134,36 +138,36 @@ fun RegisterTeraluxScreen(
             
             Text(
                 text = "Let's get your device connected",
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 color = Color.White.copy(alpha = 0.7f),
                 fontWeight = FontWeight.Light,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(48.dp)) // Proper separation
+            Spacer(modifier = Modifier.height(24.dp))
 
             // MAC Address Display
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = Color.White.copy(alpha = 0.08f),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
                     Color.White.copy(alpha = 0.12f)
                 )
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text(
                         text = "MAC ADDRESS",
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF34D399),
                         letterSpacing = 1.2.sp
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = macAddress,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White.copy(alpha = 0.9f),
                         letterSpacing = 0.5.sp
@@ -171,21 +175,21 @@ fun RegisterTeraluxScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp)) // Reduced spacing between card and input
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Device Name Input
+            // Room ID Input
             OutlinedTextField(
-                value = deviceName,
-                onValueChange = { deviceName = it },
+                value = roomId,
+                onValueChange = { roomId = it },
                 label = { 
                     Text(
-                        "Device Name",
+                        "Room ID",
                         color = Color.White.copy(alpha = 0.7f)
                     ) 
                 },
                 placeholder = {
                     Text(
-                        "e.g., Living Room Hub",
+                        "e.g., Room 101",
                         color = Color.White.copy(alpha = 0.4f)
                     )
                 },
@@ -205,7 +209,41 @@ fun RegisterTeraluxScreen(
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Device Name Input
+            OutlinedTextField(
+                value = deviceName,
+                onValueChange = { deviceName = it },
+                label = { 
+                    Text(
+                        "Device Name",
+                        color = Color.White.copy(alpha = 0.7f)
+                    ) 
+                },
+                placeholder = {
+                    Text(
+                        "e.g., Living Room Hub",
+                        color = Color.White.copy(alpha = 0.4f)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF34D399),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color(0xFF34D399),
+                    focusedLeadingIconColor = Color(0xFF34D399),
+                    unfocusedLeadingIconColor = Color.White.copy(alpha = 0.4f),
+                    focusedLabelColor = Color(0xFF34D399),
+                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                ),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Register Button
             if (uiState is RegisterUiState.Loading) {
@@ -216,14 +254,14 @@ fun RegisterTeraluxScreen(
             } else {
                 Button(
                     onClick = {
-                        if (deviceName.isNotBlank()) {
-                            viewModel.registerDevice(macAddress, deviceName)
+                        if (deviceName.isNotBlank() && roomId.isNotBlank()) {
+                            viewModel.registerDevice(macAddress, roomId, deviceName)
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF10B981),
                         disabledContainerColor = Color(0xFF10B981).copy(alpha = 0.3f),
@@ -234,7 +272,7 @@ fun RegisterTeraluxScreen(
                         defaultElevation = 0.dp,
                         pressedElevation = 4.dp
                     ),
-                    enabled = deviceName.isNotBlank()
+                    enabled = deviceName.isNotBlank() && roomId.isNotBlank()
                 ) {
                     Text(
                         text = "Register Device",
