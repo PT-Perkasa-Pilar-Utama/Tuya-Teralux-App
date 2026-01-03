@@ -1,7 +1,7 @@
 package usecases
 
 import (
-	"teralux_app/domain/teralux/dtos"
+"teralux_app/domain/teralux/dtos"
 )
 
 // UpdateDeviceStatusUseCase handles updating an existing device status
@@ -25,11 +25,8 @@ func (uc *UpdateDeviceStatusUseCase) Execute(id string, req *dtos.UpdateDeviceSt
 	}
 
 	// Update fields if present
-	if req.Name != "" {
-		status.Name = req.Name
-	}
-	if req.Value != nil {
-		status.Value = *req.Value
+	if req.Value != "" {
+		status.Value = req.Value
 	}
 
 	// Save changes

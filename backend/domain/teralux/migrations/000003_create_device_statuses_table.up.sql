@@ -2,9 +2,8 @@
 CREATE TABLE IF NOT EXISTS device_statuses (
     id CHAR(36) PRIMARY KEY,
     device_id CHAR(36) NOT NULL,
-    name VARCHAR(255),
     code VARCHAR(255) NOT NULL,
-    value INT,
+    value TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
