@@ -19,6 +19,10 @@ type TuyaModule struct {
 	DeviceControlController    *controllers.TuyaDeviceControlController
 	SensorController           *controllers.TuyaSensorController
 	SyncDeviceStatusController *controllers.SyncDeviceStatusController
+
+	// Exported Use Cases for other domains
+	AuthUseCase          *usecases.TuyaAuthUseCase
+	GetDeviceByIDUseCase *usecases.TuyaGetDeviceByIDUseCase
 }
 
 // NewTuyaModule initializes the Tuya module
@@ -45,6 +49,9 @@ func NewTuyaModule(badger *persistence.BadgerService) *TuyaModule {
 		DeviceControlController:    controllers.NewTuyaDeviceControlController(tuyaDeviceControlUseCase),
 		SensorController:           controllers.NewTuyaSensorController(tuyaSensorUseCase),
 		SyncDeviceStatusController: controllers.NewSyncDeviceStatusController(syncDeviceStatusUseCase),
+
+		AuthUseCase:          tuyaAuthUseCase,
+		GetDeviceByIDUseCase: tuyaGetDeviceByIDUseCase,
 	}
 }
 

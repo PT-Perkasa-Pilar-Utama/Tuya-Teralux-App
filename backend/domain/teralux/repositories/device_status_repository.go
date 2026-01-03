@@ -80,3 +80,8 @@ func (r *DeviceStatusRepository) Upsert(status *entities.DeviceStatus) error {
 func (r *DeviceStatusRepository) DeleteByDeviceIDAndCode(deviceID, code string) error {
 	return r.db.Where("device_id = ? AND code = ?", deviceID, code).Delete(&entities.DeviceStatus{}).Error
 }
+
+// DeleteByDeviceID deletes all statuses for a specific device
+func (r *DeviceStatusRepository) DeleteByDeviceID(deviceID string) error {
+	return r.db.Where("device_id = ?", deviceID).Delete(&entities.DeviceStatus{}).Error
+}

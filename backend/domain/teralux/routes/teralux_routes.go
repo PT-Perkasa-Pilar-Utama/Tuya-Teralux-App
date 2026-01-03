@@ -25,11 +25,10 @@ func SetupTeraluxRoutes(
 	updateDeviceController *device.UpdateDeviceController,
 	deleteDeviceController *device.DeleteDeviceController,
 
-	createDeviceStatusController *device_status.CreateDeviceStatusController,
 	getAllDeviceStatusesController *device_status.GetAllDeviceStatusesController,
 	getDeviceStatusByCodeController *device_status.GetDeviceStatusByCodeController,
+	getDeviceStatusesByDeviceIDController *device_status.GetDeviceStatusesByDeviceIDController,
 	updateDeviceStatusController *device_status.UpdateDeviceStatusController,
-	deleteDeviceStatusController *device_status.DeleteDeviceStatusController,
 ) {
 	// Public Teralux Routes (Registration and Check)
 	teraluxPublicAPI := publicRouter.Group("/api/teralux")
@@ -68,12 +67,11 @@ func SetupTeraluxRoutes(
 	}
 
 	// Device Status Routes (Protected)
-	deviceStatusAPI := protectedRouter.Group("/api/device-statuses")
+	deviceStatusAPI := protectedRouter.Group("/api/devices/statuses")
 	{
-		deviceStatusAPI.POST("", createDeviceStatusController.CreateDeviceStatus)
 		deviceStatusAPI.GET("", getAllDeviceStatusesController.GetAllDeviceStatuses)
+		deviceStatusAPI.GET("/:deviceId", getDeviceStatusesByDeviceIDController.GetDeviceStatusesByDeviceID)
 		deviceStatusAPI.GET("/:deviceId/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
 		deviceStatusAPI.PUT("/:deviceId/:code", updateDeviceStatusController.UpdateDeviceStatus)
-		deviceStatusAPI.DELETE("/:deviceId/:code", deleteDeviceStatusController.DeleteDeviceStatus)
 	}
 }

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"teralux_app/domain/teralux/entities"
+	tuya_dtos "teralux_app/domain/tuya/dtos"
 )
 
 // MockDeviceRepository is a manual mock for DeviceRepository
@@ -64,6 +65,7 @@ type MockDeviceStatusRepository struct {
 	GetByDeviceIDAndCodeFunc    func(deviceID, code string) (*entities.DeviceStatus, error)
 	UpsertFunc                  func(status *entities.DeviceStatus) error
 	DeleteByDeviceIDAndCodeFunc func(deviceID, code string) error
+	DeleteByDeviceIDFunc        func(deviceID string) error
 	UpsertDeviceStatusesFunc    func(deviceID string, statuses []entities.DeviceStatus) error
 }
 
@@ -109,11 +111,42 @@ func (m *MockDeviceStatusRepository) DeleteByDeviceIDAndCode(deviceID, code stri
 	return nil
 }
 
+func (m *MockDeviceStatusRepository) DeleteByDeviceID(deviceID string) error {
+	if m.DeleteByDeviceIDFunc != nil {
+		return m.DeleteByDeviceIDFunc(deviceID)
+	}
+	return nil
+}
+
 func (m *MockDeviceStatusRepository) UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error {
 	if m.UpsertDeviceStatusesFunc != nil {
 		return m.UpsertDeviceStatusesFunc(deviceID, statuses)
 	}
 	return nil
+}
+
+// MockTuyaAuthUseCase
+type MockTuyaAuthUseCase struct {
+	AuthenticateFunc func() (*tuya_dtos.TuyaAuthResponseDTO, error)
+}
+
+func (m *MockTuyaAuthUseCase) Authenticate() (*tuya_dtos.TuyaAuthResponseDTO, error) {
+	if m.AuthenticateFunc != nil {
+		return m.AuthenticateFunc()
+	}
+	return nil, nil
+}
+
+// MockTuyaGetDeviceByIDUseCase
+type MockTuyaGetDeviceByIDUseCase struct {
+	GetDeviceByIDFunc func(accessToken, deviceID string) (*tuya_dtos.TuyaDeviceDTO, error)
+}
+
+func (m *MockTuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) (*tuya_dtos.TuyaDeviceDTO, error) {
+	if m.GetDeviceByIDFunc != nil {
+		return m.GetDeviceByIDFunc(accessToken, deviceID)
+	}
+	return nil, nil
 }
 
 // MockTeraluxRepository is a manual mock for TeraluxRepository

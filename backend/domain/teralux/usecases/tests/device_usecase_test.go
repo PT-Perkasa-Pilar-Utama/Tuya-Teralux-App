@@ -8,27 +8,65 @@ import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	usecases "teralux_app/domain/teralux/usecases/device"
+	tuya_dtos "teralux_app/domain/tuya/dtos"
 )
 
 func TestCreateDeviceUseCase(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		mockRepo := &MockDeviceRepository{}
-		useCase := usecases.NewCreateDeviceUseCase(mockRepo)
+	mockRepo := &MockDeviceRepository{}
+	mockStatusRepo := &MockDeviceStatusRepository{}
+	mockTuyaAuth := &MockTuyaAuthUseCase{}
+	mockTuyaGetDevice := &MockTuyaGetDeviceByIDUseCase{}
+
+	useCase := usecases.NewCreateDeviceUseCase(mockRepo, mockStatusRepo, mockTuyaAuth, mockTuyaGetDevice)
+
+	t.Run("Success with Tuya Data", func(t *testing.T) {
+		tuyaID := "tuya-123"
+		accessToken := "token-abc"
+
+		mockTuyaAuth.AuthenticateFunc = func() (*tuya_dtos.TuyaAuthResponseDTO, error) {
+			return &tuya_dtos.TuyaAuthResponseDTO{AccessToken: accessToken}, nil
+		}
+
+		mockTuyaGetDevice.GetDeviceByIDFunc = func(token, id string) (*tuya_dtos.TuyaDeviceDTO, error) {
+			if id != tuyaID {
+				t.Errorf("Expected tuyaID %s, got %s", tuyaID, id)
+			}
+			return &tuya_dtos.TuyaDeviceDTO{
+				ID:       id,
+				Name:     "Tuya Name",
+				Category: "switch",
+				Status: []tuya_dtos.TuyaDeviceStatusDTO{
+					{Code: "switch_1", Value: true},
+				},
+			}, nil
+		}
 
 		mockRepo.GetByTeraluxIDFunc = func(teraluxID string) ([]entities.Device, error) {
 			return []entities.Device{}, nil
 		}
 		mockRepo.CreateFunc = func(device *entities.Device) error {
-			if device.Name != "Test Device" {
-				t.Errorf("Expected name 'Test Device', got %s", device.Name)
+			if device.Category != "switch" {
+				t.Errorf("Expected category 'switch', got %s", device.Category)
 			}
-			device.ID = "generated-id"
+			return nil
+		}
+
+		statusUpserted := false
+		mockStatusRepo.UpsertDeviceStatusesFunc = func(deviceID string, statuses []entities.DeviceStatus) error {
+			if len(statuses) != 1 {
+				t.Errorf("Expected 1 status, got %d", len(statuses))
+			}
+			if statuses[0].Value != "true" {
+				t.Errorf("Expected value 'true', got %s", statuses[0].Value)
+			}
+			statusUpserted = true
 			return nil
 		}
 
 		req := &dtos.CreateDeviceRequestDTO{
+			ID:        tuyaID,
 			TeraluxID: "teralux-123",
-			Name:      "Test Device",
+			Name:      "Local Name",
 		}
 
 		resp, err := useCase.Execute(req)
@@ -39,56 +77,65 @@ func TestCreateDeviceUseCase(t *testing.T) {
 		if resp.ID == "" {
 			t.Error("Expected generated ID, got empty")
 		}
+		if !statusUpserted {
+			t.Error("Expected status to be upserted from Tuya")
+		}
 	})
 
-	t.Run("Device Already Exists", func(t *testing.T) {
-		mockRepo := &MockDeviceRepository{}
-		useCase := usecases.NewCreateDeviceUseCase(mockRepo)
-
-		expectedID := "existing-device-id"
-		mockRepo.GetByTeraluxIDFunc = func(teraluxID string) ([]entities.Device, error) {
-			return []entities.Device{{
-				ID:        expectedID,
-				TeraluxID: teraluxID,
-				Name:      "Existing Device",
-			}}, nil
+	t.Run("Tuya Auth Failure", func(t *testing.T) {
+		mockTuyaAuth.AuthenticateFunc = func() (*tuya_dtos.TuyaAuthResponseDTO, error) {
+			return nil, errors.New("auth failed")
 		}
 
 		req := &dtos.CreateDeviceRequestDTO{
+			ID:        "tuya-123",
 			TeraluxID: "teralux-123",
-			Name:      "New Name (Ignored)",
+			Name:      "Local Name",
 		}
 
-		resp, err := useCase.Execute(req)
+		_, err := useCase.Execute(req)
+		if err == nil {
+			t.Fatal("Expected error, got nil")
+		}
+	})
+}
+
+func TestDeleteDeviceUseCase(t *testing.T) {
+	mockRepo := &MockDeviceRepository{}
+	mockStatusRepo := &MockDeviceStatusRepository{}
+	useCase := usecases.NewDeleteDeviceUseCase(mockRepo, mockStatusRepo)
+
+	t.Run("Success Cleanup", func(t *testing.T) {
+		deviceID := "device-123"
+
+		statusDeleted := false
+		mockStatusRepo.DeleteByDeviceIDFunc = func(id string) error {
+			if id != deviceID {
+				t.Errorf("Expected id %s, got %s", deviceID, id)
+			}
+			statusDeleted = true
+			return nil
+		}
+
+		deviceDeleted := false
+		mockRepo.DeleteFunc = func(id string) error {
+			if id != deviceID {
+				t.Errorf("Expected id %s, got %s", deviceID, id)
+			}
+			deviceDeleted = true
+			return nil
+		}
+
+		err := useCase.Execute(deviceID)
 
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		if resp.ID != expectedID {
-			t.Errorf("Expected ID %s, got %s", expectedID, resp.ID)
+		if !statusDeleted {
+			t.Error("Expected statuses to be deleted")
 		}
-	})
-
-	t.Run("Repository Error", func(t *testing.T) {
-		mockRepo := &MockDeviceRepository{}
-		useCase := usecases.NewCreateDeviceUseCase(mockRepo)
-
-		mockRepo.CreateFunc = func(device *entities.Device) error {
-			return errors.New("db error")
-		}
-
-		req := &dtos.CreateDeviceRequestDTO{
-			TeraluxID: "teralux-123",
-			Name:      "Test Device",
-		}
-
-		_, err := useCase.Execute(req)
-
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if err.Error() != "db error" {
-			t.Errorf("Expected 'db error', got %v", err)
+		if !deviceDeleted {
+			t.Error("Expected device to be deleted")
 		}
 	})
 }

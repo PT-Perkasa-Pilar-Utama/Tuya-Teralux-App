@@ -4,6 +4,7 @@ import "time"
 
 // CreateDeviceRequestDTO represents the request body for creating a new device
 type CreateDeviceRequestDTO struct {
+	ID        string `json:"id" binding:"required"`
 	TeraluxID string `json:"teralux_id" binding:"required"`
 	Name      string `json:"name" binding:"required"`
 }
