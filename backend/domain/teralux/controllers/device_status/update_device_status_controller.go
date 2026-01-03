@@ -21,7 +21,7 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 	}
 }
 
-// UpdateDeviceStatus handles PUT /api/device-statuses/:deviceId/:code endpoint
+// UpdateDeviceStatus handles PUT /api/devices/statuses/:deviceId/:code endpoint
 // @Summary      Update Device Status
 // @Description  Updates an existing device status
 // @Tags         05. Device Statuses
@@ -34,7 +34,7 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 // @Failure      400      {object}  dtos.StandardResponse
 // @Failure      500      {object}  dtos.StandardResponse
 // @Security     BearerAuth
-// @Router       /api/device-statuses/{deviceId}/{code} [put]
+// @Router       /api/devices/statuses/{deviceId}/{code} [put]
 func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 	deviceID := ctx.Param("deviceId")
 	code := ctx.Param("code")

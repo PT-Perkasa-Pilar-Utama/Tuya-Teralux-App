@@ -24,7 +24,7 @@ func NewGetAllDeviceStatusesController(useCase *usecases.GetAllDeviceStatusesUse
 	}
 }
 
-// GetAllDeviceStatuses handles GET /api/device-statuses endpoint
+// GetAllDeviceStatuses handles GET /api/devices/statuses endpoint
 // @Summary      Get All Device Statuses
 // @Description  Retrieves all device statuses
 // @Tags         05. Device Statuses
@@ -33,7 +33,7 @@ func NewGetAllDeviceStatusesController(useCase *usecases.GetAllDeviceStatusesUse
 // @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.DeviceStatusListResponseDTO}
 // @Failure      500      {object}  dtos.StandardResponse
 // @Security     BearerAuth
-// @Router       /api/device-statuses [get]
+// @Router       /api/devices/statuses [get]
 func (c *GetAllDeviceStatusesController) GetAllDeviceStatuses(ctx *gin.Context) {
 	statuses, err := c.useCase.Execute()
 	if err != nil {

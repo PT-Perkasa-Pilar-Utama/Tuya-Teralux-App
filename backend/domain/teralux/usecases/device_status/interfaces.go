@@ -12,5 +12,6 @@ type DeviceStatusRepository interface {
 	GetByDeviceIDAndCode(deviceID, code string) (*entities.DeviceStatus, error)
 	Upsert(status *entities.DeviceStatus) error
 	DeleteByDeviceIDAndCode(deviceID, code string) error
+	DeleteByDeviceID(deviceID string) error
 	UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error
 }

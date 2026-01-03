@@ -34,15 +34,19 @@ type TeraluxModule struct {
 	DeleteDeviceController  *device.DeleteDeviceController
 
 	// DeviceStatus Controllers
-	CreateDeviceStatusController    *device_status.CreateDeviceStatusController
-	GetAllDeviceStatusesController  *device_status.GetAllDeviceStatusesController
-	GetDeviceStatusByCodeController *device_status.GetDeviceStatusByCodeController
-	UpdateDeviceStatusController    *device_status.UpdateDeviceStatusController
-	DeleteDeviceStatusController    *device_status.DeleteDeviceStatusController
+	GetAllDeviceStatusesController        *device_status.GetAllDeviceStatusesController
+	GetDeviceStatusByCodeController       *device_status.GetDeviceStatusByCodeController
+	GetDeviceStatusesByDeviceIDController *device_status.GetDeviceStatusesByDeviceIDController
+	UpdateDeviceStatusController          *device_status.UpdateDeviceStatusController
 }
 
 // NewTeraluxModule initializes the Teralux module
-func NewTeraluxModule(badger *persistence.BadgerService, deviceRepository *repositories.DeviceRepository) *TeraluxModule {
+func NewTeraluxModule(
+	badger *persistence.BadgerService,
+	deviceRepository *repositories.DeviceRepository,
+	tuyaAuthUC device_usecases.TuyaAuthUseCase,
+	tuyaGetDeviceUC device_usecases.TuyaGetDeviceByIDUseCase,
+) *TeraluxModule {
 	// Repositories
 	teraluxRepository := repositories.NewTeraluxRepository(badger)
 	deviceStatusRepository := repositories.NewDeviceStatusRepository(badger)
@@ -56,18 +60,17 @@ func NewTeraluxModule(badger *persistence.BadgerService, deviceRepository *repos
 	deleteTeraluxUseCase := teralux_usecases.NewDeleteTeraluxUseCase(teraluxRepository)
 
 	// Device Use Cases
-	createDeviceUseCase := device_usecases.NewCreateDeviceUseCase(deviceRepository)
+	createDeviceUseCase := device_usecases.NewCreateDeviceUseCase(deviceRepository, deviceStatusRepository, tuyaAuthUC, tuyaGetDeviceUC)
 	getAllDevicesUseCase := device_usecases.NewGetAllDevicesUseCase(deviceRepository)
 	getDeviceByIDUseCase := device_usecases.NewGetDeviceByIDUseCase(deviceRepository)
 	updateDeviceUseCase := device_usecases.NewUpdateDeviceUseCase(deviceRepository)
-	deleteDeviceUseCase := device_usecases.NewDeleteDeviceUseCase(deviceRepository)
+	deleteDeviceUseCase := device_usecases.NewDeleteDeviceUseCase(deviceRepository, deviceStatusRepository)
 
 	// Device Status Use Cases
-	createDeviceStatusUseCase := device_status_usecases.NewCreateDeviceStatusUseCase(deviceStatusRepository)
+	getDeviceStatusesByDeviceIDUseCase := device_status_usecases.NewGetDeviceStatusesByDeviceIDUseCase(deviceStatusRepository)
 	getAllDeviceStatusesUseCase := device_status_usecases.NewGetAllDeviceStatusesUseCase(deviceStatusRepository)
 	getDeviceStatusByCodeUseCase := device_status_usecases.NewGetDeviceStatusByCodeUseCase(deviceStatusRepository)
 	updateDeviceStatusUseCase := device_status_usecases.NewUpdateDeviceStatusUseCase(deviceStatusRepository)
-	deleteDeviceStatusUseCase := device_status_usecases.NewDeleteDeviceStatusUseCase(deviceStatusRepository)
 
 	// Controllers
 	return &TeraluxModule{
@@ -84,11 +87,10 @@ func NewTeraluxModule(badger *persistence.BadgerService, deviceRepository *repos
 		UpdateDeviceController:  device.NewUpdateDeviceController(updateDeviceUseCase),
 		DeleteDeviceController:  device.NewDeleteDeviceController(deleteDeviceUseCase),
 
-		CreateDeviceStatusController:    device_status.NewCreateDeviceStatusController(createDeviceStatusUseCase),
-		GetAllDeviceStatusesController:  device_status.NewGetAllDeviceStatusesController(getAllDeviceStatusesUseCase),
-		GetDeviceStatusByCodeController: device_status.NewGetDeviceStatusByCodeController(getDeviceStatusByCodeUseCase),
-		UpdateDeviceStatusController:    device_status.NewUpdateDeviceStatusController(updateDeviceStatusUseCase),
-		DeleteDeviceStatusController:    device_status.NewDeleteDeviceStatusController(deleteDeviceStatusUseCase),
+		GetAllDeviceStatusesController:        device_status.NewGetAllDeviceStatusesController(getAllDeviceStatusesUseCase),
+		GetDeviceStatusByCodeController:       device_status.NewGetDeviceStatusByCodeController(getDeviceStatusByCodeUseCase),
+		GetDeviceStatusesByDeviceIDController: device_status.NewGetDeviceStatusesByDeviceIDController(getDeviceStatusesByDeviceIDUseCase),
+		UpdateDeviceStatusController:          device_status.NewUpdateDeviceStatusController(updateDeviceStatusUseCase),
 	}
 }
 
@@ -114,10 +116,9 @@ func (m *TeraluxModule) RegisterRoutes(router *gin.Engine, protected *gin.Router
 		m.UpdateDeviceController,
 		m.DeleteDeviceController,
 
-		m.CreateDeviceStatusController,
 		m.GetAllDeviceStatusesController,
 		m.GetDeviceStatusByCodeController,
+		m.GetDeviceStatusesByDeviceIDController,
 		m.UpdateDeviceStatusController,
-		m.DeleteDeviceStatusController,
 	)
 }
