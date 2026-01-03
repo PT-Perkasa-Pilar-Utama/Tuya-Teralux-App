@@ -7,17 +7,21 @@ CREATE TABLE IF NOT EXISTS devices (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     
-    -- Tuya Fields
+    -- Tuya Fields (matching Tuya API response, except 'status' and 'online')
     remote_id VARCHAR(255),
     category VARCHAR(255),
     remote_category VARCHAR(255),
     product_name VARCHAR(255),
     remote_product_name VARCHAR(255),
+    icon VARCHAR(255),
+    custom_name VARCHAR(255),
+    model VARCHAR(255),
+    ip VARCHAR(255),
     local_key VARCHAR(255),
     gateway_id VARCHAR(255),
-    ip VARCHAR(255),
-    model VARCHAR(255),
-    icon VARCHAR(255),
+    create_time BIGINT,
+    update_time BIGINT,
+    collections TEXT,
     
     -- Foreign key constraint with CASCADE delete
     CONSTRAINT fk_teralux

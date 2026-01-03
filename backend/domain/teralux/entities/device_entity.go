@@ -17,17 +17,21 @@ type Device struct {
 
 	// Associations can be added here if needed, e.g., Teralux *Teralux
 
-	// Tuya Fields
+	// Tuya Fields (matching Tuya API response, except 'status' and 'online')
 	RemoteID          string `gorm:"index" json:"remote_id"`
 	Category          string `json:"category"`
 	RemoteCategory    string `json:"remote_category"`
 	ProductName       string `json:"product_name"`
 	RemoteProductName string `json:"remote_product_name"`
+	Icon              string `json:"icon"`
+	CustomName        string `json:"custom_name"`
+	Model             string `json:"model"`
+	IP                string `json:"ip"`
 	LocalKey          string `json:"local_key"`
 	GatewayID         string `json:"gateway_id"`
-	IP                string `json:"ip"`
-	Model             string `json:"model"`
-	Icon              string `json:"icon"`
+	CreateTime        int64  `json:"create_time"`
+	UpdateTime        int64  `json:"update_time"`
+	Collections       string `gorm:"type:text" json:"collections"` // JSON string of device IDs
 }
 
 // TableName specifies the table name for the Device model

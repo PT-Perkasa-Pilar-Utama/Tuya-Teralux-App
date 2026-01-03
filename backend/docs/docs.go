@@ -1473,7 +1473,16 @@ const docTemplate = `{
                 "category": {
                     "type": "string"
                 },
+                "collections": {
+                    "type": "string"
+                },
+                "create_time": {
+                    "type": "integer"
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "custom_name": {
                     "type": "string"
                 },
                 "gateway_id": {
@@ -1511,6 +1520,9 @@ const docTemplate = `{
                 },
                 "teralux_id": {
                     "type": "string"
+                },
+                "update_time": {
+                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
