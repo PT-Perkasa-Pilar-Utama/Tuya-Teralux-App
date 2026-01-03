@@ -1,6 +1,5 @@
 -- Create device_statuses table
 CREATE TABLE IF NOT EXISTS device_statuses (
-    id CHAR(36) PRIMARY KEY,
     device_id CHAR(36) NOT NULL,
     code VARCHAR(255) NOT NULL,
     value TEXT,
@@ -8,14 +7,14 @@ CREATE TABLE IF NOT EXISTS device_statuses (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     
+    -- Composite primary key
+    PRIMARY KEY (device_id, code),
+    
     -- Foreign key constraint to devices table
     CONSTRAINT fk_device
         FOREIGN KEY (device_id)
         REFERENCES devices(id)
-        ON DELETE CASCADE,
-        
-    -- Ensure one status entry per code per device
-    CONSTRAINT unique_device_code UNIQUE (device_id, code)
+        ON DELETE CASCADE
 );
 
 -- Create index on device_id

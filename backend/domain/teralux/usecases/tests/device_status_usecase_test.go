@@ -31,7 +31,7 @@ func TestCreateDeviceStatusUseCase(t *testing.T) {
 		req := &dtos.CreateDeviceStatusRequestDTO{
 			DeviceID: "device-1",
 			Code:     "power_switch",
-			Value:    1,
+			Value:    "true",
 		}
 
 		resp, err := useCase.Execute(req)
@@ -39,15 +39,19 @@ func TestCreateDeviceStatusUseCase(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
-		if resp.ID == "" {
-			t.Error("Expected ID to be set")
+		if resp.DeviceID != "device-1" || resp.Code != "power_switch" {
+			t.Errorf("Expected DeviceID and Code to be set in response, got %v, %v", resp.DeviceID, resp.Code)
 		}
 	})
 
 	t.Run("Duplicate Code", func(t *testing.T) {
 		// Mock GetByDeviceIDAndCode to return existing record
 		mockRepo.GetByDeviceIDAndCodeFunc = func(deviceID, code string) (*entities.DeviceStatus, error) {
-			return &entities.DeviceStatus{ID: "existing"}, nil
+			return &entities.DeviceStatus{
+				DeviceID: deviceID,
+				Code:     code,
+				Value:    "false",
+			}, nil
 		}
 
 		req := &dtos.CreateDeviceStatusRequestDTO{

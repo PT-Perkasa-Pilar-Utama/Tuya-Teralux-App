@@ -27,7 +27,6 @@ func (uc *GetAllDeviceStatusesUseCase) Execute() (*dtos.DeviceStatusListResponse
 	var statusDTOs []dtos.DeviceStatusResponseDTO
 	for _, status := range statuses {
 		statusDTOs = append(statusDTOs, dtos.DeviceStatusResponseDTO{
-			ID:        status.ID,
 			DeviceID:  status.DeviceID,
 			Code:      status.Code,
 			Value:     status.Value,

@@ -1,7 +1,7 @@
 package usecases
 
 import (
-"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/dtos"
 )
 
 // UpdateDeviceStatusUseCase handles updating an existing device status
@@ -17,9 +17,9 @@ func NewUpdateDeviceStatusUseCase(repository DeviceStatusRepository) *UpdateDevi
 }
 
 // Execute updates a device status
-func (uc *UpdateDeviceStatusUseCase) Execute(id string, req *dtos.UpdateDeviceStatusRequestDTO) error {
+func (uc *UpdateDeviceStatusUseCase) Execute(deviceID, code string, req *dtos.UpdateDeviceStatusRequestDTO) error {
 	// First check if status exists
-	status, err := uc.repository.GetByID(id)
+	status, err := uc.repository.GetByDeviceIDAndCode(deviceID, code)
 	if err != nil {
 		return err
 	}
@@ -30,5 +30,5 @@ func (uc *UpdateDeviceStatusUseCase) Execute(id string, req *dtos.UpdateDeviceSt
 	}
 
 	// Save changes
-	return uc.repository.Update(status)
+	return uc.repository.Upsert(status)
 }

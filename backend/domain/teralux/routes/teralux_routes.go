@@ -27,7 +27,7 @@ func SetupTeraluxRoutes(
 
 	createDeviceStatusController *device_status.CreateDeviceStatusController,
 	getAllDeviceStatusesController *device_status.GetAllDeviceStatusesController,
-	getDeviceStatusByIDController *device_status.GetDeviceStatusByIDController,
+	getDeviceStatusByCodeController *device_status.GetDeviceStatusByCodeController,
 	updateDeviceStatusController *device_status.UpdateDeviceStatusController,
 	deleteDeviceStatusController *device_status.DeleteDeviceStatusController,
 ) {
@@ -72,8 +72,8 @@ func SetupTeraluxRoutes(
 	{
 		deviceStatusAPI.POST("", createDeviceStatusController.CreateDeviceStatus)
 		deviceStatusAPI.GET("", getAllDeviceStatusesController.GetAllDeviceStatuses)
-		deviceStatusAPI.GET("/:id", getDeviceStatusByIDController.GetDeviceStatusByID)
-		deviceStatusAPI.PUT("/:id", updateDeviceStatusController.UpdateDeviceStatus)
-		deviceStatusAPI.DELETE("/:id", deleteDeviceStatusController.DeleteDeviceStatus)
+		deviceStatusAPI.GET("/:deviceId/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
+		deviceStatusAPI.PUT("/:deviceId/:code", updateDeviceStatusController.UpdateDeviceStatus)
+		deviceStatusAPI.DELETE("/:deviceId/:code", deleteDeviceStatusController.DeleteDeviceStatus)
 	}
 }

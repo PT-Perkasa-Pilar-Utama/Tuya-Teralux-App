@@ -165,29 +165,33 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/device-statuses/{id}": {
+        "/api/device-statuses/{deviceId}/{code}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves a single device status by ID",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Retrieves a single device status by device ID and code",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "05. Device Statuses"
                 ],
-                "summary": "Get Device Status by ID",
+                "summary": "Get Device Status by Code",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Device Status ID",
-                        "name": "id",
+                        "description": "Device ID",
+                        "name": "deviceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status Code",
+                        "name": "code",
                         "in": "path",
                         "required": true
                     }
@@ -245,8 +249,15 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Device Status ID",
-                        "name": "id",
+                        "description": "Device ID",
+                        "name": "deviceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status Code",
+                        "name": "code",
                         "in": "path",
                         "required": true
                     },
@@ -287,13 +298,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Deletes a device status",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Deletes an existing device status",
                 "tags": [
                     "05. Device Statuses"
                 ],
@@ -301,8 +306,15 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Device Status ID",
-                        "name": "id",
+                        "description": "Device ID",
+                        "name": "deviceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status Code",
+                        "name": "code",
                         "in": "path",
                         "required": true
                     }
@@ -314,8 +326,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -1410,18 +1422,18 @@ const docTemplate = `{
                 "device_id": {
                     "type": "string"
                 },
-                "name": {
-                    "type": "string"
-                },
                 "value": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
         "dtos.CreateDeviceStatusResponseDTO": {
             "type": "object",
             "properties": {
-                "status_id": {
+                "code": {
+                    "type": "string"
+                },
+                "device_id": {
                     "type": "string"
                 }
             }
@@ -1572,17 +1584,11 @@ const docTemplate = `{
                 "device_id": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
                 "updated_at": {
                     "type": "string"
                 },
                 "value": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -1839,12 +1845,8 @@ const docTemplate = `{
         "dtos.UpdateDeviceStatusRequestDTO": {
             "type": "object",
             "properties": {
-                "name": {
-                    "type": "string"
-                },
                 "value": {
-                    "description": "Pointer to allow 0 as a valid value update if needed, though int is fine if 0 is not 'empty'",
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },

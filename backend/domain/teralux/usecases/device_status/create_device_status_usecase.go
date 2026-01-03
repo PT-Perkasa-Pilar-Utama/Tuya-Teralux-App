@@ -5,7 +5,6 @@ import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -31,12 +30,8 @@ func (uc *CreateDeviceStatusUseCase) Execute(req *dtos.CreateDeviceStatusRequest
 		return nil, err
 	}
 
-	// Generate UUID
-	id := uuid.New().String()
-
 	// Create entity
 	status := &entities.DeviceStatus{
-		ID:       id,
 		DeviceID: req.DeviceID,
 		Code:     req.Code,
 		Value:    req.Value,
@@ -48,6 +43,7 @@ func (uc *CreateDeviceStatusUseCase) Execute(req *dtos.CreateDeviceStatusRequest
 	}
 
 	return &dtos.CreateDeviceStatusResponseDTO{
-		ID: status.ID,
+		DeviceID: status.DeviceID,
+		Code:     status.Code,
 	}, nil
 }

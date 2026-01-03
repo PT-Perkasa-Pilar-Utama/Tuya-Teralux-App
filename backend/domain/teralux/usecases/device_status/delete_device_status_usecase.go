@@ -12,7 +12,7 @@ func NewDeleteDeviceStatusUseCase(repository DeviceStatusRepository) *DeleteDevi
 	}
 }
 
-// Execute deletes a device status by ID
-func (uc *DeleteDeviceStatusUseCase) Execute(id string) error {
-	return uc.repository.Delete(id)
+// Execute deletes a device status by device ID and code
+func (uc *DeleteDeviceStatusUseCase) Execute(deviceID, code string) error {
+	return uc.repository.DeleteByDeviceIDAndCode(deviceID, code)
 }

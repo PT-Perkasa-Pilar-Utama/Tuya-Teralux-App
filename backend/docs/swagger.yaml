@@ -21,17 +21,17 @@ definitions:
         type: string
       device_id:
         type: string
-      name:
-        type: string
       value:
-        type: integer
+        type: string
     required:
     - code
     - device_id
     type: object
   dtos.CreateDeviceStatusResponseDTO:
     properties:
-      status_id:
+      code:
+        type: string
+      device_id:
         type: string
     type: object
   dtos.CreateTeraluxRequestDTO:
@@ -130,14 +130,10 @@ definitions:
         type: string
       device_id:
         type: string
-      id:
-        type: string
-      name:
-        type: string
       updated_at:
         type: string
       value:
-        type: integer
+        type: string
     type: object
   dtos.SensorDataDTO:
     properties:
@@ -305,12 +301,8 @@ definitions:
     type: object
   dtos.UpdateDeviceStatusRequestDTO:
     properties:
-      name:
-        type: string
       value:
-        description: Pointer to allow 0 as a valid value update if needed, though
-          int is fine if 0 is not 'empty'
-        type: integer
+        type: string
     type: object
   dtos.UpdateTeraluxRequestDTO:
     properties:
@@ -418,26 +410,27 @@ paths:
       summary: Create Device Status
       tags:
       - 05. Device Statuses
-  /api/device-statuses/{id}:
+  /api/device-statuses/{deviceId}/{code}:
     delete:
-      consumes:
-      - application/json
-      description: Deletes a device status
+      description: Deletes an existing device status
       parameters:
-      - description: Device Status ID
+      - description: Device ID
         in: path
-        name: id
+        name: deviceId
         required: true
         type: string
-      produces:
-      - application/json
+      - description: Status Code
+        in: path
+        name: code
+        required: true
+        type: string
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Not Found
+        "400":
+          description: Bad Request
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -450,13 +443,16 @@ paths:
       tags:
       - 05. Device Statuses
     get:
-      consumes:
-      - application/json
-      description: Retrieves a single device status by ID
+      description: Retrieves a single device status by device ID and code
       parameters:
-      - description: Device Status ID
+      - description: Device ID
         in: path
-        name: id
+        name: deviceId
+        required: true
+        type: string
+      - description: Status Code
+        in: path
+        name: code
         required: true
         type: string
       produces:
@@ -481,7 +477,7 @@ paths:
             $ref: '#/definitions/dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Get Device Status by ID
+      summary: Get Device Status by Code
       tags:
       - 05. Device Statuses
     put:
@@ -489,9 +485,14 @@ paths:
       - application/json
       description: Updates an existing device status
       parameters:
-      - description: Device Status ID
+      - description: Device ID
         in: path
-        name: id
+        name: deviceId
+        required: true
+        type: string
+      - description: Status Code
+        in: path
+        name: code
         required: true
         type: string
       - description: Update Device Status Request
