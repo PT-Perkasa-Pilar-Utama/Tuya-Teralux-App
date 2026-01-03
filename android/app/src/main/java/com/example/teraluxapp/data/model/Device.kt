@@ -4,7 +4,6 @@ import com.google.gson.annotations.SerializedName
 
 data class Device(
     @SerializedName("id") val id: String,
-    @SerializedName("tuya_id") val tuyaId: String?,
     @SerializedName("remote_id") val remoteId: String?,  // For IR devices
     @SerializedName("name") val name: String,
     @SerializedName("category") val category: String?,

@@ -1470,17 +1470,44 @@ const docTemplate = `{
         "dtos.DeviceResponseDTO": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "gateway_id": {
+                    "type": "string"
+                },
+                "icon": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
+                "ip": {
+                    "type": "string"
+                },
+                "local_key": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
-                "online": {
-                    "type": "boolean"
+                "product_name": {
+                    "type": "string"
+                },
+                "remote_category": {
+                    "type": "string"
+                },
+                "remote_id": {
+                    "type": "string"
+                },
+                "remote_product_name": {
+                    "type": "string"
                 },
                 "teralux_id": {
                     "type": "string"
