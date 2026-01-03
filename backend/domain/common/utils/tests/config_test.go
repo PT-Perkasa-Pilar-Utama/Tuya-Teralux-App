@@ -2,8 +2,8 @@ package tests
 
 import (
 	"os"
-	"testing"
 	"teralux_app/domain/common/utils"
+	"testing"
 )
 
 func TestLoadConfig(t *testing.T) {

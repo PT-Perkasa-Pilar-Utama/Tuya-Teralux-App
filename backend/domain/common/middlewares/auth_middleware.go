@@ -47,8 +47,8 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 		c.Set("access_token", accessToken)
 		utils.LogDebug("AuthMiddleware: token parsed successfully")
-	
-		tuyaUID := c.GetHeader("X-TUYA-UID") 
+
+		tuyaUID := c.GetHeader("X-TUYA-UID")
 		if tuyaUID != "" {
 			c.Set("tuya_uid", tuyaUID)
 		}

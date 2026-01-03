@@ -4,7 +4,6 @@ import (
 	"teralux_app/domain/teralux/dtos"
 )
 
-
 // GetAllTeraluxUseCase handles retrieving all teralux records
 type GetAllTeraluxUseCase struct {
 	repository TeraluxRepository
@@ -35,7 +34,7 @@ func (uc *GetAllTeraluxUseCase) Execute() (*dtos.TeraluxListResponseDTO, error) 
 			UpdatedAt:  item.UpdatedAt,
 		})
 	}
-	
+
 	if teraluxDTOs == nil {
 		teraluxDTOs = []dtos.TeraluxResponseDTO{}
 	}

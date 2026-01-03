@@ -11,7 +11,9 @@ import com.example.teraluxapp.utils.SessionManager
 import com.example.teraluxapp.ui.devices.SmartACScreen
 import com.example.teraluxapp.ui.devices.SwitchDeviceScreen
 import com.example.teraluxapp.ui.devices.SensorDeviceScreen
-import com.example.teraluxapp.ui.devices.DeviceListScreen
+import com.example.teraluxapp.ui.devices.DeprecatedDeviceListScreen
+import com.example.teraluxapp.ui.dashboard.DashboardScreen
+import com.example.teraluxapp.ui.settings.SettingsScreen
 import com.example.teraluxapp.ui.teralux.StartupScreen
 import com.example.teraluxapp.ui.teralux.RegisterTeraluxScreen
 import com.example.teraluxapp.ui.login.LoginScreen
@@ -81,10 +83,48 @@ fun AppNavigation() {
                 token = token,
                 uid = uid,
                 onNavigateToDashboard = { t, u ->
-                    navController.navigate("devices?token=$t&uid=$u") {
+                    navController.navigate("dashboard?token=$t&uid=$u") {
                         popUpTo("room_status?token=$token&uid=$uid") { inclusive = true }
                     }
                 }
+            )
+        }
+        composable(
+            route = "dashboard?token={token}&uid={uid}",
+            arguments = listOf(
+                navArgument("token") { type = NavType.StringType },
+                navArgument("uid") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token") ?: ""
+            val uid = backStackEntry.arguments?.getString("uid") ?: ""
+            DashboardScreen(
+                token = token,
+                onDeviceClick = { deviceId, category, deviceName, gatewayId ->
+                    val encodedName = URLEncoder.encode(deviceName, "UTF-8")
+                    val safeGatewayId = gatewayId ?: ""
+                    navController.navigate("device/$deviceId/$category/$encodedName?token=$token&gatewayId=$safeGatewayId")
+                },
+                onSettingsClick = {
+                    navController.navigate("settings?token=$token")
+                },
+                onBack = {
+                    navController.navigate("room_status?token=$token&uid=$uid") {
+                        popUpTo("dashboard?token=$token&uid=$uid") { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(
+            route = "settings?token={token}",
+            arguments = listOf(
+                navArgument("token") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token") ?: ""
+            SettingsScreen(
+                token = token,
+                onBack = { navController.popBackStack() }
             )
         }
         composable(
@@ -96,7 +136,7 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val token = backStackEntry.arguments?.getString("token") ?: ""
             val uid = backStackEntry.arguments?.getString("uid") ?: ""
-            DeviceListScreen(
+            DeprecatedDeviceListScreen(
                 token = token,
                 onDeviceClick = { deviceId, category, deviceName, gatewayId ->
                     val encodedName = URLEncoder.encode(deviceName, "UTF-8")

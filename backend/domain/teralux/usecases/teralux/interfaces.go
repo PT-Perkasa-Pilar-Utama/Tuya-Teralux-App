@@ -13,3 +13,8 @@ type TeraluxRepository interface {
 	Update(teralux *entities.Teralux) error
 	Delete(id string) error
 }
+
+// DeviceRepository defines the interface for device data access
+type DeviceRepository interface {
+	GetByTeraluxID(teraluxID string) ([]entities.Device, error)
+}

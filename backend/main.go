@@ -1,8 +1,6 @@
 package main
 
 import (
-
-
 	"github.com/gin-gonic/gin"
 
 	"teralux_app/domain/common"
@@ -11,9 +9,8 @@ import (
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux"
+	teralux_repositories "teralux_app/domain/teralux/repositories"
 	"teralux_app/domain/tuya"
-
-
 )
 
 // @title           Teralux API
@@ -47,6 +44,18 @@ import (
 
 // @tag.name 03. Teralux
 // @tag.description Teralux device management endpoints
+
+// @tag.name 04. Devices
+// @tag.description Teralux specific devices endpoints
+
+// @tag.name 05. Device Statuses
+// @tag.description Device status management endpoints
+
+// @tag.name 06. Flush
+// @tag.description Cache management endpoints
+
+// @tag.name 07. Health
+// @tag.description Health check endpoint
 func main() {
 	utils.LoadConfig()
 
@@ -61,6 +70,7 @@ func main() {
 
 	router := gin.Default()
 
+	// Initialize Models & Repositories
 	// Initialize BadgerDB
 	badgerService, err := persistence.NewBadgerService("./tmp/badger")
 	if err != nil {
@@ -69,10 +79,13 @@ func main() {
 		defer badgerService.Close()
 	}
 
+	// Shared Repositories
+	deviceRepo := teralux_repositories.NewDeviceRepository(badgerService)
+
 	// Initialize Modules
 	commonModule := common.NewCommonModule(badgerService)
 	tuyaModule := tuya.NewTuyaModule(badgerService)
-	teraluxModule := teralux.NewTeraluxModule(badgerService)
+	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo)
 
 	// Register Routes
 	protected := router.Group("/")
@@ -87,7 +100,7 @@ func main() {
 
 	// 3. Teralux Routes (CRUD)
 	teraluxModule.RegisterRoutes(router, protected)
-	
+
 	utils.LogInfo("Server starting on :8080")
 	if err := router.Run(":8080"); err != nil {
 		utils.LogInfo("Failed to start server: %v", err)

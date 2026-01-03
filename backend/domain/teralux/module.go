@@ -8,10 +8,10 @@ import (
 	"teralux_app/domain/teralux/repositories"
 	"teralux_app/domain/teralux/routes"
 
+	"teralux_app/domain/common/middlewares"
 	device_usecases "teralux_app/domain/teralux/usecases/device"
 	device_status_usecases "teralux_app/domain/teralux/usecases/device_status"
 	teralux_usecases "teralux_app/domain/teralux/usecases/teralux"
-	"teralux_app/domain/common/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,12 +19,12 @@ import (
 // TeraluxModule encapsulates Teralux domain components
 type TeraluxModule struct {
 	// Teralux Controllers
-	CreateController    *teralux.CreateTeraluxController
-	GetAllController    *teralux.GetAllTeraluxController
-	GetByIDController   *teralux.GetTeraluxByIDController
-	GetByMACController  *teralux.GetTeraluxByMACController
-	UpdateController    *teralux.UpdateTeraluxController
-	DeleteController    *teralux.DeleteTeraluxController
+	CreateController   *teralux.CreateTeraluxController
+	GetAllController   *teralux.GetAllTeraluxController
+	GetByIDController  *teralux.GetTeraluxByIDController
+	GetByMACController *teralux.GetTeraluxByMACController
+	UpdateController   *teralux.UpdateTeraluxController
+	DeleteController   *teralux.DeleteTeraluxController
 
 	// Device Controllers
 	CreateDeviceController  *device.CreateDeviceController
@@ -34,24 +34,23 @@ type TeraluxModule struct {
 	DeleteDeviceController  *device.DeleteDeviceController
 
 	// DeviceStatus Controllers
-	CreateDeviceStatusController  *device_status.CreateDeviceStatusController
+	CreateDeviceStatusController   *device_status.CreateDeviceStatusController
 	GetAllDeviceStatusesController *device_status.GetAllDeviceStatusesController
-	GetDeviceStatusByIDController *device_status.GetDeviceStatusByIDController
-	UpdateDeviceStatusController  *device_status.UpdateDeviceStatusController
-	DeleteDeviceStatusController  *device_status.DeleteDeviceStatusController
+	GetDeviceStatusByIDController  *device_status.GetDeviceStatusByIDController
+	UpdateDeviceStatusController   *device_status.UpdateDeviceStatusController
+	DeleteDeviceStatusController   *device_status.DeleteDeviceStatusController
 }
 
 // NewTeraluxModule initializes the Teralux module
-func NewTeraluxModule(badger *persistence.BadgerService) *TeraluxModule {
+func NewTeraluxModule(badger *persistence.BadgerService, deviceRepository *repositories.DeviceRepository) *TeraluxModule {
 	// Repositories
 	teraluxRepository := repositories.NewTeraluxRepository(badger)
-	deviceRepository := repositories.NewDeviceRepository(badger)
 	deviceStatusRepository := repositories.NewDeviceStatusRepository(badger)
 
 	// Teralux Use Cases
 	createTeraluxUseCase := teralux_usecases.NewCreateTeraluxUseCase(teraluxRepository)
 	getAllTeraluxUseCase := teralux_usecases.NewGetAllTeraluxUseCase(teraluxRepository)
-	getTeraluxByIDUseCase := teralux_usecases.NewGetTeraluxByIDUseCase(teraluxRepository)
+	getTeraluxByIDUseCase := teralux_usecases.NewGetTeraluxByIDUseCase(teraluxRepository, deviceRepository)
 	getTeraluxByMACUseCase := teralux_usecases.NewGetTeraluxByMACUseCase(teraluxRepository)
 	updateTeraluxUseCase := teralux_usecases.NewUpdateTeraluxUseCase(teraluxRepository)
 	deleteTeraluxUseCase := teralux_usecases.NewDeleteTeraluxUseCase(teraluxRepository)
@@ -72,24 +71,24 @@ func NewTeraluxModule(badger *persistence.BadgerService) *TeraluxModule {
 
 	// Controllers
 	return &TeraluxModule{
-		CreateController:    teralux.NewCreateTeraluxController(createTeraluxUseCase),
-		GetAllController:    teralux.NewGetAllTeraluxController(getAllTeraluxUseCase),
-		GetByIDController:   teralux.NewGetTeraluxByIDController(getTeraluxByIDUseCase),
-		GetByMACController:  teralux.NewGetTeraluxByMACController(getTeraluxByMACUseCase),
-		UpdateController:    teralux.NewUpdateTeraluxController(updateTeraluxUseCase),
-		DeleteController:    teralux.NewDeleteTeraluxController(deleteTeraluxUseCase),
-        
+		CreateController:   teralux.NewCreateTeraluxController(createTeraluxUseCase),
+		GetAllController:   teralux.NewGetAllTeraluxController(getAllTeraluxUseCase),
+		GetByIDController:  teralux.NewGetTeraluxByIDController(getTeraluxByIDUseCase),
+		GetByMACController: teralux.NewGetTeraluxByMACController(getTeraluxByMACUseCase),
+		UpdateController:   teralux.NewUpdateTeraluxController(updateTeraluxUseCase),
+		DeleteController:   teralux.NewDeleteTeraluxController(deleteTeraluxUseCase),
+
 		CreateDeviceController:  device.NewCreateDeviceController(createDeviceUseCase),
 		GetAllDevicesController: device.NewGetAllDevicesController(getAllDevicesUseCase),
 		GetDeviceByIDController: device.NewGetDeviceByIDController(getDeviceByIDUseCase),
 		UpdateDeviceController:  device.NewUpdateDeviceController(updateDeviceUseCase),
 		DeleteDeviceController:  device.NewDeleteDeviceController(deleteDeviceUseCase),
 
-		CreateDeviceStatusController:  device_status.NewCreateDeviceStatusController(createDeviceStatusUseCase),
+		CreateDeviceStatusController:   device_status.NewCreateDeviceStatusController(createDeviceStatusUseCase),
 		GetAllDeviceStatusesController: device_status.NewGetAllDeviceStatusesController(getAllDeviceStatusesUseCase),
-		GetDeviceStatusByIDController: device_status.NewGetDeviceStatusByIDController(getDeviceStatusByIDUseCase),
-		UpdateDeviceStatusController:  device_status.NewUpdateDeviceStatusController(updateDeviceStatusUseCase),
-		DeleteDeviceStatusController:  device_status.NewDeleteDeviceStatusController(deleteDeviceStatusUseCase),
+		GetDeviceStatusByIDController:  device_status.NewGetDeviceStatusByIDController(getDeviceStatusByIDUseCase),
+		UpdateDeviceStatusController:   device_status.NewUpdateDeviceStatusController(updateDeviceStatusUseCase),
+		DeleteDeviceStatusController:   device_status.NewDeleteDeviceStatusController(deleteDeviceStatusUseCase),
 	}
 }
 
@@ -108,13 +107,13 @@ func (m *TeraluxModule) RegisterRoutes(router *gin.Engine, protected *gin.Router
 		m.GetByMACController,
 		m.UpdateController,
 		m.DeleteController,
-		
+
 		m.CreateDeviceController,
 		m.GetAllDevicesController,
 		m.GetDeviceByIDController,
 		m.UpdateDeviceController,
 		m.DeleteDeviceController,
-		
+
 		m.CreateDeviceStatusController,
 		m.GetAllDeviceStatusesController,
 		m.GetDeviceStatusByIDController,

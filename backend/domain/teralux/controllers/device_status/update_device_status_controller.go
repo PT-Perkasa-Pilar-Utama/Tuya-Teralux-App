@@ -24,7 +24,7 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 // UpdateDeviceStatus handles PUT /api/device-statuses/:id endpoint
 // @Summary      Update Device Status
 // @Description  Updates an existing device status
-// @Tags         03. DeviceStatuses
+// @Tags         05. Device Statuses
 // @Accept       json
 // @Produce      json
 // @Param        id       path      string                              true  "Device Status ID"

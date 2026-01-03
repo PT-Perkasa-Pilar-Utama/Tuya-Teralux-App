@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"teralux_app/domain/tuya/entities"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/tuya/entities"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -178,7 +178,7 @@ func (s *TuyaDeviceService) FetchBatchDeviceStatus(url string, headers map[strin
 		utils.LogError("FetchBatchDeviceStatus: failed to read response: %v", err)
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
-	
+
 	if resp.StatusCode != http.StatusOK {
 		utils.LogError("FetchBatchDeviceStatus: API returned status %d: %s", resp.StatusCode, string(body))
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
@@ -189,7 +189,7 @@ func (s *TuyaDeviceService) FetchBatchDeviceStatus(url string, headers map[strin
 		utils.LogError("FetchBatchDeviceStatus: failed to parse response: %v", err)
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	return &statusResponse, nil
 }
 
@@ -246,7 +246,7 @@ func (s *TuyaDeviceService) SendCommand(url string, headers map[string]string, c
 		utils.LogError("SendCommand: failed to parse response: %v", err)
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	return &commandResponse, nil
 }
 
@@ -281,7 +281,7 @@ func (s *TuyaDeviceService) SendIRCommand(url string, headers map[string]string,
 		utils.LogError("SendIRCommand: failed to read response: %v", err)
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
-	
+
 	if resp.StatusCode != http.StatusOK {
 		utils.LogError("SendIRCommand: API returned status %d: %s", resp.StatusCode, string(body))
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
@@ -337,6 +337,6 @@ func (s *TuyaDeviceService) FetchDeviceSpecification(url string, headers map[str
 		utils.LogError("FetchDeviceSpecification: failed to parse response: %v", err)
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	return &specResponse, nil
 }

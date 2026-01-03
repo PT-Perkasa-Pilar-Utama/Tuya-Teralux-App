@@ -55,7 +55,6 @@ type TuyaDevice struct {
 	StatusRange map[string]interface{} `json:"status_range"`
 }
 
-
 // TuyaDeviceStatus represents the status of a device property
 type TuyaDeviceStatus struct {
 	Code  string      `json:"code"`

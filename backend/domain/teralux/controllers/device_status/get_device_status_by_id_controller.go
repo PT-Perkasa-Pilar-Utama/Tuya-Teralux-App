@@ -12,7 +12,6 @@ import (
 // Force usage of teralux_dtos for Swagger
 var _ = teralux_dtos.DeviceStatusResponseDTO{}
 
-
 // GetDeviceStatusByIDController handles get device status by ID requests
 type GetDeviceStatusByIDController struct {
 	useCase *usecases.GetDeviceStatusByIDUseCase
@@ -28,7 +27,7 @@ func NewGetDeviceStatusByIDController(useCase *usecases.GetDeviceStatusByIDUseCa
 // GetDeviceStatusByID handles GET /api/device-statuses/:id endpoint
 // @Summary      Get Device Status by ID
 // @Description  Retrieves a single device status by ID
-// @Tags         03. DeviceStatuses
+// @Tags         05. Device Statuses
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "Device Status ID"

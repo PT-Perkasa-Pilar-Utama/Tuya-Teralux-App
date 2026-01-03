@@ -22,7 +22,7 @@ func NewCacheController(cache *persistence.BadgerService) *CacheController {
 // FlushCache clears the entire cache
 // @Summary Flush all cache
 // @Description Remove all data from the cache storage
-// @Tags Flush
+// @Tags         06. Flush
 // @Accept json
 // @Produce json
 // @Security BearerAuth

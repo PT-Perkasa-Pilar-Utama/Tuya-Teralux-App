@@ -12,7 +12,6 @@ import (
 // Force usage of teralux_dtos for Swagger
 var _ = teralux_dtos.DeviceListResponseDTO{}
 
-
 // GetAllDevicesController handles get all devices requests
 type GetAllDevicesController struct {
 	useCase *usecases.GetAllDevicesUseCase
@@ -28,7 +27,7 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 // GetAllDevices handles GET /api/devices endpoint
 // @Summary      Get All Devices
 // @Description  Retrieves all devices
-// @Tags         03. Devices
+// @Tags         04. Devices
 // @Accept       json
 // @Produce      json
 // @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.DeviceListResponseDTO}

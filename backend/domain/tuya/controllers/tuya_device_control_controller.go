@@ -3,10 +3,9 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	tuya_dtos "teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/usecases"
-	"teralux_app/domain/common/utils"
-
 
 	"github.com/gin-gonic/gin"
 )
@@ -56,14 +55,14 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 	success, err := ctrl.useCase.SendCommand(accessToken, deviceID, commands)
 	if err != nil {
 		utils.LogError("SendCommand failed: %v", err)
-		
+
 		// Check if it's a bad request error (code 1106)
 		errorMsg := err.Error()
 		statusCode := http.StatusInternalServerError
 		if len(errorMsg) >= 12 && errorMsg[:12] == "bad request:" {
 			statusCode = http.StatusBadRequest
 		}
-		
+
 		c.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
 			Message: err.Error(),
@@ -113,14 +112,14 @@ func (ctrl *TuyaDeviceControlController) SendIRACCommand(c *gin.Context) {
 	success, err := ctrl.useCase.SendIRACCommand(accessToken, infraredID, req.RemoteID, req.Code, req.Value)
 	if err != nil {
 		utils.LogError("SendIRACCommand failed: %v", err)
-		
+
 		// Check if it's a bad request error (code 1106)
 		errorMsg := err.Error()
 		statusCode := http.StatusInternalServerError
 		if len(errorMsg) >= 12 && errorMsg[:12] == "bad request:" {
 			statusCode = http.StatusBadRequest
 		}
-		
+
 		c.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
 			Message: err.Error(),

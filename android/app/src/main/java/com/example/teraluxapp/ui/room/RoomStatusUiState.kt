@@ -4,6 +4,7 @@ sealed class RoomStatusUiState {
     data object Loading : RoomStatusUiState()
     data class Success(
         val roomName: String,
+        val roomId: String?,
         val status: RoomStatus,
         val bookingInfo: BookingInfo? = null,
         val date: String

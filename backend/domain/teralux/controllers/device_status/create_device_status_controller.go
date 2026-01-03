@@ -24,7 +24,7 @@ func NewCreateDeviceStatusController(useCase *usecases.CreateDeviceStatusUseCase
 // CreateDeviceStatus handles POST /api/device-statuses endpoint
 // @Summary      Create Device Status
 // @Description  Creates a new device status
-// @Tags         03. DeviceStatuses
+// @Tags         05. Device Statuses
 // @Accept       json
 // @Produce      json
 // @Param        request  body      teralux_dtos.CreateDeviceStatusRequestDTO  true  "Create Device Status Request"

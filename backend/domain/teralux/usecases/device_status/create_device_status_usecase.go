@@ -4,7 +4,7 @@ import (
 	"errors"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
-	
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

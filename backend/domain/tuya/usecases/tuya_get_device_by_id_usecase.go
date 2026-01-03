@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/services"
-	"teralux_app/domain/common/utils"
 	tuya_utils "teralux_app/domain/tuya/utils"
 	"time"
 )
@@ -42,7 +42,7 @@ func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService, deviceStat
 // return error An error if the request fails.
 // @throws error If the API returns a failure response.
 func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) (*dtos.TuyaDeviceDTO, error) {
-    // Cache check removed.
+	// Cache check removed.
 
 	// Get config
 	config := utils.GetConfig()
@@ -119,7 +119,7 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 			for _, cmd := range savedState.LastCommands {
 				stateMap[cmd.Code] = cmd.Value
 			}
-			
+
 			// ONLY update values of existing codes, do NOT add new codes
 			for i := range statusDTOs {
 				if savedValue, exists := stateMap[statusDTOs[i].Code]; exists {
@@ -131,23 +131,22 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 
 	// Transform entity to DTO
 	dto := &dtos.TuyaDeviceDTO{
-		ID:           deviceResponse.Result.ID,
-		Name:         deviceResponse.Result.Name,
-		Category:     deviceResponse.Result.Category,
-		ProductName:  deviceResponse.Result.ProductName,
-		Online:       deviceResponse.Result.Online,
-		Icon:         deviceResponse.Result.Icon,
-		Status:       statusDTOs,
-		CustomName:   deviceResponse.Result.CustomName,
-		Model:        deviceResponse.Result.Model,
-		IP:           deviceResponse.Result.IP,
-		LocalKey:     deviceResponse.Result.LocalKey,
-		CreateTime:   deviceResponse.Result.CreateTime,
-		UpdateTime:   deviceResponse.Result.UpdateTime,
+		ID:          deviceResponse.Result.ID,
+		Name:        deviceResponse.Result.Name,
+		Category:    deviceResponse.Result.Category,
+		ProductName: deviceResponse.Result.ProductName,
+		Online:      deviceResponse.Result.Online,
+		Icon:        deviceResponse.Result.Icon,
+		Status:      statusDTOs,
+		CustomName:  deviceResponse.Result.CustomName,
+		Model:       deviceResponse.Result.Model,
+		IP:          deviceResponse.Result.IP,
+		LocalKey:    deviceResponse.Result.LocalKey,
+		CreateTime:  deviceResponse.Result.CreateTime,
+		UpdateTime:  deviceResponse.Result.UpdateTime,
 	}
 
 	// 2. Save to Cache - REMOVED
-
 
 	return dto, nil
 }

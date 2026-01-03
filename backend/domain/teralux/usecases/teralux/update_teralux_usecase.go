@@ -25,6 +25,9 @@ func (uc *UpdateTeraluxUseCase) Execute(id string, req *dtos.UpdateTeraluxReques
 	}
 
 	// Update fields
+	if req.RoomID != "" {
+		item.RoomID = req.RoomID
+	}
 	if req.Name != "" {
 		item.Name = req.Name
 	}

@@ -7,16 +7,18 @@ import (
 	"teralux_app/domain/tuya/routes"
 	"teralux_app/domain/tuya/services"
 	"teralux_app/domain/tuya/usecases"
+
 	"github.com/gin-gonic/gin"
 )
 
 // TuyaModule encapsulates Tuya domain components
 type TuyaModule struct {
-	AuthController              *controllers.TuyaAuthController
-	GetAllDevicesController     *controllers.TuyaGetAllDevicesController
-	GetDeviceByIDController     *controllers.TuyaGetDeviceByIDController
-	DeviceControlController     *controllers.TuyaDeviceControlController
-	SensorController            *controllers.TuyaSensorController
+	AuthController             *controllers.TuyaAuthController
+	GetAllDevicesController    *controllers.TuyaGetAllDevicesController
+	GetDeviceByIDController    *controllers.TuyaGetDeviceByIDController
+	DeviceControlController    *controllers.TuyaDeviceControlController
+	SensorController           *controllers.TuyaSensorController
+	SyncDeviceStatusController *controllers.SyncDeviceStatusController
 }
 
 // NewTuyaModule initializes the Tuya module
@@ -33,14 +35,16 @@ func NewTuyaModule(badger *persistence.BadgerService) *TuyaModule {
 	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaDeviceControlUseCase := usecases.NewTuyaDeviceControlUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaSensorUseCase := usecases.NewTuyaSensorUseCase(tuyaGetDeviceByIDUseCase)
+	syncDeviceStatusUseCase := usecases.NewSyncDeviceStatusUseCase(tuyaGetAllDevicesUseCase)
 
 	// Controllers
 	return &TuyaModule{
-		AuthController:          controllers.NewTuyaAuthController(tuyaAuthUseCase),
-		GetAllDevicesController: controllers.NewTuyaGetAllDevicesController(tuyaGetAllDevicesUseCase),
-		GetDeviceByIDController: controllers.NewTuyaGetDeviceByIDController(tuyaGetDeviceByIDUseCase),
-		DeviceControlController: controllers.NewTuyaDeviceControlController(tuyaDeviceControlUseCase),
-		SensorController:        controllers.NewTuyaSensorController(tuyaSensorUseCase),
+		AuthController:             controllers.NewTuyaAuthController(tuyaAuthUseCase),
+		GetAllDevicesController:    controllers.NewTuyaGetAllDevicesController(tuyaGetAllDevicesUseCase),
+		GetDeviceByIDController:    controllers.NewTuyaGetDeviceByIDController(tuyaGetDeviceByIDUseCase),
+		DeviceControlController:    controllers.NewTuyaDeviceControlController(tuyaDeviceControlUseCase),
+		SensorController:           controllers.NewTuyaSensorController(tuyaSensorUseCase),
+		SyncDeviceStatusController: controllers.NewSyncDeviceStatusController(syncDeviceStatusUseCase),
 	}
 }
 
@@ -54,4 +58,7 @@ func (m *TuyaModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGro
 	// Protected Routes
 	routes.SetupTuyaDeviceRoutes(protected, m.GetAllDevicesController, m.GetDeviceByIDController, m.SensorController)
 	routes.SetupTuyaControlRoutes(protected, m.DeviceControlController)
+
+	// Sync Route
+	protected.GET("/api/tuya/devices/sync", m.SyncDeviceStatusController.SyncStatus)
 }

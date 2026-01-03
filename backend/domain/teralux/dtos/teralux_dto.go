@@ -16,17 +16,20 @@ type CreateTeraluxResponseDTO struct {
 
 // UpdateTeraluxRequestDTO represents the request body for updating a teralux
 type UpdateTeraluxRequestDTO struct {
+	RoomID     string `json:"room_id,omitempty"`
 	MacAddress string `json:"mac_address,omitempty"`
 	Name       string `json:"name,omitempty"`
 }
 
 // TeraluxResponseDTO represents the response format for a single teralux
 type TeraluxResponseDTO struct {
-	ID         string    `json:"id"`
-	MacAddress string    `json:"mac_address"`
-	Name       string    `json:"name"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         string              `json:"id"`
+	MacAddress string              `json:"mac_address"`
+	RoomID     string              `json:"room_id"`
+	Name       string              `json:"name"`
+	CreatedAt  time.Time           `json:"created_at"`
+	UpdatedAt  time.Time           `json:"updated_at"`
+	Devices    []DeviceResponseDTO `json:"devices,omitempty"`
 }
 
 // TeraluxListResponseDTO represents the response format for a list of teralux items

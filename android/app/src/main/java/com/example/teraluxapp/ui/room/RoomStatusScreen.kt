@@ -37,6 +37,11 @@ fun RoomStatusScreen(
     
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    
+    // Set credentials in ViewModel
+    LaunchedEffect(token, uid) {
+        viewModel.setCredentials(token, uid)
+    }
 
     Box(
         modifier = Modifier
@@ -111,6 +116,18 @@ fun RoomStatusScreen(
                             letterSpacing = (-1).sp,
                             textAlign = TextAlign.Center
                         )
+                        
+                        // Room ID (if available)
+                        state.roomId?.let { roomId ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Room ID: $roomId",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF64748B),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         
