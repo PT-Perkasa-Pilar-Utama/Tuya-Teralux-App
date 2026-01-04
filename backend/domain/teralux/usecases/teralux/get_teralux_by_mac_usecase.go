@@ -2,15 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // GetTeraluxByMACUseCase handles the business logic for retrieving a teralux by MAC address
 type GetTeraluxByMACUseCase struct {
-	repository TeraluxRepository
+	repository *repositories.TeraluxRepository
 }
 
 // NewGetTeraluxByMACUseCase creates a new instance of GetTeraluxByMACUseCase
-func NewGetTeraluxByMACUseCase(repository TeraluxRepository) *GetTeraluxByMACUseCase {
+func NewGetTeraluxByMACUseCase(repository *repositories.TeraluxRepository) *GetTeraluxByMACUseCase {
 	return &GetTeraluxByMACUseCase{
 		repository: repository,
 	}

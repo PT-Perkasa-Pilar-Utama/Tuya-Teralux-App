@@ -2,15 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // GetDeviceStatusesByDeviceIDUseCase handles retrieving all statuses for a specific device
 type GetDeviceStatusesByDeviceIDUseCase struct {
-	repository DeviceStatusRepository
+	repository *repositories.DeviceStatusRepository
 }
 
 // NewGetDeviceStatusesByDeviceIDUseCase creates a new instance of GetDeviceStatusesByDeviceIDUseCase
-func NewGetDeviceStatusesByDeviceIDUseCase(repository DeviceStatusRepository) *GetDeviceStatusesByDeviceIDUseCase {
+func NewGetDeviceStatusesByDeviceIDUseCase(repository *repositories.DeviceStatusRepository) *GetDeviceStatusesByDeviceIDUseCase {
 	return &GetDeviceStatusesByDeviceIDUseCase{
 		repository: repository,
 	}

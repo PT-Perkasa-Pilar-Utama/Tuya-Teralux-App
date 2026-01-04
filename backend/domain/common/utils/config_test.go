@@ -1,8 +1,7 @@
-package tests
+package utils
 
 import (
 	"os"
-	"teralux_app/domain/common/utils"
 	"testing"
 )
 
@@ -16,10 +15,10 @@ func TestLoadConfig(t *testing.T) {
 	os.Setenv("TUYA_CLIENT_ID", testID)
 
 	// Force reload
-	utils.AppConfig = nil // clear global singleton if possible, or just call LoadConfig which overwrites it.
-	// Note: utils.AppConfig is exported, so we can nil it to test GetConfig lazy load
-	utils.AppConfig = nil
-	cfg := utils.GetConfig()
+	AppConfig = nil // clear global singleton if possible, or just call LoadConfig which overwrites it.
+	// Note: AppConfig is exported, so we can nil it to test GetConfig lazy load
+	AppConfig = nil
+	cfg := GetConfig()
 
 	if cfg.TuyaClientID != testID {
 		t.Errorf("GetConfig().TuyaClientID = %q; want %q", cfg.TuyaClientID, testID)

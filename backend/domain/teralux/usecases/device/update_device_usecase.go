@@ -2,15 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // UpdateDeviceUseCase handles updating an existing device
 type UpdateDeviceUseCase struct {
-	repository DeviceRepository
+	repository *repositories.DeviceRepository
 }
 
 // NewUpdateDeviceUseCase creates a new instance of UpdateDeviceUseCase
-func NewUpdateDeviceUseCase(repository DeviceRepository) *UpdateDeviceUseCase {
+func NewUpdateDeviceUseCase(repository *repositories.DeviceRepository) *UpdateDeviceUseCase {
 	return &UpdateDeviceUseCase{
 		repository: repository,
 	}

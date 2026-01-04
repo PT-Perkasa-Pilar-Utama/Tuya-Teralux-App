@@ -5,24 +5,26 @@ import (
 	"fmt"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
+	"teralux_app/domain/teralux/repositories"
+	tuya_usecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/google/uuid"
 )
 
 // CreateDeviceUseCase handles the business logic for creating a new device
 type CreateDeviceUseCase struct {
-	repository       DeviceRepository
-	statusRepository DeviceStatusRepository
-	tuyaAuthUC       TuyaAuthUseCase
-	tuyaGetDeviceUC  TuyaGetDeviceByIDUseCase
+	repository       *repositories.DeviceRepository
+	statusRepository *repositories.DeviceStatusRepository
+	tuyaAuthUC       *tuya_usecases.TuyaAuthUseCase
+	tuyaGetDeviceUC  *tuya_usecases.TuyaGetDeviceByIDUseCase
 }
 
 // NewCreateDeviceUseCase creates a new instance of CreateDeviceUseCase
 func NewCreateDeviceUseCase(
-	repository DeviceRepository,
-	statusRepository DeviceStatusRepository,
-	tuyaAuthUC TuyaAuthUseCase,
-	tuyaGetDeviceUC TuyaGetDeviceByIDUseCase,
+	repository *repositories.DeviceRepository,
+	statusRepository *repositories.DeviceStatusRepository,
+	tuyaAuthUC *tuya_usecases.TuyaAuthUseCase,
+	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
 ) *CreateDeviceUseCase {
 	return &CreateDeviceUseCase{
 		repository:       repository,

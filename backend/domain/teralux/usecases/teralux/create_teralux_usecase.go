@@ -1,19 +1,22 @@
 package usecases
 
 import (
+	"errors"
+	"strings"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
+	"teralux_app/domain/teralux/repositories"
 
 	"github.com/google/uuid"
 )
 
 // CreateTeraluxUseCase handles the business logic for creating a new teralux
 type CreateTeraluxUseCase struct {
-	repository TeraluxRepository
+	repository *repositories.TeraluxRepository
 }
 
 // NewCreateTeraluxUseCase creates a new instance of CreateTeraluxUseCase
-func NewCreateTeraluxUseCase(repository TeraluxRepository) *CreateTeraluxUseCase {
+func NewCreateTeraluxUseCase(repository *repositories.TeraluxRepository) *CreateTeraluxUseCase {
 	return &CreateTeraluxUseCase{
 		repository: repository,
 	}
@@ -21,6 +24,17 @@ func NewCreateTeraluxUseCase(repository TeraluxRepository) *CreateTeraluxUseCase
 
 // Execute creates a new teralux record
 func (uc *CreateTeraluxUseCase) Execute(req *dtos.CreateTeraluxRequestDTO) (*dtos.CreateTeraluxResponseDTO, error) {
+	// Validation
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("name is required")
+	}
+	if strings.TrimSpace(req.MacAddress) == "" {
+		return nil, errors.New("mac_address is required")
+	}
+	if strings.TrimSpace(req.RoomID) == "" {
+		return nil, errors.New("room_id is required")
+	}
+
 	// Generate UUID for the new teralux
 	id := uuid.New().String()
 
