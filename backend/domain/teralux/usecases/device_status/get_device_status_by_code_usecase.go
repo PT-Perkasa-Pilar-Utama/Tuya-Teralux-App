@@ -2,15 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // GetDeviceStatusByCodeUseCase handles retrieving a single device status by code
 type GetDeviceStatusByCodeUseCase struct {
-	repository DeviceStatusRepository
+	repository *repositories.DeviceStatusRepository
 }
 
 // NewGetDeviceStatusByCodeUseCase creates a new instance of GetDeviceStatusByCodeUseCase
-func NewGetDeviceStatusByCodeUseCase(repository DeviceStatusRepository) *GetDeviceStatusByCodeUseCase {
+func NewGetDeviceStatusByCodeUseCase(repository *repositories.DeviceStatusRepository) *GetDeviceStatusByCodeUseCase {
 	return &GetDeviceStatusByCodeUseCase{
 		repository: repository,
 	}

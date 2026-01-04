@@ -2,15 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // GetAllTeraluxUseCase handles retrieving all teralux records
 type GetAllTeraluxUseCase struct {
-	repository TeraluxRepository
+	repository *repositories.TeraluxRepository
 }
 
 // NewGetAllTeraluxUseCase creates a new instance of GetAllTeraluxUseCase
-func NewGetAllTeraluxUseCase(repository TeraluxRepository) *GetAllTeraluxUseCase {
+func NewGetAllTeraluxUseCase(repository *repositories.TeraluxRepository) *GetAllTeraluxUseCase {
 	return &GetAllTeraluxUseCase{
 		repository: repository,
 	}

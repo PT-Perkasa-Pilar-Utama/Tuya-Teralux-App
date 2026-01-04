@@ -1,13 +1,15 @@
 package usecases
 
+import "teralux_app/domain/teralux/repositories"
+
 // DeleteDeviceUseCase handles deleting a device
 type DeleteDeviceUseCase struct {
-	repository       DeviceRepository
-	statusRepository DeviceStatusRepository
+	repository       *repositories.DeviceRepository
+	statusRepository *repositories.DeviceStatusRepository
 }
 
 // NewDeleteDeviceUseCase creates a new instance of DeleteDeviceUseCase
-func NewDeleteDeviceUseCase(repository DeviceRepository, statusRepository DeviceStatusRepository) *DeleteDeviceUseCase {
+func NewDeleteDeviceUseCase(repository *repositories.DeviceRepository, statusRepository *repositories.DeviceStatusRepository) *DeleteDeviceUseCase {
 	return &DeleteDeviceUseCase{
 		repository:       repository,
 		statusRepository: statusRepository,

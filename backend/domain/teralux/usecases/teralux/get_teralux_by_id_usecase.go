@@ -3,19 +3,20 @@ package usecases
 import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // GetTeraluxByIDUseCase handles retrieving a single teralux
 type GetTeraluxByIDUseCase struct {
-	repository       TeraluxRepository
-	deviceRepository DeviceRepository
+	repository *repositories.TeraluxRepository
+	devRepo    *repositories.DeviceRepository
 }
 
 // NewGetTeraluxByIDUseCase creates a new instance of GetTeraluxByIDUseCase
-func NewGetTeraluxByIDUseCase(repository TeraluxRepository, deviceRepository DeviceRepository) *GetTeraluxByIDUseCase {
+func NewGetTeraluxByIDUseCase(repository *repositories.TeraluxRepository, devRepo *repositories.DeviceRepository) *GetTeraluxByIDUseCase {
 	return &GetTeraluxByIDUseCase{
-		repository:       repository,
-		deviceRepository: deviceRepository,
+		repository: repository,
+		devRepo:    devRepo,
 	}
 }
 
@@ -27,7 +28,7 @@ func (uc *GetTeraluxByIDUseCase) Execute(id string) (*dtos.TeraluxResponseDTO, e
 	}
 
 	// Fetch devices associated with this teralux
-	devices, err := uc.deviceRepository.GetByTeraluxID(id)
+	devices, err := uc.devRepo.GetByTeraluxID(id)
 	if err != nil {
 		// If error fetching devices, return teralux with empty devices array
 		devices = []entities.Device{}

@@ -13,6 +13,8 @@ import (
 	device_status_usecases "teralux_app/domain/teralux/usecases/device_status"
 	teralux_usecases "teralux_app/domain/teralux/usecases/teralux"
 
+	tuya_usecases "teralux_app/domain/tuya/usecases"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -44,8 +46,8 @@ type TeraluxModule struct {
 func NewTeraluxModule(
 	badger *persistence.BadgerService,
 	deviceRepository *repositories.DeviceRepository,
-	tuyaAuthUC device_usecases.TuyaAuthUseCase,
-	tuyaGetDeviceUC device_usecases.TuyaGetDeviceByIDUseCase,
+	tuyaAuthUC *tuya_usecases.TuyaAuthUseCase,
+	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
 ) *TeraluxModule {
 	// Repositories
 	teraluxRepository := repositories.NewTeraluxRepository(badger)

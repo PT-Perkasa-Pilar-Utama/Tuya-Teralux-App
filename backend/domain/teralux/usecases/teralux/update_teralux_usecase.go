@@ -2,15 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // UpdateTeraluxUseCase handles updating an existing teralux
 type UpdateTeraluxUseCase struct {
-	repository TeraluxRepository
+	repository *repositories.TeraluxRepository
 }
 
 // NewUpdateTeraluxUseCase creates a new instance of UpdateTeraluxUseCase
-func NewUpdateTeraluxUseCase(repository TeraluxRepository) *UpdateTeraluxUseCase {
+func NewUpdateTeraluxUseCase(repository *repositories.TeraluxRepository) *UpdateTeraluxUseCase {
 	return &UpdateTeraluxUseCase{
 		repository: repository,
 	}

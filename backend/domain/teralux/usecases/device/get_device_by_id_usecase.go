@@ -2,15 +2,16 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
+	"teralux_app/domain/teralux/repositories"
 )
 
 // GetDeviceByIDUseCase handles retrieving a single device
 type GetDeviceByIDUseCase struct {
-	repository DeviceRepository
+	repository *repositories.DeviceRepository
 }
 
 // NewGetDeviceByIDUseCase creates a new instance of GetDeviceByIDUseCase
-func NewGetDeviceByIDUseCase(repository DeviceRepository) *GetDeviceByIDUseCase {
+func NewGetDeviceByIDUseCase(repository *repositories.DeviceRepository) *GetDeviceByIDUseCase {
 	return &GetDeviceByIDUseCase{
 		repository: repository,
 	}
