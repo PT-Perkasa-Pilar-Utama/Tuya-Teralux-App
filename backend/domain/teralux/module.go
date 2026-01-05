@@ -66,7 +66,7 @@ func NewTeraluxModule(
 	createDeviceUseCase := device_usecases.NewCreateDeviceUseCase(deviceRepository, deviceStatusRepository, tuyaAuthUC, tuyaGetDeviceUC, teraluxRepository)
 	getAllDevicesUseCase := device_usecases.NewGetAllDevicesUseCase(deviceRepository)
 	getDeviceByIDUseCase := device_usecases.NewGetDeviceByIDUseCase(deviceRepository)
-	getDevicesByTeraluxIDUseCase := device_usecases.NewGetDevicesByTeraluxIDUseCase(deviceRepository)
+	getDevicesByTeraluxIDUseCase := device_usecases.NewGetDevicesByTeraluxIDUseCase(deviceRepository, teraluxRepository)
 	updateDeviceUseCase := device_usecases.NewUpdateDeviceUseCase(deviceRepository)
 	deleteDeviceUseCase := device_usecases.NewDeleteDeviceUseCase(deviceRepository, deviceStatusRepository, teraluxRepository)
 

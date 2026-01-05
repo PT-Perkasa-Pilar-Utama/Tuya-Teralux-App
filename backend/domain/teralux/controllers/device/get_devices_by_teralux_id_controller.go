@@ -35,6 +35,7 @@ func NewGetDevicesByTeraluxIDController(useCase *usecases.GetDevicesByTeraluxIDU
 // @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceListResponseDTO}  "Returns list of devices"
 // @Failure      400  {object}  dtos.StandardResponse "Invalid Teralux ID format"
 // @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      404  {object}  dtos.StandardResponse "Teralux hub not found"
 // @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
 // @Router       /api/devices/teralux/{teralux_id} [get]
@@ -52,6 +53,15 @@ func (c *GetDevicesByTeraluxIDController) GetDevicesByTeraluxID(ctx *gin.Context
 	// Execute dedicated use case
 	devices, err := c.useCase.Execute(teraluxID)
 	if err != nil {
+		if strings.Contains(err.Error(), "Teralux hub not found") {
+			ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
+				Status:  false,
+				Message: "Teralux hub not found",
+				Data:    nil,
+			})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
