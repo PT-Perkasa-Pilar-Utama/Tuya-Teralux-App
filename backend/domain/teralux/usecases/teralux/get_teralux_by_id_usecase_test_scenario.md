@@ -22,11 +22,14 @@ Retrieve a single Teralux device by its unique ID.
     "status": true,
     "message": "Teralux retrieved successfully",
     "data": {
-      "id": "t1",
-      "name": "Living Room",
-      "mac_address": "AA:BB",
-      "room_id": "r1",
-      "devices": [] // Associated devices if applicable
+      "teralux": {
+        "id": "t1",
+        "name": "Living Room",
+        "mac_address": "AA:BB",
+        "room_id": "r1",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
     }
   }
   ```

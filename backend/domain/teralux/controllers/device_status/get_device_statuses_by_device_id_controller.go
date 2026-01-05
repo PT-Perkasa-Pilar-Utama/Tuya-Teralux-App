@@ -10,7 +10,7 @@ import (
 )
 
 // Force usage of teralux_dtos for Swagger
-var _ = teralux_dtos.DeviceStatusResponseDTO{}
+var _ = teralux_dtos.DeviceStatusListResponseDTO{}
 
 // GetDeviceStatusesByDeviceIDController handles get device statuses by device ID requests
 type GetDeviceStatusesByDeviceIDController struct {
@@ -29,15 +29,16 @@ func NewGetDeviceStatusesByDeviceIDController(useCase *usecases.GetDeviceStatuse
 // @Description  Retrieves all statuses for a specific device
 // @Tags         05. Device Statuses
 // @Produce      json
-// @Param        deviceId path      string  true  "Device ID"
-// @Success      200      {object}  dtos.StandardResponse{data=[]teralux_dtos.DeviceStatusResponseDTO}
-// @Failure      404      {object}  dtos.StandardResponse
-// @Failure      500      {object}  dtos.StandardResponse
+// @Param        id   path      string  true  "Device ID"
+// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceStatusListResponseDTO}
+// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      404  {object}  dtos.StandardResponse "Device not found"
+// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
-// @Router       /api/devices/statuses/{deviceId} [get]
+// @Router       /api/devices/{id}/statuses [get]
 func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx *gin.Context) {
-	deviceID := ctx.Param("deviceId")
-	if deviceID == "" {
+	id := ctx.Param("id")
+	if id == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
 			Message: "Device ID is required",
@@ -46,11 +47,11 @@ func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx 
 		return
 	}
 
-	statuses, err := c.useCase.Execute(deviceID)
+	statuses, err := c.useCase.Execute(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to get device statuses: " + err.Error(),
+			Message: "Device not found",
 			Data:    nil,
 		})
 		return
@@ -58,7 +59,7 @@ func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx 
 
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
-		Message: "Device statuses retrieved successfully",
+		Message: "Statuses retrieved successfully",
 		Data:    statuses,
 	})
 }

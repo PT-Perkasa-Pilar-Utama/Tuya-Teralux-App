@@ -28,25 +28,26 @@ func NewDeleteDeviceController(useCase *usecases.DeleteDeviceUseCase) *DeleteDev
 // @Produce      json
 // @Param        id   path      string  true  "Device ID"
 // @Success      200  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      404      {object}  dtos.StandardResponse "Device not found"
+// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
 // @Router       /api/devices/{id} [delete]
 func (c *DeleteDeviceController) DeleteDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 			Status:  false,
-			Message: "Device ID is required",
+			Message: "Validation Error",
 			Data:    nil,
 		})
 		return
 	}
 
 	if err := c.useCase.Execute(id); err != nil {
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to delete device: " + err.Error(),
+			Message: "Device not found",
 			Data:    nil,
 		})
 		return

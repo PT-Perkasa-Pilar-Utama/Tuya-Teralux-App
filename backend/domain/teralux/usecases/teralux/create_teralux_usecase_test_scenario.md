@@ -31,11 +31,7 @@ Create a new Teralux device. This endpoint handles the registration of a new cen
     "status": true,
     "message": "Teralux created successfully",
     "data": {
-      "id": "<uuid>",
-      "name": "Master Bedroom Hub",
-      "mac_address": "AA:BB:CC:11:22:33",
-      "room_id": "room-101",
-      "created_at": "<timestamp>"
+      "teralux_id": "<uuid>"
     }
   }
   ```
@@ -135,7 +131,7 @@ Create a new Teralux device. This endpoint handles the registration of a new cen
   ```
   *(Status: 422 Unprocessable Entity)*
 
-### 5. Conflict: Duplicate MAC Address
+### 5. Idempotent: Duplicate MAC Address Returns Existing ID
 - **URL**: `http://localhost:8080/api/teralux`
 - **Method**: `POST`
 - **Headers**:
@@ -146,7 +142,7 @@ Create a new Teralux device. This endpoint handles the registration of a new cen
   }
   ```
 - **Pre-conditions**:
-  - Device with MAC `AA:BB:CC:11:22:33` already exists.
+  - Device with MAC `AA:BB:CC:11:22:33` already exists with ID `existing-id`.
 - **Request Body**:
   ```json
   {
@@ -158,42 +154,18 @@ Create a new Teralux device. This endpoint handles the registration of a new cen
 - **Expected Response**:
   ```json
   {
-    "status": false,
-    "message": "Teralux with this mac address already exists"
+    "status": true,
+    "message": "Teralux created successfully",
+    "data": {
+      "teralux_id": "existing-id"
+    }
   }
   ```
-  *(Status: 409 Conflict)*
+  *(Status: 200 OK)*
+- **Side Effects**:
+  - No new record created (idempotent for device booting).
 
-### 6. Constraint: Invalid Room ID
-- **URL**: `http://localhost:8080/api/teralux`
-- **Method**: `POST`
-- **Headers**:
-  ```json
-  {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer <valid_token>"
-  }
-  ```
-- **Pre-conditions**:
-  - `room-999` does not exist.
-- **Request Body**:
-  ```json
-  {
-    "name": "Ghost Room Hub",
-    "mac_address": "DD:EE:FF:11:22:33",
-    "room_id": "room-999"
-  }
-  ```
-- **Expected Response**:
-  ```json
-  {
-    "status": false,
-    "message": "Invalid room_id: room does not exist"
-  }
-  ```
-  *(Status: 422 Unprocessable Entity)*
-
-### 7. Security: Unauthorized (Missing Auth)
+### 6. Security: Unauthorized
 - **URL**: `http://localhost:8080/api/teralux`
 - **Method**: `POST`
 - **Headers**:

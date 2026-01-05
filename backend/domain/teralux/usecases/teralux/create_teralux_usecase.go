@@ -1,8 +1,9 @@
 package usecases
 
 import (
-	"errors"
+	"regexp"
 	"strings"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
@@ -23,16 +24,39 @@ func NewCreateTeraluxUseCase(repository *repositories.TeraluxRepository) *Create
 }
 
 // Execute creates a new teralux record
-func (uc *CreateTeraluxUseCase) Execute(req *dtos.CreateTeraluxRequestDTO) (*dtos.CreateTeraluxResponseDTO, error) {
+func (uc *CreateTeraluxUseCase) Execute(req *dtos.CreateTeraluxRequestDTO) (*dtos.CreateTeraluxResponseDTO, bool, error) {
 	// Validation
+	var details []utils.ValidationErrorDetail
+
 	if strings.TrimSpace(req.Name) == "" {
-		return nil, errors.New("name is required")
+		details = append(details, utils.ValidationErrorDetail{Field: "name", Message: "name is required"})
+	} else if len(req.Name) > 255 {
+		details = append(details, utils.ValidationErrorDetail{Field: "name", Message: "name must be 255 characters or less"})
 	}
+
 	if strings.TrimSpace(req.MacAddress) == "" {
-		return nil, errors.New("mac_address is required")
+		details = append(details, utils.ValidationErrorDetail{Field: "mac_address", Message: "mac_address is required"})
+	} else {
+		// Basic MAC address validation regex
+		matched, _ := regexp.MatchString(`^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$`, req.MacAddress)
+		if !matched {
+			details = append(details, utils.ValidationErrorDetail{Field: "mac_address", Message: "invalid mac address format"})
+		}
 	}
+
 	if strings.TrimSpace(req.RoomID) == "" {
-		return nil, errors.New("room_id is required")
+		details = append(details, utils.ValidationErrorDetail{Field: "room_id", Message: "room_id is required"})
+	}
+
+	if len(details) > 0 {
+		return nil, false, utils.NewValidationError("Validation Error", details)
+	}
+
+	existing, err := uc.repository.GetByMacAddress(req.MacAddress)
+	if err == nil && existing != nil {
+		return &dtos.CreateTeraluxResponseDTO{
+			TeraluxID: existing.ID,
+		}, false, nil
 	}
 
 	// Generate UUID for the new teralux
@@ -48,11 +72,11 @@ func (uc *CreateTeraluxUseCase) Execute(req *dtos.CreateTeraluxRequestDTO) (*dto
 
 	// Save to database
 	if err := uc.repository.Create(teralux); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// Return response DTO with only ID
 	return &dtos.CreateTeraluxResponseDTO{
-		ID: teralux.ID,
-	}, nil
+		TeraluxID: teralux.ID,
+	}, true, nil
 }

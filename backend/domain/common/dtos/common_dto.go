@@ -4,7 +4,8 @@ package dtos
 type StandardResponse struct {
 	Status  bool        `json:"status"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Data    interface{} `json:"data"`
+	Details interface{} `json:"details,omitempty"`
 }
 
 // SuccessResponseDTO is a simple DTO for operations returning a success boolean

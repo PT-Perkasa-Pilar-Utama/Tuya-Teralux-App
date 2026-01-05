@@ -52,7 +52,7 @@ fun DashboardScreen(token: String,
             try {
                 val response = RetrofitClient.instance.getTeraluxById("Bearer $token", teraluxId)
                 if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!.data
+                    val body = response.body()!!.data?.teralux
                     val rawDevices = body?.devices ?: emptyList()
                     
                     val flatList = rawDevices.flatMap { d ->

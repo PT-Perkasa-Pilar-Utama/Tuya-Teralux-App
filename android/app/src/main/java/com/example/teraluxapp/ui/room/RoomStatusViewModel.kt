@@ -52,7 +52,7 @@ class RoomStatusViewModel @Inject constructor(
                 if (teraluxId != null && currentToken.isNotEmpty()) {
                     val response = RetrofitClient.instance.getTeraluxById("Bearer $currentToken", teraluxId)
                     if (response.isSuccessful && response.body() != null) {
-                        val teraluxData = response.body()!!.data
+                        val teraluxData = response.body()!!.data?.teralux
                         teraluxName = teraluxData?.name
                         roomId = teraluxData?.roomId
                     }

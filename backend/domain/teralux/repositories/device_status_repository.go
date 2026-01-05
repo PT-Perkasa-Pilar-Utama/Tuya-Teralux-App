@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/teralux/entities"
 
 	"gorm.io/gorm"
@@ -11,11 +10,11 @@ import (
 // DeviceStatusRepository handles database operations for DeviceStatus entities
 type DeviceStatusRepository struct {
 	db    *gorm.DB
-	cache *persistence.BadgerService
+	cache *infrastructure.BadgerService
 }
 
 // NewDeviceStatusRepository creates a new instance of DeviceStatusRepository
-func NewDeviceStatusRepository(cache *persistence.BadgerService) *DeviceStatusRepository {
+func NewDeviceStatusRepository(cache *infrastructure.BadgerService) *DeviceStatusRepository {
 	return &DeviceStatusRepository{
 		db:    infrastructure.DB,
 		cache: cache,
@@ -55,8 +54,8 @@ func (r *DeviceStatusRepository) GetByDeviceIDAndCode(deviceID, code string) (*e
 func (r *DeviceStatusRepository) UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error {
 	// Start transaction
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// Delete all existing statuses for this device
-		if err := tx.Where("device_id = ?", deviceID).Delete(&entities.DeviceStatus{}).Error; err != nil {
+		// Delete all existing statuses for this device (Hard Delete to avoid Unique Composite Key issues)
+		if err := tx.Unscoped().Where("device_id = ?", deviceID).Delete(&entities.DeviceStatus{}).Error; err != nil {
 			return err
 		}
 

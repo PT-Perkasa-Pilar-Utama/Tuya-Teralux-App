@@ -22,11 +22,27 @@ Retrieve a single device by its ID.
     "status": true,
     "message": "Device retrieved successfully",
     "data": {
-      "id": "dev-1",
-      "name": "Kitchen Switch",
-      "teralux_id": "tx-1",
-      "type": "switch",
-      "status": [...] // Optional current status
+      "device": {
+        "id": "dev-1",
+        "name": "Kitchen Switch",
+        "teralux_id": "tx-1",
+        "remote_id": "rem-1",
+        "category": "sw",
+        "remote_category": "switch",
+        "product_name": "Tuya Switch",
+        "remote_product_name": "Smart Switch",
+        "icon": "icon_url",
+        "custom_name": "Kitchen",
+        "model": "T1",
+        "ip": "192.168.1.1",
+        "local_key": "key123",
+        "gateway_id": "gw-1",
+        "create_time": 1600000000,
+        "update_time": 1600000000,
+        "collections": "[]",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
     }
   }
   ```

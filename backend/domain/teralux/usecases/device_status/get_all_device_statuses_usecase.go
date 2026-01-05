@@ -42,7 +42,9 @@ func (uc *GetAllDeviceStatusesUseCase) Execute() (*dtos.DeviceStatusListResponse
 	}
 
 	return &dtos.DeviceStatusListResponseDTO{
-		Statuses: statusDTOs,
-		Total:    len(statusDTOs),
+		DeviceStatuses: statusDTOs,
+		Total:          len(statusDTOs),
+		Page:           1,
+		PerPage:        len(statusDTOs),
 	}, nil
 }

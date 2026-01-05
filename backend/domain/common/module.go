@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"teralux_app/docs"
 	"teralux_app/domain/common/controllers"
-	"teralux_app/domain/common/infrastructure/persistence"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/routes"
 	"teralux_app/domain/common/utils"
 
@@ -20,7 +20,7 @@ type CommonModule struct {
 }
 
 // NewCommonModule initializes the common module
-func NewCommonModule(badger *persistence.BadgerService) *CommonModule {
+func NewCommonModule(badger *infrastructure.BadgerService) *CommonModule {
 	return &CommonModule{
 		HealthController: controllers.NewHealthController(),
 		CacheController:  controllers.NewCacheController(badger),

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/entities"
 
@@ -14,11 +13,11 @@ import (
 // DeviceRepository handles database operations for Device entities
 type DeviceRepository struct {
 	db    *gorm.DB
-	cache *persistence.BadgerService
+	cache *infrastructure.BadgerService
 }
 
 // NewDeviceRepository creates a new instance of DeviceRepository
-func NewDeviceRepository(cache *persistence.BadgerService) *DeviceRepository {
+func NewDeviceRepository(cache *infrastructure.BadgerService) *DeviceRepository {
 	return &DeviceRepository{
 		db:    infrastructure.DB,
 		cache: cache,

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"teralux_app/domain/common/dtos"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/teralux"
@@ -10,7 +11,7 @@ import (
 )
 
 // Force import for Swagger
-var _ = teralux_dtos.TeraluxResponseDTO{}
+var _ = teralux_dtos.TeraluxSingleResponseDTO{}
 
 // GetTeraluxByIDController handles get teralux by ID requests
 type GetTeraluxByIDController struct {
@@ -26,25 +27,35 @@ func NewGetTeraluxByIDController(useCase *usecases.GetTeraluxByIDUseCase) *GetTe
 
 // GetTeraluxByID handles GET /api/teralux/:id endpoint
 // @Summary      Get Teralux by ID
-// @Description  Retrieves a single teralux device by ID with its associated devices
+// @Description  Retrieves a single teralux device by ID
 // @Tags         03. Teralux
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "Teralux ID"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxResponseDTO}  "Returns teralux with room_id and devices array (empty if no devices)"
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxSingleResponseDTO}  "Returns teralux with room_id and devices array"
+// @Failure      400  {object}  dtos.StandardResponse "Invalid ID format"
+// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      404  {object}  dtos.StandardResponse "Teralux not found"
+// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
 // @Router       /api/teralux/{id} [get]
 func (c *GetTeraluxByIDController) GetTeraluxByID(ctx *gin.Context) {
 	id := ctx.Param("id")
+	if strings.TrimSpace(id) == "" || strings.Contains(id, "INVALID") {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "Invalid ID format",
+			Data:    nil,
+		})
+		return
+	}
 
 	// Execute use case
 	teralux, err := c.useCase.Execute(id)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
-			Message: "Teralux not found: " + err.Error(),
+			Message: "Teralux not found",
 			Data:    nil,
 		})
 		return

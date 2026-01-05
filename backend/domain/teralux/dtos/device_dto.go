@@ -9,38 +9,42 @@ type CreateDeviceRequestDTO struct {
 	Name      string `json:"name" binding:"required"`
 }
 
-// CreateDeviceResponseDTO represents the response for creating a device
+// CreateDeviceResponseDTO represents the response for creating a device (only returns ID)
 type CreateDeviceResponseDTO struct {
-	ID string `json:"device_id"`
+	DeviceID string `json:"device_id"`
 }
 
 // UpdateDeviceRequestDTO represents the request body for updating a device
 type UpdateDeviceRequestDTO struct {
-	Name string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
+}
+
+// DeviceFilterDTO represents filter options for listing devices
+type DeviceFilterDTO struct {
+	TeraluxID *string `form:"teralux_id" json:"teralux_id,omitempty"`
 }
 
 // DeviceResponseDTO represents the response format for a single device
 type DeviceResponseDTO struct {
-	ID                string            `json:"id"`
-	TeraluxID         string            `json:"teralux_id"`
-	Name              string            `json:"name"`
-	RemoteID          string            `json:"remote_id,omitempty"`
-	Category          string            `json:"category,omitempty"`
-	RemoteCategory    string            `json:"remote_category,omitempty"`
-	ProductName       string            `json:"product_name,omitempty"`
-	RemoteProductName string            `json:"remote_product_name,omitempty"`
-	Icon              string            `json:"icon,omitempty"`
-	CustomName        string            `json:"custom_name,omitempty"`
-	Model             string            `json:"model,omitempty"`
-	IP                string            `json:"ip,omitempty"`
-	LocalKey          string            `json:"local_key,omitempty"`
-	GatewayID         string            `json:"gateway_id,omitempty"`
-	CreateTime        int64             `json:"create_time,omitempty"`
-	UpdateTime        int64             `json:"update_time,omitempty"`
-	Collections       string            `json:"collections,omitempty"`
-	Status            []DeviceStatusDTO `json:"status,omitempty"`
-	CreatedAt         time.Time         `json:"created_at"`
-	UpdatedAt         time.Time         `json:"updated_at"`
+	ID                string    `json:"id"`
+	TeraluxID         string    `json:"teralux_id"`
+	Name              string    `json:"name"`
+	RemoteID          string    `json:"remote_id"`
+	Category          string    `json:"category"`
+	RemoteCategory    string    `json:"remote_category"`
+	ProductName       string    `json:"product_name"`
+	RemoteProductName string    `json:"remote_product_name"`
+	Icon              string    `json:"icon"`
+	CustomName        string    `json:"custom_name"`
+	Model             string    `json:"model"`
+	IP                string    `json:"ip"`
+	LocalKey          string    `json:"local_key"`
+	GatewayID         string    `json:"gateway_id"`
+	CreateTime        int64     `json:"create_time"`
+	UpdateTime        int64     `json:"update_time"`
+	Collections       string    `json:"collections"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 // DeviceStatusDTO represents a device status for responses
@@ -53,4 +57,11 @@ type DeviceStatusDTO struct {
 type DeviceListResponseDTO struct {
 	Devices []DeviceResponseDTO `json:"devices"`
 	Total   int                 `json:"total"`
+	Page    int                 `json:"page"`
+	PerPage int                 `json:"per_page"`
+}
+
+// DeviceSingleResponseDTO represents the response format for a single device (wrapped)
+type DeviceSingleResponseDTO struct {
+	Device DeviceResponseDTO `json:"device"`
 }

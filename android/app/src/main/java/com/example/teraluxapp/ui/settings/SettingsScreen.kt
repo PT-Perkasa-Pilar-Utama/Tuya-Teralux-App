@@ -39,6 +39,7 @@ fun SettingsScreen(
     val teraluxId = remember { PreferencesManager.getTeraluxId(context) ?: "" }
     val macAddress = remember { DeviceInfoUtils.getMacAddress(context) }
     var teraluxData by remember { mutableStateOf<Teralux?>(null) }
+    var linkedDevices by remember { mutableStateOf<List<Device>>(emptyList()) }
     var roomId by remember { mutableStateOf("") }
     var teraluxName by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
@@ -47,6 +48,18 @@ fun SettingsScreen(
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var allTuyaDevices by remember { mutableStateOf<List<Device>>(emptyList()) }
     
+    // Helper function to fetch linked devices
+    suspend fun fetchLinkedDevices() {
+        try {
+            val response = RetrofitClient.instance.getDevicesByTeraluxId("Bearer $token", teraluxId)
+            if (response.isSuccessful && response.body() != null) {
+                linkedDevices = response.body()!!.data?.devices ?: emptyList()
+            }
+        } catch (e: Exception) {
+            // Log error or show snackbar if critical
+        }
+    }
+
     // Fetch Teralux data
     LaunchedEffect(Unit) {
         scope.launch {
@@ -54,10 +67,13 @@ fun SettingsScreen(
                 // Fetch Teralux Data
                 val responseInfo = RetrofitClient.instance.getTeraluxById("Bearer $token", teraluxId)
                 if (responseInfo.isSuccessful && responseInfo.body() != null) {
-                    teraluxData = responseInfo.body()!!.data
+                    teraluxData = responseInfo.body()!!.data?.teralux
                     roomId = teraluxData?.roomId ?: ""
                     teraluxName = teraluxData?.name ?: ""
                 }
+
+                // Fetch Linked Devices
+                fetchLinkedDevices()
                 
                 // Fetch All Tuya Devices (with flattening logic)
                 val responseDevices = RetrofitClient.instance.getDevices("Bearer $token", page = 1, limit = 100)
@@ -255,7 +271,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         
                         // List of linked devices
-                        teraluxData?.devices?.forEach { device ->
+                        linkedDevices.forEach { device ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -278,7 +294,7 @@ fun SettingsScreen(
                             }
                         }
                         
-                        if (teraluxData?.devices.isNullOrEmpty()) {
+                        if (linkedDevices.isEmpty()) {
                             Text(
                                 text = "No devices linked yet",
                                 color = Color(0xFF94A3B8),
@@ -379,7 +395,6 @@ fun SettingsScreen(
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    val linkedDevices = teraluxData?.devices ?: emptyList()
                     val availableDevices = allTuyaDevices.filter { device ->
                         linkedDevices.none { it.id == device.id }
                     }
@@ -414,24 +429,34 @@ fun SettingsScreen(
                                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
                                     onClick = {
                                         scope.launch {
+                                            var isAdding = false
                                             try {
+                                                isAdding = true
                                                 val response = RetrofitClient.instance.createDevice(
                                                     "Bearer $token",
-                                                    CreateDeviceRequest(teraluxId, device.name)
+                                                    CreateDeviceRequest(
+                                                        id = device.id,
+                                                        teraluxId = teraluxId,
+                                                        name = device.name
+                                                    )
                                                 )
                                                 if (response.isSuccessful) {
-                                                    snackbarHostState.showSnackbar("Device added successfully")
-                                                    showAddDeviceDialog = false
-                                                    // Refresh data
+                                                    // Refresh teralux data and linked devices
+                                                    fetchLinkedDevices()
                                                     val refreshResponse = RetrofitClient.instance.getTeraluxById("Bearer $token", teraluxId)
                                                     if (refreshResponse.isSuccessful) {
-                                                        teraluxData = refreshResponse.body()!!.data
+                                                        teraluxData = refreshResponse.body()!!.data?.teralux
                                                     }
+                                                    
+                                                    snackbarHostState.showSnackbar("Device added successfully")
+                                                    showAddDeviceDialog = false
                                                 } else {
                                                     snackbarHostState.showSnackbar("Failed to add device")
                                                 }
                                             } catch (e: Exception) {
                                                 snackbarHostState.showSnackbar("Error: ${e.message}")
+                                            } finally {
+                                                isAdding = false
                                             }
                                         }
                                     }
@@ -510,9 +535,10 @@ fun SettingsScreen(
                                     snackbarHostState.showSnackbar("Device removed successfully")
                                     showDeleteConfirmDialog = null
                                     // Refresh data
+                                    fetchLinkedDevices()
                                     val refreshResponse = RetrofitClient.instance.getTeraluxById("Bearer $token", teraluxId)
                                     if (refreshResponse.isSuccessful) {
-                                        teraluxData = refreshResponse.body()!!.data
+                                        teraluxData = refreshResponse.body()!!.data?.teralux
                                     }
                                 } else {
                                     snackbarHostState.showSnackbar("Failed to remove device")

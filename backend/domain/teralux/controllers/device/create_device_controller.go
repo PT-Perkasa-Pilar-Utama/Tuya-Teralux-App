@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device"
 
@@ -28,9 +29,11 @@ func NewCreateDeviceController(useCase *usecases.CreateDeviceUseCase) *CreateDev
 // @Accept       json
 // @Produce      json
 // @Param        request  body      teralux_dtos.CreateDeviceRequestDTO  true  "Create Device Request"
-// @Success      201      {object}  dtos.StandardResponse{data=teralux_dtos.CreateDeviceResponseDTO}
-// @Failure      400      {object}  dtos.StandardResponse
-// @Failure      500      {object}  dtos.StandardResponse
+// @Success      201      {object}  dtos.StandardResponse{data=teralux_dtos.CreateDeviceResponseDTO}  "New record created"
+// @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.CreateDeviceResponseDTO}  "Idempotent: record updated"
+// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      422      {object}  dtos.StandardResponse "Validation Error"
+// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
 // @Router       /api/devices [post]
 func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
@@ -38,28 +41,52 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 
 	// Bind and validate request body
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 			Status:  false,
-			Message: "Invalid request body: " + err.Error(),
+			Message: "Validation Error",
 			Data:    nil,
 		})
 		return
 	}
 
 	// Execute use case
-	device, err := c.useCase.Execute(&req)
+	response, isNew, err := c.useCase.Execute(&req)
 	if err != nil {
+		if valErr, ok := err.(*utils.ValidationError); ok {
+			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
+				Status:  false,
+				Message: valErr.Message,
+				Details: valErr.Details,
+			})
+			return
+		}
+
+		// Handle specific errors like "Invalid teralux_id" as 422
+		if err.Error() == "Invalid teralux_id: Teralux hub does not exist" {
+			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
+				Status:  false,
+				Message: "Invalid teralux_id: Teralux hub does not exist",
+				Data:    nil,
+			})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to create device: " + err.Error(),
+			Message: "Internal Server Error",
 			Data:    nil,
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, dtos.StandardResponse{
+	statusCode := http.StatusCreated
+	if !isNew {
+		statusCode = http.StatusOK
+	}
+
+	ctx.JSON(statusCode, dtos.StandardResponse{
 		Status:  true,
 		Message: "Device created successfully",
-		Data:    device,
+		Data:    response,
 	})
 }

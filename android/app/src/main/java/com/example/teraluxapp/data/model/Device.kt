@@ -37,3 +37,10 @@ data class DeviceResponse(
 data class SingleDeviceResponse(
      @SerializedName("device") val device: Device
 )
+
+data class DeviceListResponse(
+    @SerializedName("devices") val devices: List<Device>,
+    @SerializedName("total") val total: Int,
+    @SerializedName("page") val page: Int,
+    @SerializedName("per_page") val perPage: Int
+)

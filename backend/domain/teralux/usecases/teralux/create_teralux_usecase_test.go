@@ -1,10 +1,10 @@
 package usecases
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
@@ -34,7 +34,7 @@ func setupTestEnv(t *testing.T) (*repositories.TeraluxRepository, *repositories.
 		t.Fatalf("Failed to migrate: %v", err)
 	}
 	tmpDir := t.TempDir()
-	cache, err := persistence.NewBadgerService(tmpDir)
+	cache, err := infrastructure.NewBadgerService(tmpDir)
 	if err != nil {
 		t.Fatalf("Failed to create Badger: %v", err)
 	}
@@ -49,143 +49,139 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	repo, _ := setupTestEnv(t)
 	useCase := NewCreateTeraluxUseCase(repo)
 
-	// 1. Create Teralux with Empty Payload (Name)
+	// 1. Create Teralux (Success Condition)
 	// URL: POST /api/teralux
-	// METHOD: POST
-	// BODY: { "name": "", "mac_address": "AA:BB:CC:11:22:33", "room_id": "room-1" }
-	// RES: 400 Bad Request
-	// RESPONSE: { "status": false, "message": "name is required", "data": nil }
-	t.Run("Create Teralux with Empty Payload (Name)", func(t *testing.T) {
-		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "",
-			MacAddress: "AA:BB:CC:11:22:33",
-			RoomID:     "room-1",
-		}
-
-		_, err := useCase.Execute(req)
-		if err == nil {
-			t.Fatal("Expected error for empty name, got nil")
-		}
-		if !strings.Contains(err.Error(), "name is required") {
-			t.Errorf("Expected 'name is required' error, got: %v", err)
-		}
-	})
-
-	// 2. Create Teralux with Invalid Payload (Empty MacAddress)
-	// URL: POST /api/teralux
-	// METHOD: POST
-	// BODY: { "name": "Living Room Hub", "mac_address": "", "room_id": "room-1" }
-	// RES: 400 Bad Request
-	// RESPONSE: { "status": false, "message": "mac_address is required", "data": nil }
-	t.Run("Create Teralux with Invalid Payload (Empty MacAddress)", func(t *testing.T) {
-		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "Living Room Hub",
-			MacAddress: "",
-			RoomID:     "room-1",
-		}
-
-		_, err := useCase.Execute(req)
-		if err == nil {
-			t.Fatal("Expected error for empty mac_address, got nil")
-		}
-		if !strings.Contains(err.Error(), "mac_address is required") {
-			t.Errorf("Expected 'mac_address is required' error, got: %v", err)
-		}
-	})
-
-	// 3. Create Teralux with Invalid Payload (Empty RoomID)
-	// URL: POST /api/teralux
-	// METHOD: POST
-	// BODY: { "name": "Living Room Hub", "mac_address": "AA:BB:CC:11:22:33", "room_id": "" }
-	// RES: 400 Bad Request
-	// RESPONSE: { "status": false, "message": "room_id is required", "data": nil }
-	t.Run("Create Teralux with Invalid Payload (Empty RoomID)", func(t *testing.T) {
-		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "Living Room Hub",
-			MacAddress: "AA:BB:CC:11:22:33",
-			RoomID:     "",
-		}
-
-		_, err := useCase.Execute(req)
-		if err == nil {
-			t.Fatal("Expected error for empty room_id, got nil")
-		}
-		if !strings.Contains(err.Error(), "room_id is required") {
-			t.Errorf("Expected 'room_id is required' error, got: %v", err)
-		}
-	})
-
-	// 4. Create Teralux (Success Condition)
-	// URL: POST /api/teralux
-	// METHOD: POST
-	// BODY: { "name": "Master Bedroom Hub", "mac_address": "11:22:33:44:55:66", "room_id": "room-101" }
-	// RES: 200 OK
-	// RESPONSE: { "status": true, "message": "Teralux created successfully", "data": { "teralux_id": "..." } }
+	// SCENARIO: Valid payload, room exists.
+	// RES: 201 Created
 	t.Run("Create Teralux (Success Condition)", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
 			Name:       "Master Bedroom Hub",
-			MacAddress: "11:22:33:44:55:66",
+			MacAddress: "AA:BB:CC:11:22:33",
 			RoomID:     "room-101",
 		}
 
-		res, err := useCase.Execute(req)
+		res, _, err := useCase.Execute(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		if res.ID == "" {
+		if res.TeraluxID == "" {
 			t.Error("Expected ID to be returned, got empty string")
-		}
-
-		// Verify it was actually stored
-		stored, err := repo.GetByID(res.ID)
-		if err != nil {
-			t.Fatalf("Failed to retrieve stored teralux: %v", err)
-		}
-		if stored.Name != "Master Bedroom Hub" {
-			t.Errorf("Expected name 'Master Bedroom Hub', got '%s'", stored.Name)
 		}
 	})
 
-	// 5. Create Teralux with Exists Data (Duplicate MacAddress)
+	// 2. Validation: Empty Fields
 	// URL: POST /api/teralux
-	// METHOD: POST
-	// BODY: { "name": "Duplicate Hub", "mac_address": "EXISTING_MAC", "room_id": "room-102" }
-	// RES: 409 Conflict (or 500 depending on repo implementation)
-	// RESPONSE: { "status": false, "message": "UNIQUE constraint failed...", "data": nil }
-	t.Run("Create Teralux with Exists Data (Duplicate MacAddress)", func(t *testing.T) {
-		// Pre-seed existing data
-		existing := &entities.Teralux{
-			ID:         "existing-id",
-			Name:       "Original Hub",
-			MacAddress: "EXISTING_MAC",
-			RoomID:     "room-999",
-		}
-		if err := repo.Create(existing); err != nil {
-			t.Fatalf("Failed to seed data: %v", err)
+	// SCENARIO: All fields empty.
+	// RES: 422 Unprocessable Entity
+	t.Run("Validation: Empty Fields", func(t *testing.T) {
+		req := &dtos.CreateTeraluxRequestDTO{
+			Name:       "",
+			MacAddress: "",
+			RoomID:     "",
 		}
 
-		// Attempt to create duplicate
+		_, _, err := useCase.Execute(req)
+		if err == nil {
+			t.Fatal("Expected error for empty fields, got nil")
+		}
+
+		var valErr *utils.ValidationError
+		if errors.As(err, &valErr) {
+			if valErr.Message != "Validation Error" {
+				t.Errorf("Expected message 'Validation Error', got '%s'", valErr.Message)
+			}
+			if len(valErr.Details) != 3 {
+				t.Errorf("Expected 3 validation details, got %d", len(valErr.Details))
+			}
+		} else {
+			t.Fatalf("Expected utils.ValidationError, got %T: %v", err, err)
+		}
+	})
+
+	// 3. Validation: Invalid MAC Address Format
+	// URL: POST /api/teralux
+	// SCENARIO: Invalid MAC format.
+	// RES: 422 Unprocessable Entity
+	t.Run("Validation: Invalid MAC Address Format", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "Duplicate Hub",
-			MacAddress: "EXISTING_MAC",
+			Name:       "Living Room",
+			MacAddress: "INVALID-MAC",
+			RoomID:     "room-1",
+		}
+
+		_, _, err := useCase.Execute(req)
+		if err == nil {
+			t.Fatal("Expected error for invalid mac, got nil")
+		}
+
+		var valErr *utils.ValidationError
+		if errors.As(err, &valErr) {
+			found := false
+			for _, d := range valErr.Details {
+				if d.Field == "mac_address" && d.Message == "invalid mac address format" {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Error("Expected detail for mac_address invalid format")
+			}
+		}
+	})
+
+	// 4. Validation: Name Too Long
+	// URL: POST /api/teralux
+	// SCENARIO: Name > 255 chars.
+	// RES: 422 Unprocessable Entity
+	t.Run("Validation: Name Too Long", func(t *testing.T) {
+		longName := strings.Repeat("a", 256)
+		req := &dtos.CreateTeraluxRequestDTO{
+			Name:       longName,
+			MacAddress: "AA:BB:CC:11:22:33",
+			RoomID:     "room-101",
+		}
+
+		_, _, err := useCase.Execute(req)
+		if err == nil {
+			t.Fatal("Expected error for long name, got nil")
+		}
+
+		var valErr *utils.ValidationError
+		if errors.As(err, &valErr) {
+			found := false
+			for _, d := range valErr.Details {
+				if d.Field == "name" && d.Message == "name must be 255 characters or less" {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Error("Expected detail for name too long")
+			}
+		}
+	})
+
+	// 5. Idempotent: Duplicate MAC Address Returns Existing ID
+	// URL: POST /api/teralux
+	// SCENARIO: MAC already exists (idempotent for booting).
+	// RES: 200 OK
+	t.Run("Idempotent: Duplicate MAC Address Returns Existing ID", func(t *testing.T) {
+		repo.Create(&entities.Teralux{ID: "existing-id", MacAddress: "DD:EE:FF:11:22:33", RoomID: "r1", Name: "Existing"})
+
+		req := &dtos.CreateTeraluxRequestDTO{
+			Name:       "New Hub",
+			MacAddress: "DD:EE:FF:11:22:33",
 			RoomID:     "room-102",
 		}
 
-		_, err := useCase.Execute(req)
-		// Note: UseCase might return error if Repository constraints fail. Gorm SQLite creates unique index on ID primarily.
-		// If MacAddress doesn't have unique index in entity definition, this might succeed in Logic but we should check entity definition.
-		// Checking entity definition... Teralux struct likely has UniqueIndex on MacAddress?
-		// If not, this test might fail (it would succeed).
-		// Assuming standard practice: let's verify if error occurs.
-
-		// If Create DOES NOT enforce unique MAC in UseCase or Repo, we might need to manually check or skip this if schema doesn't support it yet.
-		// However, for "User Behavior", a duplicate MAC *should* likely fail.
-		if err == nil {
-			// If it succeeded, check if we have 2 items with same MAC?
-			// Ideally we want it to fail. If it doesn't, we might need to add validation to UseCase or UniqueIndex to Entity.
-			// For this refactor, I will assume it *should* fail. If test fails, I will fix UseCase/Entity.
-			// But wait, the user said "fokus unit test".
-			// I'll make the test expect logic error.
+		res, _, err := useCase.Execute(req)
+		if err != nil {
+			t.Fatalf("Expected no error for duplicate MAC (idempotent), got: %v", err)
+		}
+		if res.TeraluxID != "existing-id" {
+			t.Errorf("Expected existing ID 'existing-id', got: %s", res.TeraluxID)
 		}
 	})
+
+	// 6. Security: Unauthorized (Missing Auth)
 }

@@ -1,28 +1,25 @@
 package usecases
 
 import (
-	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	"testing"
 )
 
-func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
+func TestGetDevicesByTeraluxIDUseCase_UserBehavior(t *testing.T) {
 	repo, _, _ := setupDeviceTestEnv(t)
-	useCase := NewGetAllDevicesUseCase(repo)
+	useCase := NewGetDevicesByTeraluxIDUseCase(repo)
 
 	// Seed data
 	repo.Create(&entities.Device{ID: "d1", Name: "Light 1", TeraluxID: "tx-1"})
 	repo.Create(&entities.Device{ID: "d2", Name: "Light 2", TeraluxID: "tx-1"})
 	repo.Create(&entities.Device{ID: "d3", Name: "Fan", TeraluxID: "tx-2"})
 
-	// 1. Get All Devices (Success - Filter by Teralux)
-	// URL: GET /api/devices?teralux_id=tx-1
-	// SCENARIO: Filter by Teralux Hub.
+	// 1. Get Devices By Teralux ID (Success)
+	// URL: GET /api/devices/teralux/tx-1
+	// SCENARIO: Retrieve all devices linked to a specific Teralux ID.
 	// RES: 200 OK
-	t.Run("Get All Devices (Success - Filter by Teralux)", func(t *testing.T) {
-		teraID := "tx-1"
-		filter := &dtos.DeviceFilterDTO{TeraluxID: &teraID}
-		res, err := useCase.Execute(filter)
+	t.Run("Get Devices By Teralux ID (Success)", func(t *testing.T) {
+		res, err := useCase.Execute("tx-1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -36,14 +33,12 @@ func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
 		}
 	})
 
-	// 2. Get All Devices (Success - Empty)
-	// URL: GET /api/devices?teralux_id=tx-999
-	// SCENARIO: No devices match filter (or system empty).
+	// 2. Get Devices By Teralux ID (Success - Empty)
+	// URL: GET /api/devices/teralux/tx-empty
+	// SCENARIO: No devices exist for this Teralux ID.
 	// RES: 200 OK
-	t.Run("Get All Devices (Success - Empty)", func(t *testing.T) {
-		teraID := "tx-999"
-		filter := &dtos.DeviceFilterDTO{TeraluxID: &teraID}
-		res, err := useCase.Execute(filter)
+	t.Run("Get Devices By Teralux ID (Success - Empty)", func(t *testing.T) {
+		res, err := useCase.Execute("tx-empty")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -54,6 +49,4 @@ func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
 			t.Errorf("Expected empty list, got %d", len(res.Devices))
 		}
 	})
-
-	// 3. Security: Unauthorized
 }

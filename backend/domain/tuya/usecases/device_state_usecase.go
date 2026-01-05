@@ -3,7 +3,7 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
-	"teralux_app/domain/common/infrastructure/persistence"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/entities"
@@ -13,14 +13,14 @@ import (
 // DeviceStateUseCase handles business logic for device state persistence.
 // It manages saving, retrieving, and cleaning up device control states in BadgerDB.
 type DeviceStateUseCase struct {
-	cache *persistence.BadgerService
+	cache *infrastructure.BadgerService
 }
 
 // NewDeviceStateUseCase initializes a new DeviceStateUseCase.
 //
 // param cache The BadgerService used for persistent state storage.
 // return *DeviceStateUseCase A pointer to the initialized usecase.
-func NewDeviceStateUseCase(cache *persistence.BadgerService) *DeviceStateUseCase {
+func NewDeviceStateUseCase(cache *infrastructure.BadgerService) *DeviceStateUseCase {
 	return &DeviceStateUseCase{
 		cache: cache,
 	}

@@ -20,9 +20,9 @@ Register a new sub-device (e.g., switch, sensor) under a Teralux Controller.
 - **Request Body**:
   ```json
   {
+    "id": "tuya-device-123",
     "name": "Kitchen Light 1",
-    "teralux_id": "tx-1",
-    "type": "switch_1_gang"
+    "teralux_id": "tx-1"
   }
   ```
 - **Expected Response**:
@@ -31,10 +31,7 @@ Register a new sub-device (e.g., switch, sensor) under a Teralux Controller.
     "status": true,
     "message": "Device created successfully",
     "data": {
-      "id": "<uuid>",
-      "name": "Kitchen Light 1",
-      "teralux_id": "tx-1",
-      "type": "switch_1_gang"
+      "device_id": "<tuya-device-id>"
     }
   }
   ```
@@ -89,8 +86,7 @@ Register a new sub-device (e.g., switch, sensor) under a Teralux Controller.
   ```json
   {
     "name": "Ghost Device",
-    "teralux_id": "tx-999",
-    "type": "switch"
+    "teralux_id": "tx-999"
   }
   ```
 - **Expected Response**:

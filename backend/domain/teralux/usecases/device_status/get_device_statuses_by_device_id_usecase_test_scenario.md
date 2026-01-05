@@ -23,10 +23,15 @@ Retrieve all status entries for a specific device.
   {
     "status": true,
     "message": "Statuses retrieved successfully",
-    "data": [
-      { "code": "switch_1", "value": true },
-      { "code": "brightness", "value": 80 }
-    ]
+    "data": {
+      "device_statuses": [
+        { "code": "switch_1", "value": true },
+        { "code": "brightness", "value": 80 }
+      ],
+      "total": 2,
+      "page": 1,
+      "per_page": 2
+    }
   }
   ```
   *(Status: 200 OK)*
@@ -47,7 +52,7 @@ Retrieve all status entries for a specific device.
   ```json
   {
     "status": true,
-    "data": []
+    "data": { "device_statuses": [], "total": 0, "page": 1, "per_page": 0 }
   }
   ```
   *(Status: 200 OK)*

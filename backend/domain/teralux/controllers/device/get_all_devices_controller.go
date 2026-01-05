@@ -31,15 +31,21 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 // @Accept       json
 // @Produce      json
 // @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.DeviceListResponseDTO}
-// @Failure      500      {object}  dtos.StandardResponse
+// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
 // @Router       /api/devices [get]
 func (c *GetAllDevicesController) GetAllDevices(ctx *gin.Context) {
-	devices, err := c.useCase.Execute()
+	var filter teralux_dtos.DeviceFilterDTO
+	if err := ctx.ShouldBindQuery(&filter); err != nil {
+		// Ignore or handle
+	}
+
+	devices, err := c.useCase.Execute(&filter)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to retrieve devices: " + err.Error(),
+			Message: "Internal Server Error",
 			Data:    nil,
 		})
 		return

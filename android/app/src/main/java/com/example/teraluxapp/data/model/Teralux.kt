@@ -8,16 +8,20 @@ data class Teralux(
     @SerializedName("room_id") val roomId: String,
     @SerializedName("name") val name: String,
     @SerializedName("created_at") val createdAt: String,
-    @SerializedName("updated_at") val updated_at: String,
+    @SerializedName("updated_at") val updatedAt: String,
     @SerializedName("devices") val devices: List<Device>? = null
 )
 
-// Response DTO for single Teralux (matches backend)
-typealias TeraluxResponseDTO = Teralux
+// Response DTO for single Teralux (matches backend wrapper structure)
+data class TeraluxResponseDTO(
+    @SerializedName("teralux") val teralux: Teralux
+)
 
 data class TeraluxListResponse(
     @SerializedName("teralux") val teralux: List<Teralux>,
-    @SerializedName("total") val total: Int
+    @SerializedName("total") val total: Long,
+    @SerializedName("page") val page: Int,
+    @SerializedName("per_page") val perPage: Int
 )
 
 data class CreateTeraluxRequest(
@@ -32,10 +36,12 @@ data class CreateTeraluxResponse(
 
 data class UpdateTeraluxRequest(
     @SerializedName("room_id") val roomId: String? = null,
+    @SerializedName("mac_address") val macAddress: String? = null,
     @SerializedName("name") val name: String? = null
 )
 
 data class CreateDeviceRequest(
+    @SerializedName("id") val id: String,
     @SerializedName("teralux_id") val teraluxId: String,
     @SerializedName("name") val name: String
 )

@@ -5,3 +5,6 @@ main
 teralux_app
 tmp_build
 server
+
+*.db
+*_backend

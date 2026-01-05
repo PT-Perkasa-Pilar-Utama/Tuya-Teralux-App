@@ -49,8 +49,14 @@ Retrieve a paginated list of all Teralux devices, with optional filtering.
     "message": "Teralux list retrieved successfully",
     "data": {
       "teralux": [
-        { "id": "t1", "name": "Hub 1", "mac_address": "M1", "room_id": "r1" },
-        { "id": "t2", "name": "Hub 2", "mac_address": "M2", "room_id": "r2" }
+        { 
+          "id": "t1", "name": "Hub 1", "mac_address": "M1", "room_id": "r1",
+          "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z" 
+        },
+        { 
+          "id": "t2", "name": "Hub 2", "mac_address": "M2", "room_id": "r2",
+          "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"
+        }
       ],
       "total": 2,
       "page": 1,
