@@ -1,6 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
+	"time"
+
 	"github.com/gin-gonic/gin"
 
 	"teralux_app/domain/common"
@@ -57,7 +63,20 @@ import (
 // @tag.name 07. Health
 // @tag.description Health check endpoint
 func main() {
+	// CLI: Healthcheck
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		client := http.Client{Timeout: 2 * time.Second}
+		resp, err := client.Get("http://localhost:8080/health")
+		if err != nil || resp.StatusCode != 200 {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
 	utils.LoadConfig()
+
+	// Handle Migrations (replacement for entrypoint.sh in distroless)
+	RunMigrations()
 
 	// Initialize database connection
 	_, err := infrastructure.InitDB()
@@ -115,4 +134,38 @@ func main() {
 	if err := router.Run(":8080"); err != nil {
 		utils.LogInfo("Failed to start server: %v", err)
 	}
+}
+
+func RunMigrations() {
+	if os.Getenv("DB_TYPE") != "mysql" || os.Getenv("AUTO_MIGRATE") != "true" {
+		return
+	}
+
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
+
+	// Wait for DB
+	utils.LogInfo("⏳ Waiting for MySQL to be ready...")
+	for i := 0; i < 30; i++ {
+		cmd := exec.Command("mysqladmin", "ping", "-h", dbHost, "--silent")
+		if err := cmd.Run(); err == nil {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	utils.LogInfo("🔄 Running MySQL migrations...")
+	cmd := exec.Command("/usr/local/bin/migrate", "-path", "/app/migrations", "-database", dsn, "up")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		utils.LogInfo("❌ MySQL migrations failed: %v", err)
+		os.Exit(1)
+	}
+	utils.LogInfo("✅ MySQL migrations completed")
 }

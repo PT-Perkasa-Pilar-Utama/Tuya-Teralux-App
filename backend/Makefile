@@ -70,15 +70,15 @@ DOCKER_TAG = latest
 # Build via Docker
 build-docker:
 	@echo "🐳 Building Docker images..."
-	@echo "  Building latest (no auto-migrate)..."
-	docker build -t $(GHCR_REPO):latest --build-arg AUTO_MIGRATE=false .
+	@echo "  Building latest (auto-migrate force)..."
+	docker build -t $(GHCR_REPO):latest --build-arg AUTO_MIGRATE=true .
 	@echo "  Building dev (auto-migrate)..."
 	docker build -t $(GHCR_REPO):dev --build-arg AUTO_MIGRATE=true .
 
 # Start dev container locally
-start-docker-dev:
+start-docker:
 	@echo "🚀 Starting Dev Docker container..."
-	docker run --rm -it -p 8080:8080 --env-file .env $(DOCKER_IMAGE_NAME):dev
+	docker run --rm -it -d -p 8080:8080 --env-file .env $(GHCR_REPO)
 
 # Push to GHCR via GitHub Actions
 push:
@@ -110,7 +110,7 @@ push-local:
 	echo "🚀 Using tag '$$TAG'"; \
 	docker buildx inspect multi-arch-builder > /dev/null 2>&1 || docker buildx create --name multi-arch-builder --use; \
 	echo "🚀 Building and pushing '$$TAG' (multi-arch: amd64, arm64)..."; \
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=false -t $(GHCR_REPO):$$TAG --push .; \
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):$$TAG --push .; \
 	echo "🚀 Building and pushing 'dev' (multi-arch: amd64, arm64)..."; \
 	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):dev --push .; \
 	echo "✅ Images pushed to GHCR (Tags: $$TAG, dev)"

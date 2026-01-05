@@ -1,57 +1,64 @@
-# Start with a lightweight Go base image
-# Using Debian-based image to avoid QEMU/Alpine compatibility issues (execve error)
-# and to support Go 1.24 required by dependencies.
+# syntax=docker/dockerfile:1.7
+
+############################
+# Builder
+############################
 FROM golang:1.25-bookworm AS builder
 
-# Set the current working directory inside the container
 WORKDIR /app
 
-# Copy go.mod and go.sum files first to leverage Docker cache for dependencies
+# Cache dependency layer
 COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-# Download dependencies
-RUN go mod download
-
-# Copy the rest of the source code
+# Copy source
 COPY . .
 
-# Build the Go application
-# -o main: name the output binary "main"
-RUN go build -o main .
+# Run Unit Tests
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go test -v ./...
 
-# Download and install golang-migrate
-RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-amd64.tar.gz | tar xvz && \
+# Build static binary
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    go build \
+      -trimpath \
+      -ldflags="-s -w" \
+      -o app
+
+# Install migrate (builder only)
+RUN curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-amd64.tar.gz \
+    | tar -xz && \
     mv migrate /usr/local/bin/migrate && \
     chmod +x /usr/local/bin/migrate
 
-# Start a new stage for a smaller final image
-# Using debian-slim is more robust for multi-arch builds on QEMU than Alpine
-FROM debian:bookworm-slim
+############################
+# Runtime
+############################
+FROM gcr.io/distroless/base-debian12:nonroot
 
-# Install ca-certificates and mysql-client for migrations
-RUN apt-get update && apt-get install -y ca-certificates default-mysql-client && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-WORKDIR /root/
+# Copy binary
+COPY --from=builder /app/app /app/app
 
-# Copy the binary from the builder stage
-COPY --from=builder /app/main .
-
-# Copy golang-migrate binary
+# Copy migrate
 COPY --from=builder /usr/local/bin/migrate /usr/local/bin/migrate
 
-# Copy migration files
-COPY --from=builder /app/domain/teralux/migrations ./migrations
+# Copy migrations
+COPY --from=builder /app/domain/teralux/migrations /app/migrations
 
-# Copy entrypoint script
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+# Runtime env only
+ENV AUTO_MIGRATE=false
+ENV PORT=8080
 
-# Set default auto-migrate value (can be overridden at build time)
-ARG AUTO_MIGRATE=false
-ENV AUTO_MIGRATE=${AUTO_MIGRATE}
-
-# Expose the port the app runs on
 EXPOSE 8080
 
-# Use entrypoint script to run migrations before starting the app
-ENTRYPOINT ["./entrypoint.sh"]
+# Healthcheck (distroless-safe)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["/app/app", "healthcheck"]
+
+ENTRYPOINT ["/app/app"]
