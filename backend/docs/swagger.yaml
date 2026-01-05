@@ -8,13 +8,10 @@ definitions:
         type: string
       teralux_id:
         type: string
-      type:
-        type: string
     required:
     - id
     - name
     - teralux_id
-    - type
     type: object
   dtos.CreateDeviceResponseDTO:
     properties:
@@ -711,6 +708,50 @@ paths:
       summary: Get Device Statuses by Device ID
       tags:
       - 05. Device Statuses
+  /api/devices/teralux/{teralux_id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all devices linked to a specific teralux ID
+      parameters:
+      - description: Teralux ID
+        in: path
+        name: teralux_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns list of devices
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceListResponseDTO'
+              type: object
+        "400":
+          description: Invalid Teralux ID format
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Teralux hub not found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Devices by Teralux ID
+      tags:
+      - 04. Devices
   /api/teralux:
     get:
       consumes:
@@ -832,7 +873,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a single teralux device by ID with its associated devices
+      description: Retrieves a single teralux device by ID
       parameters:
       - description: Teralux ID
         in: path

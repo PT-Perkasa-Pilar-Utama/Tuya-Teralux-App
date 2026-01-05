@@ -6,10 +6,13 @@ import (
 )
 
 func TestGetDevicesByTeraluxIDUseCase_UserBehavior(t *testing.T) {
-	repo, _, _ := setupDeviceTestEnv(t)
-	useCase := NewGetDevicesByTeraluxIDUseCase(repo)
+	repo, _, teraluxRepo := setupDeviceTestEnv(t)
+	useCase := NewGetDevicesByTeraluxIDUseCase(repo, teraluxRepo)
 
 	// Seed data
+	teraluxRepo.Create(&entities.Teralux{ID: "tx-1", Name: "Hub 1", MacAddress: "M1", RoomID: "r1"})
+	teraluxRepo.Create(&entities.Teralux{ID: "tx-empty", Name: "Hub Empty", MacAddress: "M2", RoomID: "r1"})
+
 	repo.Create(&entities.Device{ID: "d1", Name: "Light 1", TeraluxID: "tx-1"})
 	repo.Create(&entities.Device{ID: "d2", Name: "Light 2", TeraluxID: "tx-1"})
 	repo.Create(&entities.Device{ID: "d3", Name: "Fan", TeraluxID: "tx-2"})
@@ -47,6 +50,20 @@ func TestGetDevicesByTeraluxIDUseCase_UserBehavior(t *testing.T) {
 		}
 		if len(res.Devices) != 0 {
 			t.Errorf("Expected empty list, got %d", len(res.Devices))
+		}
+	})
+
+	// 3. Get Devices By Teralux ID (Not Found - Teralux ID)
+	// URL: GET /api/devices/teralux/tx-999
+	// SCENARIO: Teralux ID does not exist.
+	// RES: 404 Not Found
+	t.Run("Get Devices By Teralux ID (Not Found - Teralux ID)", func(t *testing.T) {
+		_, err := useCase.Execute("tx-999")
+		if err == nil {
+			t.Fatal("Expected error for unknown Teralux ID, got nil")
+		}
+		if err.Error() != "Teralux hub not found: record not found" {
+			t.Errorf("Expected 'Teralux hub not found' error, got: %v", err)
 		}
 	})
 }
