@@ -50,8 +50,8 @@ fun SensorDeviceScreen(
                     if (data != null) {
                         temperature = data.temperature
                         humidity = data.humidity
-                        statusText = data.status_text
-                        tempUnit = data.temp_unit
+                        statusText = data.statusText
+                        tempUnit = data.tempUnit
                     } else {
                         if (isLoading) statusText = "No data available"
                     }

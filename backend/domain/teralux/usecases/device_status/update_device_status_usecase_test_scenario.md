@@ -28,7 +28,7 @@ Update the status of a specific capability (code) for a device. This triggers th
   {
     "status": true,
     "message": "Status updated successfully",
-    "data": {
+    "data": null
       "device_id": "d1",
       "code": "switch_1",
       "value": true

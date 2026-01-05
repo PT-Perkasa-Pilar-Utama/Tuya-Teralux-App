@@ -1,6 +1,10 @@
 package usecases
 
-import "teralux_app/domain/teralux/repositories"
+import (
+	"errors"
+	"regexp"
+	"teralux_app/domain/teralux/repositories"
+)
 
 // DeleteTeraluxUseCase handles deleting a teralux
 type DeleteTeraluxUseCase struct {
@@ -14,7 +18,10 @@ func NewDeleteTeraluxUseCase(repository *repositories.TeraluxRepository) *Delete
 	}
 }
 
-// Execute deletes a teralux by ID
 func (uc *DeleteTeraluxUseCase) Execute(id string) error {
+	validID := regexp.MustCompile(`^[a-z0-9-]+$`)
+	if !validID.MatchString(id) {
+		return errors.New("Invalid ID format")
+	}
 	return uc.repository.Delete(id)
 }

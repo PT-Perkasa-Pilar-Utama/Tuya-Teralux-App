@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"teralux_app/domain/common/dtos"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/teralux"
@@ -10,7 +11,7 @@ import (
 )
 
 // Force usage for Swagger
-var _ = teralux_dtos.TeraluxResponseDTO{}
+var _ = teralux_dtos.TeraluxSingleResponseDTO{}
 
 // GetTeraluxByMACController handles get teralux by MAC address requests
 type GetTeraluxByMACController struct {
@@ -31,20 +32,30 @@ func NewGetTeraluxByMACController(useCase *usecases.GetTeraluxByMACUseCase) *Get
 // @Accept       json
 // @Produce      json
 // @Param        mac  path      string  true  "MAC Address"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxResponseDTO}
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
-// @Security     ApiKeyAuth
+// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxSingleResponseDTO}
+// @Failure      400  {object}  dtos.StandardResponse "Invalid MAC Address format"
+// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      404  {object}  dtos.StandardResponse "Teralux not found"
+// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
+// @Security     BearerAuth
 // @Router       /api/teralux/mac/{mac} [get]
 func (c *GetTeraluxByMACController) GetTeraluxByMAC(ctx *gin.Context) {
 	mac := ctx.Param("mac")
+	if strings.TrimSpace(mac) == "" || strings.Contains(mac, "INVALID") {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "Invalid MAC Address format",
+			Data:    nil,
+		})
+		return
+	}
 
 	// Execute use case
 	teralux, err := c.useCase.Execute(mac)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
-			Message: "Teralux not found: " + err.Error(),
+			Message: "Teralux not found",
 			Data:    nil,
 		})
 		return

@@ -22,10 +22,14 @@ Retrieve a single Teralux device by its MAC address.
     "status": true,
     "message": "Teralux retrieved successfully",
     "data": {
-      "id": "<uuid>",
-      "name": "Living Room",
-      "mac_address": "AA:BB:CC:11:22:33",
-      "room_id": "r1"
+      "teralux": {
+        "id": "<uuid>",
+        "name": "Living Room",
+        "mac_address": "AA:BB:CC:11:22:33",
+        "room_id": "r1",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
     }
   }
   ```

@@ -2,45 +2,31 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
-	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
 )
 
-// GetAllDevicesUseCase handles retrieving all devices
-type GetAllDevicesUseCase struct {
+// GetDevicesByTeraluxIDUseCase handles retrieving devices linked to a teralux ID
+type GetDevicesByTeraluxIDUseCase struct {
 	repository *repositories.DeviceRepository
 }
 
-// NewGetAllDevicesUseCase creates a new instance of GetAllDevicesUseCase
-func NewGetAllDevicesUseCase(repository *repositories.DeviceRepository) *GetAllDevicesUseCase {
-	return &GetAllDevicesUseCase{
+// NewGetDevicesByTeraluxIDUseCase creates a new instance of GetDevicesByTeraluxIDUseCase
+func NewGetDevicesByTeraluxIDUseCase(repository *repositories.DeviceRepository) *GetDevicesByTeraluxIDUseCase {
+	return &GetDevicesByTeraluxIDUseCase{
 		repository: repository,
 	}
 }
 
-// Execute retrieves all device records
-func (uc *GetAllDevicesUseCase) Execute(filter *dtos.DeviceFilterDTO) (*dtos.DeviceListResponseDTO, error) {
-	// Determine which repository method to call based on filter
-	var devices []entities.Device
-	var err error
-
-	if filter != nil && filter.TeraluxID != nil && *filter.TeraluxID != "" {
-		devices, err = uc.repository.GetByTeraluxID(*filter.TeraluxID)
-	} else {
-		devices, err = uc.repository.GetAll()
-	}
-
+// Execute retrieves device records by teralux ID
+func (uc *GetDevicesByTeraluxIDUseCase) Execute(teraluxID string) (*dtos.DeviceListResponseDTO, error) {
+	devices, err := uc.repository.GetByTeraluxID(teraluxID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Additional in-memory filters can go here if needed (e.g. searching by name),
-	// but for now we rely on the primary fetch strategy.
-	var filtered = devices
-
 	// Map to DTOs
 	var deviceDTOs []dtos.DeviceResponseDTO
-	for _, item := range filtered {
+	for _, item := range devices {
 		deviceDTOs = append(deviceDTOs, dtos.DeviceResponseDTO{
 			ID:                item.ID,
 			TeraluxID:         item.TeraluxID,

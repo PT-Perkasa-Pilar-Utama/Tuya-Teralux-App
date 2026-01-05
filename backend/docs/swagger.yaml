@@ -8,10 +8,13 @@ definitions:
         type: string
       teralux_id:
         type: string
+      type:
+        type: string
     required:
     - id
     - name
     - teralux_id
+    - type
     type: object
   dtos.CreateDeviceResponseDTO:
     properties:
@@ -42,6 +45,10 @@ definitions:
         items:
           $ref: '#/definitions/dtos.DeviceResponseDTO'
         type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
       total:
         type: integer
     type: object
@@ -79,10 +86,6 @@ definitions:
         type: string
       remote_product_name:
         type: string
-      status:
-        items:
-          $ref: '#/definitions/dtos.DeviceStatusDTO'
-        type: array
       teralux_id:
         type: string
       update_time:
@@ -90,19 +93,21 @@ definitions:
       updated_at:
         type: string
     type: object
-  dtos.DeviceStatusDTO:
+  dtos.DeviceSingleResponseDTO:
     properties:
-      code:
-        type: string
-      value:
-        type: string
+      device:
+        $ref: '#/definitions/dtos.DeviceResponseDTO'
     type: object
   dtos.DeviceStatusListResponseDTO:
     properties:
-      statuses:
+      device_statuses:
         items:
           $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
         type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
       total:
         type: integer
     type: object
@@ -118,6 +123,11 @@ definitions:
         type: string
       value:
         type: string
+    type: object
+  dtos.DeviceStatusSingleResponseDTO:
+    properties:
+      device_status:
+        $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
     type: object
   dtos.SensorDataDTO:
     properties:
@@ -135,6 +145,7 @@ definitions:
   dtos.StandardResponse:
     properties:
       data: {}
+      details: {}
       message:
         type: string
       status:
@@ -142,6 +153,10 @@ definitions:
     type: object
   dtos.TeraluxListResponseDTO:
     properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
       teralux:
         items:
           $ref: '#/definitions/dtos.TeraluxResponseDTO'
@@ -153,10 +168,6 @@ definitions:
     properties:
       created_at:
         type: string
-      devices:
-        items:
-          $ref: '#/definitions/dtos.DeviceResponseDTO'
-        type: array
       id:
         type: string
       mac_address:
@@ -167,6 +178,11 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  dtos.TeraluxSingleResponseDTO:
+    properties:
+      teralux:
+        $ref: '#/definitions/dtos.TeraluxResponseDTO'
     type: object
   dtos.TuyaAuthResponseDTO:
     properties:
@@ -285,8 +301,11 @@ definitions:
     type: object
   dtos.UpdateDeviceStatusRequestDTO:
     properties:
-      value:
+      code:
         type: string
+      value: {}
+    required:
+    - code
     type: object
   dtos.UpdateTeraluxRequestDTO:
     properties:
@@ -332,6 +351,82 @@ paths:
       summary: Flush all cache
       tags:
       - 06. Flush
+  /api/device-statuses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all device statuses
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Device Statuses
+      tags:
+      - 05. Device Statuses
+  /api/device-statuses/code/{code}:
+    get:
+      parameters:
+      - description: Status Code
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Device ID
+        in: query
+        name: device_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusSingleResponseDTO'
+              type: object
+        "400":
+          description: 'Validation Error: device_id is required'
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Status code not found for this device
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Device Status by Code
+      tags:
+      - 05. Device Statuses
   /api/devices:
     get:
       consumes:
@@ -349,6 +444,10 @@ paths:
                 data:
                   $ref: '#/definitions/dtos.DeviceListResponseDTO'
               type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -372,8 +471,8 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: 'Idempotent: record updated'
           schema:
             allOf:
             - $ref: '#/definitions/dtos.StandardResponse'
@@ -381,8 +480,21 @@ paths:
                 data:
                   $ref: '#/definitions/dtos.CreateDeviceResponseDTO'
               type: object
-        "400":
-          description: Bad Request
+        "201":
+          description: New record created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.CreateDeviceResponseDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Validation Error
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -412,8 +524,12 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
         "404":
-          description: Not Found
+          description: Device not found
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -445,10 +561,18 @@ paths:
             - $ref: '#/definitions/dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.DeviceResponseDTO'
+                  $ref: '#/definitions/dtos.DeviceSingleResponseDTO'
               type: object
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
         "404":
-          description: Not Found
+          description: Device not found
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -480,11 +604,19 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Successfully updated
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Device not found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Validation Error
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -496,107 +628,7 @@ paths:
       summary: Update Device
       tags:
       - 04. Devices
-  /api/devices/statuses:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves all device statuses
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
-              type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get All Device Statuses
-      tags:
-      - 05. Device Statuses
-  /api/devices/statuses/{deviceId}:
-    get:
-      description: Retrieves all statuses for a specific device
-      parameters:
-      - description: Device ID
-        in: path
-        name: deviceId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
-                  type: array
-              type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get Device Statuses by Device ID
-      tags:
-      - 05. Device Statuses
-  /api/devices/statuses/{deviceId}/{code}:
-    get:
-      description: Retrieves a single device status by device ID and code
-      parameters:
-      - description: Device ID
-        in: path
-        name: deviceId
-        required: true
-        type: string
-      - description: Status Code
-        in: path
-        name: code
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
-              type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get Device Status by Code
-      tags:
-      - 05. Device Statuses
+  /api/devices/{id}/status:
     put:
       consumes:
       - application/json
@@ -604,12 +636,7 @@ paths:
       parameters:
       - description: Device ID
         in: path
-        name: deviceId
-        required: true
-        type: string
-      - description: Status Code
-        in: path
-        name: code
+        name: id
         required: true
         type: string
       - description: Update Device Status Request
@@ -622,11 +649,19 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Successfully updated
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Device not found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Validation Error
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -636,6 +671,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Device Status
+      tags:
+      - 05. Device Statuses
+  /api/devices/{id}/statuses:
+    get:
+      description: Retrieves all statuses for a specific device
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Device not found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Device Statuses by Device ID
       tags:
       - 05. Device Statuses
   /api/teralux:
@@ -655,12 +728,16 @@ paths:
                 data:
                   $ref: '#/definitions/dtos.TeraluxListResponseDTO'
               type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Get All Teralux
       tags:
       - 03. Teralux
@@ -678,8 +755,8 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: 'Idempotent: record already exists'
           schema:
             allOf:
             - $ref: '#/definitions/dtos.StandardResponse'
@@ -687,8 +764,21 @@ paths:
                 data:
                   $ref: '#/definitions/dtos.CreateTeraluxResponseDTO'
               type: object
-        "400":
-          description: Bad Request
+        "201":
+          description: New record created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.CreateTeraluxResponseDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Validation Error
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -696,7 +786,7 @@ paths:
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Create Teralux
       tags:
       - 03. Teralux
@@ -715,11 +805,19 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Successfully deleted
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "404":
-          description: Not Found
+          description: Teralux not found
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -745,17 +843,24 @@ paths:
       - application/json
       responses:
         "200":
-          description: Returns teralux with room_id and devices array (empty if no
-            devices)
+          description: Returns teralux with room_id and devices array
           schema:
             allOf:
             - $ref: '#/definitions/dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.TeraluxResponseDTO'
+                  $ref: '#/definitions/dtos.TeraluxSingleResponseDTO'
               type: object
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
         "404":
-          description: Not Found
+          description: Teralux not found
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -787,15 +892,23 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Successfully updated
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "404":
-          description: Not Found
+          description: Record not found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "409":
+          description: 'Conflict: Mac Address already in use'
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Validation Error
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -828,10 +941,18 @@ paths:
             - $ref: '#/definitions/dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.TeraluxResponseDTO'
+                  $ref: '#/definitions/dtos.TeraluxSingleResponseDTO'
               type: object
+        "400":
+          description: Invalid MAC Address format
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
         "404":
-          description: Not Found
+          description: Teralux not found
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "500":
@@ -839,7 +960,7 @@ paths:
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       summary: Get Teralux by MAC Address
       tags:
       - 03. Teralux

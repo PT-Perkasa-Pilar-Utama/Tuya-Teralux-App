@@ -3,55 +3,85 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
-	tuya_usecases "teralux_app/domain/tuya/usecases"
-
-	"github.com/google/uuid"
+	tuya_dtos "teralux_app/domain/tuya/dtos"
 )
+
+// TuyaAuthUseCaseInterface defines the interface for Tuya authentication
+type TuyaAuthUseCaseInterface interface {
+	Authenticate() (*tuya_dtos.TuyaAuthResponseDTO, error)
+}
+
+// TuyaGetDeviceByIDUseCaseInterface defines the interface for getting a device by ID from Tuya
+type TuyaGetDeviceByIDUseCaseInterface interface {
+	GetDeviceByID(accessToken, deviceID string) (*tuya_dtos.TuyaDeviceDTO, error)
+}
 
 // CreateDeviceUseCase handles the business logic for creating a new device
 type CreateDeviceUseCase struct {
 	repository       *repositories.DeviceRepository
 	statusRepository *repositories.DeviceStatusRepository
-	tuyaAuthUC       *tuya_usecases.TuyaAuthUseCase
-	tuyaGetDeviceUC  *tuya_usecases.TuyaGetDeviceByIDUseCase
+	teraluxRepo      *repositories.TeraluxRepository
+	tuyaAuthUC       TuyaAuthUseCaseInterface
+	tuyaGetDeviceUC  TuyaGetDeviceByIDUseCaseInterface
 }
 
 // NewCreateDeviceUseCase creates a new instance of CreateDeviceUseCase
 func NewCreateDeviceUseCase(
 	repository *repositories.DeviceRepository,
 	statusRepository *repositories.DeviceStatusRepository,
-	tuyaAuthUC *tuya_usecases.TuyaAuthUseCase,
-	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
+	tuyaAuthUC TuyaAuthUseCaseInterface,
+	tuyaGetDeviceUC TuyaGetDeviceByIDUseCaseInterface,
+	teraluxRepo *repositories.TeraluxRepository,
 ) *CreateDeviceUseCase {
 	return &CreateDeviceUseCase{
 		repository:       repository,
 		statusRepository: statusRepository,
+		teraluxRepo:      teraluxRepo,
 		tuyaAuthUC:       tuyaAuthUC,
 		tuyaGetDeviceUC:  tuyaGetDeviceUC,
 	}
 }
 
 // Execute creates a new device record with automated status fetching from Tuya
-func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.CreateDeviceResponseDTO, error) {
+func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.CreateDeviceResponseDTO, bool, error) {
+	// Validation
+	var details []utils.ValidationErrorDetail
+	if req.Name == "" {
+		details = append(details, utils.ValidationErrorDetail{Field: "name", Message: "name is required"})
+	}
+	if req.TeraluxID == "" {
+		details = append(details, utils.ValidationErrorDetail{Field: "teralux_id", Message: "teralux_id is required"})
+	}
+	if len(details) > 0 {
+		return nil, false, utils.NewValidationError("Validation Error", details)
+	}
+
+	// Constraint: Invalid Teralux ID
+	_, err := uc.teraluxRepo.GetByID(req.TeraluxID)
+	if err != nil {
+		return nil, false, fmt.Errorf("Invalid teralux_id: Teralux hub does not exist")
+	}
+
 	// 1. Authenticate with Tuya to get token
 	authResp, err := uc.tuyaAuthUC.Authenticate()
 	if err != nil {
-		return nil, fmt.Errorf("failed to authenticate with Tuya: %w", err)
+		return nil, false, fmt.Errorf("failed to authenticate with Tuya: %w", err)
 	}
 
-	// 2. Fetch all device details and status from Tuya
 	tuyaDevice, err := uc.tuyaGetDeviceUC.GetDeviceByID(authResp.AccessToken, req.ID)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch device from Tuya: %w", err)
+		return nil, false, fmt.Errorf("failed to fetch device from Tuya: %w", err)
 	}
 
 	// Check if device already exists by TeraluxID
 	existingDevices, err := uc.repository.GetByTeraluxID(req.TeraluxID)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	var deviceID string
@@ -89,13 +119,11 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 		deviceEntity.Collections = collectionsJSON
 
 		if err := uc.repository.Update(deviceEntity); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	} else {
-		// Generate UUID for the new device
-		deviceID = uuid.New().String()
+		deviceID = req.ID
 
-		// Create entity
 		deviceEntity = &entities.Device{
 			ID:                deviceID,
 			TeraluxID:         req.TeraluxID,
@@ -118,7 +146,7 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 
 		// Save to database
 		if err := uc.repository.Create(deviceEntity); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
@@ -136,12 +164,17 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 		}
 
 		if err := uc.statusRepository.UpsertDeviceStatuses(deviceID, statusEntities); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
-	// Return response DTO with only ID
+	// Invalidate teralux cache so next fetch gets fresh data with new device
+	if err := uc.teraluxRepo.InvalidateCache(req.TeraluxID); err != nil {
+		utils.LogWarn("CreateDevice: Failed to invalidate teralux cache: %v", err)
+	}
+
+	// Return response DTO with only ID and isNew flag
 	return &dtos.CreateDeviceResponseDTO{
-		ID: deviceID,
-	}, nil
+		DeviceID: deviceID,
+	}, len(existingDevices) == 0, nil
 }

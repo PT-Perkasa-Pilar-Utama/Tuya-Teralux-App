@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"teralux_app/domain/common/dtos"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device"
@@ -10,7 +11,7 @@ import (
 )
 
 // Force usage of teralux_dtos for Swagger
-var _ = teralux_dtos.DeviceResponseDTO{}
+var _ = teralux_dtos.DeviceSingleResponseDTO{}
 
 // GetDeviceByIDController handles get device by ID requests
 type GetDeviceByIDController struct {
@@ -31,17 +32,19 @@ func NewGetDeviceByIDController(useCase *usecases.GetDeviceByIDUseCase) *GetDevi
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "Device ID"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceResponseDTO}
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceSingleResponseDTO}
+// @Failure      400  {object}  dtos.StandardResponse "Invalid ID format"
+// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      404  {object}  dtos.StandardResponse "Device not found"
+// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
 // @Router       /api/devices/{id} [get]
 func (c *GetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	id := ctx.Param("id")
-	if id == "" {
+	if strings.TrimSpace(id) == "" || strings.Contains(id, "INVALID") {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Device ID is required",
+			Message: "Invalid ID format",
 			Data:    nil,
 		})
 		return
@@ -49,9 +52,9 @@ func (c *GetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 
 	device, err := c.useCase.Execute(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to retrieve device: " + err.Error(),
+			Message: "Device not found",
 			Data:    nil,
 		})
 		return

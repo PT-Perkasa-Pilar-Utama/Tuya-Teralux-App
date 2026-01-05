@@ -24,10 +24,52 @@ Retrieve a list of devices, optionally filtered by Teralux Hub.
     "message": "Devices retrieved successfully",
     "data": {
       "devices": [
-        { "id": "d1", "name": "Light 1", "teralux_id": "tx-1" },
-        { "id": "d2", "name": "Light 2", "teralux_id": "tx-1" }
+        {
+          "id": "d1",
+          "name": "Light 1",
+          "teralux_id": "tx-1",
+          "remote_id": "rem-1",
+          "category": "l",
+          "remote_category": "light",
+          "product_name": "Tuya Light",
+          "remote_product_name": "Smart Light",
+          "icon": "icon1",
+          "custom_name": "L1",
+          "model": "M1",
+          "ip": "1.1.1.1",
+          "local_key": "k1",
+          "gateway_id": "g1",
+          "create_time": 100,
+          "update_time": 100,
+          "collections": "[]",
+          "created_at": "2024-01-01T00:00:00Z",
+          "updated_at": "2024-01-01T00:00:00Z"
+        },
+        {
+          "id": "d2",
+          "name": "Light 2",
+          "teralux_id": "tx-1",
+          "remote_id": "rem-2",
+          "category": "l",
+          "remote_category": "light",
+          "product_name": "Tuya Light",
+          "remote_product_name": "Smart Light",
+          "icon": "icon2",
+          "custom_name": "L2",
+          "model": "M2",
+          "ip": "1.1.1.2",
+          "local_key": "k2",
+          "gateway_id": "g1",
+          "create_time": 101,
+          "update_time": 101,
+          "collections": "[]",
+          "created_at": "2024-01-01T00:00:00Z",
+          "updated_at": "2024-01-01T00:00:00Z"
+        }
       ],
-      "total": 2
+      "total": 2,
+      "page": 1,
+      "per_page": 2
     }
   }
   ```
@@ -48,7 +90,7 @@ Retrieve a list of devices, optionally filtered by Teralux Hub.
   ```json
   {
     "status": true,
-    "data": { "devices": [], "total": 0 }
+    "data": { "devices": [], "total": 0, "page": 1, "per_page": 0 }
   }
   ```
   *(Status: 200 OK)*

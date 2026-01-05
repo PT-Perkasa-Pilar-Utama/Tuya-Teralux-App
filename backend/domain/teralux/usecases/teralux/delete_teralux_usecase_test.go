@@ -14,29 +14,10 @@ func TestDeleteTeralux_UserBehavior(t *testing.T) {
 	t1 := &entities.Teralux{ID: "tx-1", Name: "T1", MacAddress: "AA:BB"}
 	repo.Create(t1)
 
-	// 1. Delete Teralux without ID (Empty Payload/Param)
-	// URL: DELETE /api/teralux/
-	// METHOD: DELETE
-	// RES: 400 Bad Request
-	// RESPONSE: { "status": false, "message": "id is required", "data": nil }
-	// Note: UseCase.Execute(id) signature implies id is passed. If empty string passed:
-	t.Run("Delete Teralux without ID", func(t *testing.T) {
-		err := useCase.Execute("")
-		// UseCase implementation might check for empty ID?
-		// Let's check logic: usually repo.Delete("") returns error or not found.
-		// If UseCase validation adds check:
-		if err == nil {
-			// If no explicit check, repo might try deleting empty ID and succeed (0 rows).
-			// Ideally UseCase should validate.
-			// Currently implementation likely just calls repository. DeleteTeraluxUseCase usually just wraps repo.
-		}
-	})
-
-	// 2. Delete Teralux (Success Condition)
+	// 1. Delete Teralux (Success Condition)
 	// URL: DELETE /api/teralux/tx-1
-	// METHOD: DELETE
+	// SCENARIO: Device exists.
 	// RES: 200 OK
-	// RESPONSE: { "status": true, "message": "Teralux deleted successfully", "data": nil }
 	t.Run("Delete Teralux (Success Condition)", func(t *testing.T) {
 		err := useCase.Execute("tx-1")
 		if err != nil {
@@ -50,20 +31,33 @@ func TestDeleteTeralux_UserBehavior(t *testing.T) {
 		}
 	})
 
-	// 3. Delete Teralux with Invalid ID (Not Found)
-	// URL: DELETE /api/teralux/unknown-id
-	// METHOD: DELETE
-	// RES: 404 Not Found (or 200 depending on idempotency, but usually 404 if strict)
-	// RESPONSE: { "status": false, "message": "teralux not found", "data": nil }
-	t.Run("Delete Teralux with Invalid ID (Not Found)", func(t *testing.T) {
-		err := useCase.Execute("unknown-id")
-		if err != nil {
-			// Some implementations return error if not found. GORM Delete by ID usually doesn't error if empty,
-			// UNLESS UseCase first does CheckExists.
-			// Let's see actual implementation behavior.
-			if !strings.Contains(err.Error(), "not found") {
-				// Accept success for idempotency if no error returned
-			}
+	// 2. Delete Teralux (Not Found)
+	// URL: DELETE /api/teralux/tx-999
+	// SCENARIO: Device does not exist.
+	// RES: 404 Not Found
+	t.Run("Delete Teralux (Not Found)", func(t *testing.T) {
+		err := useCase.Execute("tx-999")
+		if err == nil {
+			t.Fatal("Expected error for unknown ID, got nil")
+		}
+		if !strings.Contains(err.Error(), "Teralux not found") && !strings.Contains(err.Error(), "record not found") {
+			t.Errorf("Expected 'not found' error, got: %v", err)
 		}
 	})
+
+	// 3. Validation: Invalid ID Format
+	// URL: DELETE /api/teralux/INVALID-UUID
+	// SCENARIO: ID is not a valid UUID format.
+	// RES: 400 Bad Request
+	t.Run("Validation: Invalid ID Format", func(t *testing.T) {
+		err := useCase.Execute("INVALID-UUID")
+		if err == nil {
+			t.Fatal("Expected error for invalid ID format, got nil")
+		}
+		if err.Error() != "Invalid ID format" {
+			t.Errorf("Expected 'Invalid ID format', got: %v", err)
+		}
+	})
+
+	// 4. Security: Unauthorized
 }

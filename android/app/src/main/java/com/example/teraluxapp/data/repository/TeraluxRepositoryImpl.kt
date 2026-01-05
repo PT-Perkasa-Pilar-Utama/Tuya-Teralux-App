@@ -2,6 +2,7 @@ package com.example.teraluxapp.data.repository
 
 import com.example.teraluxapp.data.model.CreateTeraluxRequest
 import com.example.teraluxapp.data.model.CreateTeraluxResponse
+import com.example.teraluxapp.data.model.Teralux
 import com.example.teraluxapp.data.model.TeraluxResponseDTO
 import com.example.teraluxapp.data.network.ApiService
 import javax.inject.Inject
@@ -12,11 +13,11 @@ class TeraluxRepositoryImpl @Inject constructor(
     private val apiService: ApiService
 ) : TeraluxRepository {
     
-    override suspend fun checkDeviceRegistration(macAddress: String): Result<TeraluxResponseDTO?> {
+    override suspend fun checkDeviceRegistration(macAddress: String): Result<Teralux?> {
         return try {
             val response = apiService.getTeraluxByMAC(macAddress)
-            if (response.status) {
-                Result.success(response.data)
+            if (response.status && response.data != null) {
+                Result.success(response.data.teralux)
             } else {
                 Result.success(null) // Not registered
             }

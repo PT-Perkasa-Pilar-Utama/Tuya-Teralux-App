@@ -1,6 +1,8 @@
 package usecases
 
 import (
+	"errors"
+	"regexp"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/repositories"
 )
@@ -17,18 +19,25 @@ func NewGetTeraluxByMACUseCase(repository *repositories.TeraluxRepository) *GetT
 	}
 }
 
-// Execute retrieves a teralux record by MAC address
-func (uc *GetTeraluxByMACUseCase) Execute(macAddress string) (*dtos.TeraluxResponseDTO, error) {
+func (uc *GetTeraluxByMACUseCase) Execute(macAddress string) (*dtos.TeraluxSingleResponseDTO, error) {
+	validMAC := regexp.MustCompile(`^([0-9a-zA-Z]{2}:){5}[0-9a-zA-Z]{2}$`)
+	if !validMAC.MatchString(macAddress) {
+		return nil, errors.New("Invalid MAC address format")
+	}
+
 	teralux, err := uc.repository.GetByMacAddress(macAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	return &dtos.TeraluxResponseDTO{
-		ID:         teralux.ID,
-		MacAddress: teralux.MacAddress,
-		Name:       teralux.Name,
-		CreatedAt:  teralux.CreatedAt,
-		UpdatedAt:  teralux.UpdatedAt,
+	return &dtos.TeraluxSingleResponseDTO{
+		Teralux: dtos.TeraluxResponseDTO{
+			ID:         teralux.ID,
+			MacAddress: teralux.MacAddress,
+			RoomID:     teralux.RoomID,
+			Name:       teralux.Name,
+			CreatedAt:  teralux.CreatedAt,
+			UpdatedAt:  teralux.UpdatedAt,
+		},
 	}, nil
 }

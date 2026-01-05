@@ -22,11 +22,13 @@ Retrieve all device statuses across the system. Mostly used for administrative m
     "status": true,
     "message": "Statuses retrieved successfully",
     "data": {
-      "statuses": [
+      "device_statuses": [
         { "id": "s1", "device_id": "d1", "code": "switch_1", "value": true },
         { "id": "s2", "device_id": "d1", "code": "dimmer", "value": 50 }
       ],
-      "total": 2
+      "total": 2,
+      "page": 1,
+      "per_page": 2
     }
   }
   ```
@@ -47,7 +49,7 @@ Retrieve all device statuses across the system. Mostly used for administrative m
   ```json
   {
     "status": true,
-    "data": { "statuses": [], "total": 0 }
+    "data": { "device_statuses": [], "total": 0, "page": 1, "per_page": 0 }
   }
   ```
   *(Status: 200 OK)*

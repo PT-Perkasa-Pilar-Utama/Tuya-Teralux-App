@@ -5,7 +5,6 @@ import (
 
 	"teralux_app/domain/common"
 	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux"
@@ -68,11 +67,15 @@ func main() {
 		defer infrastructure.CloseDB()
 		utils.LogInfo("Database initialized successfully")
 
-		// Auto Migrate Device Entity
-		if err := infrastructure.DB.AutoMigrate(&teralux_entities.Device{}); err != nil {
-			utils.LogInfo("Warning: Failed to auto-migrate Device entity: %v", err)
+		// Auto Migrate Entities
+		if err := infrastructure.DB.AutoMigrate(
+			&teralux_entities.Teralux{},
+			&teralux_entities.Device{},
+			&teralux_entities.DeviceStatus{},
+		); err != nil {
+			utils.LogInfo("Warning: Failed to auto-migrate entities: %v", err)
 		} else {
-			utils.LogInfo("Device entity auto-migrated successfully")
+			utils.LogInfo("Entities auto-migrated successfully")
 		}
 	}
 
@@ -80,7 +83,7 @@ func main() {
 
 	// Initialize Models & Repositories
 	// Initialize BadgerDB
-	badgerService, err := persistence.NewBadgerService("./tmp/badger")
+	badgerService, err := infrastructure.NewBadgerService("./tmp/badger")
 	if err != nil {
 		utils.LogInfo("Warning: Failed to initialize BadgerDB: %v", err)
 	} else {

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"net/http"
+	"strings" // Added for strings.Contains
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils" // Added for utils.ValidationError
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device_status"
 
@@ -27,40 +29,64 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 // @Tags         05. Device Statuses
 // @Accept       json
 // @Produce      json
-// @Param        deviceId path      string                              true  "Device ID"
-// @Param        code     path      string                              true  "Status Code"
+// @Param        id       path      string                              true  "Device ID"
 // @Param        request  body      teralux_dtos.UpdateDeviceStatusRequestDTO  true  "Update Device Status Request"
-// @Success      200      {object}  dtos.StandardResponse
-// @Failure      400      {object}  dtos.StandardResponse
-// @Failure      500      {object}  dtos.StandardResponse
+// @Success      200      {object}  dtos.StandardResponse "Successfully updated"
+// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      404      {object}  dtos.StandardResponse "Device not found"
+// @Failure      422      {object}  dtos.StandardResponse "Validation Error"
+// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
-// @Router       /api/devices/statuses/{deviceId}/{code} [put]
+// @Router       /api/devices/{id}/status [put]
 func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
-	deviceID := ctx.Param("deviceId")
-	code := ctx.Param("code")
-	if deviceID == "" || code == "" {
+	id := ctx.Param("id")
+	if id == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Device ID and Status Code are required",
+			Message: "Device ID is required",
 			Data:    nil,
 		})
 		return
 	}
 
 	var req teralux_dtos.UpdateDeviceStatusRequestDTO
+	// Bind and validate request body
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 			Status:  false,
-			Message: "Invalid request body: " + err.Error(),
+			Message: "Validation Error",
 			Data:    nil,
 		})
 		return
 	}
 
-	if err := c.useCase.Execute(deviceID, code, &req); err != nil {
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+	// code is now only in the body
+
+	// Execute use case
+	if err := c.useCase.Execute(id, &req); err != nil {
+		if valErr, ok := err.(*utils.ValidationError); ok {
+			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
+				Status:  false,
+				Message: valErr.Message,
+				Details: valErr.Details,
+			})
+			return
+		}
+
+		// Handle Not Found
+		statusCode := http.StatusInternalServerError
+		errorMsg := "Internal Server Error"
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "Device not found") {
+			statusCode = http.StatusNotFound
+			errorMsg = "Device not found"
+		} else if strings.Contains(err.Error(), "Invalid status code") {
+			statusCode = http.StatusNotFound
+			errorMsg = "Invalid status code for this device"
+		}
+
+		ctx.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to update device status: " + err.Error(),
+			Message: errorMsg,
 			Data:    nil,
 		})
 		return
@@ -68,7 +94,7 @@ func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
-		Message: "Device status updated successfully",
+		Message: "Status updated successfully",
 		Data:    nil,
 	})
 }

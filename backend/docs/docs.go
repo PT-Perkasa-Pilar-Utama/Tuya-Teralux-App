@@ -58,6 +58,134 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/device-statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all device statuses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Device Statuses"
+                ],
+                "summary": "Get All Device Statuses",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceStatusListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/device-statuses/code/{code}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Device Statuses"
+                ],
+                "summary": "Get Device Status by Code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Status Code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "device_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceStatusSingleResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Validation Error: device_id is required",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Status code not found for this device",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/devices": {
             "get": {
                 "security": [
@@ -93,6 +221,12 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
@@ -132,8 +266,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "Idempotent: record updated",
                         "schema": {
                             "allOf": [
                                 {
@@ -150,42 +284,8 @@ const docTemplate = `{
                             ]
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/devices/statuses": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves all device statuses",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Device Statuses"
-                ],
-                "summary": "Get All Device Statuses",
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "New record created",
                         "schema": {
                             "allOf": [
                                 {
@@ -195,198 +295,21 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.DeviceStatusListResponseDTO"
+                                            "$ref": "#/definitions/dtos.CreateDeviceResponseDTO"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/devices/statuses/{deviceId}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves all statuses for a specific device",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Device Statuses"
-                ],
-                "summary": "Get Device Statuses by Device ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "deviceId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/devices/statuses/{deviceId}/{code}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieves a single device status by device ID and code",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Device Statuses"
-                ],
-                "summary": "Get Device Status by Code",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "deviceId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Status Code",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Updates an existing device status",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Device Statuses"
-                ],
-                "summary": "Update Device Status",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "deviceId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Status Code",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Update Device Status Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.UpdateDeviceStatusRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -439,15 +362,27 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.DeviceResponseDTO"
+                                            "$ref": "#/definitions/dtos.DeviceSingleResponseDTO"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Invalid ID format",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Device not found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -497,13 +432,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Successfully updated",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Device not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -549,8 +496,148 @@ const docTemplate = `{
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Device not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing device status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Device Statuses"
+                ],
+                "summary": "Update Device Status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Device Status Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateDeviceStatusRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully updated",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Device not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all statuses for a specific device",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Device Statuses"
+                ],
+                "summary": "Get Device Statuses by Device ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceStatusListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Device not found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -568,7 +655,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Retrieves a list of all teralux devices",
@@ -601,6 +688,12 @@ const docTemplate = `{
                             ]
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -612,7 +705,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Creates a new teralux device",
@@ -638,8 +731,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "Idempotent: record already exists",
                         "schema": {
                             "allOf": [
                                 {
@@ -656,8 +749,32 @@ const docTemplate = `{
                             ]
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "201": {
+                        "description": "New record created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.CreateTeraluxResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -675,7 +792,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Retrieves a teralux device by its MAC address",
@@ -710,15 +827,27 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.TeraluxResponseDTO"
+                                            "$ref": "#/definitions/dtos.TeraluxSingleResponseDTO"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Invalid MAC Address format",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Teralux not found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -761,7 +890,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Returns teralux with room_id and devices array (empty if no devices)",
+                        "description": "Returns teralux with room_id and devices array",
                         "schema": {
                             "allOf": [
                                 {
@@ -771,15 +900,27 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.TeraluxResponseDTO"
+                                            "$ref": "#/definitions/dtos.TeraluxSingleResponseDTO"
                                         }
                                     }
                                 }
                             ]
                         }
                     },
+                    "400": {
+                        "description": "Invalid ID format",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Teralux not found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -829,19 +970,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Successfully updated",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict: Mac Address already in use",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -882,13 +1035,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Successfully deleted",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID format",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Teralux not found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -1343,7 +1508,8 @@ const docTemplate = `{
             "required": [
                 "id",
                 "name",
-                "teralux_id"
+                "teralux_id",
+                "type"
             ],
             "properties": {
                 "id": {
@@ -1353,6 +1519,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "teralux_id": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -1400,6 +1569,12 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dtos.DeviceResponseDTO"
                     }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
                 },
                 "total": {
                     "type": "integer"
@@ -1457,12 +1632,6 @@ const docTemplate = `{
                 "remote_product_name": {
                     "type": "string"
                 },
-                "status": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dtos.DeviceStatusDTO"
-                    }
-                },
                 "teralux_id": {
                     "type": "string"
                 },
@@ -1474,25 +1643,28 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.DeviceStatusDTO": {
+        "dtos.DeviceSingleResponseDTO": {
             "type": "object",
             "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
+                "device": {
+                    "$ref": "#/definitions/dtos.DeviceResponseDTO"
                 }
             }
         },
         "dtos.DeviceStatusListResponseDTO": {
             "type": "object",
             "properties": {
-                "statuses": {
+                "device_statuses": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
                     }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
                 },
                 "total": {
                     "type": "integer"
@@ -1516,6 +1688,14 @@ const docTemplate = `{
                 },
                 "value": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.DeviceStatusSingleResponseDTO": {
+            "type": "object",
+            "properties": {
+                "device_status": {
+                    "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
                 }
             }
         },
@@ -1543,6 +1723,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {},
+                "details": {},
                 "message": {
                     "type": "string"
                 },
@@ -1554,6 +1735,12 @@ const docTemplate = `{
         "dtos.TeraluxListResponseDTO": {
             "type": "object",
             "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
                 "teralux": {
                     "type": "array",
                     "items": {
@@ -1571,12 +1758,6 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "devices": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dtos.DeviceResponseDTO"
-                    }
-                },
                 "id": {
                     "type": "string"
                 },
@@ -1591,6 +1772,14 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.TeraluxSingleResponseDTO": {
+            "type": "object",
+            "properties": {
+                "teralux": {
+                    "$ref": "#/definitions/dtos.TeraluxResponseDTO"
                 }
             }
         },
@@ -1771,10 +1960,14 @@ const docTemplate = `{
         },
         "dtos.UpdateDeviceStatusRequestDTO": {
             "type": "object",
+            "required": [
+                "code"
+            ],
             "properties": {
-                "value": {
+                "code": {
                     "type": "string"
-                }
+                },
+                "value": {}
             }
         },
         "dtos.UpdateTeraluxRequestDTO": {

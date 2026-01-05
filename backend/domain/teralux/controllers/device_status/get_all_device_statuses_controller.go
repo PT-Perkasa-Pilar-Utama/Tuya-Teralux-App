@@ -31,15 +31,16 @@ func NewGetAllDeviceStatusesController(useCase *usecases.GetAllDeviceStatusesUse
 // @Accept       json
 // @Produce      json
 // @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.DeviceStatusListResponseDTO}
-// @Failure      500      {object}  dtos.StandardResponse
+// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
-// @Router       /api/devices/statuses [get]
+// @Router       /api/device-statuses [get]
 func (c *GetAllDeviceStatusesController) GetAllDeviceStatuses(ctx *gin.Context) {
 	statuses, err := c.useCase.Execute()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to retrieve device statuses: " + err.Error(),
+			Message: "Internal Server Error",
 			Data:    nil,
 		})
 		return
@@ -47,7 +48,7 @@ func (c *GetAllDeviceStatusesController) GetAllDeviceStatuses(ctx *gin.Context) 
 
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
-		Message: "Device statuses retrieved successfully",
+		Message: "Statuses retrieved successfully",
 		Data:    statuses,
 	})
 }

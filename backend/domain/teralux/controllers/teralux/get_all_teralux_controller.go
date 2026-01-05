@@ -31,12 +31,19 @@ func NewGetAllTeraluxController(useCase *usecases.GetAllTeraluxUseCase) *GetAllT
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxListResponseDTO}
-// @Failure      500  {object}  dtos.StandardResponse
-// @Security     ApiKeyAuth
+// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
+// @Security     BearerAuth
 // @Router       /api/teralux [get]
 func (c *GetAllTeraluxController) GetAllTeralux(ctx *gin.Context) {
+	var filter teralux_dtos.TeraluxFilterDTO
+	if err := ctx.ShouldBindQuery(&filter); err != nil {
+		// If query params are invalid, we can just proceed with empty/default filter or return error.
+		// Usually ignoring bad query params or defaulting is safe.
+	}
+
 	// Execute use case
-	teraluxList, err := c.useCase.Execute()
+	teraluxList, err := c.useCase.Execute(&filter)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,

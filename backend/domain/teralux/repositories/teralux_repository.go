@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/infrastructure/persistence"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/entities"
 
@@ -14,11 +13,11 @@ import (
 // TeraluxRepository handles database operations for Teralux entities
 type TeraluxRepository struct {
 	db    *gorm.DB
-	cache *persistence.BadgerService
+	cache *infrastructure.BadgerService
 }
 
 // NewTeraluxRepository creates a new instance of TeraluxRepository
-func NewTeraluxRepository(cache *persistence.BadgerService) *TeraluxRepository {
+func NewTeraluxRepository(cache *infrastructure.BadgerService) *TeraluxRepository {
 	return &TeraluxRepository{
 		db:    infrastructure.DB,
 		cache: cache,
@@ -135,6 +134,36 @@ func (r *TeraluxRepository) Delete(id string) error {
 
 	err := r.db.Delete(&entities.Teralux{}, "id = ?", id).Error
 	if err != nil {
+		return err
+	}
+
+	// Invalidate ID cache
+	cacheKey := fmt.Sprintf("teralux:%s", id)
+	if err := r.cache.Delete(cacheKey); err != nil {
+		utils.LogWarn("TeraluxRepository: Failed to invalidate ID cache for teralux ID %s: %v", id, err)
+	} else {
+		utils.LogDebug("TeraluxRepository: Invalidated ID cache for teralux ID %s", id)
+	}
+
+	// Invalidate MAC cache
+	macCacheKey := fmt.Sprintf("teralux:mac:%s", teralux.MacAddress)
+	if err := r.cache.Delete(macCacheKey); err != nil {
+		utils.LogWarn("TeraluxRepository: Failed to invalidate MAC cache for MAC %s: %v", teralux.MacAddress, err)
+	} else {
+		utils.LogDebug("TeraluxRepository: Invalidated MAC cache for MAC %s", teralux.MacAddress)
+	}
+
+	return nil
+}
+
+// InvalidateCache invalidates both ID and MAC cache for a teralux
+func (r *TeraluxRepository) InvalidateCache(id string) error {
+	// Get teralux to find MAC address
+	var teralux entities.Teralux
+	if err := r.db.Where("id = ?", id).First(&teralux).Error; err != nil {
+		// If not found in DB, still try to invalidate ID cache
+		cacheKey := fmt.Sprintf("teralux:%s", id)
+		_ = r.cache.Delete(cacheKey)
 		return err
 	}
 

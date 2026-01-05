@@ -7,57 +7,64 @@ import (
 )
 
 func TestGetDeviceStatusByCode_UserBehavior(t *testing.T) {
-	repo := setupStatusTestEnv(t)
-	useCase := NewGetDeviceStatusByCodeUseCase(repo)
+	repo, devRepo := setupStatusTestEnv(t)
+	useCase := NewGetDeviceStatusByCodeUseCase(repo, devRepo)
 
 	// Seed data
+	devRepo.Create(&entities.Device{ID: "dev-1", Name: "D1"})
 	repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_1", Value: "true"})
 
-	// 1. Get Device Status (Success)
-	// URL: GET /api/devices/statuses/dev-1/switch_1
-	// METHOD: GET
+	// 1. Get Status By Code (Success)
+	// URL: GET /api/device-statuses/code/switch_1?device_id=dev-1
 	// RES: 200 OK
-	// RESPONSE: { "status": true, "data": { "device_id": "dev-1", "code": "switch_1", "value": "true" } }
-	t.Run("Get Device Status (Success)", func(t *testing.T) {
+	t.Run("Get Status By Code (Success)", func(t *testing.T) {
 		res, err := useCase.Execute("dev-1", "switch_1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		if res.Value != "true" {
-			t.Errorf("Expected value 'true', got '%s'", res.Value)
-		}
-		if res.Code != "switch_1" {
-			t.Errorf("Expected code 'switch_1', got '%s'", res.Code)
+		if res.DeviceStatus.Value != "true" {
+			t.Errorf("Expected value 'true', got '%s'", res.DeviceStatus.Value)
 		}
 	})
 
-	// 2. Get Device Status (Not Found - Unknown Device)
-	// URL: GET /api/devices/statuses/unknown-dev/switch_1
-	// METHOD: GET
+	// 2. Get Status By Code (Not Found - Code)
+	// URL: GET /api/device-statuses/code/unknown_code?device_id=dev-1
 	// RES: 404 Not Found
-	// RESPONSE: { "status": false, "message": "record not found", "data": nil }
-	t.Run("Get Device Status (Not Found - Unknown Device)", func(t *testing.T) {
-		_, err := useCase.Execute("unknown-dev", "switch_1")
-		if err == nil {
-			t.Fatal("Expected error for unknown device, got nil")
-		}
-		if !strings.Contains(err.Error(), "record not found") {
-			t.Errorf("Expected 'record not found', got: %v", err)
-		}
-	})
-
-	// 3. Get Device Status (Not Found - Unknown Code)
-	// URL: GET /api/devices/statuses/dev-1/unknown-code
-	// METHOD: GET
-	// RES: 404 Not Found
-	// RESPONSE: { "status": false, "message": "record not found", "data": nil }
-	t.Run("Get Device Status (Not Found - Unknown Code)", func(t *testing.T) {
-		_, err := useCase.Execute("dev-1", "unknown-code")
+	t.Run("Get Status By Code (Not Found - Code)", func(t *testing.T) {
+		_, err := useCase.Execute("dev-1", "unknown_code")
 		if err == nil {
 			t.Fatal("Expected error for unknown code, got nil")
 		}
-		if !strings.Contains(err.Error(), "record not found") {
-			t.Errorf("Expected 'record not found', got: %v", err)
+		if !strings.Contains(err.Error(), "Status code not found") && !strings.Contains(err.Error(), "record not found") {
+			t.Errorf("Expected 'Status code not found', got: %v", err)
 		}
 	})
+
+	// 3. Get Status By Code (Not Found - Device)
+	// URL: GET /api/device-statuses/code/switch_1?device_id=unknown
+	// RES: 404 Not Found
+	t.Run("Get Status By Code (Not Found - Device)", func(t *testing.T) {
+		_, err := useCase.Execute("unknown", "switch_1")
+		if err == nil {
+			t.Fatal("Expected error for unknown device, got nil")
+		}
+		if !strings.Contains(err.Error(), "Device not found") && !strings.Contains(err.Error(), "record not found") {
+			t.Errorf("Expected 'Device not found', got: %v", err)
+		}
+	})
+
+	// 4. Validation: Missing Device ID
+	// URL: GET /api/device-statuses/code/switch_1
+	// RES: 400 Bad Request
+	t.Run("Validation: Missing Device ID", func(t *testing.T) {
+		_, err := useCase.Execute("", "switch_1")
+		if err == nil {
+			t.Fatal("Expected error for missing device ID, got nil")
+		}
+		if !strings.Contains(err.Error(), "device_id is required") {
+			t.Errorf("Expected 'device_id is required', got: %v", err)
+		}
+	})
+
+	// 5. Unauthorized (Middleware)
 }

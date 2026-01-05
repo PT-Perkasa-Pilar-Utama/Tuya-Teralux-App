@@ -3,6 +3,7 @@ package com.example.teraluxapp.data.network
 import com.example.teraluxapp.data.model.AuthResponse
 import com.example.teraluxapp.data.model.BaseResponse
 import com.example.teraluxapp.data.model.DeviceResponse
+import com.example.teraluxapp.data.model.DeviceListResponse
 import com.example.teraluxapp.data.model.SingleDeviceResponse
 import com.example.teraluxapp.data.model.SensorDataResponse
 import com.example.teraluxapp.data.model.TeraluxListResponse
@@ -102,6 +103,13 @@ interface ApiService {
         @Path("id") deviceId: String
     ): Response<BaseResponse<Any?>>
 
+    @GET("api/devices/teralux/{teraluxId}")
+    suspend fun getDevicesByTeraluxId(
+        @Header("Authorization") token: String,
+        @Path("teraluxId") teraluxId: String
+    ): Response<BaseResponse<DeviceListResponse>>
+
+
     @GET("api/tuya/devices/sync")
     suspend fun syncDevices(
         @Header("Authorization") token: String
@@ -123,8 +131,8 @@ data class IRACCommandRequest(
 data class SaveDeviceStateRequest(val commands: List<StateCommand>)
 data class StateCommand(val code: String, val value: Any)
 data class DeviceStateResponse(
-    val device_id: String,
-    val last_commands: List<StateCommand>,
-    val updated_at: Long
+    @com.google.gson.annotations.SerializedName("device_id") val deviceId: String,
+    @com.google.gson.annotations.SerializedName("last_commands") val lastCommands: List<StateCommand>,
+    @com.google.gson.annotations.SerializedName("updated_at") val updatedAt: Long
 )
 

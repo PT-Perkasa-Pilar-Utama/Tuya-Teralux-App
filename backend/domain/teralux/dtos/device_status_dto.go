@@ -17,7 +17,8 @@ type CreateDeviceStatusResponseDTO struct {
 
 // UpdateDeviceStatusRequestDTO represents the request body for updating a device status
 type UpdateDeviceStatusRequestDTO struct {
-	Value string `json:"value,omitempty"`
+	Code  string      `json:"code" binding:"required"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // DeviceStatusResponseDTO represents the response format for a single device status
@@ -31,6 +32,13 @@ type DeviceStatusResponseDTO struct {
 
 // DeviceStatusListResponseDTO represents the response format for a list of device statuses
 type DeviceStatusListResponseDTO struct {
-	Statuses []DeviceStatusResponseDTO `json:"statuses"`
-	Total    int                       `json:"total"`
+	DeviceStatuses []DeviceStatusResponseDTO `json:"device_statuses"`
+	Total          int                       `json:"total"`
+	Page           int                       `json:"page"`
+	PerPage        int                       `json:"per_page"`
+}
+
+// DeviceStatusSingleResponseDTO represents the response format for a single device status (wrapped)
+type DeviceStatusSingleResponseDTO struct {
+	DeviceStatus DeviceStatusResponseDTO `json:"device_status"`
 }

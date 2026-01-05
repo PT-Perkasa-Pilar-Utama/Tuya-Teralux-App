@@ -22,6 +22,7 @@ func SetupTeraluxRoutes(
 	createDeviceController *device.CreateDeviceController,
 	getAllDevicesController *device.GetAllDevicesController,
 	getDeviceByIDController *device.GetDeviceByIDController,
+	getDevicesByTeraluxIDController *device.GetDevicesByTeraluxIDController,
 	updateDeviceController *device.UpdateDeviceController,
 	deleteDeviceController *device.DeleteDeviceController,
 
@@ -61,17 +62,22 @@ func SetupTeraluxRoutes(
 	{
 		deviceAPI.POST("", createDeviceController.CreateDevice)
 		deviceAPI.GET("", getAllDevicesController.GetAllDevices)
+		deviceAPI.GET("/teralux/:teralux_id", getDevicesByTeraluxIDController.GetDevicesByTeraluxID)
 		deviceAPI.GET("/:id", getDeviceByIDController.GetDeviceByID)
 		deviceAPI.PUT("/:id", updateDeviceController.UpdateDevice)
 		deviceAPI.DELETE("/:id", deleteDeviceController.DeleteDevice)
 	}
 
 	// Device Status Routes (Protected)
-	deviceStatusAPI := protectedRouter.Group("/api/devices/statuses")
-	{
-		deviceStatusAPI.GET("", getAllDeviceStatusesController.GetAllDeviceStatuses)
-		deviceStatusAPI.GET("/:deviceId", getDeviceStatusesByDeviceIDController.GetDeviceStatusesByDeviceID)
-		deviceStatusAPI.GET("/:deviceId/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
-		deviceStatusAPI.PUT("/:deviceId/:code", updateDeviceStatusController.UpdateDeviceStatus)
-	}
+	// GET /api/device-statuses - Get all statuses (Scenario 1)
+	protectedRouter.GET("/api/device-statuses", getAllDeviceStatusesController.GetAllDeviceStatuses)
+
+	// GET /api/device-statuses/code/:code - Get status by code (Scenario 4)
+	protectedRouter.GET("/api/device-statuses/code/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
+
+	// GET /api/devices/:id/statuses - Get statuses by device ID (Scenario 2)
+	protectedRouter.GET("/api/devices/:id/statuses", getDeviceStatusesByDeviceIDController.GetDeviceStatusesByDeviceID)
+
+	// PUT /api/devices/:id/status - Update device status (Scenario 1)
+	protectedRouter.PUT("/api/devices/:id/status", updateDeviceStatusController.UpdateDeviceStatus)
 }

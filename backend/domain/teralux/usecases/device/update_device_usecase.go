@@ -1,6 +1,8 @@
 package usecases
 
 import (
+	"strings"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/repositories"
 )
@@ -25,9 +27,14 @@ func (uc *UpdateDeviceUseCase) Execute(id string, req *dtos.UpdateDeviceRequestD
 		return err
 	}
 
-	// Update fields if present
-	if req.Name != "" {
-		device.Name = req.Name
+	// Update fields
+	if req.Name != nil {
+		if strings.TrimSpace(*req.Name) == "" {
+			return utils.NewValidationError("Validation Error", []utils.ValidationErrorDetail{
+				{Field: "name", Message: "name cannot be empty"},
+			})
+		}
+		device.Name = *req.Name
 	}
 
 	// Save changes

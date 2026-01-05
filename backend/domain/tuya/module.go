@@ -1,7 +1,7 @@
 package tuya
 
 import (
-	"teralux_app/domain/common/infrastructure/persistence"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/tuya/controllers"
 	"teralux_app/domain/tuya/routes"
@@ -26,7 +26,7 @@ type TuyaModule struct {
 }
 
 // NewTuyaModule initializes the Tuya module
-func NewTuyaModule(badger *persistence.BadgerService) *TuyaModule {
+func NewTuyaModule(badger *infrastructure.BadgerService) *TuyaModule {
 	// Services
 	tuyaAuthService := services.NewTuyaAuthService()
 	tuyaDeviceService := services.NewTuyaDeviceService()

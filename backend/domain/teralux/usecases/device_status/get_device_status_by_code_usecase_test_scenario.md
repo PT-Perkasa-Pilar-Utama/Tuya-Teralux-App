@@ -22,10 +22,12 @@ Retrieve specific status entries by their capability code.
     "status": true,
     "message": "Status retrieved successfully",
     "data": {
-      "device_id": "d1",
-      "code": "switch_1",
-      "value": true,
-      "updated_at": "..."
+      "device_status": {
+        "device_id": "d1",
+        "code": "switch_1",
+        "value": true,
+        "updated_at": "..."
+      }
     }
   }
   ```

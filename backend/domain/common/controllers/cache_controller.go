@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/infrastructure/persistence"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 
 	"github.com/gin-gonic/gin"
@@ -11,11 +11,11 @@ import (
 
 // CacheController handles cache-related operations
 type CacheController struct {
-	cache *persistence.BadgerService
+	cache *infrastructure.BadgerService
 }
 
 // NewCacheController creates a new CacheController instance
-func NewCacheController(cache *persistence.BadgerService) *CacheController {
+func NewCacheController(cache *infrastructure.BadgerService) *CacheController {
 	return &CacheController{cache: cache}
 }
 
