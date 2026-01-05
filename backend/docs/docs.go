@@ -381,6 +381,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
+                    "404": {
+                        "description": "Teralux hub not found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {

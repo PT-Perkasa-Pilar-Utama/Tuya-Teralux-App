@@ -70,7 +70,19 @@ Retrieve all devices linked to a specific Teralux ID.
   ```
   *(Status: 200 OK)*
 
-### 3. Validation: Invalid Teralux ID Format
+### 3. Get Devices By Teralux ID (Not Found - Teralux ID)
+- **URL**: `http://localhost:8080/api/devices/teralux/tx-999`
+- **Method**: `GET`
+- **Expected Response**:
+  ```json
+  {
+    "status": false,
+    "message": "Teralux hub not found"
+  }
+  ```
+  *(Status: 404 Not Found)*
+
+### 4. Validation: Invalid Teralux ID Format
 - **URL**: `http://localhost:8080/api/devices/teralux/INVALID`
 - **Method**: `GET`
 - **Expected Response**:
