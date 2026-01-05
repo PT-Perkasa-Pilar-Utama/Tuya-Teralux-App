@@ -4,10 +4,14 @@ import (
 	"net/http"
 	"strings"
 	"teralux_app/domain/common/dtos"
+	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device"
 
 	"github.com/gin-gonic/gin"
 )
+
+// Force usage of teralux_dtos for Swagger
+var _ = teralux_dtos.DeviceListResponseDTO{}
 
 // GetDevicesByTeraluxIDController handles get devices by teralux ID requests
 type GetDevicesByTeraluxIDController struct {
