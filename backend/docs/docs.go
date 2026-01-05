@@ -323,6 +323,73 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/devices/teralux/{teralux_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all devices linked to a specific teralux ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Devices"
+                ],
+                "summary": "Get Devices by Teralux ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux ID",
+                        "name": "teralux_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns list of devices",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Teralux ID format",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/devices/{id}": {
             "get": {
                 "security": [
@@ -868,7 +935,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves a single teralux device by ID with its associated devices",
+                "description": "Retrieves a single teralux device by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -1508,8 +1575,7 @@ const docTemplate = `{
             "required": [
                 "id",
                 "name",
-                "teralux_id",
-                "type"
+                "teralux_id"
             ],
             "properties": {
                 "id": {
@@ -1519,9 +1585,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "teralux_id": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
