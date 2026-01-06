@@ -83,10 +83,11 @@ fun SettingsScreen(
                     // Flatten the list: If device has collections (IR Hub), add collections instead of the hub
                     val flatList = ArrayList<Device>()
                     for (d in rawDevices) {
-                        if (d.collections.isNullOrEmpty()) {
+                        val parsedCollections = d.getParsedCollections()
+                        if (parsedCollections.isEmpty()) {
                             flatList.add(d)
                         } else {
-                            flatList.addAll(d.collections)
+                            flatList.addAll(parsedCollections)
                         }
                     }
                     allTuyaDevices = flatList
@@ -314,10 +315,11 @@ fun SettingsScreen(
                                             
                                             val flatList = ArrayList<Device>()
                                             for (d in rawDevices) {
-                                                if (d.collections.isNullOrEmpty()) {
+                                                val parsedCollections = d.getParsedCollections()
+                                                if (parsedCollections.isEmpty()) {
                                                     flatList.add(d)
                                                 } else {
-                                                    flatList.addAll(d.collections)
+                                                    flatList.addAll(parsedCollections)
                                                 }
                                             }
                                             allTuyaDevices = flatList

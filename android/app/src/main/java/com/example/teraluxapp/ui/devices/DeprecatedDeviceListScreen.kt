@@ -58,11 +58,12 @@ fun DeprecatedDeviceListScreen(token: String,
                     for (d in rawDevices) {
                         // If device has collections (e.g., IR Hub with AC remotes), 
                         // skip the hub itself and only add the remotes
-                        if (d.collections.isNullOrEmpty()) {
+                        val parsedCollections = d.getParsedCollections()
+                        if (parsedCollections.isEmpty()) {
                             flatList.add(d)
                         } else {
                             // Only add the collections (AC remotes), not the hub
-                            flatList.addAll(d.collections)
+                            flatList.addAll(parsedCollections)
                         }
                     }
                     devices = flatList

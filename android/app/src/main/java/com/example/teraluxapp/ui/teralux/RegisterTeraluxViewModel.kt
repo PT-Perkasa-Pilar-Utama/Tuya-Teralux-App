@@ -28,7 +28,7 @@ class RegisterTeraluxViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.value = RegisterUiState.Error(
-                        error.message ?: "Registrasi gagal. Silakan coba lagi."
+                        error.message ?: "Registration failed. Please try again"
                     )
                 }
         }

@@ -26,11 +26,17 @@ func NewDeviceRepository(cache *infrastructure.BadgerService) *DeviceRepository 
 
 // Create inserts a new device record into the database
 func (r *DeviceRepository) Create(device *entities.Device) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	return r.db.Create(device).Error
 }
 
 // GetAll retrieves all active (non-deleted) device records
 func (r *DeviceRepository) GetAll() ([]entities.Device, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var devices []entities.Device
 	err := r.db.Find(&devices).Error
 	return devices, err
@@ -38,6 +44,9 @@ func (r *DeviceRepository) GetAll() ([]entities.Device, error) {
 
 // GetByTeraluxID retrieves all devices belonging to a specific Teralux unit
 func (r *DeviceRepository) GetByTeraluxID(teraluxID string) ([]entities.Device, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var devices []entities.Device
 	err := r.db.Where("teralux_id = ?", teraluxID).Find(&devices).Error
 	return devices, err
@@ -59,6 +68,9 @@ func (r *DeviceRepository) GetByID(id string) (*entities.Device, error) {
 
 	// Cache miss - fetch from database
 	utils.LogDebug("DeviceRepository: Cache MISS for device ID %s", id)
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var device entities.Device
 	err = r.db.Where("id = ?", id).First(&device).Error
 	if err != nil {
@@ -76,6 +88,9 @@ func (r *DeviceRepository) GetByID(id string) (*entities.Device, error) {
 
 // Update updates an existing device record and invalidates cache
 func (r *DeviceRepository) Update(device *entities.Device) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	err := r.db.Save(device).Error
 	if err != nil {
 		return err
@@ -94,6 +109,9 @@ func (r *DeviceRepository) Update(device *entities.Device) error {
 
 // Delete soft deletes a device record by ID and invalidates cache
 func (r *DeviceRepository) Delete(id string) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	err := r.db.Delete(&entities.Device{}, "id = ?", id).Error
 	if err != nil {
 		return err
@@ -112,6 +130,9 @@ func (r *DeviceRepository) Delete(id string) error {
 
 // GetByRemoteID retrieves a device by its Remote ID
 func (r *DeviceRepository) GetByRemoteID(remoteID string) (*entities.Device, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var device entities.Device
 	err := r.db.Where("remote_id = ?", remoteID).First(&device).Error
 	if err != nil {

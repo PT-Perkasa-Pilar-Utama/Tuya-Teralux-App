@@ -53,9 +53,20 @@ func (c *GetTeraluxByMACController) GetTeraluxByMAC(ctx *gin.Context) {
 	// Execute use case
 	teralux, err := c.useCase.Execute(mac)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
+		// Check if it's a "not found" error
+		if err.Error() == "record not found" || strings.Contains(err.Error(), "not found") {
+			ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
+				Status:  false,
+				Message: "Teralux not found",
+				Data:    nil,
+			})
+			return
+		}
+
+		// For any other error, return generic internal server error
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Teralux not found",
+			Message: "Internal server error",
 			Data:    nil,
 		})
 		return

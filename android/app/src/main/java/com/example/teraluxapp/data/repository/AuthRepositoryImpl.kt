@@ -27,7 +27,7 @@ class AuthRepositoryImpl @Inject constructor(
                 Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {
-            Result.failure(Exception(e.message ?: "Terjadi kesalahan"))
+            Result.failure(Exception(e.message ?: "An error occurred"))
         }
     }
 }

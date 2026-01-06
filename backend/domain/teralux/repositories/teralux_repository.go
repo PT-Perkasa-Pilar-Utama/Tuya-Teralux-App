@@ -26,11 +26,17 @@ func NewTeraluxRepository(cache *infrastructure.BadgerService) *TeraluxRepositor
 
 // Create inserts a new teralux record into the database
 func (r *TeraluxRepository) Create(teralux *entities.Teralux) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	return r.db.Create(teralux).Error
 }
 
 // GetAll retrieves all active (non-deleted) teralux records
 func (r *TeraluxRepository) GetAll() ([]entities.Teralux, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var teraluxList []entities.Teralux
 	err := r.db.Find(&teraluxList).Error
 	return teraluxList, err
@@ -52,6 +58,9 @@ func (r *TeraluxRepository) GetByID(id string) (*entities.Teralux, error) {
 
 	// Cache miss - fetch from database
 	utils.LogDebug("TeraluxRepository: Cache MISS for teralux ID %s", id)
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var teralux entities.Teralux
 	err = r.db.Where("id = ?", id).First(&teralux).Error
 	if err != nil {
@@ -83,6 +92,9 @@ func (r *TeraluxRepository) GetByMacAddress(macAddress string) (*entities.Teralu
 
 	// Cache miss - fetch from database
 	utils.LogDebug("TeraluxRepository: Cache MISS for MAC %s", macAddress)
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var teralux entities.Teralux
 	err = r.db.Where("mac_address = ?", macAddress).First(&teralux).Error
 	if err != nil {
@@ -100,6 +112,9 @@ func (r *TeraluxRepository) GetByMacAddress(macAddress string) (*entities.Teralu
 
 // Update updates an existing teralux record and invalidates cache
 func (r *TeraluxRepository) Update(teralux *entities.Teralux) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	err := r.db.Save(teralux).Error
 	if err != nil {
 		return err
@@ -126,6 +141,9 @@ func (r *TeraluxRepository) Update(teralux *entities.Teralux) error {
 
 // Delete soft deletes a teralux record by ID and invalidates cache
 func (r *TeraluxRepository) Delete(id string) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	// First, get the teralux to retrieve MAC address for cache invalidation
 	var teralux entities.Teralux
 	if err := r.db.Where("id = ?", id).First(&teralux).Error; err != nil {
@@ -158,6 +176,9 @@ func (r *TeraluxRepository) Delete(id string) error {
 
 // InvalidateCache invalidates both ID and MAC cache for a teralux
 func (r *TeraluxRepository) InvalidateCache(id string) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	// Get teralux to find MAC address
 	var teralux entities.Teralux
 	if err := r.db.Where("id = ?", id).First(&teralux).Error; err != nil {

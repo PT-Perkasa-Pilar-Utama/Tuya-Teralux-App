@@ -25,9 +25,9 @@ func NewTuyaAuthController(useCase *usecases.TuyaAuthUseCase) *TuyaAuthControlle
 	}
 }
 
-// Authenticate handles POST /api/tuya/auth endpoint
+// Authenticate handles GET /api/tuya/auth endpoint
 // @Summary      Authenticate with Tuya
-// @Description  Authenticates the user and retrieves a Tuya access token
+// @Description  Authenticates with Tuya API and retrieves an access token. Requires X-API-KEY header (use ApiKeyAuth, not BearerAuth).
 // @Tags         01. Auth
 // @Accept       json
 // @Produce      json

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"teralux_app/domain/common/dtos"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/teralux"
@@ -41,18 +40,21 @@ func NewGetTeraluxByIDController(useCase *usecases.GetTeraluxByIDUseCase) *GetTe
 // @Router       /api/teralux/{id} [get]
 func (c *GetTeraluxByIDController) GetTeraluxByID(ctx *gin.Context) {
 	id := ctx.Param("id")
-	if strings.TrimSpace(id) == "" || strings.Contains(id, "INVALID") {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
-			Status:  false,
-			Message: "Invalid ID format",
-			Data:    nil,
-		})
-		return
-	}
 
-	// Execute use case
+	// Execute use case (validation happens in use case)
 	teralux, err := c.useCase.Execute(id)
 	if err != nil {
+		// Check if it's a validation error
+		if err.Error() == "Invalid ID format" {
+			ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+				Status:  false,
+				Message: "Invalid ID format",
+				Data:    nil,
+			})
+			return
+		}
+
+		// Otherwise it's not found
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
 			Message: "Teralux not found",
