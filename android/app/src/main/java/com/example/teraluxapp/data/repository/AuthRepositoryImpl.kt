@@ -3,7 +3,6 @@ package com.example.teraluxapp.data.repository
 import com.example.teraluxapp.data.model.AuthResponse
 import com.example.teraluxapp.data.network.ApiService
 import com.example.teraluxapp.utils.getErrorMessage
-import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,15 +14,18 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun authenticate(): Result<AuthResponse> {
         return try {
             val response = apiService.authenticate()
-            if (response.status && response.data != null) {
-                Result.success(response.data)
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                if (body.status && body.data != null) {
+                    Result.success(body.data)
+                } else {
+                    Result.failure(Exception(body.message))
+                }
             } else {
-                Result.failure(Exception(response.message))
+                // Extract error message from error response body
+                val errorMessage = response.getErrorMessage()
+                Result.failure(Exception(errorMessage))
             }
-        } catch (e: HttpException) {
-            // Extract error message from HTTP error response
-            val errorMessage = e.response()?.getErrorMessage() ?: e.message()
-            Result.failure(Exception(errorMessage))
         } catch (e: Exception) {
             Result.failure(Exception(e.message ?: "Terjadi kesalahan"))
         }
