@@ -28,37 +28,25 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
             
-            // Step 1: Authenticate
-            authRepository.authenticate()
-                .onSuccess { authResponse ->
-                    // Step 2: Fetch teralux by MAC address
-                    val macAddress = DeviceInfoUtils.getMacAddress(context)
-                    teraluxRepository.checkDeviceRegistration(macAddress)
-                        .onSuccess { teralux ->
-                            if (teralux != null) {
-                                // Save Teralux ID for later use
-                                com.example.teraluxapp.utils.PreferencesManager.saveTeraluxId(context, teralux.id)
-                                _uiState.value = LoginUiState.Success(
-                                    token = authResponse.accessToken,
-                                    uid = authResponse.uid
-                                )
-                            } else {
-                                _uiState.value = LoginUiState.Error(
-                                    "Device not registered. Please register first."
-                                )
-                            }
-                        }
-                        .onFailure { error ->
-                            _uiState.value = LoginUiState.Error(
-                                error.message ?: "Failed to fetch device info."
-                            )
-                        }
-                }
-                .onFailure { error ->
+            try {
+                val authResponse = authRepository.authenticate().getOrThrow()
+                val macAddress = DeviceInfoUtils.getMacAddress(context)
+                val teralux = teraluxRepository.checkDeviceRegistration(macAddress).getOrThrow()
+
+                if (teralux != null) {
+                    com.example.teraluxapp.utils.PreferencesManager.saveTeraluxId(context, teralux.id)
+                    _uiState.value = LoginUiState.Success(
+                        token = authResponse.accessToken,
+                        uid = authResponse.uid
+                    )
+                } else {
                     _uiState.value = LoginUiState.Error(
-                        error.message ?: "Login gagal. Silakan coba lagi."
+                        "Device not registered. Please register first."
                     )
                 }
+            } catch (e: Exception) {
+                _uiState.value = LoginUiState.Error(e.message ?: "An unexpected error occurred.")
+            }
         }
     }
 }
