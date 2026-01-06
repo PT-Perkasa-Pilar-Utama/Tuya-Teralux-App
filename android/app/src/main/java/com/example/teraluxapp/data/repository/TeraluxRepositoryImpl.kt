@@ -5,6 +5,8 @@ import com.example.teraluxapp.data.model.CreateTeraluxResponse
 import com.example.teraluxapp.data.model.Teralux
 import com.example.teraluxapp.data.model.TeraluxResponseDTO
 import com.example.teraluxapp.data.network.ApiService
+import com.example.teraluxapp.utils.getErrorMessage
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,8 +37,12 @@ class TeraluxRepositoryImpl @Inject constructor(
             } else {
                 Result.failure(Exception(response.message))
             }
+        } catch (e: HttpException) {
+            // Extract error message from HTTP error response
+            val errorMessage = e.response()?.getErrorMessage() ?: e.message()
+            Result.failure(Exception(errorMessage))
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(e.message ?: "Terjadi kesalahan"))
         }
     }
 }
