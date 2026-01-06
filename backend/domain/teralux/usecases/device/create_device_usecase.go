@@ -78,11 +78,13 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 		return nil, false, fmt.Errorf("failed to fetch device from Tuya: %w", err)
 	}
 
-	// Check if device already exists by TeraluxID
-	existingDevices, err := uc.repository.GetByTeraluxID(req.TeraluxID)
-	if err != nil {
-		return nil, false, err
+	// Check if device with this ID already exists
+	existingDevice, err := uc.repository.GetByID(req.ID)
+	if err == nil && existingDevice != nil {
+		// Device with this ID already exists
+		return nil, false, fmt.Errorf("device with ID %s already exists", req.ID)
 	}
+	// If error is "not found", that's fine - we can create it
 
 	var deviceID string
 	var deviceEntity *entities.Device
@@ -98,56 +100,32 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 		collectionsJSON = string(data)
 	}
 
-	if len(existingDevices) > 0 {
-		deviceEntity = &existingDevices[0]
-		deviceID = deviceEntity.ID
-		// Update existing record with latest Tuya info
-		deviceEntity.Name = req.Name
-		deviceEntity.RemoteID = tuyaDevice.ID
-		deviceEntity.Category = tuyaDevice.Category
-		deviceEntity.RemoteCategory = tuyaDevice.RemoteCategory
-		deviceEntity.ProductName = tuyaDevice.ProductName
-		deviceEntity.RemoteProductName = tuyaDevice.RemoteProductName
-		deviceEntity.Icon = tuyaDevice.Icon
-		deviceEntity.CustomName = tuyaDevice.CustomName
-		deviceEntity.Model = tuyaDevice.Model
-		deviceEntity.IP = tuyaDevice.IP
-		deviceEntity.LocalKey = tuyaDevice.LocalKey
-		deviceEntity.GatewayID = tuyaDevice.GatewayID
-		deviceEntity.CreateTime = tuyaDevice.CreateTime
-		deviceEntity.UpdateTime = tuyaDevice.UpdateTime
-		deviceEntity.Collections = collectionsJSON
+	// Create new device
+	deviceID = req.ID
 
-		if err := uc.repository.Update(deviceEntity); err != nil {
-			return nil, false, err
-		}
-	} else {
-		deviceID = req.ID
+	deviceEntity = &entities.Device{
+		ID:                deviceID,
+		TeraluxID:         req.TeraluxID,
+		Name:              req.Name,
+		RemoteID:          tuyaDevice.ID,
+		Category:          tuyaDevice.Category,
+		RemoteCategory:    tuyaDevice.RemoteCategory,
+		ProductName:       tuyaDevice.ProductName,
+		RemoteProductName: tuyaDevice.RemoteProductName,
+		Icon:              tuyaDevice.Icon,
+		CustomName:        tuyaDevice.CustomName,
+		Model:             tuyaDevice.Model,
+		IP:                tuyaDevice.IP,
+		LocalKey:          tuyaDevice.LocalKey,
+		GatewayID:         tuyaDevice.GatewayID,
+		CreateTime:        tuyaDevice.CreateTime,
+		UpdateTime:        tuyaDevice.UpdateTime,
+		Collections:       collectionsJSON,
+	}
 
-		deviceEntity = &entities.Device{
-			ID:                deviceID,
-			TeraluxID:         req.TeraluxID,
-			Name:              req.Name,
-			RemoteID:          tuyaDevice.ID,
-			Category:          tuyaDevice.Category,
-			RemoteCategory:    tuyaDevice.RemoteCategory,
-			ProductName:       tuyaDevice.ProductName,
-			RemoteProductName: tuyaDevice.RemoteProductName,
-			Icon:              tuyaDevice.Icon,
-			CustomName:        tuyaDevice.CustomName,
-			Model:             tuyaDevice.Model,
-			IP:                tuyaDevice.IP,
-			LocalKey:          tuyaDevice.LocalKey,
-			GatewayID:         tuyaDevice.GatewayID,
-			CreateTime:        tuyaDevice.CreateTime,
-			UpdateTime:        tuyaDevice.UpdateTime,
-			Collections:       collectionsJSON,
-		}
-
-		// Save to database
-		if err := uc.repository.Create(deviceEntity); err != nil {
-			return nil, false, err
-		}
+	// Save to database
+	if err := uc.repository.Create(deviceEntity); err != nil {
+		return nil, false, err
 	}
 
 	// 3. Automatically map and Upsert statuses returned from Tuya
@@ -173,8 +151,8 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 		utils.LogWarn("CreateDevice: Failed to invalidate teralux cache: %v", err)
 	}
 
-	// Return response DTO with only ID and isNew flag
+	// Return response DTO with only ID and isNew flag (always true now)
 	return &dtos.CreateDeviceResponseDTO{
 		DeviceID: deviceID,
-	}, len(existingDevices) == 0, nil
+	}, true, nil
 }

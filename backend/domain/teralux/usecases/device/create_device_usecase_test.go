@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"errors"
+	"strings"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
@@ -89,7 +90,41 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 		}
 	})
 
-	// 4. Security: Unauthorized
+	// 4. Constraint: Duplicate Device ID
+	// URL: POST /api/devices
+	// SCENARIO: Device with same ID already exists.
+	// RES: 409 Conflict
+	t.Run("Constraint: Duplicate Device ID", func(t *testing.T) {
+		// Seed teralux
+		teraRepo.Create(&entities.Teralux{ID: "tx-3", MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: "room-3", Name: "Test Hub 3"})
+
+		// Create first device
+		req := &dtos.CreateDeviceRequestDTO{
+			ID:        "duplicate-device-id",
+			Name:      "First Device",
+			TeraluxID: "tx-3",
+		}
+		_, _, err := useCaseWithMocks.Execute(req)
+		if err != nil {
+			t.Fatalf("Expected no error on first create, got: %v", err)
+		}
+
+		// Try to create device with SAME ID (even with different teralux)
+		req2 := &dtos.CreateDeviceRequestDTO{
+			ID:        "duplicate-device-id", // Same ID!
+			Name:      "Second Device",
+			TeraluxID: "tx-3",
+		}
+		_, _, err = useCaseWithMocks.Execute(req2)
+		if err == nil {
+			t.Fatal("Expected error for duplicate device ID, got nil")
+		}
+		if !strings.Contains(err.Error(), "already exists") {
+			t.Errorf("Expected 'already exists' error, got: %v", err)
+		}
+	})
+
+	// 5. Security: Unauthorized
 }
 
 // Mock Tuya Auth UseCase

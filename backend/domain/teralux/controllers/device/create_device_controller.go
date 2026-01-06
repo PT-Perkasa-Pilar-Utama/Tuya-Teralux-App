@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"teralux_app/domain/common/dtos"
 	"teralux_app/domain/common/utils"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
@@ -29,9 +30,9 @@ func NewCreateDeviceController(useCase *usecases.CreateDeviceUseCase) *CreateDev
 // @Accept       json
 // @Produce      json
 // @Param        request  body      teralux_dtos.CreateDeviceRequestDTO  true  "Create Device Request"
-// @Success      201      {object}  dtos.StandardResponse{data=teralux_dtos.CreateDeviceResponseDTO}  "New record created"
-// @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.CreateDeviceResponseDTO}  "Idempotent: record updated"
+// @Success      201      {object}  dtos.StandardResponse{data=teralux_dtos.CreateDeviceResponseDTO}  "Device created successfully"
 // @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
+// @Failure      409      {object}  dtos.StandardResponse "Device already exists"
 // @Failure      422      {object}  dtos.StandardResponse "Validation Error"
 // @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
@@ -50,7 +51,7 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	response, isNew, err := c.useCase.Execute(&req)
+	response, _, err := c.useCase.Execute(&req)
 	if err != nil {
 		if valErr, ok := err.(*utils.ValidationError); ok {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
@@ -71,6 +72,16 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 			return
 		}
 
+		// Handle duplicate device error as 409 Conflict
+		if strings.Contains(err.Error(), "already exists") {
+			ctx.JSON(http.StatusConflict, dtos.StandardResponse{
+				Status:  false,
+				Message: "Device already exists",
+				Data:    nil,
+			})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
@@ -79,12 +90,8 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 		return
 	}
 
-	statusCode := http.StatusCreated
-	if !isNew {
-		statusCode = http.StatusOK
-	}
-
-	ctx.JSON(statusCode, dtos.StandardResponse{
+	// Device created successfully (isNew should always be true now)
+	ctx.JSON(http.StatusCreated, dtos.StandardResponse{
 		Status:  true,
 		Message: "Device created successfully",
 		Data:    response,

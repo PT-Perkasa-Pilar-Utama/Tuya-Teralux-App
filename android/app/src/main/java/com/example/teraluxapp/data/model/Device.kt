@@ -20,8 +20,18 @@ data class Device(
     @SerializedName("create_time") val createTime: Long?,
     @SerializedName("update_time") val updateTime: Long?,
     @SerializedName("status") val status: List<DeviceStatus>?,
-    @SerializedName("collections") val collections: List<Device>?
-)
+    @SerializedName("collections") val collections: String? // Changed to String to match backend
+) {
+    fun getParsedCollections(): List<Device> {
+        if (collections.isNullOrEmpty()) return emptyList()
+        return try {
+            val type = object : com.google.gson.reflect.TypeToken<List<Device>>() {}.type
+            com.google.gson.Gson().fromJson(collections, type)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+}
 
 data class DeviceStatus(
     @SerializedName("code") val code: String,

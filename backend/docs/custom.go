@@ -32,7 +32,27 @@ const CustomSwaggerHTML = `
         plugins: [
           SwaggerUIBundle.plugins.DownloadUrl
         ],
-        layout: "StandaloneLayout"
+        layout: "StandaloneLayout",
+        requestInterceptor: (req) => {
+          return req;
+        },
+        responseInterceptor: (res) => {
+          // Auto-fill bearer token when calling /api/tuya/auth
+          if (res.url && res.url.includes('/api/tuya/auth') && res.status === 200) {
+            try {
+              const data = JSON.parse(res.text);
+              if (data.status && data.data && data.data.access_token) {
+                const token = data.data.access_token;
+                // Auto-fill bearer token
+                ui.preauthorizeApiKey('BearerAuth', 'Bearer ' + token);
+                console.log('✅ Bearer token auto-filled successfully!');
+              }
+            } catch (e) {
+              console.error('Failed to parse auth response:', e);
+            }
+          }
+          return res;
+        }
       })
       window.ui = ui
     }

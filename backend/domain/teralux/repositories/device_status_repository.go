@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/teralux/entities"
 
@@ -23,11 +24,17 @@ func NewDeviceStatusRepository(cache *infrastructure.BadgerService) *DeviceStatu
 
 // Create inserts a new device status record into the database
 func (r *DeviceStatusRepository) Create(status *entities.DeviceStatus) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	return r.db.Create(status).Error
 }
 
 // GetAll retrieves all active (non-deleted) device status records
 func (r *DeviceStatusRepository) GetAll() ([]entities.DeviceStatus, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var statuses []entities.DeviceStatus
 	err := r.db.Find(&statuses).Error
 	return statuses, err
@@ -35,6 +42,9 @@ func (r *DeviceStatusRepository) GetAll() ([]entities.DeviceStatus, error) {
 
 // GetByDeviceID retrieves all statuses belonging to a specific Device
 func (r *DeviceStatusRepository) GetByDeviceID(deviceID string) ([]entities.DeviceStatus, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var statuses []entities.DeviceStatus
 	err := r.db.Where("device_id = ?", deviceID).Find(&statuses).Error
 	return statuses, err
@@ -42,6 +52,9 @@ func (r *DeviceStatusRepository) GetByDeviceID(deviceID string) ([]entities.Devi
 
 // GetByDeviceIDAndCode retrieves a specific status by device ID and code
 func (r *DeviceStatusRepository) GetByDeviceIDAndCode(deviceID, code string) (*entities.DeviceStatus, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var status entities.DeviceStatus
 	err := r.db.Where("device_id = ? AND code = ?", deviceID, code).First(&status).Error
 	if err != nil {
@@ -52,6 +65,9 @@ func (r *DeviceStatusRepository) GetByDeviceIDAndCode(deviceID, code string) (*e
 
 // UpsertDeviceStatuses replaces all statuses for a device with new ones
 func (r *DeviceStatusRepository) UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	// Start transaction
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// Delete all existing statuses for this device (Hard Delete to avoid Unique Composite Key issues)
@@ -72,15 +88,24 @@ func (r *DeviceStatusRepository) UpsertDeviceStatuses(deviceID string, statuses 
 
 // Upsert creates or updates a device status by composite key
 func (r *DeviceStatusRepository) Upsert(status *entities.DeviceStatus) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	return r.db.Save(status).Error
 }
 
 // DeleteByDeviceIDAndCode deletes a device status by composite key
 func (r *DeviceStatusRepository) DeleteByDeviceIDAndCode(deviceID, code string) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	return r.db.Where("device_id = ? AND code = ?", deviceID, code).Delete(&entities.DeviceStatus{}).Error
 }
 
 // DeleteByDeviceID deletes all statuses for a specific device
 func (r *DeviceStatusRepository) DeleteByDeviceID(deviceID string) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	return r.db.Where("device_id = ?", deviceID).Delete(&entities.DeviceStatus{}).Error
 }

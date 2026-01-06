@@ -1147,7 +1147,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Authenticates the user and retrieves a Tuya access token",
+                "description": "Authenticates with Tuya API and retrieves an access token. Requires X-API-KEY header (use ApiKeyAuth, not BearerAuth).",
                 "consumes": [
                     "application/json"
                 ],

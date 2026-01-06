@@ -16,9 +16,9 @@ fun <T> Response<T>.getErrorMessage(): String {
             val errorResponse = gson.fromJson(errorBody, BaseResponse::class.java)
             errorResponse.message
         } else {
-            "HTTP ${this.code()}"
+            "An error occurred. Please try again"
         }
     } catch (e: Exception) {
-        "HTTP ${this.code()}"
+        "An error occurred. Please try again"
     }
 }

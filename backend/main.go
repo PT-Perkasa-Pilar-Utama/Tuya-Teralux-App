@@ -81,22 +81,22 @@ func main() {
 	// Initialize database connection
 	_, err := infrastructure.InitDB()
 	if err != nil {
-		utils.LogInfo("Warning: Failed to initialize database: %v", err)
-	} else {
-		defer infrastructure.CloseDB()
-		utils.LogInfo("Database initialized successfully")
-
-		// Auto Migrate Entities
-		if err := infrastructure.DB.AutoMigrate(
-			&teralux_entities.Teralux{},
-			&teralux_entities.Device{},
-			&teralux_entities.DeviceStatus{},
-		); err != nil {
-			utils.LogInfo("Warning: Failed to auto-migrate entities: %v", err)
-		} else {
-			utils.LogInfo("Entities auto-migrated successfully")
-		}
+		utils.LogInfo("FATAL: Failed to initialize database: %v", err)
+		os.Exit(1)
 	}
+	defer infrastructure.CloseDB()
+	utils.LogInfo("Database initialized successfully")
+
+	// Auto Migrate Entities
+	if err := infrastructure.DB.AutoMigrate(
+		&teralux_entities.Teralux{},
+		&teralux_entities.Device{},
+		&teralux_entities.DeviceStatus{},
+	); err != nil {
+		utils.LogInfo("FATAL: Failed to auto-migrate entities: %v", err)
+		os.Exit(1)
+	}
+	utils.LogInfo("Entities auto-migrated successfully")
 
 	router := gin.Default()
 

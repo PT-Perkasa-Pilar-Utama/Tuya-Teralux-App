@@ -50,13 +50,13 @@ fun DashboardScreen(token: String,
             isLoading = true
             error = null
             try {
-                val response = RetrofitClient.instance.getTeraluxById("Bearer $token", teraluxId)
+                val response = RetrofitClient.instance.getDevicesByTeraluxId("Bearer $token", teraluxId)
                 if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!.data?.teralux
-                    val rawDevices = body?.devices ?: emptyList()
+                    val rawDevices = response.body()!!.data?.devices ?: emptyList()
                     
                     val flatList = rawDevices.flatMap { d ->
-                        if (d.collections.isNullOrEmpty()) listOf(d) else d.collections
+                        val parsedCollections = d.getParsedCollections()
+                        if (parsedCollections.isEmpty()) listOf(d) else parsedCollections
                     }
                     // Force default online status to true (Requested: Treat all devices as online)
                     devices = flatList.map { it.copy(online = true) }
