@@ -1,0 +1,247 @@
+Initialized native services in: /home/farismnrr/.gradle/native
+Initialized jansi services in: /home/farismnrr/.gradle/native
+Found daemon DaemonInfo{pid=42999, address=[5ed5918e-54ef-4df1-9494-1a761f2dc37c port:37037, addresses:[/127.0.0.1]], state=Idle, lastBusy=1767679856361, context=DefaultDaemonContext[uid=6da18031-a43e-42c6-a876-aee593264b1e,javaHome=/home/farismnrr/.local/share/JetBrains/Toolbox/apps/android-studio/jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=/home/farismnrr/.gradle/daemon,pid=42999,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+JVM is incompatible.
+Wanted: DaemonRequestContext{jvmCriteria=/usr/lib/jvm/java-21-openjdk (no JDK specified, using current Java home), daemonOpts=[-Xmx2048m, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=6da18031-a43e-42c6-a876-aee593264b1e,javaHome=/home/farismnrr/.local/share/JetBrains/Toolbox/apps/android-studio/jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=/home/farismnrr/.gradle/daemon,pid=42999,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 74725). The daemon log file: /home/farismnrr/.gradle/daemon/8.13/daemon-74725.out.log
+Starting 16th build in daemon [uptime: 39 mins 12.423 secs, performance: 98%, GC rate: 0.00/s, heap usage: 0% of 2 GiB]
+Using 12 worker leases.
+Not watching /home/farismnrr/Documents/Programs/teralux_app/android since the file system is not supported
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file '/home/farismnrr/Documents/Programs/teralux_app/android/settings.gradle.kts'.
+Projects loaded. Root project using build file '/home/farismnrr/Documents/Programs/teralux_app/android/build.gradle.kts'.
+Included projects: [root project 'Teralux App', project ':app']
+
+> Configure project :
+Evaluating root project 'Teralux App' using build file '/home/farismnrr/Documents/Programs/teralux_app/android/build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '8.13.2', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.21', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.0.21', apply: false]
+Resolved plugin [id: 'com.google.dagger.hilt.android', version: '2.57.2', apply: false]
+Resolved plugin [id: 'com.google.devtools.ksp', version: '2.0.21-1.0.25', apply: false]
+
+> Configure project :app
+Evaluating project ':app' using build file '/home/farismnrr/Documents/Programs/teralux_app/android/app/build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '8.13.2']
+Resolved plugin [id: 'org.jetbrains.kotlin.android', version: '2.0.21']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.0.21']
+Resolved plugin [id: 'com.google.dagger.hilt.android', version: '2.57.2']
+Resolved plugin [id: 'com.google.devtools.ksp', version: '2.0.21-1.0.25']
+Using default execution profile
+Using Kotlin Gradle Plugin gradle85 variant
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+All projects evaluated.
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+Task name matched 'kspDebugKotlin'
+Selected primary task 'kspDebugKotlin' from project :
+Tasks to be executed: [task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:preBuild', task ':app:preDebugBuild', task ':app:generateDebugBuildConfig', task ':app:checkDebugAarMetadata', task ':app:processDebugNavigationResources', task ':app:compileDebugNavigationResources', task ':app:generateDebugResValues', task ':app:mapDebugSourceSetPaths', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':app:processDebugResources', task ':app:kspDebugKotlin']
+Tasks that were excluded: []
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[#2136,Execution worker,5,main]) started.
+:app:checkKotlinGradlePluginConfigurationErrors (Thread[#2136,Execution worker,5,main]) started.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':app:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :app:preBuild (Thread[#2135,included builds,5,main]) started.
+:app:preBuild (Thread[#2135,included builds,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[#2135,included builds,5,main]) started.
+:app:preDebugBuild (Thread[#2135,included builds,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :app:generateDebugBuildConfig (Thread[#2135,included builds,5,main]) started.
+:app:generateDebugBuildConfig (Thread[#2135,included builds,5,main]) started.
+
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':app:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[#2136,Execution worker,5,main]) started.
+:app:checkDebugAarMetadata (Thread[#2136,Execution worker,5,main]) started.
+
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:checkDebugAarMetadata' as it is up-to-date.
+Resolve mutations for :app:processDebugNavigationResources (Thread[#2136,Execution worker,5,main]) started.
+:app:processDebugNavigationResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:processDebugNavigationResources UP-TO-DATE
+Caching disabled for task ':app:processDebugNavigationResources' because:
+  Build cache is disabled
+Skipping task ':app:processDebugNavigationResources' as it is up-to-date.
+Resolve mutations for :app:compileDebugNavigationResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:compileDebugNavigationResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+Caching disabled for task ':app:compileDebugNavigationResources' because:
+  Build cache is disabled
+Skipping task ':app:compileDebugNavigationResources' as it is up-to-date.
+Resolve mutations for :app:generateDebugResValues (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:generateDebugResValues (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':app:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :app:mapDebugSourceSetPaths (Thread[#2145,Execution worker Thread 10,5,main]) started.
+:app:mapDebugSourceSetPaths (Thread[#2145,Execution worker Thread 10,5,main]) started.
+
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+Caching disabled for task ':app:mapDebugSourceSetPaths' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:mapDebugSourceSetPaths' as it is up-to-date.
+Resolve mutations for :app:generateDebugResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:generateDebugResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:generateDebugResources UP-TO-DATE
+Caching disabled for task ':app:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResources' as it is up-to-date.
+Resolve mutations for :app:mergeDebugResources (Thread[#2145,Execution worker Thread 10,5,main]) started.
+:app:mergeDebugResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:mergeDebugResources UP-TO-DATE
+Caching disabled for task ':app:mergeDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:mergeDebugResources' as it is up-to-date.
+Resolve mutations for :app:packageDebugResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:packageDebugResources (Thread[#2145,Execution worker Thread 10,5,main]) started.
+
+> Task :app:packageDebugResources UP-TO-DATE
+Caching disabled for task ':app:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:packageDebugResources' as it is up-to-date.
+Resolve mutations for :app:parseDebugLocalResources (Thread[#2145,Execution worker Thread 10,5,main]) started.
+:app:parseDebugLocalResources (Thread[#2145,Execution worker Thread 10,5,main]) started.
+
+> Task :app:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':app:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':app:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :app:createDebugCompatibleScreenManifests (Thread[#2145,Execution worker Thread 10,5,main]) started.
+:app:createDebugCompatibleScreenManifests (Thread[#2145,Execution worker Thread 10,5,main]) started.
+
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+Caching disabled for task ':app:createDebugCompatibleScreenManifests' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:createDebugCompatibleScreenManifests' as it is up-to-date.
+Resolve mutations for :app:extractDeepLinksDebug (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:extractDeepLinksDebug (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':app:extractDeepLinksDebug' as it is up-to-date.
+Resolve mutations for :app:processDebugMainManifest (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:processDebugMainManifest (Thread[#2147,Execution worker Thread 11,5,main]) started.
+
+> Task :app:processDebugMainManifest UP-TO-DATE
+Caching disabled for task ':app:processDebugMainManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugMainManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifest (Thread[#2147,Execution worker Thread 11,5,main]) started.
+:app:processDebugManifest (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:processDebugManifest UP-TO-DATE
+Caching disabled for task ':app:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifestForPackage (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:processDebugManifestForPackage (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+Custom actions are attached to task ':app:processDebugManifestForPackage'.
+Caching disabled for task ':app:processDebugManifestForPackage' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifestForPackage' as it is up-to-date.
+Resolve mutations for :app:processDebugResources (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:processDebugResources (Thread[#2147,Execution worker Thread 11,5,main]) started.
+
+> Task :app:processDebugResources UP-TO-DATE
+Caching disabled for task ':app:processDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:processDebugResources' as it is up-to-date.
+Resolve mutations for :app:kspDebugKotlin (Thread[#2138,Execution worker Thread 3,5,main]) started.
+:app:kspDebugKotlin (Thread[#2138,Execution worker Thread 3,5,main]) started.
+
+> Task :app:kspDebugKotlin
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugAndroidTestKotlin
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+Caching disabled for task ':app:kspDebugKotlin' because:
+  Build cache is disabled
+Task ':app:kspDebugKotlin' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':app:kspDebugKotlin'.
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/kotlin', not found
+file or directory '/home/farismnrr/Documents/Programs/teralux_app/android/app/src/debug/java', not found
+Kotlin source files: /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/di/RepositoryModule.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/di/NetworkModule.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/config/ApiConfig.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/MainActivity.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/devices/SmartACScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/devices/DeprecatedDeviceListScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/devices/SwitchDeviceScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/devices/SensorDeviceScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/AppNavigation.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/theme/Color.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/theme/Type.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/theme/Theme.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/dashboard/DashboardScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/teralux/StartupViewModel.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/teralux/RegisterTeraluxViewModel.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/teralux/RegisterUiState.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/teralux/RegisterTeraluxScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/teralux/StartupScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/teralux/StartupUiState.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/settings/SettingsScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/device_detail/DeviceDetailScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/components/LoadingButton.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/components/ErrorText.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/room/RoomStatusViewModel.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/room/RoomStatusUiState.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/room/RoomStatusScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/login/LoginViewModel.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/login/LoginUiState.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/ui/login/LoginScreen.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/BootCompletedReceiver.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/repository/TeraluxRepositoryImpl.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/repository/AuthRepository.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/repository/AuthRepositoryImpl.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/repository/TeraluxRepository.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/model/Device.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/model/BaseResponse.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/model/SensorData.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/model/Teralux.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/model/AuthResponse.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/model/TuyaSync.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/network/AuthInterceptor.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/network/FailoverInterceptor.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/network/ApiService.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/data/network/RetrofitClient.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/TeraluxApplication.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/utils/SessionManager.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/utils/DeviceInfoUtils.kt, /home/farismnrr/Documents/Programs/teralux_app/android/app/src/main/java/com/example/teraluxapp/utils/PreferencesManager.kt
+Java source files: /home/farismnrr/Documents/Programs/teralux_app/android/app/build/generated/source/buildConfig/debug/com/example/teraluxapp/BuildConfig.java
+Script source files: 
+Script file extensions: 
+[KOTLIN] Kotlin compilation 'jdkHome' argument: null
+i: [ksp] loaded provider(s): [dagger.hilt.processor.internal.uninstallmodules.KspUninstallModulesProcessor$Provider, dagger.hilt.processor.internal.aliasof.KspAliasOfProcessor$Provider, dagger.hilt.processor.internal.originatingelement.KspOriginatingElementProcessor$Provider, dagger.hilt.processor.internal.root.KspComponentTreeDepsProcessor$Provider, dagger.hilt.android.processor.internal.customtestapplication.KspCustomTestApplicationProcessor$Provider, dagger.hilt.processor.internal.root.KspRootProcessor$Provider, dagger.hilt.android.processor.internal.viewmodel.KspViewModelProcessor$Provider, dagger.hilt.android.processor.internal.bindvalue.KspBindValueProcessor$Provider, dagger.hilt.processor.internal.aggregateddeps.KspAggregatedDepsProcessor$Provider, dagger.hilt.processor.internal.definecomponent.KspDefineComponentProcessor$Provider, dagger.hilt.android.processor.internal.androidentrypoint.KspAndroidEntryPointProcessor$Provider, dagger.hilt.processor.internal.earlyentrypoint.KspEarlyEntryPointProcessor$Provider, dagger.hilt.processor.internal.generatesrootinput.KspGeneratesRootInputProcessor$Provider, dagger.internal.codegen.KspComponentProcessor$Provider]
+e: file:///home/farismnrr/.gradle/caches/8.13/transforms/6df3aaee74f59e23fe8d381991a2702d/transformed/okhttp-release-api.jar!/META-INF/okhttp.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///home/farismnrr/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/logging-interceptor/5.3.2/c3e383f1e11079b94509f025628959ebf7742d92/logging-interceptor-5.3.2.jar!/META-INF/logging-interceptor.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///home/farismnrr/.gradle/caches/modules-2/files-2.1/com.squareup.okio/okio-jvm/3.16.4/ceb794cf0bbf8d0d20f49aa91ce20db7fd77675d/okio-jvm-3.16.4.jar!/META-INF/okio.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///home/farismnrr/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.21/fa374a986e128314c3db00a20aae55f72a258511/kotlin-stdlib-2.2.21.jar!/META-INF/kotlin-stdlib-jdk7.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///home/farismnrr/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.21/fa374a986e128314c3db00a20aae55f72a258511/kotlin-stdlib-2.2.21.jar!/META-INF/kotlin-stdlib-jdk8.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///home/farismnrr/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.21/fa374a986e128314c3db00a20aae55f72a258511/kotlin-stdlib-2.2.21.jar!/META-INF/kotlin-stdlib.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+Finished executing kotlin compiler using DAEMON strategy
+
+> Task :app:kspDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kspDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 9s
+17 actionable tasks: 1 executed, 16 up-to-date
+Some of the file system contents retained in the virtual file system are on file systems that Gradle doesn't support watching. The relevant state was discarded to ensure changes to these locations are properly detected. You can override this by explicitly enabling file system watching.
