@@ -11,7 +11,7 @@ plugins {
 
 android {
     namespace = "com.example.teraluxapp"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.teraluxapp"
@@ -43,9 +43,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-    }
+    /* compilerOptions moved to top-level kotlin block */
     buildFeatures {
         compose = true
         buildConfig = true
@@ -56,6 +54,13 @@ android {
             "StateFlowValueCalledInComposition",
             "CoroutineCreationDuringComposition"
         )
+    }
+}
+
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 
