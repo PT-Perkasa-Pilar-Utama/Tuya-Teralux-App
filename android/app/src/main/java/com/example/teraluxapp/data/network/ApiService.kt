@@ -26,7 +26,7 @@ import retrofit2.http.Query
 
 interface ApiService {
     @GET("api/tuya/auth")
-    suspend fun authenticate(): BaseResponse<AuthResponse>
+    suspend fun authenticate(): Response<BaseResponse<AuthResponse>>
 
     // Teralux Device Check & Registration (Public with API Key)
     @GET("api/teralux/mac/{mac}")
@@ -37,7 +37,7 @@ interface ApiService {
     @POST("api/teralux")
     suspend fun registerTeralux(
         @Body request: CreateTeraluxRequest
-    ): BaseResponse<CreateTeraluxResponse>
+    ): Response<BaseResponse<CreateTeraluxResponse>>
 
     @GET("api/tuya/devices")
     suspend fun getDevices(
