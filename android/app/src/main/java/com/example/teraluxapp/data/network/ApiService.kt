@@ -60,10 +60,10 @@ interface ApiService {
         @Path("id") deviceId: String
     ): BaseResponse<SingleDeviceResponse>
 
-    @POST("api/tuya/devices/{id}/commands/ir")
+    @PUT("api/devices/{id}/status")
     suspend fun sendIRACCommand(
         @Header("Authorization") token: String,
-        @Path("id") infraredId: String,
+        @Path("id") deviceId: String,
         @Body request: IRACCommandRequest
     ): Response<BaseResponse<CommandResponse>>
 
