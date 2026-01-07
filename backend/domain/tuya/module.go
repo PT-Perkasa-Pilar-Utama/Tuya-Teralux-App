@@ -23,6 +23,7 @@ type TuyaModule struct {
 	// Exported Use Cases for other domains
 	AuthUseCase          *usecases.TuyaAuthUseCase
 	GetDeviceByIDUseCase *usecases.TuyaGetDeviceByIDUseCase
+	DeviceControlUseCase *usecases.TuyaDeviceControlUseCase
 }
 
 // NewTuyaModule initializes the Tuya module
@@ -52,6 +53,7 @@ func NewTuyaModule(badger *infrastructure.BadgerService) *TuyaModule {
 
 		AuthUseCase:          tuyaAuthUseCase,
 		GetDeviceByIDUseCase: tuyaGetDeviceByIDUseCase,
+		DeviceControlUseCase: tuyaDeviceControlUseCase,
 	}
 }
 

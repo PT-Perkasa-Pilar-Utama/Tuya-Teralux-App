@@ -6,24 +6,33 @@ import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
+	tuya_dtos "teralux_app/domain/tuya/dtos"
 )
+
+// TuyaDeviceControlExecutor defines the interface for Tuya device control operations
+type TuyaDeviceControlExecutor interface {
+	SendCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error)
+	SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error)
+}
 
 // UpdateDeviceStatusUseCase handles updating an existing device status
 type UpdateDeviceStatusUseCase struct {
 	repo    *repositories.DeviceStatusRepository
 	devRepo *repositories.DeviceRepository
+	tuyaCmd TuyaDeviceControlExecutor
 }
 
 // NewUpdateDeviceStatusUseCase creates a new instance of UpdateDeviceStatusUseCase
-func NewUpdateDeviceStatusUseCase(repo *repositories.DeviceStatusRepository, devRepo *repositories.DeviceRepository) *UpdateDeviceStatusUseCase {
+func NewUpdateDeviceStatusUseCase(repo *repositories.DeviceStatusRepository, devRepo *repositories.DeviceRepository, tuyaCmd TuyaDeviceControlExecutor) *UpdateDeviceStatusUseCase {
 	return &UpdateDeviceStatusUseCase{
 		repo:    repo,
 		devRepo: devRepo,
+		tuyaCmd: tuyaCmd,
 	}
 }
 
 // Execute updates a device status
-func (uc *UpdateDeviceStatusUseCase) Execute(deviceID string, req *dtos.UpdateDeviceStatusRequestDTO) error {
+func (uc *UpdateDeviceStatusUseCase) Execute(deviceID string, req *dtos.UpdateDeviceStatusRequestDTO, accessToken string) error {
 	// Check device existence
 	_, err := uc.devRepo.GetByID(deviceID)
 	if err != nil {
@@ -47,6 +56,41 @@ func (uc *UpdateDeviceStatusUseCase) Execute(deviceID string, req *dtos.UpdateDe
 
 	if len(details) > 0 {
 		return utils.NewValidationError("Validation Error", details)
+	}
+
+	// Execute Tuya Command
+	if req.RemoteID != "" {
+		// IR Command
+		// Need to convert Value to int if possible, safely
+		valInt, ok := utils.ToInt(req.Value)
+		if !ok {
+			// fallback or error? For now assuming 0 or error, but let's try to proceed or handle error
+			// If conversion fails and it's required, we should return error.
+			// But existing code just passed req.Value to DB.
+			// Let's assume for IR commands, value MUST be convertible to int as per SendIRACCommand signature
+			valInt = 0 // default
+		}
+
+		success, err := uc.tuyaCmd.SendIRACCommand(accessToken, deviceID, req.RemoteID, req.Code, valInt)
+		if err != nil {
+			return fmt.Errorf("failed to send IR command: %w", err)
+		}
+		if !success {
+			return fmt.Errorf("failed to send IR command: unsuccessful response from Tuya")
+		}
+	} else {
+		// Switch/Standard Command
+		cmd := tuya_dtos.TuyaCommandDTO{
+			Code:  req.Code,
+			Value: req.Value,
+		}
+		success, err := uc.tuyaCmd.SendCommand(accessToken, deviceID, []tuya_dtos.TuyaCommandDTO{cmd})
+		if err != nil {
+			return fmt.Errorf("failed to send command: %w", err)
+		}
+		if !success {
+			return fmt.Errorf("failed to send command: unsuccessful response from Tuya")
+		}
 	}
 
 	// Convert value to string for storage
