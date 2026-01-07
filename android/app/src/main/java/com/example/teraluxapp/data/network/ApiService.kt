@@ -106,7 +106,9 @@ interface ApiService {
     @GET("api/devices/teralux/{teraluxId}")
     suspend fun getDevicesByTeraluxId(
         @Header("Authorization") token: String,
-        @Path("teraluxId") teraluxId: String
+        @Path("teraluxId") teraluxId: String,
+        @retrofit2.http.Query("page") page: Int? = null,
+        @retrofit2.http.Query("limit") limit: Int? = null
     ): Response<BaseResponse<DeviceListResponse>>
 
 

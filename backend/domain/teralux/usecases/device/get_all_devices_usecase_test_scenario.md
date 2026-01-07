@@ -75,6 +75,39 @@ Retrieve a list of devices, optionally filtered by Teralux Hub.
   ```
   *(Status: 200 OK)*
 
+### 1.1 Get All Devices (Success - Pagination)
+- **URL**: `http://localhost:8080/api/devices?page=1&limit=1`
+- **Method**: `GET`
+- **Headers**:
+  ```json
+  {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer <valid_token>"
+  }
+  ```
+- **Pre-conditions**:
+  - `tx-1` has 2 devices (d1, d2).
+- **Expected Response**:
+  ```json
+  {
+    "status": true,
+    "message": "Devices retrieved successfully",
+    "data": {
+      "devices": [
+        {
+          "id": "d1",
+          "name": "Light 1",
+          // ... details ...
+        }
+      ],
+      "total": 2,
+      "page": 1,
+      "per_page": 1
+    }
+  }
+  ```
+  *(Status: 200 OK)*
+
 ### 2. Get All Devices (Success - Empty)
 - **URL**: `http://localhost:8080/api/devices`
 - **Method**: `GET`

@@ -22,7 +22,7 @@ func TestGetDeviceStatusesByDeviceID_UserBehavior(t *testing.T) {
 	// URL: GET /api/devices/dev-1/statuses
 	// RES: 200 OK
 	t.Run("Get Statuses By Device ID (Success)", func(t *testing.T) {
-		res, err := useCase.Execute("dev-1")
+		res, err := useCase.Execute("dev-1", 0, 0)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -35,7 +35,7 @@ func TestGetDeviceStatusesByDeviceID_UserBehavior(t *testing.T) {
 	// URL: GET /api/devices/dev-2/statuses
 	// RES: 200 OK
 	t.Run("Get Statuses By Device ID (Success - Empty)", func(t *testing.T) {
-		res, err := useCase.Execute("dev-2")
+		res, err := useCase.Execute("dev-2", 0, 0)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -48,7 +48,7 @@ func TestGetDeviceStatusesByDeviceID_UserBehavior(t *testing.T) {
 	// URL: GET /api/devices/unknown/statuses
 	// RES: 404 Not Found
 	t.Run("Get Statuses By Device ID (Not Found)", func(t *testing.T) {
-		_, err := useCase.Execute("unknown")
+		_, err := useCase.Execute("unknown", 0, 0)
 		if err == nil {
 			t.Fatal("Expected error for unknown device, got nil")
 		}

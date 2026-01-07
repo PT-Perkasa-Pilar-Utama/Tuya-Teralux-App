@@ -22,6 +22,9 @@ type UpdateDeviceRequestDTO struct {
 // DeviceFilterDTO represents filter options for listing devices
 type DeviceFilterDTO struct {
 	TeraluxID *string `form:"teralux_id" json:"teralux_id,omitempty"`
+	Page      int     `form:"page" json:"page,omitempty"`
+	Limit     int     `form:"limit" json:"limit,omitempty"`
+	PerPage   int     `form:"per_page" json:"per_page,omitempty"` // Alias for limit
 }
 
 // DeviceResponseDTO represents the response format for a single device

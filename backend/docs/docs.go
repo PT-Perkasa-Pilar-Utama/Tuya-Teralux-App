@@ -76,6 +76,32 @@ const docTemplate = `{
                     "04. Devices"
                 ],
                 "summary": "Get All Devices",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by Teralux ID",
+                        "name": "teralux_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (alias for limit)",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -201,6 +227,26 @@ const docTemplate = `{
                     "05. Device Statuses"
                 ],
                 "summary": "Get All Device Statuses",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (alias for limit)",
+                        "name": "per_page",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -594,6 +640,24 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (alias for limit)",
+                        "name": "per_page",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -730,6 +794,32 @@ const docTemplate = `{
                     "03. Teralux"
                 ],
                 "summary": "Get All Teralux",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (alias for limit)",
+                        "name": "per_page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by Room ID",
+                        "name": "room_id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1203,6 +1293,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Items per page",
                         "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (alias for limit)",
+                        "name": "per_page",
                         "in": "query"
                     },
                     {
@@ -1963,6 +2059,15 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dtos.TuyaDeviceDTO"
                     }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 },
                 "total_devices": {
                     "type": "integer"

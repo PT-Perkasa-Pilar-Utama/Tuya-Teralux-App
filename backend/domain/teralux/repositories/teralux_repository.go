@@ -42,6 +42,34 @@ func (r *TeraluxRepository) GetAll() ([]entities.Teralux, error) {
 	return teraluxList, err
 }
 
+// GetAllPaginated retrieves teralux records with pagination and optional room filtering
+func (r *TeraluxRepository) GetAllPaginated(offset, limit int, roomID *string) ([]entities.Teralux, int64, error) {
+	if r.db == nil {
+		return nil, 0, fmt.Errorf("database not initialized")
+	}
+	var teraluxList []entities.Teralux
+	var total int64
+
+	query := r.db.Model(&entities.Teralux{})
+
+	// Apply filter
+	if roomID != nil {
+		query = query.Where("room_id = ?", *roomID)
+	}
+
+	// Count total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated
+	if limit > 0 {
+		query = query.Offset(offset).Limit(limit)
+	}
+	err := query.Find(&teraluxList).Error
+	return teraluxList, total, err
+}
+
 // GetByID retrieves a single teralux record by ID with caching
 func (r *TeraluxRepository) GetByID(id string) (*entities.Teralux, error) {
 	// Try to get from cache first

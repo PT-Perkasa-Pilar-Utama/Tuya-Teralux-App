@@ -40,6 +40,28 @@ func (r *DeviceStatusRepository) GetAll() ([]entities.DeviceStatus, error) {
 	return statuses, err
 }
 
+// GetAllPaginated retrieves all active device status records with pagination
+func (r *DeviceStatusRepository) GetAllPaginated(offset, limit int) ([]entities.DeviceStatus, int64, error) {
+	if r.db == nil {
+		return nil, 0, fmt.Errorf("database not initialized")
+	}
+	var statuses []entities.DeviceStatus
+	var total int64
+
+	// Count total
+	if err := r.db.Model(&entities.DeviceStatus{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated
+	query := r.db
+	if limit > 0 {
+		query = query.Offset(offset).Limit(limit)
+	}
+	err := query.Find(&statuses).Error
+	return statuses, total, err
+}
+
 // GetByDeviceID retrieves all statuses belonging to a specific Device
 func (r *DeviceStatusRepository) GetByDeviceID(deviceID string) ([]entities.DeviceStatus, error) {
 	if r.db == nil {
@@ -48,6 +70,28 @@ func (r *DeviceStatusRepository) GetByDeviceID(deviceID string) ([]entities.Devi
 	var statuses []entities.DeviceStatus
 	err := r.db.Where("device_id = ?", deviceID).Find(&statuses).Error
 	return statuses, err
+}
+
+// GetByDeviceIDPaginated retrieves statuses by Device ID with pagination
+func (r *DeviceStatusRepository) GetByDeviceIDPaginated(deviceID string, offset, limit int) ([]entities.DeviceStatus, int64, error) {
+	if r.db == nil {
+		return nil, 0, fmt.Errorf("database not initialized")
+	}
+	var statuses []entities.DeviceStatus
+	var total int64
+
+	// Count total
+	if err := r.db.Model(&entities.DeviceStatus{}).Where("device_id = ?", deviceID).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated
+	query := r.db.Where("device_id = ?", deviceID)
+	if limit > 0 {
+		query = query.Offset(offset).Limit(limit)
+	}
+	err := query.Find(&statuses).Error
+	return statuses, total, err
 }
 
 // GetByDeviceIDAndCode retrieves a specific status by device ID and code

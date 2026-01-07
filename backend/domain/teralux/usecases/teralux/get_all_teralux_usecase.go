@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"teralux_app/domain/teralux/dtos"
-	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
 )
 
@@ -20,49 +19,37 @@ func NewGetAllTeraluxUseCase(repository *repositories.TeraluxRepository) *GetAll
 
 // Execute retrieves all teralux records
 func (uc *GetAllTeraluxUseCase) Execute(filter *dtos.TeraluxFilterDTO) (*dtos.TeraluxListResponseDTO, error) {
-	teraluxList, err := uc.repository.GetAll()
-	if err != nil {
-		return nil, err
-	}
-
-	// Filter in memory (Basic implementation to satisfy tests roughly)
-	var filtered []entities.Teralux
-	for _, item := range teraluxList {
-		if filter != nil && filter.RoomID != nil {
-			if item.RoomID != *filter.RoomID {
-				continue
-			}
-		}
-		filtered = append(filtered, item)
-	}
-
-	// Pagination
+	// Prepare Pagination & Filter
 	page := 1
-	limit := 10
+	limit := 0
+	var roomID *string
+
 	if filter != nil {
 		if filter.Page > 0 {
 			page = filter.Page
 		}
 		if filter.Limit > 0 {
 			limit = filter.Limit
+		} else if filter.PerPage > 0 {
+			limit = filter.PerPage
 		}
+		roomID = filter.RoomID
 	}
 
-	total := int64(len(filtered))
-	start := (page - 1) * limit
-	end := start + limit
+	offset := (page - 1) * limit
+	if offset < 0 {
+		offset = 0
+	}
 
-	var paged []entities.Teralux
-	if start < len(filtered) {
-		if end > len(filtered) {
-			end = len(filtered)
-		}
-		paged = filtered[start:end]
+	// Fetch Data
+	teraluxList, total, err := uc.repository.GetAllPaginated(offset, limit, roomID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Map to DTOs
 	var teraluxDTOs []dtos.TeraluxResponseDTO
-	for _, item := range paged {
+	for _, item := range teraluxList {
 		teraluxDTOs = append(teraluxDTOs, dtos.TeraluxResponseDTO{
 			ID:         item.ID,
 			MacAddress: item.MacAddress,
@@ -75,6 +62,11 @@ func (uc *GetAllTeraluxUseCase) Execute(filter *dtos.TeraluxFilterDTO) (*dtos.Te
 
 	if teraluxDTOs == nil {
 		teraluxDTOs = []dtos.TeraluxResponseDTO{}
+	}
+
+	// If limit was 0 (meaning all), set per_page to total
+	if limit == 0 {
+		limit = int(total)
 	}
 
 	return &dtos.TeraluxListResponseDTO{

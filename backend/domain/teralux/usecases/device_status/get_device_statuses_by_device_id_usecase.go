@@ -21,13 +21,23 @@ func NewGetDeviceStatusesByDeviceIDUseCase(repo *repositories.DeviceStatusReposi
 }
 
 // Execute retrieves all statuses for a device
-func (uc *GetDeviceStatusesByDeviceIDUseCase) Execute(deviceID string) (*dtos.DeviceStatusListResponseDTO, error) {
+func (uc *GetDeviceStatusesByDeviceIDUseCase) Execute(deviceID string, page, limit int) (*dtos.DeviceStatusListResponseDTO, error) {
 	_, err := uc.devRepo.GetByID(deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("Device not found: %w", err)
 	}
 
-	statuses, err := uc.repo.GetByDeviceID(deviceID)
+	// Prepare Pagination
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Fetch Data
+	statuses, total, err := uc.repo.GetByDeviceIDPaginated(deviceID, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +57,15 @@ func (uc *GetDeviceStatusesByDeviceIDUseCase) Execute(deviceID string) (*dtos.De
 		dtosList = []dtos.DeviceStatusResponseDTO{}
 	}
 
+	// If limit was 0 (meaning all), set per_page to total
+	if limit == 0 {
+		limit = int(total)
+	}
+
 	return &dtos.DeviceStatusListResponseDTO{
 		DeviceStatuses: dtosList,
-		Total:          len(dtosList),
-		Page:           1,
-		PerPage:        len(dtosList),
+		Total:          int(total),
+		Page:           page,
+		PerPage:        limit,
 	}, nil
 }

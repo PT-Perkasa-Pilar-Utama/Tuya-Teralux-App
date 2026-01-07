@@ -42,6 +42,28 @@ func (r *DeviceRepository) GetAll() ([]entities.Device, error) {
 	return devices, err
 }
 
+// GetAllPaginated retrieves device records with pagination
+func (r *DeviceRepository) GetAllPaginated(offset, limit int) ([]entities.Device, int64, error) {
+	if r.db == nil {
+		return nil, 0, fmt.Errorf("database not initialized")
+	}
+	var devices []entities.Device
+	var total int64
+
+	// Count total
+	if err := r.db.Model(&entities.Device{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated
+	query := r.db
+	if limit > 0 {
+		query = query.Offset(offset).Limit(limit)
+	}
+	err := query.Find(&devices).Error
+	return devices, total, err
+}
+
 // GetByTeraluxID retrieves all devices belonging to a specific Teralux unit
 func (r *DeviceRepository) GetByTeraluxID(teraluxID string) ([]entities.Device, error) {
 	if r.db == nil {
@@ -50,6 +72,28 @@ func (r *DeviceRepository) GetByTeraluxID(teraluxID string) ([]entities.Device, 
 	var devices []entities.Device
 	err := r.db.Where("teralux_id = ?", teraluxID).Find(&devices).Error
 	return devices, err
+}
+
+// GetByTeraluxIDPaginated retrieves devices by Teralux ID with pagination
+func (r *DeviceRepository) GetByTeraluxIDPaginated(teraluxID string, offset, limit int) ([]entities.Device, int64, error) {
+	if r.db == nil {
+		return nil, 0, fmt.Errorf("database not initialized")
+	}
+	var devices []entities.Device
+	var total int64
+
+	// Count total
+	if err := r.db.Model(&entities.Device{}).Where("teralux_id = ?", teraluxID).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated
+	query := r.db.Where("teralux_id = ?", teraluxID)
+	if limit > 0 {
+		query = query.Offset(offset).Limit(limit)
+	}
+	err := query.Find(&devices).Error
+	return devices, total, err
 }
 
 // GetByIDUnscoped retrieves a single device record by ID including soft-deleted ones

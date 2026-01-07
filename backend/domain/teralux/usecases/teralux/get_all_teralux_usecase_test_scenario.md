@@ -25,7 +25,7 @@ Retrieve a paginated list of all Teralux devices, with optional filtering.
       "teralux": [],
       "total": 0,
       "page": 1,
-      "per_page": 10
+      "per_page": 0
     }
   }
   ```
@@ -60,7 +60,7 @@ Retrieve a paginated list of all Teralux devices, with optional filtering.
       ],
       "total": 2,
       "page": 1,
-      "per_page": 10
+      "per_page": 2
     }
   }
   ```

@@ -30,6 +30,10 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 // @Tags         04. Devices
 // @Accept       json
 // @Produce      json
+// @Param        teralux_id query string false "Filter by Teralux ID"
+// @Param        page       query int    false "Page number"
+// @Param        limit      query int    false "Items per page"
+// @Param        per_page   query int    false "Items per page (alias for limit)"
 // @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.DeviceListResponseDTO}
 // @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
 // @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"

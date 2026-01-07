@@ -51,6 +51,9 @@ type TuyaDevicesResponseDTO struct {
 	Devices          []TuyaDeviceDTO `json:"devices"`
 	TotalDevices     int             `json:"total_devices"`
 	CurrentPageCount int             `json:"current_page_count"`
+	Page             int             `json:"page"`
+	PerPage          int             `json:"per_page"`
+	Total            int             `json:"total"`
 }
 
 // TuyaDeviceResponseDTO represents the response for getting a single device

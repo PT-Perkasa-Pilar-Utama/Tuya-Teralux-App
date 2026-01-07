@@ -391,5 +391,8 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		Devices:          deviceDTOs,
 		TotalDevices:     total,
 		CurrentPageCount: len(deviceDTOs),
+		Page:             page,
+		PerPage:          limit,
+		Total:            total,
 	}, nil
 }

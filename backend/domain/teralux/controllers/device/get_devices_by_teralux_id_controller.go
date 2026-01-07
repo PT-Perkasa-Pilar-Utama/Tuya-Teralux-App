@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"teralux_app/domain/common/dtos"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
@@ -32,6 +33,9 @@ func NewGetDevicesByTeraluxIDController(useCase *usecases.GetDevicesByTeraluxIDU
 // @Accept       json
 // @Produce      json
 // @Param        teralux_id   path      string  true  "Teralux ID"
+// @Param        page         query     int     false "Page number"
+// @Param        limit        query     int     false "Items per page"
+// @Param        per_page     query     int     false "Items per page (alias for limit)"
 // @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceListResponseDTO}  "Returns list of devices"
 // @Failure      400  {object}  dtos.StandardResponse "Invalid Teralux ID format"
 // @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
@@ -50,8 +54,23 @@ func (c *GetDevicesByTeraluxIDController) GetDevicesByTeraluxID(ctx *gin.Context
 		return
 	}
 
+	pageStr := ctx.Query("page")
+	limitStr := ctx.Query("limit")
+	if limitStr == "" {
+		limitStr = ctx.Query("per_page")
+	}
+
+	page := 0
+	limit := 0
+	if val, err := strconv.Atoi(pageStr); err == nil {
+		page = val
+	}
+	if val, err := strconv.Atoi(limitStr); err == nil {
+		limit = val
+	}
+
 	// Execute dedicated use case
-	devices, err := c.useCase.Execute(teraluxID)
+	devices, err := c.useCase.Execute(teraluxID, page, limit)
 	if err != nil {
 		if strings.Contains(err.Error(), "Teralux hub not found") {
 			ctx.JSON(http.StatusNotFound, dtos.StandardResponse{

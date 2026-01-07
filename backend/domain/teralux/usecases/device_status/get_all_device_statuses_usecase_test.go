@@ -51,7 +51,7 @@ func TestGetAllDeviceStatusesUseCase_UserBehavior(t *testing.T) {
 	// URL: GET /api/device-statuses
 	// RES: 200 OK
 	t.Run("Get All Statuses (Success)", func(t *testing.T) {
-		res, err := useCase.Execute()
+		res, err := useCase.Execute(0, 0)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -68,7 +68,7 @@ func TestGetAllDeviceStatusesUseCase_UserBehavior(t *testing.T) {
 		emptyRepo, _ := setupStatusTestEnv(t)
 		emptyUC := NewGetAllDeviceStatusesUseCase(emptyRepo)
 
-		res, err := emptyUC.Execute()
+		res, err := emptyUC.Execute(0, 0)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}

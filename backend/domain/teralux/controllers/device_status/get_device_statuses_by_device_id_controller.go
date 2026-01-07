@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"teralux_app/domain/common/dtos"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device_status"
@@ -29,7 +30,10 @@ func NewGetDeviceStatusesByDeviceIDController(useCase *usecases.GetDeviceStatuse
 // @Description  Retrieves all statuses for a specific device
 // @Tags         05. Device Statuses
 // @Produce      json
-// @Param        id   path      string  true  "Device ID"
+// @Param        id        path      string  true  "Device ID"
+// @Param        page      query     int     false "Page number"
+// @Param        limit     query     int     false "Items per page"
+// @Param        per_page  query     int     false "Items per page (alias for limit)"
 // @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceStatusListResponseDTO}
 // @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
 // @Failure      404  {object}  dtos.StandardResponse "Device not found"
@@ -47,7 +51,22 @@ func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx 
 		return
 	}
 
-	statuses, err := c.useCase.Execute(id)
+	pageStr := ctx.Query("page")
+	limitStr := ctx.Query("limit")
+	if limitStr == "" {
+		limitStr = ctx.Query("per_page")
+	}
+
+	page := 0
+	limit := 0
+	if val, err := strconv.Atoi(pageStr); err == nil {
+		page = val
+	}
+	if val, err := strconv.Atoi(limitStr); err == nil {
+		limit = val
+	}
+
+	statuses, err := c.useCase.Execute(id, page, limit)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,

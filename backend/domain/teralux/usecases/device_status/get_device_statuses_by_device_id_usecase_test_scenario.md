@@ -36,6 +36,36 @@ Retrieve all status entries for a specific device.
   ```
   *(Status: 200 OK)*
 
+### 1.1 Get Statuses By Device ID (Success - Pagination)
+- **URL**: `http://localhost:8080/api/devices/d1/statuses?page=1&limit=1`
+- **Method**: `GET`
+- **Headers**:
+  ```json
+  {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer <valid_token>"
+  }
+  ```
+- **Pre-conditions**:
+  - Device `d1` exists.
+  - `d1` has 2 statuses.
+- **Expected Response**:
+  ```json
+  {
+    "status": true,
+    "message": "Statuses retrieved successfully",
+    "data": {
+      "device_statuses": [
+        { "code": "switch_1", "value": true }
+      ],
+      "total": 2,
+      "page": 1,
+      "per_page": 1
+    }
+  }
+  ```
+  *(Status: 200 OK)*
+
 ### 2. Get Statuses By Device ID (Success - Empty)
 - **URL**: `http://localhost:8080/api/devices/d2/statuses`
 - **Method**: `GET`
