@@ -49,6 +49,7 @@ func NewTeraluxModule(
 	deviceRepository *repositories.DeviceRepository,
 	tuyaAuthUC *tuya_usecases.TuyaAuthUseCase,
 	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
+	tuyaDeviceControlUC device_status_usecases.TuyaDeviceControlExecutor,
 ) *TeraluxModule {
 	// Repositories
 	teraluxRepository := repositories.NewTeraluxRepository(badger)
@@ -74,7 +75,7 @@ func NewTeraluxModule(
 	getDeviceStatusesByDeviceIDUseCase := device_status_usecases.NewGetDeviceStatusesByDeviceIDUseCase(deviceStatusRepository, deviceRepository)
 	getAllDeviceStatusesUseCase := device_status_usecases.NewGetAllDeviceStatusesUseCase(deviceStatusRepository)
 	getDeviceStatusByCodeUseCase := device_status_usecases.NewGetDeviceStatusByCodeUseCase(deviceStatusRepository, deviceRepository)
-	updateDeviceStatusUseCase := device_status_usecases.NewUpdateDeviceStatusUseCase(deviceStatusRepository, deviceRepository)
+	updateDeviceStatusUseCase := device_status_usecases.NewUpdateDeviceStatusUseCase(deviceStatusRepository, deviceRepository, tuyaDeviceControlUC)
 
 	// Controllers
 	return &TeraluxModule{

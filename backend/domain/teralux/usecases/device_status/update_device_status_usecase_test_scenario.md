@@ -29,10 +29,6 @@ Update the status of a specific capability (code) for a device. This triggers th
     "status": true,
     "message": "Status updated successfully",
     "data": null
-      "device_id": "d1",
-      "code": "switch_1",
-      "value": true
-    }
   }
   ```
   *(Status: 200 OK)*
@@ -123,6 +119,65 @@ Update the status of a specific capability (code) for a device. This triggers th
   ```
 - **Expected Response**:
   ```json
-  { "status": false, "message": "Unauthorized" }
+  {
+    "status": false,
+    "message": "Unauthorized"
+  }
   ```
   *(Status: 401 Unauthorized)*
+  
+### 6. Command Failure (Tuya Error)
+- **URL**: `http://localhost:8080/api/devices/d1/status`
+- **Method**: `PUT`
+- **Headers**:
+  ```json
+  {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer <valid_token>"
+  }
+  ```
+- **Pre-conditions**: Tuya API returns error (simulated via invalid token in mock).
+- **Request Body**:
+  ```json
+  { "code": "switch_1", "value": true }
+  ```
+- **Expected Response**:
+  ```json
+  {
+    "status": false,
+    "message": "failed to send command: mock error: invalid token"
+  }
+  ```
+  *(Status: 500 Internal Server Error)*
+
+### 7. IR Command Success
+- **URL**: `http://localhost:8080/api/devices/d1/status`
+- **Method**: `PUT`
+- **Headers**:
+  ```json
+  {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer <valid_token>"
+  }
+  ```
+- **Pre-conditions**: Device `d1` is an IR device being controlled via `ir_remote_1`.
+- **Request Body**:
+  ```json
+  {
+    "code": "temp",
+    "value": 24,
+    "remote_id": "ir_remote_1"
+  }
+  ```
+- **Expected Response**:
+  ```json
+  {
+    "status": true,
+    "message": "Status updated successfully",
+    "data": null
+  }
+  ```
+  *(Status: 200 OK)*
+  - **Side Effects**:
+    - Tuya IR command sent.
+    - Database updated with code "temp" and value "24".

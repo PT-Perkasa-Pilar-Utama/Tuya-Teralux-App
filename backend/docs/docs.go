@@ -2024,6 +2024,10 @@ const docTemplate = `{
                 "code": {
                     "type": "string"
                 },
+                "remote_id": {
+                    "description": "Optional, for IR devices",
+                    "type": "string"
+                },
                 "value": {}
             }
         },

@@ -17,8 +17,9 @@ type CreateDeviceStatusResponseDTO struct {
 
 // UpdateDeviceStatusRequestDTO represents the request body for updating a device status
 type UpdateDeviceStatusRequestDTO struct {
-	Code  string      `json:"code" binding:"required"`
-	Value interface{} `json:"value,omitempty"`
+	Code     string      `json:"code" binding:"required"`
+	Value    interface{} `json:"value,omitempty"`
+	RemoteID string      `json:"remote_id,omitempty"` // Optional, for IR devices
 }
 
 // DeviceStatusResponseDTO represents the response format for a single device status

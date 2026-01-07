@@ -115,7 +115,7 @@ func main() {
 	// Initialize Modules
 	commonModule := common.NewCommonModule(badgerService)
 	tuyaModule := tuya.NewTuyaModule(badgerService)
-	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase)
+	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
 	protected := router.Group("/")
 	protected.Use(middlewares.AuthMiddleware())

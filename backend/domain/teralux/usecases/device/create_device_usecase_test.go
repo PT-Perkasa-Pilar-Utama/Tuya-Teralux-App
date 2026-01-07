@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"errors"
-	"strings"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
@@ -90,13 +89,13 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 		}
 	})
 
-	// 4. Constraint: Duplicate Device ID
+	// 4. Idempotency: Device Already Exists
 	// URL: POST /api/devices
-	// SCENARIO: Device with same ID already exists.
-	// RES: 409 Conflict
-	t.Run("Constraint: Duplicate Device ID", func(t *testing.T) {
+	// SCENARIO: Device with same ID already exists. Should update instead of error.
+	// RES: 200 OK (or 201 Created depending on interpretation, here just no error)
+	t.Run("Idempotency: Device Already Exists", func(t *testing.T) {
 		// Seed teralux
-		teraRepo.Create(&entities.Teralux{ID: "tx-3", MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: "room-3", Name: "Test Hub 3"})
+		teraRepo.Create(&entities.Teralux{ID: "tx-3", MacAddress: "AA:BB:CC:DD:EE:FE", RoomID: "room-3", Name: "Test Hub 3"})
 
 		// Create first device
 		req := &dtos.CreateDeviceRequestDTO{
@@ -110,17 +109,21 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 		}
 
 		// Try to create device with SAME ID (even with different teralux)
+		// This should succeed and update the device
 		req2 := &dtos.CreateDeviceRequestDTO{
 			ID:        "duplicate-device-id", // Same ID!
-			Name:      "Second Device",
+			Name:      "Second Device",       // Name changed
 			TeraluxID: "tx-3",
 		}
 		_, _, err = useCaseWithMocks.Execute(req2)
-		if err == nil {
-			t.Fatal("Expected error for duplicate device ID, got nil")
+		if err != nil {
+			t.Fatalf("Expected no error for existing device ID (Upsert), got: %v", err)
 		}
-		if !strings.Contains(err.Error(), "already exists") {
-			t.Errorf("Expected 'already exists' error, got: %v", err)
+
+		// Verify name was updated
+		updated, _ := repo.GetByID("duplicate-device-id")
+		if updated.Name != "Second Device" {
+			t.Errorf("Expected device name to be updated to 'Second Device', got '%s'", updated.Name)
 		}
 	})
 

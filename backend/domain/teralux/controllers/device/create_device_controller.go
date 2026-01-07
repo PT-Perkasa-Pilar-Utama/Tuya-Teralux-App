@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"teralux_app/domain/common/dtos"
 	"teralux_app/domain/common/utils"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
@@ -72,15 +71,8 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 			return
 		}
 
-		// Handle duplicate device error as 409 Conflict
-		if strings.Contains(err.Error(), "already exists") {
-			ctx.JSON(http.StatusConflict, dtos.StandardResponse{
-				Status:  false,
-				Message: "Device already exists",
-				Data:    nil,
-			})
-			return
-		}
+		// Log the actual error for debugging
+		utils.LogError("CreateDeviceController: Internal Server Error: %v", err)
 
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
