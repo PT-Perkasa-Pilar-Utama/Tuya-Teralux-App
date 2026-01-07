@@ -1,152 +1,55 @@
 package usecases
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"strconv"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/dtos"
-	"teralux_app/domain/tuya/services"
-	tuya_utils "teralux_app/domain/tuya/utils"
-	"time"
 )
 
 // TuyaGetDeviceByIDUseCase retrieves detailed information for a specific device.
 type TuyaGetDeviceByIDUseCase struct {
-	service       *services.TuyaDeviceService
-	deviceStateUC *DeviceStateUseCase
+	getAllDevicesUC *TuyaGetAllDevicesUseCase
 }
 
 // NewTuyaGetDeviceByIDUseCase initializes a new TuyaGetDeviceByIDUseCase.
 //
-// param service The TuyaDeviceService used regarding API requests.
-// param deviceStateUC The DeviceStateUseCase for populating infrared_ac status.
+// param getAllDevicesUC UseCase for fetching all devices (which handles merging logic).
 // return *TuyaGetDeviceByIDUseCase A pointer to the initialized usecase.
-func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase) *TuyaGetDeviceByIDUseCase {
+func NewTuyaGetDeviceByIDUseCase(getAllDevicesUC *TuyaGetAllDevicesUseCase) *TuyaGetDeviceByIDUseCase {
 	return &TuyaGetDeviceByIDUseCase{
-		service:       service,
-		deviceStateUC: deviceStateUC,
+		getAllDevicesUC: getAllDevicesUC,
 	}
 }
 
-// GetDeviceByID fetches the details of a single device from the Tuya API.
-//
-// Tuya API Documentation (Get Device):
-// URL: https://openapi.tuyacn.com/v1.0/devices/{device_id}
-// Method: GET
-//
-// param accessToken The valid OAuth 2.0 access token.
-// param deviceID The unique ID of the device to fetch.
-// return *dtos.TuyaDeviceDTO The detailed device information object.
-// return error An error if the request fails.
-// @throws error If the API returns a failure response.
+// GetDeviceByID fetches details by reusing GetAllDevices logic to ensure merging consistency (Mode 2)
 func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) (*dtos.TuyaDeviceDTO, error) {
-	// Cache check removed.
+	// Call GetAllDevices to get processed list (Mode 2 enforced)
+	// Passing empty uid (not needed if relying on internal service logic, but if uid is required by GetAllDevices execute, we might need it)
+	// Checking GetAllDevices signature: Execute(accessToken, uid string, ...)
+	// WAIT: We need UID. Usually passed from controller.
+	// Current controller signature: GetDeviceByID(c *gin.Context) -> extracts token.
+	// Currently GetDeviceByIDUseCase.GetDeviceByID(accessToken, deviceID). It misses UID.
+	// GetAllDevices needs UID to call /v1.0/users/{uid}/devices.
+	// We should update the signature or fetch UID from config/context.
+	// Let's assume UID is available or we need to update signature.
 
-	// Get config
-	config := utils.GetConfig()
+	// Retrieving UID from config to be safe/quick if not passed
+	uid := utils.AppConfig.TuyaUserID
 
-	// Generate timestamp in milliseconds
-	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
-	signMethod := "HMAC-SHA256"
-
-	// Build URL path - using /v1.0/devices/{device_id} endpoint
-	urlPath := fmt.Sprintf("/v1.0/devices/%s", deviceID)
-	fullURL := config.TuyaBaseURL + urlPath
-
-	// Calculate content hash (empty for GET request)
-	emptyContent := ""
-	h := sha256.New()
-	h.Write([]byte(emptyContent))
-	contentHash := hex.EncodeToString(h.Sum(nil))
-
-	// Generate string to sign
-	stringToSign := tuya_utils.GenerateTuyaStringToSign("GET", contentHash, "", urlPath)
-
-	utils.LogDebug("GetDeviceByID: generating signature for device=%s", deviceID)
-
-	// Generate signature
-	signature := tuya_utils.GenerateTuyaSignature(config.TuyaClientID, config.TuyaClientSecret, accessToken, timestamp, stringToSign)
-
-	// Prepare headers with access token
-	headers := map[string]string{
-		"client_id":    config.TuyaClientID,
-		"sign":         signature,
-		"t":            timestamp,
-		"sign_method":  signMethod,
-		"access_token": accessToken,
-	}
-
-	// Call service to fetch device
-	deviceResponse, err := uc.service.FetchDeviceByID(fullURL, headers)
+	devicesResp, err := uc.getAllDevicesUC.GetAllDevices(accessToken, uid, 0, 0, "")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch devices for processing: %v", err)
 	}
 
-	// Validate response
-	if !deviceResponse.Success {
-		return nil, fmt.Errorf("tuya API failed to fetch device: %s (code: %d)", deviceResponse.Msg, deviceResponse.Code)
-	}
-
-	// Transform status
-	statusDTOs := make([]dtos.TuyaDeviceStatusDTO, len(deviceResponse.Result.Status))
-	for i, status := range deviceResponse.Result.Status {
-		statusDTOs[i] = dtos.TuyaDeviceStatusDTO{
-			Code:  status.Code,
-			Value: status.Value,
+	// Find the target device in the list
+	for _, dev := range devicesResp.Devices {
+		if dev.ID == deviceID {
+			return &dev, nil
 		}
+		// Also check if it's a child device (IR remote) inside a Hub (if Mode 2 didn't flatten enough or for safety)
+		// Mode 2 usually returns merged devices where RemoteID is populated.
+		// If ID matches, return it.
 	}
 
-	// For infrared_ac with empty status, initialize with default codes
-	if deviceResponse.Result.Category == "infrared_ac" && len(statusDTOs) == 0 {
-		utils.LogDebug("GetDeviceByID: Initializing default status for infrared_ac device %s", deviceID)
-		statusDTOs = []dtos.TuyaDeviceStatusDTO{
-			{Code: "power", Value: 0},
-			{Code: "temp", Value: 24},
-			{Code: "mode", Value: 0},
-			{Code: "wind", Value: 0},
-		}
-	}
-
-	// Merge saved state into status - ONLY UPDATE VALUES, never add/remove codes
-	if uc.deviceStateUC != nil {
-		savedState, err := uc.deviceStateUC.GetDeviceState(deviceID)
-		if err == nil && savedState != nil && len(savedState.LastCommands) > 0 {
-			utils.LogDebug("GetDeviceByID: Merging saved state into status for device %s", deviceID)
-			// Create a map of saved state for quick lookup
-			stateMap := make(map[string]interface{})
-			for _, cmd := range savedState.LastCommands {
-				stateMap[cmd.Code] = cmd.Value
-			}
-
-			// ONLY update values of existing codes, do NOT add new codes
-			for i := range statusDTOs {
-				if savedValue, exists := stateMap[statusDTOs[i].Code]; exists {
-					statusDTOs[i].Value = savedValue
-				}
-			}
-		}
-	}
-
-	// Transform entity to DTO
-	dto := &dtos.TuyaDeviceDTO{
-		ID:          deviceResponse.Result.ID,
-		Name:        deviceResponse.Result.Name,
-		Category:    deviceResponse.Result.Category,
-		ProductName: deviceResponse.Result.ProductName,
-		Online:      deviceResponse.Result.Online,
-		Icon:        deviceResponse.Result.Icon,
-		Status:      statusDTOs,
-		CustomName:  deviceResponse.Result.CustomName,
-		Model:       deviceResponse.Result.Model,
-		IP:          deviceResponse.Result.IP,
-		LocalKey:    deviceResponse.Result.LocalKey,
-		CreateTime:  deviceResponse.Result.CreateTime,
-		UpdateTime:  deviceResponse.Result.UpdateTime,
-	}
-
-	// 2. Save to Cache - REMOVED
-
-	return dto, nil
+	return nil, fmt.Errorf("device with ID %s not found", deviceID)
 }

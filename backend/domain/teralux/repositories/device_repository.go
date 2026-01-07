@@ -52,6 +52,19 @@ func (r *DeviceRepository) GetByTeraluxID(teraluxID string) ([]entities.Device, 
 	return devices, err
 }
 
+// GetByIDUnscoped retrieves a single device record by ID including soft-deleted ones
+func (r *DeviceRepository) GetByIDUnscoped(id string) (*entities.Device, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	var device entities.Device
+	err := r.db.Unscoped().Where("id = ?", id).First(&device).Error
+	if err != nil {
+		return nil, err
+	}
+	return &device, nil
+}
+
 // GetByID retrieves a single device record by ID with caching
 func (r *DeviceRepository) GetByID(id string) (*entities.Device, error) {
 	// Try to get from cache first

@@ -8,6 +8,8 @@ import (
 	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
 	tuya_dtos "teralux_app/domain/tuya/dtos"
+
+	"gorm.io/gorm"
 )
 
 // TuyaAuthUseCaseInterface defines the interface for Tuya authentication
@@ -78,17 +80,6 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 		return nil, false, fmt.Errorf("failed to fetch device from Tuya: %w", err)
 	}
 
-	// Check if device with this ID already exists
-	existingDevice, err := uc.repository.GetByID(req.ID)
-	if err == nil && existingDevice != nil {
-		// Device with this ID already exists
-		return nil, false, fmt.Errorf("device with ID %s already exists", req.ID)
-	}
-	// If error is "not found", that's fine - we can create it
-
-	var deviceID string
-	var deviceEntity *entities.Device
-
 	// Serialize collections if any
 	collectionsJSON := "[]"
 	if len(tuyaDevice.Collections) > 0 {
@@ -100,32 +91,66 @@ func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.
 		collectionsJSON = string(data)
 	}
 
-	// Create new device
-	deviceID = req.ID
+	var deviceID string
+	var deviceEntity *entities.Device
 
-	deviceEntity = &entities.Device{
-		ID:                deviceID,
-		TeraluxID:         req.TeraluxID,
-		Name:              req.Name,
-		RemoteID:          tuyaDevice.ID,
-		Category:          tuyaDevice.Category,
-		RemoteCategory:    tuyaDevice.RemoteCategory,
-		ProductName:       tuyaDevice.ProductName,
-		RemoteProductName: tuyaDevice.RemoteProductName,
-		Icon:              tuyaDevice.Icon,
-		CustomName:        tuyaDevice.CustomName,
-		Model:             tuyaDevice.Model,
-		IP:                tuyaDevice.IP,
-		LocalKey:          tuyaDevice.LocalKey,
-		GatewayID:         tuyaDevice.GatewayID,
-		CreateTime:        tuyaDevice.CreateTime,
-		UpdateTime:        tuyaDevice.UpdateTime,
-		Collections:       collectionsJSON,
-	}
+	// Check if device with this ID already exists (including soft-deleted)
+	existingDevice, err := uc.repository.GetByIDUnscoped(req.ID)
+	if err == nil && existingDevice != nil {
+		// Device exists (Active or Soft-Deleted)
+		utils.LogDebug("CreateDevice: Device %s found (DeletedAt: %v). Updating...", req.ID, existingDevice.DeletedAt)
 
-	// Save to database
-	if err := uc.repository.Create(deviceEntity); err != nil {
-		return nil, false, err
+		// Prepare update
+		existingDevice.TeraluxID = req.TeraluxID
+		existingDevice.Name = req.Name
+		existingDevice.RemoteID = tuyaDevice.RemoteID
+		existingDevice.Category = tuyaDevice.Category
+		existingDevice.RemoteCategory = tuyaDevice.RemoteCategory
+		existingDevice.ProductName = tuyaDevice.ProductName
+		existingDevice.RemoteProductName = tuyaDevice.RemoteProductName
+		existingDevice.Icon = tuyaDevice.Icon
+		existingDevice.CustomName = tuyaDevice.CustomName
+		existingDevice.Model = tuyaDevice.Model
+		existingDevice.IP = tuyaDevice.IP
+		existingDevice.LocalKey = tuyaDevice.LocalKey
+		existingDevice.GatewayID = tuyaDevice.GatewayID
+		existingDevice.CreateTime = tuyaDevice.CreateTime
+		existingDevice.UpdateTime = tuyaDevice.UpdateTime
+		existingDevice.Collections = collectionsJSON
+		existingDevice.DeletedAt = gorm.DeletedAt{} // Restore if deleted
+
+		if err := uc.repository.Update(existingDevice); err != nil {
+			return nil, false, err
+		}
+		deviceID = existingDevice.ID
+	} else {
+		// Create new device
+		deviceID = req.ID
+
+		deviceEntity = &entities.Device{
+			ID:                deviceID,
+			TeraluxID:         req.TeraluxID,
+			Name:              req.Name,
+			RemoteID:          tuyaDevice.RemoteID,
+			Category:          tuyaDevice.Category,
+			RemoteCategory:    tuyaDevice.RemoteCategory,
+			ProductName:       tuyaDevice.ProductName,
+			RemoteProductName: tuyaDevice.RemoteProductName,
+			Icon:              tuyaDevice.Icon,
+			CustomName:        tuyaDevice.CustomName,
+			Model:             tuyaDevice.Model,
+			IP:                tuyaDevice.IP,
+			LocalKey:          tuyaDevice.LocalKey,
+			GatewayID:         tuyaDevice.GatewayID,
+			CreateTime:        tuyaDevice.CreateTime,
+			UpdateTime:        tuyaDevice.UpdateTime,
+			Collections:       collectionsJSON,
+		}
+
+		// Save to database
+		if err := uc.repository.Create(deviceEntity); err != nil {
+			return nil, false, err
+		}
 	}
 
 	// 3. Automatically map and Upsert statuses returned from Tuya

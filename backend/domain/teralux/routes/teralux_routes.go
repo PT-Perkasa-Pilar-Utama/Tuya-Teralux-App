@@ -69,14 +69,14 @@ func SetupTeraluxRoutes(
 	}
 
 	// Device Status Routes (Protected)
-	// GET /api/device-statuses - Get all statuses (Scenario 1)
-	protectedRouter.GET("/api/device-statuses", getAllDeviceStatusesController.GetAllDeviceStatuses)
-
-	// GET /api/device-statuses/code/:code - Get status by code (Scenario 4)
-	protectedRouter.GET("/api/device-statuses/code/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
+	// GET /api/devices/statuses - Get all statuses (Scenario 1)
+	protectedRouter.GET("/api/devices/statuses", getAllDeviceStatusesController.GetAllDeviceStatuses)
 
 	// GET /api/devices/:id/statuses - Get statuses by device ID (Scenario 2)
 	protectedRouter.GET("/api/devices/:id/statuses", getDeviceStatusesByDeviceIDController.GetDeviceStatusesByDeviceID)
+
+	// GET /api/devices/:id/statuses/:code - Get status by code (Scenario 4)
+	protectedRouter.GET("/api/devices/:id/statuses/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
 
 	// PUT /api/devices/:id/status - Update device status (Scenario 1)
 	protectedRouter.PUT("/api/devices/:id/status", updateDeviceStatusController.UpdateDeviceStatus)

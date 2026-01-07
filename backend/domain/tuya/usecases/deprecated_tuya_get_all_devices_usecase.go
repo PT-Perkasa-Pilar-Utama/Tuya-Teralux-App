@@ -15,7 +15,7 @@ import (
 
 // TuyaGetAllDevicesUseCase orchestrates the retrieval and aggregation of device data.
 // It combines the user's device list, individual device specifications, and real-time status.
-type TuyaGetAllDevicesUseCase struct {
+type TuyaGetAllDevicesUseCaseDeprecated struct {
 	service       *services.TuyaDeviceService
 	deviceStateUC *DeviceStateUseCase
 }
@@ -25,8 +25,8 @@ type TuyaGetAllDevicesUseCase struct {
 // param service The TuyaDeviceService used for API interactions.
 // param deviceStateUC The DeviceStateUseCase for cleaning up orphaned states.
 // return *TuyaGetAllDevicesUseCase A pointer to the initialized usecase.
-func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase) *TuyaGetAllDevicesUseCase {
-	return &TuyaGetAllDevicesUseCase{
+func NewTuyaGetAllDevicesUseCaseDeprecated(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase) *TuyaGetAllDevicesUseCaseDeprecated {
+	return &TuyaGetAllDevicesUseCaseDeprecated{
 		service:       service,
 		deviceStateUC: deviceStateUC,
 	}
@@ -49,7 +49,7 @@ func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStat
 // return *dtos.TuyaDevicesResponseDTO The aggregated list of devices.
 // return error An error if fetching the device list fails.
 // @throws error If the API returns a failure (e.g., invalid token).
-func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error) {
+func (uc *TuyaGetAllDevicesUseCaseDeprecated) GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error) {
 	// Get config
 	config := utils.GetConfig()
 
@@ -241,7 +241,166 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		})
 	}
 
-	// --- MERGE IR DEVICES (Mode 2) ---
+	// Process devices based on response type configuration
+	switch config.GetAllDevicesResponseType {
+	case "0":
+		deviceDTOs = uc.processResponseMode0(deviceDTOs)
+	case "1":
+		deviceDTOs = uc.processResponseMode1(deviceDTOs)
+	case "2":
+		deviceDTOs = uc.processResponseMode2(deviceDTOs)
+	default:
+		// Default to Mode 0
+		deviceDTOs = uc.processResponseMode0(deviceDTOs)
+	}
+
+	// 4. Cleanup orphaned device states
+	if uc.deviceStateUC != nil {
+		var allDeviceIDs []string
+		for _, dev := range deviceDTOs {
+			allDeviceIDs = append(allDeviceIDs, dev.ID)
+			// Also include remote IDs for merged devices (Mode 2)
+			if dev.RemoteID != "" {
+				allDeviceIDs = append(allDeviceIDs, dev.RemoteID)
+			}
+			// Include collection IDs (Mode 0)
+			for _, coll := range dev.Collections {
+				allDeviceIDs = append(allDeviceIDs, coll.ID)
+			}
+		}
+		if err := uc.deviceStateUC.CleanupOrphanedStates(allDeviceIDs); err != nil {
+			utils.LogWarn("GetAllDevices: Failed to cleanup orphaned states: %v", err)
+		}
+	}
+
+	// --- NEW: Filter by Category ---
+	if category != "" {
+		var filteredDevices []dtos.TuyaDeviceDTO
+		for _, d := range deviceDTOs {
+			// Check main category
+			if d.Category == category {
+				filteredDevices = append(filteredDevices, d)
+				continue
+			}
+			// Also check remote category for merged devices (Mode 2)
+			if d.RemoteCategory == category {
+				filteredDevices = append(filteredDevices, d)
+			}
+		}
+		deviceDTOs = filteredDevices
+	}
+
+	// Update Total after filtering
+	total := len(deviceDTOs)
+
+	// Sort devices by Name Ascending (Alphabetical)
+	sort.Slice(deviceDTOs, func(i, j int) bool {
+		return deviceDTOs[i].Name < deviceDTOs[j].Name
+	})
+
+	// --- NEW: Pagination ---
+	if limit > 0 {
+		start := (page - 1) * limit
+		if start < 0 {
+			start = 0
+		}
+
+		if start >= len(deviceDTOs) {
+			// Page out of range
+			deviceDTOs = []dtos.TuyaDeviceDTO{}
+		} else {
+			end := start + limit
+			if end > len(deviceDTOs) {
+				end = len(deviceDTOs)
+			}
+			deviceDTOs = deviceDTOs[start:end]
+		}
+	}
+
+	return &dtos.TuyaDevicesResponseDTO{
+		Devices:          deviceDTOs,
+		TotalDevices:     total,
+		CurrentPageCount: len(deviceDTOs),
+	}, nil
+}
+
+// processResponseMode0 handles nesting IR devices inside Smart IR Hubs
+func (uc *TuyaGetAllDevicesUseCaseDeprecated) processResponseMode0(deviceDTOs []dtos.TuyaDeviceDTO) []dtos.TuyaDeviceDTO {
+	var finalDevices []dtos.TuyaDeviceDTO
+	var irDevices []dtos.TuyaDeviceDTO
+	var smartIRIndices []int
+
+	// 1. Separate IR AC devices and identify Smart IR hubs
+	for _, d := range deviceDTOs {
+		if d.Category == "infrared_ac" {
+			irDevices = append(irDevices, d)
+			continue
+		}
+		finalDevices = append(finalDevices, d)
+	}
+
+	// 2. Find Smart IR hubs in the final list
+	for i, d := range finalDevices {
+		if d.Category == "wnykq" {
+			smartIRIndices = append(smartIRIndices, i)
+		}
+	}
+
+	// 3. Assign IR devices to hubs
+	// If no hubs or no IR devices, just return the combined list
+	if len(smartIRIndices) == 0 || len(irDevices) == 0 {
+		finalDevices = append(finalDevices, irDevices...)
+		return finalDevices
+	}
+
+	// Map Hub ID and LocalKey to Index for direct access
+	hubIDMap := make(map[string]int)
+	hubLocalKeyMap := make(map[string]int)
+
+	for _, idx := range smartIRIndices {
+		hub := finalDevices[idx]
+		hubIDMap[hub.ID] = idx
+		if hub.LocalKey != "" {
+			hubLocalKeyMap[hub.LocalKey] = idx
+		}
+	}
+
+	var orphanIRs []dtos.TuyaDeviceDTO
+
+	for _, ir := range irDevices {
+		// Strategy 1: Match by GatewayID (Official method)
+		if targetIdx, ok := hubIDMap[ir.GatewayID]; ok {
+			finalDevices[targetIdx].Collections = append(finalDevices[targetIdx].Collections, ir)
+			continue
+		}
+
+		// Strategy 2: Match by LocalKey (Fallback method for some devices)
+		if targetIdx, ok := hubLocalKeyMap[ir.LocalKey]; ok {
+			finalDevices[targetIdx].Collections = append(finalDevices[targetIdx].Collections, ir)
+			continue
+		}
+
+		// Strategy 3: Orphan (No parent found)
+		orphanIRs = append(orphanIRs, ir)
+	}
+
+	// Add orphans back to main list
+	if len(orphanIRs) > 0 {
+		finalDevices = append(finalDevices, orphanIRs...)
+	}
+
+	return finalDevices
+}
+
+// processResponseMode1 handles the flat list response (Mode 1)
+func (uc *TuyaGetAllDevicesUseCaseDeprecated) processResponseMode1(deviceDTOs []dtos.TuyaDeviceDTO) []dtos.TuyaDeviceDTO {
+	// Mode 1 is the flat list response.
+	// No additional processing is needed as the devices are already in a flat list.
+	return deviceDTOs
+}
+
+// processResponseMode2 handles merging IR devices with their hubs in a flat list
+func (uc *TuyaGetAllDevicesUseCaseDeprecated) processResponseMode2(deviceDTOs []dtos.TuyaDeviceDTO) []dtos.TuyaDeviceDTO {
 	// 1. Identify Hubs and Remotes
 	hubMap := make(map[string]dtos.TuyaDeviceDTO)         // HubID -> HubDTO
 	hubLocalKeyMap := make(map[string]dtos.TuyaDeviceDTO) // LocalKey -> HubDTO
@@ -321,75 +480,5 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		finalDevices = append(finalDevices, d)
 	}
 
-	// Assign back to deviceDTOs
-	deviceDTOs = finalDevices
-
-	// 4. Cleanup orphaned device states
-	if uc.deviceStateUC != nil {
-		var allDeviceIDs []string
-		for _, dev := range deviceDTOs {
-			allDeviceIDs = append(allDeviceIDs, dev.ID)
-			// Also include remote IDs for merged devices (Mode 2)
-			if dev.RemoteID != "" {
-				allDeviceIDs = append(allDeviceIDs, dev.RemoteID)
-			}
-			// Include collection IDs (Mode 0)
-			for _, coll := range dev.Collections {
-				allDeviceIDs = append(allDeviceIDs, coll.ID)
-			}
-		}
-		if err := uc.deviceStateUC.CleanupOrphanedStates(allDeviceIDs); err != nil {
-			utils.LogWarn("GetAllDevices: Failed to cleanup orphaned states: %v", err)
-		}
-	}
-
-	// --- NEW: Filter by Category ---
-	if category != "" {
-		var filteredDevices []dtos.TuyaDeviceDTO
-		for _, d := range deviceDTOs {
-			// Check main category
-			if d.Category == category {
-				filteredDevices = append(filteredDevices, d)
-				continue
-			}
-			// Also check remote category for merged devices (Mode 2)
-			if d.RemoteCategory == category {
-				filteredDevices = append(filteredDevices, d)
-			}
-		}
-		deviceDTOs = filteredDevices
-	}
-
-	// Update Total after filtering
-	total := len(deviceDTOs)
-
-	// Sort devices by Name Ascending (Alphabetical)
-	sort.Slice(deviceDTOs, func(i, j int) bool {
-		return deviceDTOs[i].Name < deviceDTOs[j].Name
-	})
-
-	// --- NEW: Pagination ---
-	if limit > 0 {
-		start := (page - 1) * limit
-		if start < 0 {
-			start = 0
-		}
-
-		if start >= len(deviceDTOs) {
-			// Page out of range
-			deviceDTOs = []dtos.TuyaDeviceDTO{}
-		} else {
-			end := start + limit
-			if end > len(deviceDTOs) {
-				end = len(deviceDTOs)
-			}
-			deviceDTOs = deviceDTOs[start:end]
-		}
-	}
-
-	return &dtos.TuyaDevicesResponseDTO{
-		Devices:          deviceDTOs,
-		TotalDevices:     total,
-		CurrentPageCount: len(deviceDTOs),
-	}, nil
+	return finalDevices
 }

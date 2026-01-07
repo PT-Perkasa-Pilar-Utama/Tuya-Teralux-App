@@ -348,82 +348,6 @@ paths:
       summary: Flush all cache
       tags:
       - 06. Flush
-  /api/device-statuses:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves all device statuses
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
-              type: object
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get All Device Statuses
-      tags:
-      - 05. Device Statuses
-  /api/device-statuses/code/{code}:
-    get:
-      parameters:
-      - description: Status Code
-        in: path
-        name: code
-        required: true
-        type: string
-      - description: Device ID
-        in: query
-        name: device_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.DeviceStatusSingleResponseDTO'
-              type: object
-        "400":
-          description: 'Validation Error: device_id is required'
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Status code not found for this device
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get Device Status by Code
-      tags:
-      - 05. Device Statuses
   /api/devices:
     get:
       consumes:
@@ -468,17 +392,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: 'Idempotent: record updated'
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.CreateDeviceResponseDTO'
-              type: object
         "201":
-          description: New record created
+          description: Device created successfully
           schema:
             allOf:
             - $ref: '#/definitions/dtos.StandardResponse'
@@ -488,6 +403,10 @@ paths:
               type: object
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "409":
+          description: Device already exists
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
         "422":
@@ -706,6 +625,82 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Device Statuses by Device ID
+      tags:
+      - 05. Device Statuses
+  /api/devices/{id}/statuses/{code}:
+    get:
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status Code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusSingleResponseDTO'
+              type: object
+        "400":
+          description: 'Validation Error: id is required'
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Status code not found for this device
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Device Status by Code
+      tags:
+      - 05. Device Statuses
+  /api/devices/statuses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all device statuses
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Device Statuses
       tags:
       - 05. Device Statuses
   /api/devices/teralux/{teralux_id}:
@@ -1036,10 +1031,10 @@ paths:
     get:
       consumes:
       - application/json
-      description: 'Retrieves a list of all devices. Response format depends on GET_ALL_DEVICES_RESPONSE_TYPE:
-        0 (Nested/Default), 1 (Flat), 2 (Merged). Sorted alphabetically by Name. For
-        infrared_ac devices, the status array is populated with saved device state
-        (power, temp, mode, wind) or default values if no state exists.'
+      description: Retrieves a list of all devices in a Merged View (Smart IR remotes
+        merged with Hubs). Sorted alphabetically by Name. For infrared_ac devices,
+        the status array is populated with saved device state (power, temp, mode,
+        wind) or default values if no state exists.
       parameters:
       - description: Page number
         in: query

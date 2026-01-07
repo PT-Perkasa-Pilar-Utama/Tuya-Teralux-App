@@ -28,7 +28,7 @@ func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) 
 
 // GetAllDevices handles GET /api/tuya/devices endpoint
 // @Summary      Get All Devices
-// @Description  Retrieves a list of all devices. Response format depends on GET_ALL_DEVICES_RESPONSE_TYPE: 0 (Nested/Default), 1 (Flat), 2 (Merged). Sorted alphabetically by Name. For infrared_ac devices, the status array is populated with saved device state (power, temp, mode, wind) or default values if no state exists.
+// @Description  Retrieves a list of all devices in a Merged View (Smart IR remotes merged with Hubs). Sorted alphabetically by Name. For infrared_ac devices, the status array is populated with saved device state (power, temp, mode, wind) or default values if no state exists.
 // @Tags         02. Tuya
 // @Accept       json
 // @Produce      json
