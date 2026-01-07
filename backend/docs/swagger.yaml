@@ -263,6 +263,12 @@ definitions:
         items:
           $ref: '#/definitions/dtos.TuyaDeviceDTO'
         type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
       total_devices:
         type: integer
     type: object
@@ -356,6 +362,23 @@ paths:
       consumes:
       - application/json
       description: Retrieves all devices
+      parameters:
+      - description: Filter by Teralux ID
+        in: query
+        name: teralux_id
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Items per page (alias for limit)
+        in: query
+        name: per_page
+        type: integer
       produces:
       - application/json
       responses:
@@ -601,6 +624,18 @@ paths:
         name: id
         required: true
         type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Items per page (alias for limit)
+        in: query
+        name: per_page
+        type: integer
       produces:
       - application/json
       responses:
@@ -681,6 +716,19 @@ paths:
       consumes:
       - application/json
       description: Retrieves all device statuses
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Items per page (alias for limit)
+        in: query
+        name: per_page
+        type: integer
       produces:
       - application/json
       responses:
@@ -755,6 +803,23 @@ paths:
       consumes:
       - application/json
       description: Retrieves a list of all teralux devices
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Items per page (alias for limit)
+        in: query
+        name: per_page
+        type: integer
+      - description: Filter by Room ID
+        in: query
+        name: room_id
+        type: string
       produces:
       - application/json
       responses:
@@ -1046,6 +1111,10 @@ paths:
       - description: Items per page
         in: query
         name: limit
+        type: integer
+      - description: Items per page (alias for limit)
+        in: query
+        name: per_page
         type: integer
       - description: Filter by category
         in: query

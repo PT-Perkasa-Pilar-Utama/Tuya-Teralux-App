@@ -34,6 +34,7 @@ func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) 
 // @Produce      json
 // @Param        page      query  int     false  "Page number"
 // @Param        limit     query  int     false  "Items per page"
+// @Param        per_page  query  int     false  "Items per page (alias for limit)"
 // @Param        category  query  string  false  "Filter by category"
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaDevicesResponseDTO}
 // @Failure      500  {object}  dtos.StandardResponse
@@ -57,6 +58,10 @@ func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	// Parse optional query parameters
 	pageStr := ctx.Query("page")
 	limitStr := ctx.Query("limit")
+	// Support per_page alias
+	if limitStr == "" {
+		limitStr = ctx.Query("per_page")
+	}
 	category := ctx.Query("category")
 
 	page := 0

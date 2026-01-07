@@ -43,16 +43,29 @@ fun DashboardScreen(token: String,
     var devices by remember { mutableStateOf<List<Device>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    
+    // Pagination State
+    var currentPage by remember { mutableIntStateOf(1) }
+    var totalItems by remember { mutableIntStateOf(0) }
+    val itemsPerPage = 6 // 2 rows x 3 columns
+    
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val fetchDevices = {
+    val fetchDevices = { page: Int ->
         scope.launch {
             isLoading = true
             error = null
             try {
-                val response = RetrofitClient.instance.getDevicesByTeraluxId("Bearer $token", teraluxId)
+                // Pass page and limit to the API
+                val response = RetrofitClient.instance.getDevicesByTeraluxId(
+                    "Bearer $token", 
+                    teraluxId,
+                    page = page,
+                    limit = itemsPerPage
+                )
                 if (response.isSuccessful && response.body() != null) {
-                    val rawDevices = response.body()!!.data?.devices ?: emptyList()
+                    val respData = response.body()!!.data
+                    val rawDevices = respData?.devices ?: emptyList()
                     
                     val flatList = rawDevices.flatMap { d ->
                         val parsedCollections = d.getParsedCollections()
@@ -60,6 +73,10 @@ fun DashboardScreen(token: String,
                     }
                     // Force default online status to true (Requested: Treat all devices as online)
                     devices = flatList.map { it.copy(online = true) }
+                    
+                    // Update metadata
+                    totalItems = respData?.total ?: 0
+                    currentPage = respData?.page ?: page
                 } else {
                     error = "Failed: ${response.code()}"
                 }
@@ -73,7 +90,7 @@ fun DashboardScreen(token: String,
     }
 
     LaunchedEffect(Unit) {
-        fetchDevices()
+        fetchDevices(1)
     }
 
     Scaffold(
@@ -92,24 +109,9 @@ fun DashboardScreen(token: String,
                     }
                     // Refresh button
                     IconButton(onClick = {
-                        scope.launch {
-                            isLoading = true
-                            try {
-                                // Sync status and get real-time data
-                                val syncResponse = RetrofitClient.instance.syncDevices("Bearer $token")
-                                if (syncResponse.isSuccessful && syncResponse.body()?.data != null) {
-                                    // Sync logic preserved but Status update removed as requested.
-                                    // Devices remain Online=true always.
-                                    devices = devices.map { it.copy(online = true) }
-                                } else {
-                                    error = "Sync failed: ${syncResponse.code()}"
-                                }
-                            } catch (e: Exception) {
-                                error = "Sync failed: ${e.message}"
-                            } finally {
-                                isLoading = false
-                            }
-                        }
+                        // Reset to page 1 on refresh
+                        currentPage = 1
+                        fetchDevices(1)
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
@@ -128,7 +130,7 @@ fun DashboardScreen(token: String,
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(text = error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { fetchDevices() }) {
+                        Button(onClick = { fetchDevices(currentPage) }) {
                             Text("Retry")
                         }
                     }
@@ -138,81 +140,88 @@ fun DashboardScreen(token: String,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(8.dp), // Reduced padding
-                    verticalArrangement = Arrangement.spacedBy(8.dp) // Reduced spacing
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val firstRowDevices = devices.take(3)
-                    val secondRowDevices = if (devices.size > 3) devices.drop(3).take(3) else emptyList()
-
-                    // Row 1
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp) // Reduced spacing
-                    ) {
-                        for (i in 0 until 3) {
-                            if (i < firstRowDevices.size) {
-                                val device = firstRowDevices[i]
-                                // For IR devices, use remote_id as deviceId and id as gatewayId
-                                val hasRemoteId = !device.remoteId.isNullOrBlank()
-                                // ALWAYS use device.id as the main deviceId so backend can find it
-                                val actualDeviceId = device.id
-                                // Pass remoteId as gatewayId if it exists (or keep existing logic if gatewayId meant something else, 
-                                // but for IR devices, the backend expects Hub ID as deviceId).
-                                // Actually, for IR devices, the 'id' field in Device model IS the Hub ID (from backend).
-                                // The 'remote_id' is the specific IR remote ID.
-                                // The navigation expects 'deviceId'. 
-                                // If we pass Hub ID, backend finds it.
-                                val actualGatewayId = if (hasRemoteId) device.remoteId else device.gatewayId
-                                val rawCategory = if (!device.remoteCategory.isNullOrBlank()) device.remoteCategory else device.category ?: "unknown"
-                                val actualCategory = if (rawCategory.isBlank()) "unknown" else rawCategory
-                                DeviceItem(
-                                    device = device,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        onDeviceClick(actualDeviceId, actualCategory, device.name, actualGatewayId)
+                    // Render Grid Dynamically based on current 'devices' list (which is already paginated by backend)
+                    // We expect up to 6 items. Break them into 2 rows of 3.
+                    val rows = devices.chunked(3)
+                    
+                    // Always render 2 rows to keep layout stable, even if empty
+                    for (i in 0 until 2) {
+                         if (i < rows.size) {
+                            val rowDevices = rows[i]
+                            Row(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                for (j in 0 until 3) {
+                                    if (j < rowDevices.size) {
+                                        val device = rowDevices[j]
+                                        // Logic for ID mapping
+                                        val hasRemoteId = !device.remoteId.isNullOrBlank()
+                                        val actualDeviceId = device.id
+                                        val actualGatewayId = if (hasRemoteId) device.remoteId else device.gatewayId
+                                        val rawCategory = if (!device.remoteCategory.isNullOrBlank()) device.remoteCategory else device.category ?: "unknown"
+                                        val actualCategory = if (rawCategory.isBlank()) "unknown" else rawCategory
+                                        
+                                        DeviceItem(
+                                            device = device,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = {
+                                                onDeviceClick(actualDeviceId, actualCategory, device.name, actualGatewayId)
+                                            }
+                                        )
+                                    } else {
+                                        // Empty slot
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
+                                }
                             }
+                        } else {
+                            // Empty Row
+                             Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                                 Spacer(modifier = Modifier.weight(1f))
+                             }
                         }
                     }
 
-                    // Row 2
+                    // Pagination Control Bar
                     Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp) // Reduced spacing
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        for (i in 0 until 3) {
-                            if (i < secondRowDevices.size) {
-                                val device = secondRowDevices[i]
-                                // For IR devices, use remote_id as deviceId and id as gatewayId
-                                val hasRemoteId = !device.remoteId.isNullOrBlank()
-                                // ALWAYS use device.id as the main deviceId so backend can find it
-                                val actualDeviceId = device.id
-                                // Pass remoteId as gatewayId if it exists (or keep existing logic if gatewayId meant something else, 
-                                // but for IR devices, the backend expects Hub ID as deviceId).
-                                // Actually, for IR devices, the 'id' field in Device model IS the Hub ID (from backend).
-                                // The 'remote_id' is the specific IR remote ID.
-                                // The navigation expects 'deviceId'. 
-                                // If we pass Hub ID, backend finds it.
-                                val actualGatewayId = if (hasRemoteId) device.remoteId else device.gatewayId
-                                val rawCategory = if (!device.remoteCategory.isNullOrBlank()) device.remoteCategory else device.category ?: "unknown"
-                                val actualCategory = if (rawCategory.isBlank()) "unknown" else rawCategory
-                                DeviceItem(
-                                    device = device,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        onDeviceClick(actualDeviceId, actualCategory, device.name, actualGatewayId)
-                                    }
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                        Button(
+                            onClick = {
+                                if (currentPage > 1) {
+                                    val newPage = currentPage - 1
+                                    fetchDevices(newPage)
+                                }
+                            },
+                            enabled = currentPage > 1
+                        ) {
+                            Text("Previous")
+                        }
+
+                        Text(
+                            text = "Page $currentPage / ${ kotlin.math.max(1, (totalItems + itemsPerPage - 1) / itemsPerPage) }",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        val maxPage = (totalItems + itemsPerPage - 1) / itemsPerPage
+                        Button(
+                            onClick = {
+                                if (currentPage < maxPage) {
+                                    val newPage = currentPage + 1
+                                    fetchDevices(newPage)
+                                }
+                            },
+                            enabled = currentPage < maxPage
+                        ) {
+                            Text("Next")
                         }
                     }
                 }

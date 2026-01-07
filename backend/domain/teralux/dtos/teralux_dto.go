@@ -23,9 +23,10 @@ type UpdateTeraluxRequestDTO struct {
 
 // TeraluxFilterDTO represents filter options for listing teralux
 type TeraluxFilterDTO struct {
-	RoomID *string `form:"room_id" json:"room_id,omitempty"`
-	Page   int     `form:"page" json:"page,omitempty"`
-	Limit  int     `form:"limit" json:"limit,omitempty"`
+	RoomID  *string `form:"room_id" json:"room_id,omitempty"`
+	Page    int     `form:"page" json:"page,omitempty"`
+	Limit   int     `form:"limit" json:"limit,omitempty"`
+	PerPage int     `form:"per_page" json:"per_page,omitempty"` // Alias for limit
 }
 
 // TeraluxResponseDTO represents the response format for a single teralux

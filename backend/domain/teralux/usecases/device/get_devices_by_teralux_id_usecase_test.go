@@ -21,8 +21,12 @@ func TestGetDevicesByTeraluxIDUseCase_UserBehavior(t *testing.T) {
 	// URL: GET /api/devices/teralux/tx-1
 	// SCENARIO: Retrieve all devices linked to a specific Teralux ID.
 	// RES: 200 OK
+	// 1. Get Devices By Teralux ID (Success)
+	// URL: GET /api/devices/teralux/tx-1
+	// SCENARIO: Retrieve all devices linked to a specific Teralux ID.
+	// RES: 200 OK
 	t.Run("Get Devices By Teralux ID (Success)", func(t *testing.T) {
-		res, err := useCase.Execute("tx-1")
+		res, err := useCase.Execute("tx-1", 0, 0)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -41,7 +45,7 @@ func TestGetDevicesByTeraluxIDUseCase_UserBehavior(t *testing.T) {
 	// SCENARIO: No devices exist for this Teralux ID.
 	// RES: 200 OK
 	t.Run("Get Devices By Teralux ID (Success - Empty)", func(t *testing.T) {
-		res, err := useCase.Execute("tx-empty")
+		res, err := useCase.Execute("tx-empty", 0, 0)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -58,7 +62,7 @@ func TestGetDevicesByTeraluxIDUseCase_UserBehavior(t *testing.T) {
 	// SCENARIO: Teralux ID does not exist.
 	// RES: 404 Not Found
 	t.Run("Get Devices By Teralux ID (Not Found - Teralux ID)", func(t *testing.T) {
-		_, err := useCase.Execute("tx-999")
+		_, err := useCase.Execute("tx-999", 0, 0)
 		if err == nil {
 			t.Fatal("Expected error for unknown Teralux ID, got nil")
 		}

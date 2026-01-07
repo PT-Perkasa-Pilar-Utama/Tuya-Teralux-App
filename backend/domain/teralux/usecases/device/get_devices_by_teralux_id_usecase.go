@@ -21,15 +21,24 @@ func NewGetDevicesByTeraluxIDUseCase(repository *repositories.DeviceRepository, 
 }
 
 // Execute retrieves device records by teralux ID
-func (uc *GetDevicesByTeraluxIDUseCase) Execute(teraluxID string) (*dtos.DeviceListResponseDTO, error) {
+func (uc *GetDevicesByTeraluxIDUseCase) Execute(teraluxID string, page, limit int) (*dtos.DeviceListResponseDTO, error) {
 	// 1. Check if Teralux ID exists
 	_, err := uc.teraluxRepo.GetByID(teraluxID)
 	if err != nil {
 		return nil, fmt.Errorf("Teralux hub not found: %w", err)
 	}
 
-	// 2. Fetch devices
-	devices, err := uc.repository.GetByTeraluxID(teraluxID)
+	// 2. Prepare Pagination
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+	if offset < 0 {
+		offset = 0
+	}
+
+	// 3. Fetch devices
+	devices, total, err := uc.repository.GetByTeraluxIDPaginated(teraluxID, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -65,10 +74,15 @@ func (uc *GetDevicesByTeraluxIDUseCase) Execute(teraluxID string) (*dtos.DeviceL
 		deviceDTOs = []dtos.DeviceResponseDTO{}
 	}
 
+	// If limit was 0 (meaning all), set per_page to total
+	if limit == 0 {
+		limit = int(total)
+	}
+
 	return &dtos.DeviceListResponseDTO{
 		Devices: deviceDTOs,
-		Total:   len(deviceDTOs),
-		Page:    1,
-		PerPage: len(deviceDTOs),
+		Total:   int(total),
+		Page:    page,
+		PerPage: limit,
 	}, nil
 }

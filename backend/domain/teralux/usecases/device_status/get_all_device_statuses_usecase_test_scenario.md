@@ -34,6 +34,35 @@ Retrieve all device statuses across the system. Mostly used for administrative m
   ```
   *(Status: 200 OK)*
 
+### 1.1 Get All Statuses (Success - Pagination)
+- **URL**: `http://localhost:8080/api/device-statuses?page=1&limit=1`
+- **Method**: `GET`
+- **Headers**:
+  ```json
+  {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer <valid_token>"
+  }
+  ```
+- **Pre-conditions**:
+  - System has 2 statuses.
+- **Expected Response**:
+  ```json
+  {
+    "status": true,
+    "message": "Statuses retrieved successfully",
+    "data": {
+      "device_statuses": [
+        { "id": "s1", "device_id": "d1", "code": "switch_1", "value": true }
+      ],
+      "total": 2,
+      "page": 1,
+      "per_page": 1
+    }
+  }
+  ```
+  *(Status: 200 OK)*
+
 ### 2. Get All Statuses (Empty)
 - **URL**: `http://localhost:8080/api/device-statuses`
 - **Method**: `GET`
