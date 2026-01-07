@@ -155,10 +155,10 @@ fun DashboardScreen(token: String,
                             if (i < firstRowDevices.size) {
                                 val device = firstRowDevices[i]
                                 // For IR devices, use remote_id as deviceId and id as gatewayId
-                                val rawDeviceId = device.remoteId ?: device.id
-                                val actualDeviceId = if (rawDeviceId.isBlank()) "unknown_id" else rawDeviceId
-                                val actualGatewayId = if (device.remoteId != null) device.id else device.gatewayId
-                                val rawCategory = device.remoteCategory ?: device.category ?: "unknown"
+                                val hasRemoteId = !device.remoteId.isNullOrBlank()
+                                val actualDeviceId = if (hasRemoteId) device.remoteId!! else device.id
+                                val actualGatewayId = if (hasRemoteId) device.id else device.gatewayId
+                                val rawCategory = if (!device.remoteCategory.isNullOrBlank()) device.remoteCategory else device.category ?: "unknown"
                                 val actualCategory = if (rawCategory.isBlank()) "unknown" else rawCategory
                                 DeviceItem(
                                     device = device,
@@ -184,10 +184,10 @@ fun DashboardScreen(token: String,
                             if (i < secondRowDevices.size) {
                                 val device = secondRowDevices[i]
                                 // For IR devices, use remote_id as deviceId and id as gatewayId
-                                val rawDeviceId = device.remoteId ?: device.id
-                                val actualDeviceId = if (rawDeviceId.isBlank()) "unknown_id" else rawDeviceId
-                                val actualGatewayId = if (device.remoteId != null) device.id else device.gatewayId
-                                val rawCategory = device.remoteCategory ?: device.category ?: "unknown"
+                                val hasRemoteId = !device.remoteId.isNullOrBlank()
+                                val actualDeviceId = if (hasRemoteId) device.remoteId!! else device.id
+                                val actualGatewayId = if (hasRemoteId) device.id else device.gatewayId
+                                val rawCategory = if (!device.remoteCategory.isNullOrBlank()) device.remoteCategory else device.category ?: "unknown"
                                 val actualCategory = if (rawCategory.isBlank()) "unknown" else rawCategory
                                 DeviceItem(
                                     device = device,

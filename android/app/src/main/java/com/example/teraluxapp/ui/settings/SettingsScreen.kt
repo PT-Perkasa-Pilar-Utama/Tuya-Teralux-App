@@ -75,25 +75,6 @@ fun SettingsScreen(
                 // Fetch Linked Devices
                 fetchLinkedDevices()
                 
-                // Fetch All Tuya Devices (with flattening logic)
-                val responseDevices = RetrofitClient.instance.getDevices("Bearer $token", page = 1, limit = 100)
-                if (responseDevices.isSuccessful && responseDevices.body() != null) {
-                    val rawDevices = responseDevices.body()!!.data?.devices ?: emptyList()
-                    
-                    // Flatten the list: If device has collections (IR Hub), add collections instead of the hub
-                    val flatList = ArrayList<Device>()
-                    for (d in rawDevices) {
-                        val parsedCollections = d.getParsedCollections()
-                        if (parsedCollections.isEmpty()) {
-                            flatList.add(d)
-                        } else {
-                            flatList.addAll(parsedCollections)
-                        }
-                    }
-                    allTuyaDevices = flatList
-                    
-                    // Automatically show add dialog if check implies it, but here we just load data
-                }
             } catch (e: Exception) {
                 snackbarHostState.showSnackbar("Error loading settings: ${e.message}")
             } finally {
@@ -280,11 +261,19 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "• ${device.name}",
-                                    modifier = Modifier.weight(1f),
-                                    color = Color(0xFF1E293B)
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "• ${device.name}",
+                                        color = Color(0xFF1E293B),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "   ID: ${device.id}",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF64748B),
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                    )
+                                }
                                 IconButton(onClick = { showDeleteConfirmDialog = device }) {
                                     Icon(
                                         Icons.Default.Delete,
@@ -434,10 +423,12 @@ fun SettingsScreen(
                                             var isAdding = false
                                             try {
                                                 isAdding = true
+                                                // Prefer RemoteID if available (for IR devices), otherwise use ID
+                                                val targetId = device.remoteId ?: device.id
                                                 val response = RetrofitClient.instance.createDevice(
                                                     "Bearer $token",
                                                     CreateDeviceRequest(
-                                                        id = device.id,
+                                                        id = targetId,
                                                         teraluxId = teraluxId,
                                                         name = device.name
                                                     )

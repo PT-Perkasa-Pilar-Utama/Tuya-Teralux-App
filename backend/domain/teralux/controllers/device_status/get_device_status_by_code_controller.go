@@ -24,26 +24,26 @@ func NewGetDeviceStatusByCodeController(useCase *usecases.GetDeviceStatusByCodeU
 	}
 }
 
-// GetDeviceStatusByCode handles GET /api/devices/statuses/:deviceId/:code endpoint
+// GetDeviceStatusByCode handles GET /api/devices/:id/statuses/:code endpoint
 // @Summary      Get Device Status by Code
 // @Tags         05. Device Statuses
 // @Produce      json
+// @Param        id        path      string  true  "Device ID"
 // @Param        code      path      string  true  "Status Code"
-// @Param        device_id query     string  true  "Device ID"
 // @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.DeviceStatusSingleResponseDTO}
-// @Failure      400      {object}  dtos.StandardResponse "Validation Error: device_id is required"
+// @Failure      400      {object}  dtos.StandardResponse "Validation Error: id is required"
 // @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
 // @Failure      404      {object}  dtos.StandardResponse "Status code not found for this device"
 // @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
-// @Router       /api/device-statuses/code/{code} [get]
+// @Router       /api/devices/{id}/statuses/{code} [get]
 func (c *GetDeviceStatusByCodeController) GetDeviceStatusByCode(ctx *gin.Context) {
-	deviceID := ctx.Query("device_id")
+	deviceID := ctx.Param("id")
 	code := ctx.Param("code")
 	if deviceID == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Validation Error: device_id is required",
+			Message: "Validation Error: id is required",
 			Data:    nil,
 		})
 		return

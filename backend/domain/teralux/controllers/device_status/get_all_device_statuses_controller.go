@@ -34,7 +34,7 @@ func NewGetAllDeviceStatusesController(useCase *usecases.GetAllDeviceStatusesUse
 // @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
 // @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
 // @Security     BearerAuth
-// @Router       /api/device-statuses [get]
+// @Router       /api/devices/statuses [get]
 func (c *GetAllDeviceStatusesController) GetAllDeviceStatuses(ctx *gin.Context) {
 	statuses, err := c.useCase.Execute()
 	if err != nil {
