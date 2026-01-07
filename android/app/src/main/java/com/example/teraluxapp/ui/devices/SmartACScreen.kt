@@ -58,6 +58,7 @@ fun SmartACScreen(
     var isOn by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
     var isDeviceOnline by remember { mutableStateOf(false) }
+    var remoteId by remember { mutableStateOf(deviceId) }
     
     val modeLabels = listOf("Cool", "Heat", "Auto", "Fan", "Dry")
     val modeEmojis = listOf("❄️", "🔥", "🔄", "💨", "💧")
@@ -75,6 +76,9 @@ fun SmartACScreen(
             val dev = response.data?.device
             if (dev != null) {
                 isDeviceOnline = dev.online
+                if (!dev.remoteId.isNullOrEmpty()) {
+                    remoteId = dev.remoteId
+                }
                 val statuses = dev.status
             
                 // DEBUG: Log all statuses
@@ -129,11 +133,11 @@ fun SmartACScreen(
                     android.util.Log.d("SmartACScreen", "Sending IR Command: $code = $intValue to remote $deviceId via hub $infraredId")
                     
                     val request = IRACCommandRequest(
-                        remote_id = deviceId,  // This is the AC remote ID
+                        remote_id = remoteId,
                         code = code,
                         value = intValue
                     )
-                    val response = RetrofitClient.instance.sendIRACCommand("Bearer $token", infraredId, request)
+                    val response = RetrofitClient.instance.sendIRACCommand("Bearer $token", deviceId, request)
                     
                     if (response.isSuccessful && response.body()?.status == true) {
                         android.util.Log.d("SmartACScreen", "Command Success")
