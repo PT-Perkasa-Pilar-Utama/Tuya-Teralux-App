@@ -423,8 +423,8 @@ fun SettingsScreen(
                                             var isAdding = false
                                             try {
                                                 isAdding = true
-                                                // Prefer RemoteID if available (for IR devices), otherwise use ID
-                                                val targetId = device.remoteId ?: device.id
+                                                // Use device.id which matches the backend's expected ID (Hub ID for IR devices)
+                                                val targetId = device.id
                                                 val response = RetrofitClient.instance.createDevice(
                                                     "Bearer $token",
                                                     CreateDeviceRequest(

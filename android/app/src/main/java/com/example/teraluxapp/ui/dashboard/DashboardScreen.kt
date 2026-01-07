@@ -156,8 +156,15 @@ fun DashboardScreen(token: String,
                                 val device = firstRowDevices[i]
                                 // For IR devices, use remote_id as deviceId and id as gatewayId
                                 val hasRemoteId = !device.remoteId.isNullOrBlank()
-                                val actualDeviceId = if (hasRemoteId) device.remoteId!! else device.id
-                                val actualGatewayId = if (hasRemoteId) device.id else device.gatewayId
+                                // ALWAYS use device.id as the main deviceId so backend can find it
+                                val actualDeviceId = device.id
+                                // Pass remoteId as gatewayId if it exists (or keep existing logic if gatewayId meant something else, 
+                                // but for IR devices, the backend expects Hub ID as deviceId).
+                                // Actually, for IR devices, the 'id' field in Device model IS the Hub ID (from backend).
+                                // The 'remote_id' is the specific IR remote ID.
+                                // The navigation expects 'deviceId'. 
+                                // If we pass Hub ID, backend finds it.
+                                val actualGatewayId = if (hasRemoteId) device.remoteId else device.gatewayId
                                 val rawCategory = if (!device.remoteCategory.isNullOrBlank()) device.remoteCategory else device.category ?: "unknown"
                                 val actualCategory = if (rawCategory.isBlank()) "unknown" else rawCategory
                                 DeviceItem(
@@ -185,8 +192,15 @@ fun DashboardScreen(token: String,
                                 val device = secondRowDevices[i]
                                 // For IR devices, use remote_id as deviceId and id as gatewayId
                                 val hasRemoteId = !device.remoteId.isNullOrBlank()
-                                val actualDeviceId = if (hasRemoteId) device.remoteId!! else device.id
-                                val actualGatewayId = if (hasRemoteId) device.id else device.gatewayId
+                                // ALWAYS use device.id as the main deviceId so backend can find it
+                                val actualDeviceId = device.id
+                                // Pass remoteId as gatewayId if it exists (or keep existing logic if gatewayId meant something else, 
+                                // but for IR devices, the backend expects Hub ID as deviceId).
+                                // Actually, for IR devices, the 'id' field in Device model IS the Hub ID (from backend).
+                                // The 'remote_id' is the specific IR remote ID.
+                                // The navigation expects 'deviceId'. 
+                                // If we pass Hub ID, backend finds it.
+                                val actualGatewayId = if (hasRemoteId) device.remoteId else device.gatewayId
                                 val rawCategory = if (!device.remoteCategory.isNullOrBlank()) device.remoteCategory else device.category ?: "unknown"
                                 val actualCategory = if (rawCategory.isBlank()) "unknown" else rawCategory
                                 DeviceItem(
