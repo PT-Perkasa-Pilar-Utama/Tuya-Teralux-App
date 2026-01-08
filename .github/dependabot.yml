@@ -8,6 +8,7 @@ updates:
     directory: "/backend"
     schedule:
       interval: "daily"
+      time: "10:00"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
@@ -21,6 +22,7 @@ updates:
     directory: "/android"
     schedule:
       interval: "daily"
+      time: "10:00"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
@@ -34,6 +36,7 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+      time: "10:00"
     commit-message:
       prefix: "ci(deps)"
 
@@ -42,5 +45,6 @@ updates:
     directory: "/backend"
     schedule:
       interval: "daily"
+      time: "10:00"
     commit-message:
       prefix: "chore(docker)"
