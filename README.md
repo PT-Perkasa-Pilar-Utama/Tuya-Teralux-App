@@ -16,19 +16,10 @@ The project is divided into two main components:
     *   Built using **Go (Golang)**.
     *   Manages device connectivity, state synchronization, and integration with third-party platforms like Tuya.
 
-## 🚀 Getting Started
+### Installation & User Guide
+For detailed instructions on how to configure, build, and run both the Backend and Android applications (using `Makefile`), please consult the dedicated documentation:
 
-### Backend Setup
-For detailed instructions on how to configure, build, and run the backend server (including Docker and Make commands), please consult the dedicated documentation:
-
-👉 **[Read the Backend README](backend/README.md)**
-
-### Android Setup
-To work on the mobile application:
-1.  Open the `android` directory in **Android Studio**.
-2.  Sync the Gradle project.
-3.  Ensure your `local.properties` is configured if necessary.
-4.  Run the application on an emulator or physical device.
+👉 **[Read the Installation Guide](backend/docs/manual/installation_guide.md)**
 
 ## 🛠️ Key Technologies
 

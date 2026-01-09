@@ -2,7 +2,7 @@ package common
 
 import (
 	"net/url"
-	"teralux_app/docs"
+	"teralux_app/docs/swagger"
 	"teralux_app/domain/common/controllers"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/routes"
@@ -17,6 +17,7 @@ import (
 type CommonModule struct {
 	HealthController *controllers.HealthController
 	CacheController  *controllers.CacheController
+	DocsController   *controllers.DocsController
 }
 
 // NewCommonModule initializes the common module
@@ -24,6 +25,7 @@ func NewCommonModule(badger *infrastructure.BadgerService) *CommonModule {
 	return &CommonModule{
 		HealthController: controllers.NewHealthController(),
 		CacheController:  controllers.NewCacheController(badger),
+		DocsController:   controllers.NewDocsController(),
 	}
 }
 
@@ -32,19 +34,22 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	// Configure Swagger Info
 	if swaggerURL := utils.AppConfig.SwaggerBaseURL; swaggerURL != "" {
 		if parsedURL, err := url.Parse(swaggerURL); err == nil {
-			docs.SwaggerInfo.Host = parsedURL.Host
-			docs.SwaggerInfo.Schemes = []string{parsedURL.Scheme}
+			swagger.SwaggerInfo.Host = parsedURL.Host
+			swagger.SwaggerInfo.Schemes = []string{parsedURL.Scheme}
 		}
 	}
 	// Public Routes
 	router.GET("/health", m.HealthController.CheckHealth)
+
+	// Markdown Docs
+	router.GET("/docs/*path", m.DocsController.ServeDocs)
 
 	// Swagger Routes
 	router.Static("/swagger-assets", "./docs/swagger-ui")
 	router.GET("/swagger/*any", func(c *gin.Context) {
 		if c.Param("any") == "" || c.Param("any") == "/" || c.Param("any") == "/index.html" {
 			c.Header("Content-Type", "text/html; charset=utf-8")
-			c.String(200, docs.CustomSwaggerHTML)
+			c.String(200, swagger.CustomSwaggerHTML)
 		} else {
 			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
 		}
