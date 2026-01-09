@@ -7,7 +7,9 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/backend"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+      time: "10:00"
+      timezone: "Asia/Jakarta"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
@@ -20,7 +22,9 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/android"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+      time: "10:00"
+      timezone: "Asia/Jakarta"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
@@ -33,7 +37,9 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+      time: "10:00"
+      timezone: "Asia/Jakarta"
     commit-message:
       prefix: "ci(deps)"
 
@@ -41,6 +47,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/backend"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+      time: "10:00"
+      timezone: "Asia/Jakarta"
     commit-message:
       prefix: "chore(docker)"
