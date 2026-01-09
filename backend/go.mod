@@ -1,6 +1,6 @@
 module teralux_app
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.5
