@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"testing"
-
 )
 
 func TestJoinStrings(t *testing.T) {

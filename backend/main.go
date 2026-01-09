@@ -21,7 +21,7 @@ import (
 
 // @title           Teralux API
 // @version         1.0
-// @description     This is the API server for Teralux App.
+// @description     This is the API server for Teralux App. <br> For full documentation, visit <a href="/docs">/docs</a>.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name    API Support
