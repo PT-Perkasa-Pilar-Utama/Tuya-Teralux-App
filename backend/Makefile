@@ -1,6 +1,6 @@
 # Teralux App Backend - Makefile for Development Automation
 
-.PHONY: help dev start install-watch build build-docker start-docker push push-local pull-docker start-compose stop-compose update test clean kill migrate-up migrate-down migrate-version migrate-force
+.PHONY: help dev start install-watch build build-docker start-docker stop-docker push push-local pull-docker start-compose stop-compose update test clean kill migrate-up migrate-down migrate-version migrate-force
 
 # Default target
 help:
@@ -12,8 +12,9 @@ help:
 	@echo "  make build            - Build release binary"
 	@echo "  make build-docker     - Build Docker image"
 	@echo "  make start-docker     - Run Docker image (with .env)"
+	@echo "  make stop-docker      - Stop and remove Docker container"
 	@echo "  make push             - Push Docker image to GHCR"
-	@echo "  make push-local       - Build+push Docker image locally (no CI)"
+	@echo "  make push-local       - Build+push Docker image locally (source from GitHub)"
 	@echo "  make pull-docker      - Pull latest image for Docker Compose"
 	@echo "  make start-compose    - Start Docker Compose stack (pulls first)"
 	@echo "  make stop-compose     - Stop Docker Compose stack"
@@ -25,6 +26,8 @@ help:
 	@echo "  make migrate-down     - Rollback last migration"
 	@echo "  make migrate-version  - Show current migration version"
 	@echo "  make migrate-force    - Force database to specific version (VERSION=N)"
+	@echo "  make prune-db         - Remove SQLite database file (Empty)"
+	@echo "  make prune-db-fresh   - Remove SQLite database and re-migrate (Fresh)"
 	@echo ""
 
 # Run development server with hot reload (requires air)
@@ -53,7 +56,8 @@ install-swagger:
 # Generate Swagger documentation
 swagger:
 	@echo "📝 Generating Swagger documentation..."
-	@$(shell go env GOPATH)/bin/swag init -g main.go
+	@$(shell go env GOPATH)/bin/swag init -g main.go -o docs/swagger
+	@sed -i 's/package docs/package swagger/g' docs/swagger/docs.go
 	@echo "✅ Swagger documentation updated"
 
 # Build release binary
@@ -64,21 +68,34 @@ build:
 # --- Docker Configuration ---
 DOCKER_IMAGE_NAME = teralux-backend
 GHCR_REPO = ghcr.io/pt-perkasa-pilar-utama/teralux-backend
+GIT_REPO_URL = https://github.com/farismnrr/Tuya-Teralux-App.git
 # GHCR_REPO = ghcr.io/farismnrr/teralux-backend
 DOCKER_TAG = latest
 
 # Build via Docker
 build-docker:
-	@echo "🐳 Building Docker images..."
-	@echo "  Building latest (auto-migrate force)..."
-	docker build -t $(GHCR_REPO):latest --build-arg AUTO_MIGRATE=true .
-	@echo "  Building dev (auto-migrate)..."
-	docker build -t $(GHCR_REPO):dev --build-arg AUTO_MIGRATE=true .
+	@echo "🐳 Building Docker image..."
+	@mkdir -p ~/.docker/cli-plugins
+	@if [ ! -f ~/.docker/cli-plugins/docker-buildx ]; then \
+		echo "📦 Installing docker-buildx plugin..."; \
+		BUILDX_VERSION=$$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/'); \
+		curl -fsSL "https://github.com/docker/buildx/releases/download/v$$BUILDX_VERSION/buildx-v$$BUILDX_VERSION.linux-amd64" -o ~/.docker/cli-plugins/docker-buildx; \
+		chmod +x ~/.docker/cli-plugins/docker-buildx; \
+		echo "✅ docker-buildx installed"; \
+	fi
+	@docker buildx version || (echo "❌ buildx installation failed" && exit 1)
+	@docker buildx build --build-arg AUTO_MIGRATE=true -t $(DOCKER_IMAGE_NAME):latest --load .
+
+# Stop dev container
+stop-docker:
+	@echo "🛑 Stopping Docker container..."
+	@docker stop $(DOCKER_IMAGE_NAME) 2>/dev/null || true
+	@docker rm $(DOCKER_IMAGE_NAME) 2>/dev/null || true
 
 # Start dev container locally
-start-docker:
-	@echo "🚀 Starting Dev Docker container..."
-	docker run --rm -it -d -p 8080:8080 --env-file .env $(GHCR_REPO)
+start-docker: stop-docker
+	@echo "🚀 Starting Docker container..."
+	docker run --rm -it -d -p 8080:8080 --name $(DOCKER_IMAGE_NAME) --env-file .env $(DOCKER_IMAGE_NAME):latest
 
 # Push to GHCR via GitHub Actions
 push:
@@ -94,7 +111,12 @@ push:
 			exit 1; \
 		fi \
 	)
-	@TAG="$${TAG:-latest}"; \
+	@if [ -z "$(TAG)" ]; then \
+		read -p "Enter Docker Tag (default: latest): " input_tag; \
+		TAG="$${input_tag:-latest}"; \
+	else \
+		TAG="$(TAG)"; \
+	fi; \
 	REF="$$TAG"; \
 	[ "$$TAG" = "latest" ] && REF="main"; \
 	echo "📦 Using tag '$$TAG' (ref: $$REF)"; \
@@ -104,16 +126,21 @@ push:
 # Push to GHCR locally (multi-arch) without GitHub Actions
 push-local:
 	@echo "🔐 Logging in to GHCR..."
-	@export $$(grep -v '^#' .env | grep -v '^$$' | sed 's/#.*//g' | xargs) && \
-	(echo "$$${CR_PAT:-$$GITHUB_TOKEN}" | docker login ghcr.io -u farismnrr --password-stdin)
-	@TAG="$${TAG:-latest}"; \
-	echo "🚀 Using tag '$$TAG'"; \
+	# @export $$(grep -v '^#' .env | grep -v '^$$' | sed 's/#.*//g' | xargs) && \
+	# (echo "$$${CR_PAT:-$$GITHUB_TOKEN}" | docker login ghcr.io -u farismnrr --password-stdin)
+	@if [ -z "$(TAG)" ]; then \
+		read -p "Enter Docker Tag (default: latest): " input_tag; \
+		TAG="$${input_tag:-latest}"; \
+	else \
+		TAG="$(TAG)"; \
+	fi; \
+	REF="$$TAG"; \
+	[ "$$TAG" = "latest" ] && REF="main"; \
+	echo "🚀 Using tag '$$TAG' (source ref: $$REF)"; \
 	docker buildx inspect multi-arch-builder > /dev/null 2>&1 || docker buildx create --name multi-arch-builder --use; \
-	echo "🚀 Building and pushing '$$TAG' (multi-arch: amd64, arm64)..."; \
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):$$TAG --push .; \
-	echo "🚀 Building and pushing 'dev' (multi-arch: amd64, arm64)..."; \
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):dev --push .; \
-	echo "✅ Images pushed to GHCR (Tags: $$TAG, dev)"
+	echo "🚀 Building and pushing '$$TAG' from $$REF (multi-arch: amd64, arm64)..."; \
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):$$TAG --push $(GIT_REPO_URL)#$$REF:backend; \
+	echo "✅ Images pushed to GHCR (Tags: $$TAG)"
 
 # Pull latest image for Docker Compose
 pull-docker:
@@ -211,3 +238,19 @@ migrate-force: $(MIGRATE_BIN)
 	@echo "⚠️  Forcing database to version $(VERSION)..."
 	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" force $(VERSION)
 	@echo "✅ Database forced to version $(VERSION)"
+
+# Prune database (SQLite only) - Deletes the database file
+prune-db:
+	@if [ "$(DB_TYPE)" = "mysql" ]; then \
+		echo "❌ prune-db is only supported for SQLite"; \
+		exit 1; \
+	fi
+	@echo "🗑️  Removing SQLite database: $(DB_SQLITE_PATH)..."
+	@rm -f $(DB_SQLITE_PATH)
+	@echo "🗑️  Removing BadgerDB cache: ./tmp/badger..."
+	@rm -rf ./tmp/badger
+	@echo "✅ Database and Cache removed."
+
+# Prune and re-migrate (Fresh install)
+prune-db-fresh: prune-db migrate-up
+	@echo "✅ Database pruned and re-migrated (Fresh)."

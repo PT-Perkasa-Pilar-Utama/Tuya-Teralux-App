@@ -3,9 +3,11 @@
 ############################
 # Builder
 ############################
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.23-bookworm AS builder
 
 WORKDIR /app
+
+ARG TARGETARCH
 
 # Cache dependency layer
 COPY go.mod go.sum ./
@@ -17,20 +19,22 @@ COPY . .
 
 # Run Unit Tests
 RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
     go test -v ./...
 
 # Build static binary
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=1 \
     GOOS=linux \
-    GOARCH=amd64 \
+    GOARCH=$TARGETARCH \
     go build \
       -trimpath \
       -ldflags="-s -w" \
       -o app
 
 # Install migrate (builder only)
-RUN curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-amd64.tar.gz \
+RUN curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-$TARGETARCH.tar.gz \
     | tar -xz && \
     mv migrate /usr/local/bin/migrate && \
     chmod +x /usr/local/bin/migrate
@@ -38,7 +42,7 @@ RUN curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18
 ############################
 # Runtime
 ############################
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
@@ -50,6 +54,9 @@ COPY --from=builder /usr/local/bin/migrate /usr/local/bin/migrate
 
 # Copy migrations
 COPY --from=builder /app/domain/teralux/migrations /app/migrations
+
+# Copy docs
+COPY --from=builder /app/docs /app/docs
 
 # Runtime env only
 ENV AUTO_MIGRATE=false
