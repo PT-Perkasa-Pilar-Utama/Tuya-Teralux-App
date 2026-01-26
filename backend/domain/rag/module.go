@@ -11,7 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InitModule(r *gin.Engine, cfg *utils.Config) {
+// InitModule initializes RAG module with protected router group and configuration.
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config) {
 	// Initialize Dependencies
 	vectorSvc := infrastructure.NewVectorService()
 	ollamaRepo := speechRepos.NewOllamaRepository()
@@ -19,5 +20,5 @@ func InitModule(r *gin.Engine, cfg *utils.Config) {
 	ragController := controllers.NewRAGController(ragUsecase)
 
 	// Setup Routes
-	routes.SetupRAGRoutes(r, ragController)
+	routes.SetupRAGRoutes(protected, ragController)
 }

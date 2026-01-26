@@ -10,7 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InitModule(router *gin.Engine, cfg *utils.Config) {
+// InitModule initializes the Speech module with the protected router group.
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config) {
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository()
 	ollamaRepo := repositories.NewOllamaRepository()
@@ -22,5 +23,5 @@ func InitModule(router *gin.Engine, cfg *utils.Config) {
 	transcriptionController := controllers.NewTranscriptionController(transcriptionUsecase, cfg)
 
 	// Routes
-	routes.RegisterRoutes(router, transcriptionController)
+	routes.SetupSpeechRoutes(protected, transcriptionController)
 }

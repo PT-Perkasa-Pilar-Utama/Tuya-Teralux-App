@@ -6,8 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.Engine, controller *controllers.TranscriptionController) {
-	api := router.Group("/")
+// SetupSpeechRoutes registers speech endpoints under the protected router group.
+func SetupSpeechRoutes(rg *gin.RouterGroup, controller *controllers.TranscriptionController) {
+	api := rg.Group("/api/speech")
 	{
 		api.POST("/transcribe", controller.HandleTranscribe)
 	}
