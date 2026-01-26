@@ -19,7 +19,7 @@ func NewRAGController(u *usecases.RAGUsecase) *RAGController {
 // ProcessText godoc
 // @Summary Process text via RAG
 // @Description Submit text for RAG processing
-// @Tags rag
+// @Tags 09. RAG
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGRequestDTO true "RAG request"
@@ -45,7 +45,7 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 
 // GetStatus godoc
 // @Summary Get RAG task status
-// @Tags rag
+// @Tags 09. RAG
 // @Produce json
 // @Param task_id path string true "Task ID"
 // @Success 200 {object} dtos.StandardResponse

@@ -337,6 +337,16 @@ definitions:
       status:
         type: boolean
     type: object
+  teralux_app_domain_speech_dtos.StandardResponse:
+    properties:
+      data: {}
+      details:
+        type: string
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -1397,7 +1407,7 @@ paths:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
       summary: Process text via RAG
       tags:
-      - rag
+      - 09. RAG
   /v1/rag/{task_id}:
     get:
       parameters:
@@ -1419,7 +1429,44 @@ paths:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
       summary: Get RAG task status
       tags:
-      - rag
+      - 09. RAG
+  /v1/transcribe:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Transcribe audio to text using Whisper or configured STT pipeline
+      parameters:
+      - description: Audio file
+        in: formData
+        name: audio
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      summary: Transcribe audio file
+      tags:
+      - 08. Speech
 securityDefinitions:
   ApiKeyAuth:
     in: header
