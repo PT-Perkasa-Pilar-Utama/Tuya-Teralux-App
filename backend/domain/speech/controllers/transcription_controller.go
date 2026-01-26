@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"teralux_app/domain/common/config"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/usecases"
 
@@ -14,10 +14,10 @@ import (
 
 type TranscriptionController struct {
 	usecase *usecases.TranscriptionUsecase
-	config  *config.Config
+	config  *utils.Config
 }
 
-func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, cfg *config.Config) *TranscriptionController {
+func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, cfg *utils.Config) *TranscriptionController {
 	return &TranscriptionController{
 		usecase: usecase,
 		config:  cfg,

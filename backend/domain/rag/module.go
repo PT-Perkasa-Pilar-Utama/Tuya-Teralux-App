@@ -1,17 +1,17 @@
 package rag
 
 import (
-	"teralux_app/domain/common/config"
+	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/controllers"
 	"teralux_app/domain/rag/routes"
 	"teralux_app/domain/rag/usecases"
-	"teralux_app/domain/common/infrastructure"
 	speechRepos "teralux_app/domain/speech/repositories"
 
 	"github.com/gin-gonic/gin"
 )
 
-func InitModule(r *gin.Engine, cfg *config.Config) {
+func InitModule(r *gin.Engine, cfg *utils.Config) {
 	// Initialize Dependencies
 	vectorSvc := infrastructure.NewVectorService()
 	ollamaRepo := speechRepos.NewOllamaRepository()

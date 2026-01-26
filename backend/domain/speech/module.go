@@ -1,7 +1,7 @@
 package speech
 
 import (
-	"teralux_app/domain/common/config"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/speech/controllers"
 	"teralux_app/domain/speech/repositories"
 	"teralux_app/domain/speech/routes"
@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InitModule(router *gin.Engine, cfg *config.Config) {
+func InitModule(router *gin.Engine, cfg *utils.Config) {
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository()
 	ollamaRepo := repositories.NewOllamaRepository()
