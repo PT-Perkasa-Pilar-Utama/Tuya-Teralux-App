@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "stt-service/docs"
+	"stt-service/domain/rag"
 	"stt-service/domain/speech"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,9 @@ func main() {
 
 	// Initialize Speech Domain
 	speech.InitModule(r)
+
+	// Initialize RAG Domain
+	rag.InitModule(r)
 
 	r.Run(":8081")
 }

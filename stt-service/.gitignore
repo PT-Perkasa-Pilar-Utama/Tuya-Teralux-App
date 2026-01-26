@@ -1,0 +1,10 @@
+# Binaries
+stt-app
+bin/
+tmp/
+
+# Swagger
+docs/docs.go
+
+# OS
+.DS_Store

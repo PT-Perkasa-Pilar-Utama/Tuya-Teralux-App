@@ -1,5 +1,31 @@
 basePath: /
 definitions:
+  dtos.RAGRequest:
+    properties:
+      text:
+        type: string
+    required:
+    - text
+    type: object
+  dtos.RAGResponse:
+    properties:
+      result:
+        type: string
+      status:
+        $ref: '#/definitions/dtos.RAGStatus'
+      task_id:
+        type: string
+    type: object
+  dtos.RAGStatus:
+    enum:
+    - enqueue
+    - pending
+    - finished
+    type: string
+    x-enum-varnames:
+    - RAGStatusEnqueue
+    - RAGStatusPending
+    - RAGStatusFinished
   dtos.StandardResponse:
     properties:
       data: {}
@@ -8,6 +34,11 @@ definitions:
         type: string
       status:
         type: boolean
+    type: object
+  dtos.TranscriptionResponseDTO:
+    properties:
+      text:
+        type: string
     type: object
 host: localhost:8081
 info:
@@ -20,7 +51,7 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Upload an MP3/WAV file to transcribe it into text.
+      description: Uploads an audio file (MP3/WAV) and returns the transcribed text
       parameters:
       - description: Audio file to transcribe
         in: formData
@@ -33,6 +64,72 @@ paths:
         "200":
           description: OK
           schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
             $ref: '#/definitions/dtos.StandardResponse'
-      summary: Transcribe audio
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      summary: Transcribe audio file
+      tags:
+      - transcription
+  /v1/rag:
+    post:
+      consumes:
+      - application/json
+      description: Accepts text input and returns a simulated RAG process status
+      parameters:
+      - description: RAG Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGResponse'
+              type: object
+      summary: Process text through RAG (mocked)
+      tags:
+      - rag
+  /v1/rag/{id}:
+    get:
+      description: Check the status or get the result of a RAG task by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGResponse'
+              type: object
+      summary: Get RAG task status
+      tags:
+      - rag
 swagger: "2.0"
