@@ -1377,7 +1377,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - 07. Health
+      - 10. Health
   /v1/rag:
     post:
       consumes:
@@ -1491,9 +1491,9 @@ tags:
   name: 05. Device Statuses
 - description: Cache management endpoints
   name: 06. Flush
-- description: Health check endpoint
-  name: 07. Health
 - description: Speech endpoints
   name: 08. Speech
 - description: RAG endpoints
   name: 09. RAG
+- description: Health check endpoint
+  name: 10. Health
