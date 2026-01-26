@@ -794,6 +794,142 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/rag": {
+            "post": {
+                "description": "Submit text for RAG processing",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. RAG"
+                ],
+                "summary": "Process text via RAG",
+                "parameters": [
+                    {
+                        "description": "RAG request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rag/{task_id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. RAG"
+                ],
+                "summary": "Get RAG task status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/transcribe": {
+            "post": {
+                "description": "Transcribe audio to text using Whisper or configured STT pipeline",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "08. Speech"
+                ],
+                "summary": "Transcribe audio file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/teralux": {
             "get": {
                 "security": [
@@ -1671,142 +1807,6 @@ const docTemplate = `{
                         "description": "Service Unavailable",
                         "schema": {
                             "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/rag": {
-            "post": {
-                "description": "Submit text for RAG processing",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. RAG"
-                ],
-                "summary": "Process text via RAG",
-                "parameters": [
-                    {
-                        "description": "RAG request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.RAGRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/rag/{task_id}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. RAG"
-                ],
-                "summary": "Get RAG task status",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Task ID",
-                        "name": "task_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/transcribe": {
-            "post": {
-                "description": "Transcribe audio to text using Whisper or configured STT pipeline",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "08. Speech"
-                ],
-                "summary": "Transcribe audio file",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }

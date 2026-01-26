@@ -36,7 +36,7 @@ func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, cfg *uti
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
-// @Router /v1/transcribe [post]
+// @Router /api/speech/transcribe [post]
 func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
