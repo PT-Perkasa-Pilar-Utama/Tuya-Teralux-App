@@ -8,26 +8,13 @@
 /backend/whisper.cpp/*.a
 
 # Backups / local copies
-/stt-service/whisper.cpp.bak/
-/stt-service/whisper.cpp.local/
+# Note: stt-service was migrated into `backend/` and removed from the repo.
+# If you had local backups for stt-service, handle them manually.
 
 # Common
 *.pyc
 *.log
 .DS_Store
-
-# stt-service: ignore build artifacts, models, binaries, and temp
-/stt-service/**/models/
-/stt-service/**/build/
-/stt-service/**/tmp/
-/stt-service/bin/
-/stt-service/stt-app
-/stt-service/*.o
-/stt-service/*.so
-/stt-service/*.a
-/stt-service/**/*.o
-/stt-service/**/*.so
-/stt-service/**/*.a
 
 # Backend
 /backend/main
