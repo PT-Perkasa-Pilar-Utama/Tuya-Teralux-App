@@ -1,11 +1,11 @@
 .idea/
 
 # Ignore whisper models & build artifacts
-/stt-service/whisper.cpp/models/
-/stt-service/whisper.cpp/build/
-/stt-service/whisper.cpp/*.o
-/stt-service/whisper.cpp/*.so
-/stt-service/whisper.cpp/*.a
+/backend/whisper.cpp/models/
+/backend/whisper.cpp/build/
+/backend/whisper.cpp/*.o
+/backend/whisper.cpp/*.so
+/backend/whisper.cpp/*.a
 
 # Backups / local copies
 /stt-service/whisper.cpp.bak/

@@ -97,6 +97,66 @@ start-docker: stop-docker
 	@echo "🚀 Starting Docker container..."
 	docker run --rm -it -d -p 8080:8080 --name $(DOCKER_IMAGE_NAME) --env-file .env $(DOCKER_IMAGE_NAME):latest
 
+# --- Development (Docker) & Ollama helpers (migrated from stt-service)
+OLLAMA_IMAGE ?= ollama/ollama:latest
+OLLAMA_DATA_DIR ?= $(HOME)/ollama
+WHISPER_MODEL ?= whisper
+LLM_MODEL ?= gemma
+
+# Run setup script (build whisper.cpp + tools)
+setup: 
+	@echo "🚀 Running backend setup (whisper.cpp build + tools)"
+	@chmod +x setup.sh || true
+	@./setup.sh || true
+
+# Run in Docker (dev mode with hot reload)
+dev-docker: dev-docker-stop
+	@echo "🚀 Starting development environment in Docker..."
+	docker compose --env-file .env.dev -f docker-compose.dev.yml up
+
+# Run development environment with forced rebuild
+dev-docker-build: dev-docker-stop
+	@echo "🚀 Starting development environment in Docker (Forced Rebuild)..."
+	docker compose --env-file .env.dev -f docker-compose.dev.yml up --build
+
+# Stop development environment
+dev-docker-stop:
+	@echo "🛑 Stopping development environment (removing volumes)..."
+	docker compose --env-file .env.dev -f docker-compose.dev.yml down -v
+
+# Ensure Ollama image, data dir & container exist
+ollama-ensure:
+	@echo "🔧 Ensuring Ollama image, data dir & container..."
+	@mkdir -p $(OLLAMA_DATA_DIR)
+	@docker image inspect $(OLLAMA_IMAGE) >/dev/null 2>&1 || (echo "🔽 Pulling $(OLLAMA_IMAGE)..." && docker pull $(OLLAMA_IMAGE))
+	@if [ "$(shell docker ps -q -f name=ollama)" != "" ]; then \
+		echo "ℹ️  Container 'ollama' already running"; \
+	elif [ "$(shell docker ps -aq -f name=ollama)" != "" ]; then \
+		echo "ℹ️  Starting existing container 'ollama'..."; docker start ollama; \
+	else \
+		echo "🔁 Creating and starting container 'ollama'..."; \
+		docker run -d --restart unless-stopped -v $(OLLAMA_DATA_DIR):/root/.ollama -p 11434:11434 --name ollama $(OLLAMA_IMAGE) serve; \
+	fi
+	@echo "✅ Ollama image, data dir & container ready (data dir: $(OLLAMA_DATA_DIR))"
+
+# Pull whisper model if missing
+ollama-pull-whisper: ollama-ensure
+	@echo "🔽 Ensuring Whisper model ($(WHISPER_MODEL))..."
+	@docker exec -i ollama sh -c 'for i in 1 10; do ollama ps >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1' \
+		&& docker exec -i ollama ollama show $(WHISPER_MODEL) >/dev/null 2>&1 || (docker exec -i ollama ollama pull $(WHISPER_MODEL) 2>&1 || echo "⚠️ Model '$(WHISPER_MODEL)' not found in Ollama repository - skipping"); true
+	@echo "✅ Whisper model ensured (or skipped)"
+
+# Pull LLM model if missing
+ollama-pull-llm: ollama-ensure
+	@echo "🔽 Ensuring LLM model ($(LLM_MODEL))..."
+	@docker exec -i ollama sh -c 'for i in 1 10; do ollama ps >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1' \
+		&& docker exec -i ollama ollama show $(LLM_MODEL) >/dev/null 2>&1 || (docker exec -i ollama ollama pull $(LLM_MODEL) 2>&1 || echo "⚠️ Model '$(LLM_MODEL)' not found in Ollama repository - skipping"); true
+	@echo "✅ LLM model ensured (or skipped): $(LLM_MODEL)"
+
+# Convenience: ensure both models and image
+ollama-setup: ollama-pull-whisper ollama-pull-llm
+	@echo "✅ Ollama setup complete (image + whisper + llm)"
+
 # Push to GHCR via GitHub Actions
 push:
 	@echo "🚀 Triggering GitHub Actions workflow for Docker push..."
