@@ -20,8 +20,8 @@ func NewRAGController(ragUsecase usecases.RAGUsecase) *RAGController {
 }
 
 // ProcessText handles the text input for RAG
-// @Summary      Process text through RAG (mocked)
-// @Description  Accepts text input and returns a simulated RAG process status
+// @Summary      Start asynchronous RAG process
+// @Description  Accepts text input and immediately returns a task ID. The process continues in the background.
 // @Tags         rag
 // @Accept       json
 // @Produce      json

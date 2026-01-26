@@ -85,7 +85,7 @@ const docTemplate = `{
         },
         "/v1/rag": {
             "post": {
-                "description": "Accepts text input and returns a simulated RAG process status",
+                "description": "Accepts text input and immediately returns a task ID. The process continues in the background.",
                 "consumes": [
                     "application/json"
                 ],
@@ -95,7 +95,7 @@ const docTemplate = `{
                 "tags": [
                     "rag"
                 ],
-                "summary": "Process text through RAG (mocked)",
+                "summary": "Start asynchronous RAG process",
                 "parameters": [
                     {
                         "description": "RAG Request",
