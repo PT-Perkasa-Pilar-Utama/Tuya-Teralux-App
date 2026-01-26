@@ -29,6 +29,8 @@ func NewTranscriptionController(usecase *usecases.TranscriptionUsecase) *Transcr
 // @Param audio formData file true "Audio file to transcribe"
 // @Success 200 {object} dtos.StandardResponse{data=dtos.TranscriptionResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
+// @Failure 413 {object} dtos.StandardResponse
+// @Failure 415 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
 // @Router /transcribe [post]
 func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
@@ -38,6 +40,36 @@ func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
 			Status:  false,
 			Message: "Failed to get audio file",
 			Details: err.Error(),
+		})
+		return
+	}
+
+	// 1. Check file size (Max 25MB)
+	const maxFileSize = 25 * 1024 * 1024
+	if file.Size > maxFileSize {
+		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
+			Status:  false,
+			Message: "File too large",
+			Details: "Max file size allowed is 25MB",
+		})
+		return
+	}
+
+	// 2. Check file extension (Supported: .mp3, .wav, .m4a, .aac, .ogg)
+	ext := filepath.Ext(file.Filename)
+	supportedExts := map[string]bool{
+		".mp3":  true,
+		".wav":  true,
+		".m4a":  true,
+		".aac":  true,
+		".ogg":  true,
+		".flac": true,
+	}
+	if !supportedExts[ext] {
+		ctx.JSON(http.StatusUnsupportedMediaType, dtos.StandardResponse{
+			Status:  false,
+			Message: "Unsupported file type",
+			Details: "Only .mp3, .wav, .m4a, .aac, .ogg, .flac are supported",
 		})
 		return
 	}
