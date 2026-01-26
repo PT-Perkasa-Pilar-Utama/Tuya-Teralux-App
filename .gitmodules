@@ -2,3 +2,6 @@
 	path = backend/whisper.cpp
 	url = https://github.com/ggerganov/whisper.cpp.git
 	branch = master
+[submodule "backend/backend/whisper.cpp"]
+	path = backend/backend/whisper.cpp
+	url = https://github.com/ggerganov/whisper.cpp.git
