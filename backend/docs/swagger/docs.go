@@ -46,13 +46,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -108,7 +108,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -124,13 +124,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -169,7 +169,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -185,25 +185,25 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "409": {
                         "description": "Device already exists",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -253,7 +253,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -269,13 +269,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -332,7 +332,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -348,25 +348,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid Teralux ID format",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Teralux hub not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -405,7 +405,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -421,25 +421,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid ID format",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Device not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -483,31 +483,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully updated",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Device not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -542,25 +542,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Device not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -606,31 +606,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully updated",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Device not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -684,7 +684,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -700,19 +700,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Device not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -754,7 +754,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -770,25 +770,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Validation Error: id is required",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Status code not found for this device",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -844,7 +844,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -860,13 +860,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -905,7 +905,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -923,7 +923,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -939,19 +939,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -990,7 +990,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1006,25 +1006,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid MAC Address format",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Teralux not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1063,7 +1063,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1079,25 +1079,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid ID format",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Teralux not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1141,37 +1141,37 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully updated",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Record not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict: Mac Address already in use",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "422": {
                         "description": "Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1206,31 +1206,31 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully deleted",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid ID format",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Teralux not found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1260,7 +1260,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1276,7 +1276,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1332,7 +1332,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1348,7 +1348,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1381,7 +1381,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1400,13 +1400,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1445,7 +1445,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1461,13 +1461,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1513,19 +1513,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1571,19 +1571,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1622,7 +1622,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1638,13 +1638,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1671,6 +1671,86 @@ const docTemplate = `{
                         "description": "Service Unavailable",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag": {
+            "post": {
+                "description": "Submit text for RAG processing",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rag"
+                ],
+                "summary": "Process text via RAG",
+                "parameters": [
+                    {
+                        "description": "RAG request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag/{task_id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rag"
+                ],
+                "summary": "Get RAG task status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1870,6 +1950,14 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.RAGRequestDTO": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.SensorDataDTO": {
             "type": "object",
             "properties": {
@@ -1887,19 +1975,6 @@ const docTemplate = `{
                 },
                 "temperature": {
                     "type": "number"
-                }
-            }
-        },
-        "dtos.StandardResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "details": {},
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2167,6 +2242,34 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "teralux_app_domain_common_dtos.StandardResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "details": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "teralux_app_domain_rag_dtos.StandardResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "details": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -2210,6 +2313,14 @@ const docTemplate = `{
         {
             "description": "Health check endpoint",
             "name": "07. Health"
+        },
+        {
+            "description": "Speech endpoints",
+            "name": "08. Speech"
+        },
+        {
+            "description": "RAG endpoints",
+            "name": "09. RAG"
         }
     ]
 }`
