@@ -10,10 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"teralux_app/domain/common"
-	"teralux_app/domain/common/config"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/middlewares"
-	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux"
 	teralux_entities "teralux_app/domain/teralux/entities"
 	teralux_repositories "teralux_app/domain/teralux/repositories"
@@ -65,6 +64,12 @@ import (
 
 // @tag.name 07. Health
 // @tag.description Health check endpoint
+
+// @tag.name 08. Speech
+// @tag.description Speech endpoints
+
+// @tag.name 09. RAG
+// @tag.description RAG endpoints
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -134,14 +139,29 @@ func main() {
 	teraluxModule.RegisterRoutes(router, protected)
 
 	// 4. Speech & RAG Modules (migrated from stt-service)
-	scfg, err := config.LoadConfig()
-	if err != nil {
-		utils.LogInfo("FATAL: Failed to load speech/rag config: %v", err)
-		os.Exit(1)
+	scfg := utils.GetConfig()
+	missing := []string{}
+	if scfg.OllamaURL == "" {
+		missing = append(missing, "OLLAMA_URL")
 	}
-
-	speech.InitModule(router, scfg)
-	rag.InitModule(router, scfg)
+	if scfg.LLMModel == "" {
+		missing = append(missing, "LLM_MODEL")
+	}
+	if scfg.WhisperModelPath == "" {
+		missing = append(missing, "WHISPER_MODEL_PATH")
+	}
+	if scfg.MaxFileSize == 0 {
+		missing = append(missing, "MAX_FILE_SIZE_MB")
+	}
+	if scfg.Port == "" {
+		missing = append(missing, "PORT")
+	}
+	if len(missing) > 0 {
+		utils.LogInfo("⚠️ Speech/RAG config incomplete, skipping initialization: %v", missing)
+	} else {
+		speech.InitModule(router, scfg)
+		rag.InitModule(router, scfg)
+	}
 
 	utils.LogInfo("Server starting on :8080")
 	if err := router.Run(":8080"); err != nil {

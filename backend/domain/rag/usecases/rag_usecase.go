@@ -1,19 +1,19 @@
 package usecases
 
 import (
-	"teralux_app/domain/common/config"
-	ragdtos "teralux_app/domain/rag/dtos"
 	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/utils"
+	ragdtos "teralux_app/domain/rag/dtos"
 	speechRepos "teralux_app/domain/speech/repositories"
 )
 
 type RAGUsecase struct {
 	vectorSvc *infrastructure.VectorService
 	ollamaRepo *speechRepos.OllamaRepository
-	config     *config.Config
+	config     *utils.Config
 }
 
-func NewRAGUsecase(vectorSvc *infrastructure.VectorService, ollamaRepo *speechRepos.OllamaRepository, cfg *config.Config) *RAGUsecase {
+func NewRAGUsecase(vectorSvc *infrastructure.VectorService, ollamaRepo *speechRepos.OllamaRepository, cfg *utils.Config) *RAGUsecase {
 	return &RAGUsecase{vectorSvc: vectorSvc, ollamaRepo: ollamaRepo, config: cfg}
 }
 

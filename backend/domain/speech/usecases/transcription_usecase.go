@@ -5,17 +5,16 @@ import (
 	"os"
 	"path/filepath"
 	"teralux_app/domain/common/utils"
-	"teralux_app/domain/common/config"
 	"teralux_app/domain/speech/repositories"
 )
 
 type TranscriptionUsecase struct {
 	whisperRepo *repositories.WhisperRepository
 	ollamaRepo  *repositories.OllamaRepository
-	config      *config.Config
+	config      *utils.Config
 }
 
-func NewTranscriptionUsecase(whisperRepo *repositories.WhisperRepository, ollamaRepo *repositories.OllamaRepository, cfg *config.Config) *TranscriptionUsecase {
+func NewTranscriptionUsecase(whisperRepo *repositories.WhisperRepository, ollamaRepo *repositories.OllamaRepository, cfg *utils.Config) *TranscriptionUsecase {
 	return &TranscriptionUsecase{
 		whisperRepo: whisperRepo,
 		ollamaRepo:  ollamaRepo,

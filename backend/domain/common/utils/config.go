@@ -3,6 +3,7 @@ package utils
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -10,6 +11,7 @@ import (
 // Config holds the application's configuration parameters.
 // These are loaded from environment variables or a .env file.
 type Config struct {
+	// Tuya / general
 	TuyaClientID              string
 	TuyaClientSecret          string
 	TuyaBaseURL               string
@@ -18,6 +20,13 @@ type Config struct {
 	SwaggerBaseURL            string
 	GetAllDevicesResponseType string
 	CacheTTL                  string
+
+	// Speech / RAG
+	OllamaURL        string
+	LLMModel         string
+	WhisperModelPath string
+	MaxFileSize      int64 // bytes
+	Port             string
 }
 
 // AppConfig is the global configuration instance.
@@ -36,6 +45,16 @@ func LoadConfig() {
 		}
 	}
 
+	// Parse MAX_FILE_SIZE_MB as integer (in MB)
+	maxFileSize := int64(0)
+	if v := os.Getenv("MAX_FILE_SIZE_MB"); v != "" {
+		if mb, err := strconv.ParseInt(v, 10, 64); err == nil {
+			maxFileSize = mb * 1024 * 1024
+		} else {
+			log.Printf("Warning: invalid MAX_FILE_SIZE_MB value '%s'", v)
+		}
+	}
+
 	AppConfig = &Config{
 		TuyaClientID:              os.Getenv("TUYA_CLIENT_ID"),
 		TuyaClientSecret:          os.Getenv("TUYA_ACCESS_SECRET"),
@@ -45,6 +64,12 @@ func LoadConfig() {
 		SwaggerBaseURL:            os.Getenv("SWAGGER_BASE_URL"),
 		GetAllDevicesResponseType: os.Getenv("GET_ALL_DEVICES_RESPONSE"),
 		CacheTTL:                  os.Getenv("CACHE_TTL"),
+
+		OllamaURL:        os.Getenv("OLLAMA_URL"),
+		LLMModel:         os.Getenv("LLM_MODEL"),
+		WhisperModelPath: os.Getenv("WHISPER_MODEL_PATH"),
+		MaxFileSize:      maxFileSize,
+		Port:             os.Getenv("PORT"),
 	}
 
 	UpdateLogLevel()
