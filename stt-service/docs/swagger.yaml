@@ -1,0 +1,38 @@
+basePath: /
+definitions:
+  dtos.StandardResponse:
+    properties:
+      data: {}
+      details: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: Speech-to-Text service for Teralux App.
+  title: Teralux STT Service
+  version: "1.0"
+paths:
+  /transcribe:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an MP3/WAV file to transcribe it into text.
+      parameters:
+      - description: Audio file to transcribe
+        in: formData
+        name: audio
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      summary: Transcribe audio
+swagger: "2.0"
