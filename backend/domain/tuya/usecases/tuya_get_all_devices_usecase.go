@@ -3,9 +3,11 @@ package usecases
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/services"
@@ -18,17 +20,23 @@ import (
 type TuyaGetAllDevicesUseCase struct {
 	service       *services.TuyaDeviceService
 	deviceStateUC *DeviceStateUseCase
+	cache         *infrastructure.BadgerService
+	vectorSvc     *infrastructure.VectorService
 }
 
 // NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
 //
 // param service The TuyaDeviceService used for API interactions.
 // param deviceStateUC The DeviceStateUseCase for cleaning up orphaned states.
+// param cache The BadgerService used for caching device lists.
+// param vectorSvc The VectorService used to upsert device docs for LLM retrieval.
 // return *TuyaGetAllDevicesUseCase A pointer to the initialized usecase.
-func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase) *TuyaGetAllDevicesUseCase {
+func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) *TuyaGetAllDevicesUseCase {
 	return &TuyaGetAllDevicesUseCase{
 		service:       service,
 		deviceStateUC: deviceStateUC,
+		cache:         cache,
+		vectorSvc:     vectorSvc,
 	}
 }
 
@@ -53,7 +61,17 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	// Get config
 	config := utils.GetConfig()
 
-	// Cache removal: Logic removed. Always fetch from API.
+	// Build cache key (namespaced to avoid collisions)
+	cacheKey := fmt.Sprintf("cache:tuya:devices:uid:%s:cat:%s:page:%d:limit:%d:mode:%s", uid, category, page, limit, config.GetAllDevicesResponseType)
+	if uc.cache != nil {
+		if cached, err := uc.cache.Get(cacheKey); err == nil && cached != nil {
+			var cachedResp dtos.TuyaDevicesResponseDTO
+			if err := json.Unmarshal(cached, &cachedResp); err == nil {
+				utils.LogDebug("GetAllDevices: returning cached devices for key=%s", cacheKey)
+				return &cachedResp, nil
+			}
+		}
+	}
 
 	// Generate timestamp in milliseconds
 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
@@ -387,12 +405,42 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		}
 	}
 
-	return &dtos.TuyaDevicesResponseDTO{
+	resp := &dtos.TuyaDevicesResponseDTO{
 		Devices:          deviceDTOs,
 		TotalDevices:     total,
 		CurrentPageCount: len(deviceDTOs),
 		Page:             page,
 		PerPage:          limit,
 		Total:            total,
-	}, nil
+	}
+
+	// Cache the response for faster retrieval and to make it available for LLMs
+	if uc.cache != nil {
+		if b, err := json.Marshal(resp); err == nil {
+			if err := uc.cache.Set(cacheKey, b); err != nil {
+				utils.LogWarn("GetAllDevices: failed to set cache for key %s: %v", cacheKey, err)
+			} else {
+				utils.LogDebug("GetAllDevices: cached response under key %s", cacheKey)
+			}
+		}
+	}
+
+	// Upsert to Vector DB so LLMs can find device DTOs and learn format
+	if uc.vectorSvc != nil {
+		// Upsert aggregate document
+		if aggB, err := json.Marshal(resp); err == nil {
+			aggID := fmt.Sprintf("tuya:devices:uid:%s:mode:%s", uid, config.GetAllDevicesResponseType)
+			uc.vectorSvc.Upsert(aggID, string(aggB), nil)
+		}
+
+		// Upsert per-device docs
+		for _, d := range deviceDTOs {
+			if db, err := json.Marshal(d); err == nil {
+				dID := fmt.Sprintf("tuya:device:%s", d.ID)
+				uc.vectorSvc.Upsert(dID, string(db), nil)
+			}
+		}
+	}
+
+	return resp, nil
 }

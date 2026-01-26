@@ -36,7 +36,10 @@ func NewTuyaModule(badger *infrastructure.BadgerService) *TuyaModule {
 	tuyaAuthUseCase := usecases.NewTuyaAuthUseCase(tuyaAuthService)
 	deviceStateUseCase := usecases.NewDeviceStateUseCase(badger)
 
-	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase)
+	// Vector service for LLM-oriented indexing
+	vectorSvc := infrastructure.NewVectorService()
+
+	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc)
 	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaGetAllDevicesUseCase)
 	tuyaDeviceControlUseCase := usecases.NewTuyaDeviceControlUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaSensorUseCase := usecases.NewTuyaSensorUseCase(tuyaGetDeviceByIDUseCase)
