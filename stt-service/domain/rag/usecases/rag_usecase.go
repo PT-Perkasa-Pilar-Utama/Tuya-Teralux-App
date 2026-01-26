@@ -5,6 +5,8 @@ import (
 	"stt-service/domain/rag/dtos"
 	"stt-service/domain/rag/repositories"
 	speechRepos "stt-service/domain/speech/repositories"
+
+	"github.com/google/uuid"
 )
 
 type RAGUsecase interface {
@@ -40,7 +42,7 @@ func (u *ragUsecase) ProcessText(text string) (dtos.RAGResponse, error) {
 	}
 
 	return dtos.RAGResponse{
-		TaskID: "task-12345",
+		TaskID: uuid.NewString(),
 		Status: dtos.RAGStatusFinished,
 		Result: res,
 	}, nil

@@ -116,13 +116,14 @@ paths:
       summary: Process text through RAG (mocked)
       tags:
       - rag
-  /v1/rag/{id}:
+  /v1/rag/{task_id}:
     get:
       description: Check the status or get the result of a RAG task by ID
       parameters:
       - description: Task ID
+        example: '"550e8400-e29b-41d4-a716-446655440000"'
         in: path
-        name: id
+        name: task_id
         required: true
         type: string
       produces:

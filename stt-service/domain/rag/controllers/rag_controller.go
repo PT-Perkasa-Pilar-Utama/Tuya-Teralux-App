@@ -53,11 +53,11 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 // @Description  Check the status or get the result of a RAG task by ID
 // @Tags         rag
 // @Produce      json
-// @Param        id path string true "Task ID"
+// @Param        task_id path string true "Task ID" example("550e8400-e29b-41d4-a716-446655440000")
 // @Success      200 {object} speechDtos.StandardResponse{data=dtos.RAGResponse}
-// @Router       /v1/rag/{id} [get]
+// @Router       /v1/rag/{task_id} [get]
 func (c *RAGController) GetStatus(ctx *gin.Context) {
-	taskID := ctx.Param("id")
+	taskID := ctx.Param("task_id")
 	res, err := c.ragUsecase.GetStatus(taskID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
