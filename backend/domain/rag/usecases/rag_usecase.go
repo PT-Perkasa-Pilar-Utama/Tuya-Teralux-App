@@ -84,14 +84,55 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 		return taskID, err
 	}
 
+	// Log prompt and raw response for debugging
+	utils.LogDebug("RAG Task %s prompt: %s", taskID, prompt)
+	utils.LogDebug("RAG Task %s raw LLM response: %s", taskID, resp)
+
 	// 4) Try to parse LLM response as JSON
 	var parsed map[string]interface{}
 	if err := json.Unmarshal([]byte(resp), &parsed); err != nil {
-		// If not JSON, store raw response
+		// Try to extract JSON object substring if LLM included commentary
+		start := strings.Index(resp, "{")
+		end := strings.LastIndex(resp, "}")
+		if start != -1 && end != -1 && end > start {
+			candidate := resp[start : end+1]
+			if err2 := json.Unmarshal([]byte(candidate), &parsed); err2 == nil {
+				utils.LogDebug("RAG Task %s: extracted JSON from LLM response", taskID)
+			} else {
+				utils.LogDebug("RAG Task %s: failed to extract JSON: %v", taskID, err2)
+			}
+		}
+	}
+
+	// If still not parsed, try one retry with a stricter instruction
+	if parsed == nil {
+		utils.LogDebug("RAG Task %s: LLM output not JSON, retrying with stricter instruction", taskID)
+		retryPrompt := prompt + "\nIMPORTANT: Your output must be valid JSON ONLY, with keys: endpoint, method, device_id, body. Do not add any extra text."
+		resp2, err2 := u.ollama.CallModel(retryPrompt, model)
+		if err2 == nil {
+			utils.LogDebug("RAG Task %s: LLM retry response: %s", taskID, resp2)
+			if err3 := json.Unmarshal([]byte(resp2), &parsed); err3 != nil {
+				// attempt to extract JSON substring from retry
+				start := strings.Index(resp2, "{")
+				end := strings.LastIndex(resp2, "}")
+				if start != -1 && end != -1 && end > start {
+					candidate := resp2[start : end+1]
+					if err4 := json.Unmarshal([]byte(candidate), &parsed); err4 != nil {
+						utils.LogDebug("RAG Task %s: retry also failed to produce JSON: %v", taskID, err4)
+					}
+				}
+			}
+		} else {
+			utils.LogDebug("RAG Task %s: LLM retry error: %v", taskID, err2)
+		}
+	}
+
+	if parsed == nil {
+		// If still not JSON, store raw response and mark done
 		u.mu.Lock()
 		u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "done", Result: resp}
 		u.mu.Unlock()
-		utils.LogDebug("RAG Task %s: LLM returned non-JSON: %s", taskID, resp)
+		utils.LogDebug("RAG Task %s: LLM returned non-JSON after retry: %s", taskID, resp)
 		return taskID, nil
 	}
 

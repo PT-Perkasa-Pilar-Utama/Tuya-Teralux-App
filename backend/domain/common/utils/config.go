@@ -36,12 +36,37 @@ var AppConfig *Config
 // It searches for a .env file in the current and parent directories if not already set.
 // It also triggers an update of the log level based on the loaded configuration.
 func LoadConfig() {
+	// Load .env first (if present), then overlay with .env.dev if that exists.
 	envPath := findEnvFile()
 	if envPath == "" {
 		log.Println("Warning: .env file not found")
 	} else {
-		if err := godotenv.Load(envPath); err != nil {
-			log.Println("Warning: Error loading .env file")
+		m, err := godotenv.Read(envPath)
+		if err != nil {
+			log.Println("Warning: Error reading .env file")
+		} else {
+			for k, v := range m {
+				if os.Getenv(k) == "" {
+					os.Setenv(k, v)
+				}
+			}
+			log.Printf("Loaded env file: %s", envPath)
+		}
+	}
+
+	// Attempt to load .env.dev (load values only if not already set in the environment)
+	devEnvPath := findFileInParents(".env.dev")
+	if devEnvPath != "" {
+		m, err := godotenv.Read(devEnvPath)
+		if err != nil {
+			log.Println("Warning: Error reading .env.dev file")
+		} else {
+			for k, v := range m {
+				if os.Getenv(k) == "" {
+					os.Setenv(k, v)
+				}
+			}
+			log.Printf("Loaded env file: %s", devEnvPath)
 		}
 	}
 
@@ -79,7 +104,12 @@ func LoadConfig() {
 //
 // return string The path to the .env file if found, otherwise an empty string.
 func findEnvFile() string {
-	path := ".env"
+	return findFileInParents(".env")
+}
+
+// findFileInParents searches for filename in current directory and up to three parent directories.
+func findFileInParents(filename string) string {
+	path := filename
 	if _, err := os.Stat(path); err == nil {
 		return path
 	}

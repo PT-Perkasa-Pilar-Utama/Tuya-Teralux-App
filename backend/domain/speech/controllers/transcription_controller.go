@@ -28,6 +28,7 @@ func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, cfg *uti
 // @Summary Transcribe audio file
 // @Description Transcribe audio to text using Whisper or configured STT pipeline
 // @Tags 08. Speech
+// @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
 // @Param audio formData file true "Audio file"

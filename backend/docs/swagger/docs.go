@@ -796,6 +796,11 @@ const docTemplate = `{
         },
         "/api/rag": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Submit text for RAG processing",
                 "consumes": [
                     "application/json"
@@ -842,6 +847,11 @@ const docTemplate = `{
         },
         "/api/rag/{task_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -876,6 +886,11 @@ const docTemplate = `{
         },
         "/api/speech/transcribe": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Transcribe audio to text using Whisper or configured STT pipeline",
                 "consumes": [
                     "multipart/form-data"

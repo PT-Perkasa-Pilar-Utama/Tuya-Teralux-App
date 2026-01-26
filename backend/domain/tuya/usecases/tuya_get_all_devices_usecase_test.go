@@ -1,11 +1,11 @@
 package usecases
 
 import (
-	"testing"
+	"github.com/gin-gonic/gin"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/services"
-	"github.com/gin-gonic/gin"
+	"testing"
 )
 
 func TestGetAllDevices_CachesAndUpsertsVector(t *testing.T) {

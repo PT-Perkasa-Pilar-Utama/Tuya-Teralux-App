@@ -10,14 +10,14 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"teralux_app/domain/common"
-	"teralux_app/domain/common/utils"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/middlewares"
+	"teralux_app/domain/common/utils"
+	"teralux_app/domain/rag"
+	"teralux_app/domain/speech"
 	"teralux_app/domain/teralux"
 	teralux_entities "teralux_app/domain/teralux/entities"
 	teralux_repositories "teralux_app/domain/teralux/repositories"
-	"teralux_app/domain/rag"
-	"teralux_app/domain/speech"
 	"teralux_app/domain/tuya"
 )
 
