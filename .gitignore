@@ -15,3 +15,15 @@
 *.pyc
 *.log
 .DS_Store
+
+# stt-service: ignore build artifacts, models, binaries, and temp
+/stt-service/**/models/
+/stt-service/**/build/
+/stt-service/**/tmp/
+/stt-service/stt-app
+/stt-service/*.o
+/stt-service/*.so
+/stt-service/*.a
+/stt-service/**/*.o
+/stt-service/**/*.so
+/stt-service/**/*.a
