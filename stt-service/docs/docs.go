@@ -17,14 +17,17 @@ const docTemplate = `{
     "paths": {
         "/transcribe": {
             "post": {
-                "description": "Upload an MP3/WAV file to transcribe it into text.",
+                "description": "Uploads an audio file (MP3/WAV) and returns the transcribed text",
                 "consumes": [
                     "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Transcribe audio",
+                "tags": [
+                    "transcription"
+                ],
+                "summary": "Transcribe audio file",
                 "parameters": [
                     {
                         "type": "file",
@@ -38,7 +41,118 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag": {
+            "post": {
+                "description": "Accepts text input and returns a simulated RAG process status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rag"
+                ],
+                "summary": "Process text through RAG (mocked)",
+                "parameters": [
+                    {
+                        "description": "RAG Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag/{id}": {
+            "get": {
+                "description": "Check the status or get the result of a RAG task by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rag"
+                ],
+                "summary": "Get RAG task status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -46,6 +160,44 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dtos.RAGRequest": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RAGResponse": {
+            "type": "object",
+            "properties": {
+                "result": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/dtos.RAGStatus"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RAGStatus": {
+            "type": "string",
+            "enum": [
+                "enqueue",
+                "pending",
+                "finished"
+            ],
+            "x-enum-varnames": [
+                "RAGStatusEnqueue",
+                "RAGStatusPending",
+                "RAGStatusFinished"
+            ]
+        },
         "dtos.StandardResponse": {
             "type": "object",
             "properties": {
@@ -56,6 +208,14 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dtos.TranscriptionResponseDTO": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string"
                 }
             }
         }
