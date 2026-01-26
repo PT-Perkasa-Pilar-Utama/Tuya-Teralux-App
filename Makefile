@@ -24,13 +24,35 @@ backend-setup:
 	@cd backend && $(MAKE) install-swagger
 	@cd backend && $(MAKE) migrate-up
 
-# Run development mode for both services (using air)
-# Note: This runs them in background and tails logs for both. 
-# Better usage: open two terminals and run 'make dev-stt' and 'make dev-backend'
+# Run development mode for the backend
+# Use 'make dev' to run backend with hot-reload (Air)
 dev:
 	@echo "🚀 Starting backend in development mode..."
 	@echo "💡 Tip: Use separate terminals for other tasks."
 	@(cd backend && $(MAKE) dev)
+
+# Docker-based development helpers (forwarded to backend)
+dev-docker:
+	@echo "🚀 Starting backend dev environment in Docker (forwarded)"
+	@(cd backend && $(MAKE) dev-docker)
+
+dev-docker-build:
+	@echo "🚀 Starting backend dev environment in Docker with build (forwarded)"
+	@(cd backend && $(MAKE) dev-docker-build)
+
+dev-docker-stop:
+	@echo "🛑 Stopping backend dev Docker environment (forwarded)"
+	@(cd backend && $(MAKE) dev-docker-stop)
+
+# Run setup script for whisper/whisper.cpp (forwarded to backend)
+setup-stt:
+	@echo "🚀 Running whisper/setup script in backend (forwarded)"
+	@(cd backend && $(MAKE) setup)
+
+# Ollama helper (forwarded to backend)
+ollama-setup:
+	@echo "🔧 Running Ollama setup (forwarded to backend)"
+	@(cd backend && $(MAKE) ollama-setup)
 
 # Clean all
 clean:

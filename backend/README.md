@@ -136,6 +136,24 @@ To stop the Docker Compose stack:
 make stop-compose
 ```
 
+**Development (Docker) with whisper.cpp & Ollama**
+
+For local development that requires `whisper.cpp` binaries and Ollama support, use the docker-compose development helpers:
+
+```bash
+make dev-docker
+make dev-docker-build
+make dev-docker-stop
+```
+
+If you need to build local whisper artifacts (whisper-cli, models) run:
+
+```bash
+make setup
+# or from repository root:
+make setup-stt
+```
+
 ---
 
 ## 🛠️ Available Make Commands
