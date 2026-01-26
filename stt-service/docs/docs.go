@@ -129,7 +129,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/rag/{id}": {
+        "/v1/rag/{task_id}": {
             "get": {
                 "description": "Check the status or get the result of a RAG task by ID",
                 "produces": [
@@ -142,8 +142,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "example": "\"550e8400-e29b-41d4-a716-446655440000\"",
                         "description": "Task ID",
-                        "name": "id",
+                        "name": "task_id",
                         "in": "path",
                         "required": true
                     }
