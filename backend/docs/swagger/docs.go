@@ -1657,7 +1657,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "07. Health"
+                    "10. Health"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -2382,16 +2382,16 @@ const docTemplate = `{
             "name": "06. Flush"
         },
         {
-            "description": "Health check endpoint",
-            "name": "07. Health"
-        },
-        {
             "description": "Speech endpoints",
             "name": "08. Speech"
         },
         {
             "description": "RAG endpoints",
             "name": "09. RAG"
+        },
+        {
+            "description": "Health check endpoint",
+            "name": "10. Health"
         }
     ]
 }`
