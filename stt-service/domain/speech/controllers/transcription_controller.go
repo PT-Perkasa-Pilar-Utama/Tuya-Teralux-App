@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"stt-service/domain/common/config"
 	"stt-service/domain/speech/dtos"
 	"stt-service/domain/speech/usecases"
 
@@ -12,11 +14,13 @@ import (
 
 type TranscriptionController struct {
 	usecase *usecases.TranscriptionUsecase
+	config  *config.Config
 }
 
-func NewTranscriptionController(usecase *usecases.TranscriptionUsecase) *TranscriptionController {
+func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, cfg *config.Config) *TranscriptionController {
 	return &TranscriptionController{
 		usecase: usecase,
+		config:  cfg,
 	}
 }
 
@@ -44,13 +48,12 @@ func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
 		return
 	}
 
-	// 1. Check file size (Max 25MB)
-	const maxFileSize = 25 * 1024 * 1024
-	if file.Size > maxFileSize {
+	// 1. Check file size from config
+	if file.Size > c.config.MaxFileSize {
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
 			Status:  false,
 			Message: "File too large",
-			Details: "Max file size allowed is 25MB",
+			Details: fmt.Sprintf("Max file size allowed is %dMB", c.config.MaxFileSize/(1024*1024)),
 		})
 		return
 	}

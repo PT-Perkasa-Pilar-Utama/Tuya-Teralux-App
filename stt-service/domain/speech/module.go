@@ -1,6 +1,7 @@
 package speech
 
 import (
+	"stt-service/domain/common/config"
 	"stt-service/domain/speech/controllers"
 	"stt-service/domain/speech/repositories"
 	"stt-service/domain/speech/routes"
@@ -9,16 +10,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InitModule(router *gin.Engine) {
+func InitModule(router *gin.Engine, cfg *config.Config) {
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository()
 	ollamaRepo := repositories.NewOllamaRepository()
 
 	// Usecases
-	transcriptionUsecase := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo)
+	transcriptionUsecase := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, cfg)
 
 	// Controllers
-	transcriptionController := controllers.NewTranscriptionController(transcriptionUsecase)
+	transcriptionController := controllers.NewTranscriptionController(transcriptionUsecase, cfg)
 
 	// Routes
 	routes.RegisterRoutes(router, transcriptionController)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"stt-service/domain/common/config"
 	"stt-service/domain/common/utils"
 	"stt-service/domain/speech/repositories"
 )
@@ -11,12 +12,14 @@ import (
 type TranscriptionUsecase struct {
 	whisperRepo *repositories.WhisperRepository
 	ollamaRepo  *repositories.OllamaRepository
+	config      *config.Config
 }
 
-func NewTranscriptionUsecase(whisperRepo *repositories.WhisperRepository, ollamaRepo *repositories.OllamaRepository) *TranscriptionUsecase {
+func NewTranscriptionUsecase(whisperRepo *repositories.WhisperRepository, ollamaRepo *repositories.OllamaRepository, cfg *config.Config) *TranscriptionUsecase {
 	return &TranscriptionUsecase{
 		whisperRepo: whisperRepo,
 		ollamaRepo:  ollamaRepo,
+		config:      cfg,
 	}
 }
 
@@ -31,11 +34,8 @@ func (u *TranscriptionUsecase) TranscribeAudio(inputPath string) (string, error)
 	}
 	defer os.Remove(wavPath)
 
-	// Determine model path
-	modelPath := "./bin/ggml-base.bin" // Default for local
-	if _, err := os.Stat("/usr/local/share/whisper/ggml-base.bin"); err == nil {
-		modelPath = "/usr/local/share/whisper/ggml-base.bin" // Docker path
-	}
+	// Use model path from config
+	modelPath := u.config.WhisperModelPath
 
 	// Transcribe
 	text, err := u.whisperRepo.Transcribe(wavPath, modelPath)

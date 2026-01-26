@@ -1,7 +1,7 @@
 package usecases
 
 import (
-	"os"
+	"stt-service/domain/common/config"
 	"stt-service/domain/rag/dtos"
 	"stt-service/domain/rag/repositories"
 	speechRepos "stt-service/domain/speech/repositories"
@@ -15,12 +15,14 @@ type RAGUsecase interface {
 type ragUsecase struct {
 	vectorRepo repositories.VectorRepository
 	ollamaRepo *speechRepos.OllamaRepository
+	config     *config.Config
 }
 
-func NewRAGUsecase(vectorRepo repositories.VectorRepository, ollamaRepo *speechRepos.OllamaRepository) RAGUsecase {
+func NewRAGUsecase(vectorRepo repositories.VectorRepository, ollamaRepo *speechRepos.OllamaRepository, cfg *config.Config) RAGUsecase {
 	return &ragUsecase{
 		vectorRepo: vectorRepo,
 		ollamaRepo: ollamaRepo,
+		config:     cfg,
 	}
 }
 
@@ -28,17 +30,7 @@ func (u *ragUsecase) ProcessText(text string) (dtos.RAGResponse, error) {
 	// For now, we skip the RAG process (retrieval) and focus on LLM connection
 	// We send the input as-is to the local Ollama instance
 
-	ollamaURL := os.Getenv("OLLAMA_URL")
-	if ollamaURL == "" {
-		ollamaURL = "http://host.docker.internal:11434"
-	}
-
-	model := os.Getenv("LLM_MODEL")
-	if model == "" {
-		model = "gemma" // Default model as per Makefile
-	}
-
-	res, err := u.ollamaRepo.ProcessPrompt(ollamaURL, model, text)
+	res, err := u.ollamaRepo.ProcessPrompt(u.config.OllamaURL, u.config.LLMModel, text)
 	if err != nil {
 		return dtos.RAGResponse{
 			TaskID: "task-error",
