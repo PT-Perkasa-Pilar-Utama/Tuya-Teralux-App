@@ -1,1 +1,17 @@
 .idea/
+
+# Ignore whisper models & build artifacts
+/stt-service/whisper.cpp/models/
+/stt-service/whisper.cpp/build/
+/stt-service/whisper.cpp/*.o
+/stt-service/whisper.cpp/*.so
+/stt-service/whisper.cpp/*.a
+
+# Backups / local copies
+/stt-service/whisper.cpp.bak/
+/stt-service/whisper.cpp.local/
+
+# Common
+*.pyc
+*.log
+.DS_Store
