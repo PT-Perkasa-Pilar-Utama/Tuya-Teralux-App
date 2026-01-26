@@ -2,8 +2,11 @@ package main
 
 import (
 	_ "stt-service/docs"
+	"stt-service/domain/common/config"
 	"stt-service/domain/rag"
 	"stt-service/domain/speech"
+
+	"log"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -17,16 +20,21 @@ import (
 // @BasePath        /
 
 func main() {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
 	r := gin.Default()
 
 	// Swagger documentation
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Initialize Speech Domain
-	speech.InitModule(r)
+	speech.InitModule(r, cfg)
 
 	// Initialize RAG Domain
-	rag.InitModule(r)
+	rag.InitModule(r, cfg)
 
-	r.Run(":8081")
+	r.Run(":" + cfg.Port)
 }
