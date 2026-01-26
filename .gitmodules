@@ -1,0 +1,4 @@
+[submodule "stt-service/whisper.cpp"]
+	path = stt-service/whisper.cpp
+	url = https://github.com/ggerganov/whisper.cpp.git
+	branch = master
