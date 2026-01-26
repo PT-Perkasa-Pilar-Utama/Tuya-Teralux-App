@@ -187,14 +187,8 @@ const docTemplate = `{
         "dtos.RAGResponse": {
             "type": "object",
             "properties": {
-                "result": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/dtos.RAGStatus"
-                },
-                "task_id": {
-                    "type": "string"
+                "tasks": {
+                    "$ref": "#/definitions/dtos.RAGTask"
                 }
             }
         },
@@ -210,6 +204,20 @@ const docTemplate = `{
                 "RAGStatusPending",
                 "RAGStatusFinished"
             ]
+        },
+        "dtos.RAGTask": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/dtos.RAGStatus"
+                }
+            }
         },
         "dtos.StandardResponse": {
             "type": "object",

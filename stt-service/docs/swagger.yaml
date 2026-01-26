@@ -9,12 +9,8 @@ definitions:
     type: object
   dtos.RAGResponse:
     properties:
-      result:
-        type: string
-      status:
-        $ref: '#/definitions/dtos.RAGStatus'
-      task_id:
-        type: string
+      tasks:
+        $ref: '#/definitions/dtos.RAGTask'
     type: object
   dtos.RAGStatus:
     enum:
@@ -26,6 +22,15 @@ definitions:
     - RAGStatusEnqueue
     - RAGStatusPending
     - RAGStatusFinished
+  dtos.RAGTask:
+    properties:
+      id:
+        type: string
+      result:
+        type: string
+      status:
+        $ref: '#/definitions/dtos.RAGStatus'
+    type: object
   dtos.StandardResponse:
     properties:
       data: {}

@@ -12,8 +12,12 @@ const (
 	RAGStatusFinished RAGStatus = "finished"
 )
 
-type RAGResponse struct {
-	TaskID string    `json:"task_id"`
+type RAGTask struct {
+	ID     string    `json:"id"`
 	Status RAGStatus `json:"status"`
 	Result string    `json:"result,omitempty"`
+}
+
+type RAGResponse struct {
+	Tasks RAGTask `json:"tasks"`
 }
