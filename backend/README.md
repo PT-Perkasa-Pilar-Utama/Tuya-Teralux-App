@@ -154,6 +154,17 @@ make setup
 make setup-stt
 ```
 
+**Whisper submodule**
+
+The repository includes `whisper.cpp` as a Git submodule located at `backend/whisper.cpp`. After cloning (or when switching branches), make sure to initialize and fetch submodules:
+
+```bash
+# from repository root
+git submodule update --init --recursive
+```
+
+This ensures the native Whisper sources and scripts are available for `make setup` and Docker builds.
+
 ---
 
 ## 🛠️ Available Make Commands
