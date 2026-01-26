@@ -6,10 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRAGRoutes(r *gin.Engine, controller *controllers.RAGController) {
-	v1 := r.Group("/v1")
+// SetupRAGRoutes registers RAG endpoints under the protected router group.
+func SetupRAGRoutes(rg *gin.RouterGroup, controller *controllers.RAGController) {
+	api := rg.Group("/api/rag")
 	{
-		v1.POST("/rag", controller.ProcessText)
-		v1.GET("/rag/:task_id", controller.GetStatus)
+		api.POST("", controller.ProcessText)
+		api.GET("/:task_id", controller.GetStatus)
 	}
 }

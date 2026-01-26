@@ -38,11 +38,19 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 			swagger.SwaggerInfo.Schemes = []string{parsedURL.Scheme}
 		}
 	}
-	// Public Routes
-	router.GET("/health", m.HealthController.CheckHealth)
-
 	// Markdown Docs
 	router.GET("/docs/*path", m.DocsController.ServeDocs)
+
+	// Swagger Routes
+	router.Static("/swagger-assets", "./docs/swagger-ui")
+	router.GET("/swagger/*any", func(c *gin.Context) {
+		if c.Param("any") == "" || c.Param("any") == "/" || c.Param("any") == "/index.html" {
+			c.Header("Content-Type", "text/html; charset=utf-8")
+			c.String(200, swagger.CustomSwaggerHTML)
+		} else {
+			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+		}
+	})
 
 	// Swagger Routes
 	router.Static("/swagger-assets", "./docs/swagger-ui")

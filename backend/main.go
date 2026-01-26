@@ -62,14 +62,14 @@ import (
 // @tag.name 06. Flush
 // @tag.description Cache management endpoints
 
-// @tag.name 07. Health
-// @tag.description Health check endpoint
-
 // @tag.name 08. Speech
 // @tag.description Speech endpoints
 
 // @tag.name 09. RAG
 // @tag.description RAG endpoints
+
+// @tag.name 10. Health
+// @tag.description Health check endpoint
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -159,9 +159,12 @@ func main() {
 	if len(missing) > 0 {
 		utils.LogInfo("⚠️ Speech/RAG config incomplete, skipping initialization: %v", missing)
 	} else {
-		speech.InitModule(router, scfg)
-		rag.InitModule(router, scfg)
+		speech.InitModule(protected, scfg)
+		rag.InitModule(protected, scfg)
 	}
+
+	// Register Health at the end so it appears last in Swagger
+	router.GET("/health", commonModule.HealthController.CheckHealth)
 
 	utils.LogInfo("Server starting on :8080")
 	if err := router.Run(":8080"); err != nil {
