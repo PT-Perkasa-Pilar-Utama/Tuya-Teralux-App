@@ -3,6 +3,11 @@
 # Exit on error
 set -e
 
+# Make script behave the same regardless of current working directory by
+# switching into the script's directory (backend/) first.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo "🚀 Starting Backend STT Setup... (whisper.cpp build + tools)"
 
 # 1. Install system dependencies if missing
@@ -67,9 +72,12 @@ fi
 
 # 5. Build Go Service
 echo "🏗️ Building Backend (to ensure Go modules work)..."
-cd backend || true
-if [ -f "main.go" ]; then
+# Build from the script directory (backend/) so this works whether the
+# script is run from repo root or from inside backend/ directly.
+if [ -f "main.go" ] || [ -f "go.mod" ]; then
     go build -o main . || true
+else
+    echo "ℹ️ No Go files found to build in $SCRIPT_DIR"
 fi
 
 echo "✅ Setup complete!"
