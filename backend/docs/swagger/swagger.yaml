@@ -836,6 +836,95 @@ paths:
       summary: Get Devices by Teralux ID
       tags:
       - 04. Devices
+  /api/rag:
+    post:
+      consumes:
+      - application/json
+      description: Submit text for RAG processing
+      parameters:
+      - description: RAG request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      summary: Process text via RAG
+      tags:
+      - 09. RAG
+  /api/rag/{task_id}:
+    get:
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      summary: Get RAG task status
+      tags:
+      - 09. RAG
+  /api/speech/transcribe:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Transcribe audio to text using Whisper or configured STT pipeline
+      parameters:
+      - description: Audio file
+        in: formData
+        name: audio
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      summary: Transcribe audio file
+      tags:
+      - 08. Speech
   /api/teralux:
     get:
       consumes:
@@ -1378,95 +1467,6 @@ paths:
       summary: Health check endpoint
       tags:
       - 10. Health
-  /v1/rag:
-    post:
-      consumes:
-      - application/json
-      description: Submit text for RAG processing
-      parameters:
-      - description: RAG request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.RAGRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-      summary: Process text via RAG
-      tags:
-      - 09. RAG
-  /v1/rag/{task_id}:
-    get:
-      parameters:
-      - description: Task ID
-        in: path
-        name: task_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-      summary: Get RAG task status
-      tags:
-      - 09. RAG
-  /v1/transcribe:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Transcribe audio to text using Whisper or configured STT pipeline
-      parameters:
-      - description: Audio file
-        in: formData
-        name: audio
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-      summary: Transcribe audio file
-      tags:
-      - 08. Speech
 securityDefinitions:
   ApiKeyAuth:
     in: header

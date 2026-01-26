@@ -26,7 +26,7 @@ func NewRAGController(u *usecases.RAGUsecase) *RAGController {
 // @Success 200 {object} dtos.StandardResponse
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
-// @Router /v1/rag [post]
+// @Router /api/rag [post]
 func (c *RAGController) ProcessText(ctx *gin.Context) {
 	var req dtos.RAGRequestDTO
 	if err := ctx.BindJSON(&req); err != nil {
@@ -50,7 +50,7 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 // @Param task_id path string true "Task ID"
 // @Success 200 {object} dtos.StandardResponse
 // @Failure 404 {object} dtos.StandardResponse
-// @Router /v1/rag/{task_id} [get]
+// @Router /api/rag/{task_id} [get]
 func (c *RAGController) GetStatus(ctx *gin.Context) {
 	id := ctx.Param("task_id")
 	status, err := c.usecase.GetStatus(id)
