@@ -1,7 +1,0 @@
-# Ignore build artifacts from host
-whisper.cpp/build/
-bin/
-tmp/
-stt-app
-*.wav
-*.bin
