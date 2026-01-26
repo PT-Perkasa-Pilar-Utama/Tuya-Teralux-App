@@ -27,3 +27,9 @@ For detailed instructions on how to configure, build, and run both the Backend a
 *   **Backend**: Go, Docker
 *   **Database**: SQLite
 *   **IoT Integration**: Tuya Smart Cloud
+
+## 🗂️ Recent change
+
+- ✅ **`domain/rag`** and **`domain/speech`** have been migrated from `stt-service` into `backend/domain`.
+- ⚠️ `stt-service` is no longer required for these features; the code is now maintained under `backend`.
+

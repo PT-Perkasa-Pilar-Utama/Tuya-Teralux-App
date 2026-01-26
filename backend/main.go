@@ -10,12 +10,15 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"teralux_app/domain/common"
+	"teralux_app/domain/common/config"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux"
 	teralux_entities "teralux_app/domain/teralux/entities"
 	teralux_repositories "teralux_app/domain/teralux/repositories"
+	"teralux_app/domain/rag"
+	"teralux_app/domain/speech"
 	"teralux_app/domain/tuya"
 )
 
@@ -129,6 +132,16 @@ func main() {
 
 	// 3. Teralux Routes (CRUD)
 	teraluxModule.RegisterRoutes(router, protected)
+
+	// 4. Speech & RAG Modules (migrated from stt-service)
+	scfg, err := config.LoadConfig()
+	if err != nil {
+		utils.LogInfo("FATAL: Failed to load speech/rag config: %v", err)
+		os.Exit(1)
+	}
+
+	speech.InitModule(router, scfg)
+	rag.InitModule(router, scfg)
 
 	utils.LogInfo("Server starting on :8080")
 	if err := router.Run(":8080"); err != nil {
