@@ -93,7 +93,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Accepts text input and returns a simulated RAG process status
+      description: Accepts text input and immediately returns a task ID. The process
+        continues in the background.
       parameters:
       - description: RAG Request
         in: body
@@ -113,7 +114,7 @@ paths:
                 data:
                   $ref: '#/definitions/dtos.RAGResponse'
               type: object
-      summary: Process text through RAG (mocked)
+      summary: Start asynchronous RAG process
       tags:
       - rag
   /v1/rag/{task_id}:

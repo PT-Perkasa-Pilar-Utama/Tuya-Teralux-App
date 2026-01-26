@@ -1,10 +1,12 @@
 package usecases
 
 import (
+	"fmt"
 	"stt-service/domain/common/config"
 	"stt-service/domain/rag/dtos"
 	"stt-service/domain/rag/repositories"
 	speechRepos "stt-service/domain/speech/repositories"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -18,6 +20,7 @@ type ragUsecase struct {
 	vectorRepo repositories.VectorRepository
 	ollamaRepo *speechRepos.OllamaRepository
 	config     *config.Config
+	tasks      sync.Map
 }
 
 func NewRAGUsecase(vectorRepo repositories.VectorRepository, ollamaRepo *speechRepos.OllamaRepository, cfg *config.Config) RAGUsecase {
@@ -25,34 +28,48 @@ func NewRAGUsecase(vectorRepo repositories.VectorRepository, ollamaRepo *speechR
 		vectorRepo: vectorRepo,
 		ollamaRepo: ollamaRepo,
 		config:     cfg,
+		tasks:      sync.Map{},
 	}
 }
 
 func (u *ragUsecase) ProcessText(text string) (dtos.RAGResponse, error) {
-	// For now, we skip the RAG process (retrieval) and focus on LLM connection
-	// We send the input as-is to the local Ollama instance
+	taskID := uuid.NewString()
 
-	res, err := u.ollamaRepo.ProcessPrompt(u.config.OllamaURL, u.config.LLMModel, text)
-	if err != nil {
-		return dtos.RAGResponse{
-			TaskID: "task-error",
-			Status: dtos.RAGStatusFinished,
-			Result: "Error from Ollama: " + err.Error(),
-		}, nil // Returning nil error so controller can return the error result to user
+	// Initialize task as pending
+	initialResponse := dtos.RAGResponse{
+		TaskID: taskID,
+		Status: dtos.RAGStatusPending,
 	}
+	u.tasks.Store(taskID, initialResponse)
 
-	return dtos.RAGResponse{
-		TaskID: uuid.NewString(),
-		Status: dtos.RAGStatusFinished,
-		Result: res,
-	}, nil
+	// Start asynchronous processing
+	go func(id string, input string) {
+		// Simulate some processing delay if needed, but Ollama usually takes time anyway
+		res, err := u.ollamaRepo.ProcessPrompt(u.config.OllamaURL, u.config.LLMModel, input)
+
+		finalResponse := dtos.RAGResponse{
+			TaskID: id,
+			Status: dtos.RAGStatusFinished,
+		}
+
+		if err != nil {
+			finalResponse.Result = "Error from Ollama: " + err.Error()
+		} else {
+			finalResponse.Result = res
+		}
+
+		// Update task storage with final result
+		u.tasks.Store(id, finalResponse)
+	}(taskID, text)
+
+	return initialResponse, nil
 }
 
 func (u *ragUsecase) GetStatus(taskID string) (dtos.RAGResponse, error) {
-	// Mocked status retrieval
-	return dtos.RAGResponse{
-		TaskID: taskID,
-		Status: dtos.RAGStatusFinished,
-		Result: "Final processed result for " + taskID,
-	}, nil
+	val, ok := u.tasks.Load(taskID)
+	if !ok {
+		return dtos.RAGResponse{}, fmt.Errorf("task not found: %s", taskID)
+	}
+
+	return val.(dtos.RAGResponse), nil
 }
