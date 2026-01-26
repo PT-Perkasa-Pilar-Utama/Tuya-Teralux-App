@@ -5,6 +5,7 @@ import (
 	"stt-service/domain/rag/repositories"
 	"stt-service/domain/rag/routes"
 	"stt-service/domain/rag/usecases"
+	speechRepos "stt-service/domain/speech/repositories"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,7 +13,8 @@ import (
 func InitModule(r *gin.Engine) {
 	// Initialize Dependencies
 	vectorRepo := repositories.NewVectorRepository()
-	ragUsecase := usecases.NewRAGUsecase(vectorRepo)
+	ollamaRepo := speechRepos.NewOllamaRepository()
+	ragUsecase := usecases.NewRAGUsecase(vectorRepo, ollamaRepo)
 	ragController := controllers.NewRAGController(ragUsecase)
 
 	// Setup Routes
