@@ -43,17 +43,17 @@ dev:
 # Run in Docker (dev mode with hot reload)
 dev-docker: dev-docker-stop
 	@echo "🚀 Starting development environment in Docker..."
-	docker compose -f docker-compose.dev.yml up
+	docker compose --env-file .env.dev -f docker-compose.dev.yml up
 
 # Run development environment with forced rebuild
 dev-docker-build: dev-docker-stop
 	@echo "🚀 Starting development environment in Docker (Forced Rebuild)..."
-	docker compose -f docker-compose.dev.yml up --build
+	docker compose --env-file .env.dev -f docker-compose.dev.yml up --build
 
 # Stop development environment
 dev-docker-stop:
 	@echo "🛑 Stopping development environment (removing volumes)..."
-	docker compose -f docker-compose.dev.yml down -v
+	docker compose --env-file .env.dev -f docker-compose.dev.yml down -v
 
 # Run development server without hot reload
 start:
