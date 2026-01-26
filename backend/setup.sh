@@ -72,8 +72,6 @@ fi
 
 # 5. Build Go Service
 echo "🏗️ Building Backend (to ensure Go modules work)..."
-# Build from the script directory (backend/) so this works whether the
-# script is run from repo root or from inside backend/ directly.
 if [ -f "main.go" ] || [ -f "go.mod" ]; then
     go build -o main . || true
 else

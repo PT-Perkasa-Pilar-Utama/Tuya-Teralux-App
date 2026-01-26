@@ -126,6 +126,11 @@ definitions:
       device_status:
         $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
     type: object
+  dtos.RAGRequestDTO:
+    properties:
+      text:
+        type: string
+    type: object
   dtos.SensorDataDTO:
     properties:
       battery_percentage:
@@ -138,15 +143,6 @@ definitions:
         type: string
       temperature:
         type: number
-    type: object
-  dtos.StandardResponse:
-    properties:
-      data: {}
-      details: {}
-      message:
-        type: string
-      status:
-        type: boolean
     type: object
   dtos.TeraluxListResponseDTO:
     properties:
@@ -322,6 +318,25 @@ definitions:
       room_id:
         type: string
     type: object
+  teralux_app_domain_common_dtos.StandardResponse:
+    properties:
+      data: {}
+      details: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  teralux_app_domain_rag_dtos.StandardResponse:
+    properties:
+      data: {}
+      details:
+        type: string
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -348,11 +363,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Flush all cache
@@ -387,7 +402,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.DeviceListResponseDTO'
@@ -395,11 +410,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get All Devices
@@ -423,7 +438,7 @@ paths:
           description: Device created successfully
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.CreateDeviceResponseDTO'
@@ -431,19 +446,19 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "409":
           description: Device already exists
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Create Device
@@ -466,19 +481,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Device not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Delete Device
@@ -501,7 +516,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.DeviceSingleResponseDTO'
@@ -509,19 +524,19 @@ paths:
         "400":
           description: Invalid ID format
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Device not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Device by ID
@@ -549,23 +564,23 @@ paths:
         "200":
           description: Successfully updated
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Device not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Update Device
@@ -594,23 +609,23 @@ paths:
         "200":
           description: Successfully updated
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Device not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Update Device Status
@@ -644,7 +659,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
@@ -652,15 +667,15 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Device not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Device Statuses by Device ID
@@ -686,7 +701,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.DeviceStatusSingleResponseDTO'
@@ -694,19 +709,19 @@ paths:
         "400":
           description: 'Validation Error: id is required'
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Status code not found for this device
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Device Status by Code
@@ -737,7 +752,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
@@ -745,11 +760,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get All Device Statuses
@@ -785,7 +800,7 @@ paths:
           description: Returns list of devices
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.DeviceListResponseDTO'
@@ -793,19 +808,19 @@ paths:
         "400":
           description: Invalid Teralux ID format
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Teralux hub not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Devices by Teralux ID
@@ -840,7 +855,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TeraluxListResponseDTO'
@@ -848,11 +863,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get All Teralux
@@ -876,7 +891,7 @@ paths:
           description: 'Idempotent: record already exists'
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.CreateTeraluxResponseDTO'
@@ -885,7 +900,7 @@ paths:
           description: New record created
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.CreateTeraluxResponseDTO'
@@ -893,15 +908,15 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Create Teralux
@@ -924,23 +939,23 @@ paths:
         "200":
           description: Successfully deleted
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "400":
           description: Invalid ID format
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Teralux not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Delete Teralux
@@ -963,7 +978,7 @@ paths:
           description: Returns teralux with room_id and devices array
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TeraluxSingleResponseDTO'
@@ -971,19 +986,19 @@ paths:
         "400":
           description: Invalid ID format
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Teralux not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Teralux by ID
@@ -1011,27 +1026,27 @@ paths:
         "200":
           description: Successfully updated
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Record not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "409":
           description: 'Conflict: Mac Address already in use'
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "422":
           description: Validation Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Update Teralux
@@ -1055,7 +1070,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TeraluxSingleResponseDTO'
@@ -1063,19 +1078,19 @@ paths:
         "400":
           description: Invalid MAC Address format
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "404":
           description: Teralux not found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Teralux by MAC Address
@@ -1094,7 +1109,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TuyaAuthResponseDTO'
@@ -1102,7 +1117,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - ApiKeyAuth: []
       summary: Authenticate with Tuya
@@ -1140,7 +1155,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TuyaDevicesResponseDTO'
@@ -1148,7 +1163,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get All Devices
@@ -1173,7 +1188,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TuyaDeviceResponseDTO'
@@ -1181,11 +1196,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Device by ID
@@ -1214,15 +1229,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Send IR AC Command
@@ -1251,15 +1266,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Send Command to Device
@@ -1284,7 +1299,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.SensorDataDTO'
@@ -1292,11 +1307,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Sensor Data
@@ -1315,7 +1330,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   items:
@@ -1325,11 +1340,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
       security:
       - ApiKeyAuth: []
       - BearerAuth: []
@@ -1353,6 +1368,58 @@ paths:
       summary: Health check endpoint
       tags:
       - 07. Health
+  /v1/rag:
+    post:
+      consumes:
+      - application/json
+      description: Submit text for RAG processing
+      parameters:
+      - description: RAG request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      summary: Process text via RAG
+      tags:
+      - rag
+  /v1/rag/{task_id}:
+    get:
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      summary: Get RAG task status
+      tags:
+      - rag
 securityDefinitions:
   ApiKeyAuth:
     in: header
@@ -1379,3 +1446,7 @@ tags:
   name: 06. Flush
 - description: Health check endpoint
   name: 07. Health
+- description: Speech endpoints
+  name: 08. Speech
+- description: RAG endpoints
+  name: 09. RAG
