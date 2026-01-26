@@ -1,0 +1,17 @@
+services:
+  stt-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./:/app
+      - /app/tmp # Persist temp directory or keep it ephemeral but separate
+    environment:
+      - GIN_MODE=debug
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Allow access to host services like Ollama

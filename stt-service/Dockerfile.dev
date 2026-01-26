@@ -1,0 +1,42 @@
+FROM golang:1.24-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    make \
+    cmake \
+    g++ \
+    gcc \
+    curl \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Air for hot reload
+RUN go install github.com/air-verse/air@v1.61.7
+
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Prepare stt-service setup (build whisper.cpp)
+# We need to copy the setup script and necessary files first
+COPY setup.sh ./
+COPY whisper.cpp ./whisper.cpp
+COPY domain ./domain
+COPY docs ./docs
+COPY main.go ./
+
+# Run setup script to build whisper.cpp inside Docker
+RUN chmod +x setup.sh && sh setup.sh
+
+# Move artifacts to system paths to survive volume mounting
+RUN mv bin/whisper-cli /usr/local/bin/whisper-cli && \
+    mkdir -p /usr/local/share/whisper && \
+    mv bin/ggml-base.bin /usr/local/share/whisper/ggml-base.bin
+
+# The actual source code will be mounted at runtime for hot reload,
+# but we need the binary structure/Whisper models to be ready.
+
+CMD ["air", "-c", ".air.toml"]
