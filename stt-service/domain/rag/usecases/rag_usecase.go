@@ -36,33 +36,34 @@ func (u *ragUsecase) ProcessText(text string) (dtos.RAGResponse, error) {
 	taskID := uuid.NewString()
 
 	// Initialize task as pending
-	initialResponse := dtos.RAGResponse{
-		TaskID: taskID,
+	task := dtos.RAGTask{
+		ID:     taskID,
 		Status: dtos.RAGStatusPending,
 	}
-	u.tasks.Store(taskID, initialResponse)
+	u.tasks.Store(taskID, task)
 
 	// Start asynchronous processing
 	go func(id string, input string) {
-		// Simulate some processing delay if needed, but Ollama usually takes time anyway
 		res, err := u.ollamaRepo.ProcessPrompt(u.config.OllamaURL, u.config.LLMModel, input)
 
-		finalResponse := dtos.RAGResponse{
-			TaskID: id,
+		finalTask := dtos.RAGTask{
+			ID:     id,
 			Status: dtos.RAGStatusFinished,
 		}
 
 		if err != nil {
-			finalResponse.Result = "Error from Ollama: " + err.Error()
+			finalTask.Result = "Error from Ollama: " + err.Error()
 		} else {
-			finalResponse.Result = res
+			finalTask.Result = res
 		}
 
 		// Update task storage with final result
-		u.tasks.Store(id, finalResponse)
+		u.tasks.Store(id, finalTask)
 	}(taskID, text)
 
-	return initialResponse, nil
+	return dtos.RAGResponse{
+		Tasks: task,
+	}, nil
 }
 
 func (u *ragUsecase) GetStatus(taskID string) (dtos.RAGResponse, error) {
@@ -71,5 +72,7 @@ func (u *ragUsecase) GetStatus(taskID string) (dtos.RAGResponse, error) {
 		return dtos.RAGResponse{}, fmt.Errorf("task not found: %s", taskID)
 	}
 
-	return val.(dtos.RAGResponse), nil
+	return dtos.RAGResponse{
+		Tasks: val.(dtos.RAGTask),
+	}, nil
 }
