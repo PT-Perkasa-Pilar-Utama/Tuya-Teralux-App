@@ -203,13 +203,13 @@ ifeq ($(DB_TYPE),mysql)
     DB_URL = mysql://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)?charset=utf8mb4&parseTime=True&loc=Local
 else
     # Default to SQLite
-    DB_URL = sqlite://$(DB_SQLITE_PATH)
+    DB_URL = sqlite3://$(DB_SQLITE_PATH)
 endif
 
 # Install golang-migrate from source with SQLite support
 $(MIGRATE_BIN):
 	@echo "📦 Installing golang-migrate with SQLite support..."
-	@go install -tags 'sqlite mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	@go install -tags 'sqlite3 mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	@echo "✅ golang-migrate installed successfully"
 
 # Run all pending migrations

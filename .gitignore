@@ -20,6 +20,7 @@
 /stt-service/**/models/
 /stt-service/**/build/
 /stt-service/**/tmp/
+/stt-service/bin/
 /stt-service/stt-app
 /stt-service/*.o
 /stt-service/*.so
@@ -27,3 +28,13 @@
 /stt-service/**/*.o
 /stt-service/**/*.so
 /stt-service/**/*.a
+
+# Backend
+/backend/main
+/backend/main.exe
+/backend/app
+/backend/app_arm64
+/backend/*.db
+/backend/sqlite3:
+/backend/tmp/
+/backend/docs/swagger/
