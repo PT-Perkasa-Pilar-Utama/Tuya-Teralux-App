@@ -863,6 +863,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
       summary: Process text via RAG
       tags:
       - 09. RAG
@@ -885,6 +887,8 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
       summary: Get RAG task status
       tags:
       - 09. RAG
@@ -922,6 +926,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
       summary: Transcribe audio file
       tags:
       - 08. Speech
