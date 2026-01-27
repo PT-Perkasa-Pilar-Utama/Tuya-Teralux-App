@@ -76,7 +76,7 @@ Current migrations are located in:
 
 The project uses [Swaggo](https://github.com/swaggo/swag) to generate Swagger/OpenAPI documentation.
 
-- **Access**: When the server is running, visit `http://localhost:8080/swagger/index.html` to view the interactive API docs.
+- **Access**: When the server is running, visit `http://localhost:8081/swagger/index.html` to view the interactive API docs.
 - **Update Docs**: If you modify API comments, run `swag init` (or `make build` if configured) to regenerate the documentation.
 
 ## ⚡ Caching
@@ -122,7 +122,7 @@ make start-docker
 This command will:
 1. Build the image as `teralux-backend`.
 2. Run the container with your local `.env` file.
-3. Expose port `8080`.
+3. Expose port `8081`.
 
 #### Run via Docker Compose
 To run using Docker Compose (pulls the latest image from the registry):
@@ -186,4 +186,4 @@ The `Makefile` includes several utility commands to manage the project:
 | `make stop-compose` | Stop the Docker Compose stack |
 | `make update` | Update running container using Watchtower |
 | `make clean` | Clean build artifacts |
-| `make kill` | Kill any process running on port 8080 |
+| `make kill` | Kill any process running on port 8081 |

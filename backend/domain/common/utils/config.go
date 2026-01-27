@@ -27,6 +27,18 @@ type Config struct {
 	WhisperModelPath string
 	MaxFileSize      int64 // bytes
 	Port             string
+
+	// Runtime & Networking
+	LogLevel   string
+
+	// Database (used for migrations)
+	DBType      string
+	AutoMigrate string
+	DBHost      string
+	DBPort      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
 }
 
 // AppConfig is the global configuration instance.
@@ -95,6 +107,23 @@ func LoadConfig() {
 		WhisperModelPath: os.Getenv("WHISPER_MODEL_PATH"),
 		MaxFileSize:      maxFileSize,
 		Port:             os.Getenv("PORT"),
+
+		// Runtime
+		LogLevel: os.Getenv("LOG_LEVEL"),
+
+		// Database
+		DBType:      os.Getenv("DB_TYPE"),
+		AutoMigrate: os.Getenv("AUTO_MIGRATE"),
+		DBHost:      os.Getenv("DB_HOST"),
+		DBPort:      os.Getenv("DB_PORT"),
+		DBUser:      os.Getenv("DB_USER"),
+		DBPassword:  os.Getenv("DB_PASSWORD"),
+		DBName:      os.Getenv("DB_NAME"),
+	}
+
+	// Ensure sensible defaults are centralized here
+	if AppConfig.Port == "" {
+		AppConfig.Port = "8080"
 	}
 
 	UpdateLogLevel()

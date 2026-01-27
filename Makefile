@@ -10,7 +10,7 @@ help:
 	@echo "  make backend-setup  - Setup Backend (install tools, run migrations)"
 	@echo "  make dev            - Run Backend in dev mode"
 	@echo "  make clean          - Clean backend artifacts"
-	@echo "  make kill           - Kill backend service (port 8080)"
+	@echo "  make kill           - Kill backend service (port 8081)"
 	@echo ""
 
 # Setup everything

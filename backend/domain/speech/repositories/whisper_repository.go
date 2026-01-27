@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"teralux_app/domain/common/utils"
 )
 
 type WhisperRepository struct {
@@ -30,9 +32,9 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string) (string
 	_ = os.Remove(txtPath)
 
 	cmd := exec.Command(bin, "-m", modelPath, "-f", wavPath, "--no-timestamps", "-otxt", "-of", base)
-	fmt.Printf("[whisper] running (file output): %v\n", cmd.Args)
+	utils.LogDebug("[whisper] running (file output): %v", cmd.Args)
 	out, err := cmd.CombinedOutput()
-	fmt.Printf("[whisper] output: %s\n", string(out))
+	utils.LogDebug("[whisper] output: %s", string(out))
 	if err == nil {
 		// If CLI succeeded, try to read produced .txt file
 		b, err2 := os.ReadFile(txtPath)
@@ -51,11 +53,11 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string) (string
 	}
 
 	// Fallback: capture stdout and filter out timing / progress lines
-	fmt.Printf("[whisper] falling back to stdout parse\n")
+	utils.LogDebug("[whisper] falling back to stdout parse")
 	cmd2 := exec.Command(bin, "-m", modelPath, "-f", wavPath, "--no-timestamps")
-	fmt.Printf("[whisper] running: %v\n", cmd2.Args)
+	utils.LogDebug("[whisper] running: %v", cmd2.Args)
 	out2, err2 := cmd2.CombinedOutput()
-	fmt.Printf("[whisper] output: %s\n", string(out2))
+	utils.LogDebug("[whisper] output: %s", string(out2))
 	if err2 != nil {
 		return "", fmt.Errorf("whisper-cli failed: %w - output: %s", err2, string(out2))
 	}
@@ -76,8 +78,7 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string) (string
 	}
 
 	return s2, nil
-}
-
+} 
 func (r *WhisperRepository) Convert(wavPath string) (string, error) {
 	return "", fmt.Errorf("not implemented")
 }
