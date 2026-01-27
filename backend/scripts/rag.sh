@@ -137,21 +137,33 @@ for i in $(seq 1 120); do
   sleep 1
   echo -n "."
   RES=$(curl -s -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/rag/$TASK_ID")
-  STATUS=$(echo "$RES" | jq -r '.data.status // empty')
-  if [ "$STATUS" = "done" ] || [ "$STATUS" = "error" ]; then
-    echo "\nStatus: $STATUS"
-    echo "Result:"
-    # pretty print result field
-    echo "$RES" | jq -r '.data.result'
-    # try best-effort to extract JSON from result and pretty print
-    RAW=$(echo "$RES" | jq -r '.data.result')
-    if echo "$RAW" | grep -q '{'; then
-      CAND=$(echo "$RAW" | tr -d '\r')
-      # try to pretty print JSON inside the result
-      echo "\nParsed JSON (best-effort):"
-      echo "$CAND" | sed 's/\\n/\n/g' | awk 'BEGIN{ORS=""}{print $0}' | sed 's/\"/"/g' | jq -C . 2>/dev/null || echo "(not valid JSON)";
-    fi
-    exit 0
+    STATUS=$(echo "$RES" | jq -r '.data.status.status // (.data.status // empty)')
+    if [ "$STATUS" = "done" ] || [ "$STATUS" = "error" ]; then
+      echo "\nStatus: $STATUS"
+      echo "Result (status DTO):"
+      # pretty print the status DTO if available
+      echo "$RES" | jq -r '.data.status'
+
+      # fallback: also print legacy .data.result if present
+      RAW_LEGACY=$(echo "$RES" | jq -r '.data.result // empty')
+      if [ -n "$RAW_LEGACY" ]; then
+        echo "\nLegacy Result field:\n$RAW_LEGACY"
+      fi
+
+      # Attempt to extract specific fields if structured
+      ENDPOINT=$(echo "$RES" | jq -r '.data.status.endpoint // empty')
+      METHOD=$(echo "$RES" | jq -r '.data.status.method // empty')
+      BODY=$(echo "$RES" | jq -r '.data.status.body // empty')
+      if [ -n "$ENDPOINT" ] || [ -n "$METHOD" ] || [ -n "$BODY" ]; then
+        echo "\nLLM decision:"
+        [ -n "$ENDPOINT" ] && echo "  endpoint: $ENDPOINT"
+        [ -n "$METHOD" ] && echo "  method: $METHOD"
+        if [ -n "$BODY" ]; then
+          echo "  body:"
+          echo "$BODY" | jq -C . 2>/dev/null || echo "    $BODY"
+        fi
+      fi
+
   fi
 
 done
