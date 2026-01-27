@@ -181,9 +181,8 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 		// Log the decision
 		utils.LogDebug("RAG Task %s decided endpoint=%s method=%s device_id=%s body=%s", taskID, endpoint, method, deviceID, string(bodyB))
 
-		// Store result
-		resStr := fmt.Sprintf("endpoint=%s method=%s device_id=%s body=%s", endpoint, method, deviceID, string(bodyB))
-		statusDTO := &ragdtos.RAGStatusDTO{Status: "done", Result: resStr}
+		// Store structured result (do NOT perform external fetch)
+		statusDTO := &ragdtos.RAGStatusDTO{Status: "done", Endpoint: endpoint, Method: method, Body: bodyObj}
 		u.mu.Lock()
 		u.taskStatus[taskID] = statusDTO
 		u.mu.Unlock()

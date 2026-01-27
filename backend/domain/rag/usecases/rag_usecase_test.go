@@ -3,7 +3,6 @@ package usecases
 import (
 	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -80,9 +79,20 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 		}
 	}
 
-	// verify result contains chosen endpoint and device
-	if !strings.Contains(status.Result, "endpoint=") || !strings.Contains(status.Result, "device_id=lamp123") {
-		t.Fatalf("unexpected result: %s", status.Result)
+	// verify structured result contains chosen endpoint, method and body
+	if status.Endpoint != "/api/tuya/devices/{id}/commands/switch" {
+		t.Fatalf("expected endpoint /api/tuya/devices/{id}/commands/switch, got %s", status.Endpoint)
+	}
+	if status.Method != "POST" {
+		t.Fatalf("expected method POST, got %s", status.Method)
+	}
+	// verify body structure
+	bodyMap, ok := status.Body.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected body to be object, got %+v", status.Body)
+	}
+	if _, ok := bodyMap["commands"]; !ok {
+		t.Fatalf("expected body to contain commands, got %+v", bodyMap)
 	}
 }
 
