@@ -60,9 +60,9 @@ COPY --from=builder /app/docs /app/docs
 
 # Runtime env only
 ENV AUTO_MIGRATE=false
-ENV PORT=8080
+ENV PORT=8081
 
-EXPOSE 8080
+EXPOSE 8081
 
 # Healthcheck (distroless-safe)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

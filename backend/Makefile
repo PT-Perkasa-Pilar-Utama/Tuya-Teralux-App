@@ -21,7 +21,7 @@ help:
 	@echo "  make update           - Update running container using Watchtower"
 	@echo "  make test             - Run all unit tests"
 	@echo "  make clean            - Clean build artifacts"
-	@echo "  make kill             - Kill process running on PORT 8080"
+	@echo "  make kill             - Kill process running on PORT 8081"
 	@echo "  make migrate-up       - Run all pending migrations"
 	@echo "  make migrate-down     - Rollback last migration"
 	@echo "  make migrate-version  - Show current migration version"
@@ -95,7 +95,7 @@ stop-docker:
 # Start dev container locally
 start-docker: stop-docker
 	@echo "🚀 Starting Docker container..."
-	docker run --rm -it -d -p 8080:8080 --name $(DOCKER_IMAGE_NAME) --env-file .env $(DOCKER_IMAGE_NAME):latest
+	docker run --rm -it -d -p 8081:8080 --name $(DOCKER_IMAGE_NAME) --env-file .env $(DOCKER_IMAGE_NAME):latest
 
 # --- Development (Docker) & Ollama helpers (migrated from stt-service)
 OLLAMA_IMAGE ?= ollama/ollama:latest
@@ -111,18 +111,22 @@ setup:
 
 # Run in Docker (dev mode with hot reload)
 dev-docker: dev-docker-stop
-	@echo "🚀 Starting development environment in Docker..."
+	@echo "🚀 Starting development environment in Docker (Fast Mode)..."
+	@trap 'echo "🛑 Cleaning up..."; docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
+	docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes; \
 	docker compose --env-file .env.dev -f docker-compose.dev.yml up
 
 # Run development environment with forced rebuild
 dev-docker-build: dev-docker-stop
 	@echo "🚀 Starting development environment in Docker (Forced Rebuild)..."
+	@trap 'echo "🛑 Cleaning up..."; docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
+	docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes; \
 	docker compose --env-file .env.dev -f docker-compose.dev.yml up --build
 
 # Stop development environment
 dev-docker-stop:
 	@echo "🛑 Stopping development environment (removing volumes)..."
-	docker compose --env-file .env.dev -f docker-compose.dev.yml down -v
+	docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes
 
 # Ensure Ollama image, data dir & container exist
 ollama-ensure:
@@ -139,23 +143,20 @@ ollama-ensure:
 	fi
 	@echo "✅ Ollama image, data dir & container ready (data dir: $(OLLAMA_DATA_DIR))"
 
-# Pull whisper model if missing
-ollama-pull-whisper: ollama-ensure
-	@echo "🔽 Ensuring Whisper model ($(WHISPER_MODEL))..."
-	@docker exec -i ollama sh -c 'for i in 1 10; do ollama ps >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1' \
-		&& docker exec -i ollama ollama show $(WHISPER_MODEL) >/dev/null 2>&1 || (docker exec -i ollama ollama pull $(WHISPER_MODEL) 2>&1 || echo "⚠️ Model '$(WHISPER_MODEL)' not found in Ollama repository - skipping"); true
-	@echo "✅ Whisper model ensured (or skipped)"
+# Note: Whisper handled via local whisper.cpp (STT) — we do not pull a 'whisper' model from Ollama.
+# If you need to import a local ggml model into Ollama, use WHISPER_MODEL_PATH and an import helper (manual copy).
 
 # Pull LLM model if missing
 ollama-pull-llm: ollama-ensure
 	@echo "🔽 Ensuring LLM model ($(LLM_MODEL))..."
-	@docker exec -i ollama sh -c 'for i in 1 10; do ollama ps >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1' \
-		&& docker exec -i ollama ollama show $(LLM_MODEL) >/dev/null 2>&1 || (docker exec -i ollama ollama pull $(LLM_MODEL) 2>&1 || echo "⚠️ Model '$(LLM_MODEL)' not found in Ollama repository - skipping"); true
+	@docker exec -i ollama sh -c 'for i in 1 20; do ollama ps >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1' \
+		&& docker exec -i ollama ollama show $(LLM_MODEL) >/dev/null 2>&1 || (docker exec -i ollama ollama pull $(LLM_MODEL) >/dev/null 2>&1 || echo "⚠️ Model '$(LLM_MODEL)' not found in Ollama repository - skipping"); true
 	@echo "✅ LLM model ensured (or skipped): $(LLM_MODEL)"
 
-# Convenience: ensure both models and image
-ollama-setup: ollama-pull-whisper ollama-pull-llm
-	@echo "✅ Ollama setup complete (image + whisper + llm)"
+# Convenience: ensure image and LLM model (Whisper is local via whisper.cpp)
+ollama-setup: ollama-ensure ollama-pull-llm
+	@echo "🔧 Ensuring Ollama image & container (if missing)..."
+	@echo "✅ Ollama setup complete (image + llm)"
 
 # Push to GHCR via GitHub Actions
 push:
@@ -243,10 +244,10 @@ clean:
 	rm -f main
 	@echo "✅ Clean completed"
 
-# Kill process running on port 8080 (server's default port)
+# Kill process running on port 8081 (server's default port)
 kill:
-	@echo "🔪 Killing processes on port 8080..."
-	@lsof -ti:8080 | xargs -r kill -9 || echo "✅ No process running on port 8080"
+	@echo "🔪 Killing processes on port 8081..."
+	@lsof -ti:8081 | xargs -r kill -9 || echo "✅ No process running on port 8081"
 
 # --- Database Migration Configuration ---
 # Note: We build from source to include SQLite support (prebuilt binaries don't have it)

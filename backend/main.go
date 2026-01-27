@@ -33,7 +33,7 @@ import (
 // @license.name    Apache 2.0
 // @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host            localhost:8080
+// @host            localhost:8081
 // @BasePath        /
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
@@ -73,8 +73,14 @@ import (
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		// Ensure config is loaded and use centralized PORT value
+		utils.LoadConfig()
+		port := utils.GetConfig().Port
+		if port == "" {
+			port = "8080"
+		}
 		client := http.Client{Timeout: 2 * time.Second}
-		resp, err := client.Get("http://localhost:8080/health")
+		resp, err := client.Get("http://localhost:" + port + "/health")
 		if err != nil || resp.StatusCode != 200 {
 			os.Exit(1)
 		}
@@ -166,22 +172,27 @@ func main() {
 	// Register Health at the end so it appears last in Swagger
 	router.GET("/health", commonModule.HealthController.CheckHealth)
 
-	utils.LogInfo("Server starting on :8080")
-	if err := router.Run(":8080"); err != nil {
+	port := scfg.Port
+	if port == "" {
+		port = "8080"
+	}
+	utils.LogInfo("Server starting on :%s", port)
+	if err := router.Run(":" + port); err != nil {
 		utils.LogInfo("Failed to start server: %v", err)
 	}
 }
 
 func RunMigrations() {
-	if os.Getenv("DB_TYPE") != "mysql" || os.Getenv("AUTO_MIGRATE") != "true" {
+	cfg := utils.GetConfig()
+	if cfg.DBType != "mysql" || cfg.AutoMigrate != "true" {
 		return
 	}
 
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+	dbHost := cfg.DBHost
+	dbPort := cfg.DBPort
+	dbUser := cfg.DBUser
+	dbPass := cfg.DBPassword
+	dbName := cfg.DBName
 
 	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
 

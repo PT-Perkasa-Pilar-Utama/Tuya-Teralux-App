@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"time"
+
+	"teralux_app/domain/common/utils"
 )
 
 type TestEvent struct {
@@ -49,12 +51,12 @@ func main() {
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Printf("Error creating stdout pipe: %v\n", err)
+		utils.LogError("Error creating stdout pipe: %v", err)
 		os.Exit(1)
 	}
 
 	if err := cmd.Start(); err != nil {
-		fmt.Printf("Error starting command: %v\n", err)
+		utils.LogError("Error starting command: %v", err)
 		os.Exit(1)
 	}
 
@@ -68,15 +70,15 @@ func main() {
 
 	startTime := time.Now()
 
-	fmt.Println(ColorBlue + ColorBold + "RUNNING TESTS..." + ColorReset)
-	fmt.Println()
+	utils.LogInfo(ColorBlue + ColorBold + "RUNNING TESTS..." + ColorReset)
+	utils.LogInfo("")
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		var event TestEvent
 		if err := json.Unmarshal(line, &event); err != nil {
 			// If not JSON (e.g. build failure output), print raw
-			fmt.Println(string(line))
+			utils.LogInfo("%s", string(line))
 			continue
 		}
 
@@ -99,11 +101,11 @@ func main() {
 				// Individual Test Passed
 				totalPassed++
 				pkgResults[event.Package].Passed++
-				// fmt.Printf("%s✓ %s%s\n", ColorGreen, event.Test, ColorReset) // Optional verbose
+				// utils.LogInfo("%s✓ %s%s", ColorGreen, event.Test, ColorReset) // Optional verbose
 			} else if event.Package != "" {
 				// Package Passed
 				pkgResults[event.Package].Elapsed = event.Elapsed
-				fmt.Printf("%s PASS %s %s(%.2fs)%s\n", ColorGreen, ColorReset, event.Package, event.Elapsed, ColorReset)
+				utils.LogInfo("%s PASS %s %s(%.2fs)%s", ColorGreen, ColorReset, event.Package, event.Elapsed, ColorReset)
 			}
 		case "fail":
 			if event.Test != "" {
@@ -118,24 +120,24 @@ func main() {
 					Output:  testOutputs[key],
 				})
 
-				fmt.Printf("%s✕ %s%s\n", ColorRed, event.Test, ColorReset)
+				utils.LogError("%s✕ %s%s", ColorRed, event.Test, ColorReset)
 			} else if event.Package != "" {
 				// Package Failed
 				pkgResults[event.Package].Elapsed = event.Elapsed
-				fmt.Printf("%s FAIL %s %s(%.2fs)%s\n", ColorRed, ColorReset, event.Package, event.Elapsed, ColorReset)
+				utils.LogError("%s FAIL %s %s(%.2fs)%s", ColorRed, ColorReset, event.Package, event.Elapsed, ColorReset)
 			}
 		case "skip":
 			if event.Test != "" {
 				totalSkipped++
 				pkgResults[event.Package].Skipped++
-				fmt.Printf("%s○ %s%s\n", ColorYellow, event.Test, ColorReset)
+				utils.LogInfo("%s○ %s%s", ColorYellow, event.Test, ColorReset)
 			}
 		case "output":
 			// We buffer output above, usually don't print immediately for cleaner "Jest-like" look
 			// unless it's package level output not associated with a test
 			if event.Test == "" && event.Output != "" {
 				// Print build errors or package level logs
-				// fmt.Print(event.Output)
+				// utils.LogInfo("%s", event.Output)
 			}
 		}
 	}
@@ -144,36 +146,36 @@ func main() {
 
 	duration := time.Since(startTime)
 
-	fmt.Println()
+	utils.LogInfo("")
 
 	// Print Failures Details
 	if len(failures) > 0 {
-		fmt.Println(ColorBold + "Summary of Failures:" + ColorReset)
+		utils.LogError(ColorBold + "Summary of Failures:" + ColorReset)
 		for _, f := range failures {
-			fmt.Printf("%sFAIL: %s - %s%s\n", ColorRed, f.Package, f.Test, ColorReset)
+			utils.LogError("%sFAIL: %s - %s%s", ColorRed, f.Package, f.Test, ColorReset)
 			for _, line := range f.Output {
 				// Indent output
-				fmt.Print("    " + line)
+				utils.LogError("    %s", line)
 			}
-			fmt.Println()
+			utils.LogInfo("")
 		}
 	}
 
 	// Final Summary
-	fmt.Println(ColorBold + "Test Suites:" + ColorReset + fmt.Sprintf(" %d passed, %d total", len(pkgResults), len(pkgResults))) // Simplified suites
-
 	totalTests := totalPassed + totalFailed + totalSkipped
 
-	fmt.Print(ColorBold + "Tests:       " + ColorReset)
+	// Build and print a single summary line to keep colors intact
+	summary := ColorBold + "Tests:       " + ColorReset
 	if totalFailed > 0 {
-		fmt.Printf("%s%d failed%s, ", ColorRed, totalFailed, ColorReset)
+		summary += fmt.Sprintf("%s%d failed%s, ", ColorRed, totalFailed, ColorReset)
 	}
 	if totalSkipped > 0 {
-		fmt.Printf("%s%d skipped%s, ", ColorYellow, totalSkipped, ColorReset)
+		summary += fmt.Sprintf("%s%d skipped%s, ", ColorYellow, totalSkipped, ColorReset)
 	}
-	fmt.Printf("%s%d passed%s, %d total\n", ColorGreen, totalPassed, ColorReset, totalTests)
+	summary += fmt.Sprintf("%s%d passed%s, %d total", ColorGreen, totalPassed, ColorReset, totalTests)
+	utils.LogInfo("%s", summary)
 
-	fmt.Printf(ColorBold+"Time:        "+ColorReset+"%.2fs\n", duration.Seconds())
+	utils.LogInfo("%sTime:        %s%.2fs", ColorBold, ColorReset, duration.Seconds())
 
 	if totalFailed > 0 {
 		os.Exit(1)
