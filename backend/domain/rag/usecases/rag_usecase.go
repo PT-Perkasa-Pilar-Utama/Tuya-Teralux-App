@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"teralux_app/domain/common/infrastructure"
@@ -198,6 +199,15 @@ func (u *RAGUsecase) GetStatus(taskID string) (*ragdtos.RAGStatusDTO, error) {
 	u.mu.RLock()
 	if s, ok := u.taskStatus[taskID]; ok {
 		u.mu.RUnlock()
+		// augment with TTL info if available
+		if u.badger != nil {
+			key := "rag:task:" + taskID
+			_, ttl, err := u.badger.GetWithTTL(key)
+			if err == nil && ttl > 0 {
+				s.ExpiresInSecond = int64(ttl.Seconds())
+				s.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
+			}
+		}
 		return s, nil
 	}
 	u.mu.RUnlock()
@@ -205,7 +215,7 @@ func (u *RAGUsecase) GetStatus(taskID string) (*ragdtos.RAGStatusDTO, error) {
 	// If not found in-memory, try persistent store (Badger) if configured
 	if u.badger != nil {
 		key := "rag:task:" + taskID
-		b, err := u.badger.Get(key)
+		b, ttl, err := u.badger.GetWithTTL(key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read persistent task: %w", err)
 		}
@@ -216,6 +226,10 @@ func (u *RAGUsecase) GetStatus(taskID string) (*ragdtos.RAGStatusDTO, error) {
 				u.mu.Lock()
 				u.taskStatus[taskID] = &status
 				u.mu.Unlock()
+				if ttl > 0 {
+					status.ExpiresInSecond = int64(ttl.Seconds())
+					status.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
+				}
 				return &status, nil
 			}
 		}

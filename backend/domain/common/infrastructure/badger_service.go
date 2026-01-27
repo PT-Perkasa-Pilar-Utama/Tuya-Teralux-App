@@ -76,20 +76,26 @@ func (s *BadgerService) Set(key string, value []byte) error {
 // return error An error if the read operation fails (excluding KeyNotFound).
 // @throws error if an internal database error occurs during the view transaction.
 func (s *BadgerService) Get(key string) ([]byte, error) {
+	val, _, err := s.GetWithTTL(key)
+	return val, err
+}
+
+// GetWithTTL retrieves a value and also returns the remaining TTL for the key.
+// If the key has no TTL (persistent), the duration returned will be 0.
+func (s *BadgerService) GetWithTTL(key string) ([]byte, time.Duration, error) {
 	var valCopy []byte
+	var ttlRemaining time.Duration
 	err := s.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))
 		if err != nil {
 			return err
 		}
 
-		// Debug TTL
 		expiresAt := item.ExpiresAt()
 		if expiresAt > 0 {
-			ttlRemaining := time.Until(time.Unix(int64(expiresAt), 0))
+			ttlRemaining = time.Until(time.Unix(int64(expiresAt), 0))
 			utils.LogDebug("Cache Hit for '%s' | Expires in: %v", key, ttlRemaining)
 		} else {
-			// If ExpiresAt is 0, it means the key has no TTL (Persistent)
 			utils.LogDebug("Cache Hit for '%s' | Expires in: Never (Persistent)", key)
 		}
 
@@ -99,13 +105,13 @@ func (s *BadgerService) Get(key string) ([]byte, error) {
 
 	if err != nil {
 		if err == badger.ErrKeyNotFound {
-			return nil, nil // Return nil if not found, distinct from error
+			return nil, 0, nil // Return nil if not found, distinct from error
 		}
 		utils.LogError("BadgerService: failed to get key %s: %v", key, err)
-		return nil, err
+		return nil, 0, err
 	}
 
-	return valCopy, nil
+	return valCopy, ttlRemaining, nil
 }
 
 // Delete removes a key and its associated value from the database.
