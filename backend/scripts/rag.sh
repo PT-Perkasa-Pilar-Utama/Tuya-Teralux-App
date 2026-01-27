@@ -18,19 +18,47 @@ if [ -z "$TEXT" ]; then
   exit 1
 fi
 
-# Try to get API key from arg or .env.dev/.env
-API_KEY="$API_KEY_ARG"
-if [ -z "$API_KEY" ]; then
-  if [ -f .env.dev ]; then
-    API_KEY=$(grep '^API_KEY=' .env.dev | head -n1 | sed 's/API_KEY=//') || true
-  fi
+# If the second argument looks like a URL (starts with http), treat it as BASE_URL
+if [ -n "$API_KEY_ARG" ] && echo "$API_KEY_ARG" | grep -qE '^https?://'; then
+  BASE_URL="$API_KEY_ARG"
+  API_KEY_ARG=""
 fi
-if [ -z "$API_KEY" ] && [ -f .env ]; then
-  API_KEY=$(grep '^API_KEY=' .env | head -n1 | sed 's/API_KEY=//') || true
+
+# Resolve API_KEY precedence: CLI arg > exported ENV var > .env.dev/.env in parents
+API_KEY=""
+if [ -n "$API_KEY_ARG" ]; then
+  API_KEY="$API_KEY_ARG"
+elif [ -n "${API_KEY:-}" ]; then
+  API_KEY="${API_KEY:-}"
+fi
+
+# Search for .env.dev/.env up to 3 parent levels if API_KEY still empty
+if [ -z "$API_KEY" ]; then
+  for f in .env.dev .env; do
+    dir="."
+    for i in 0 1 2 3; do
+      if [ -f "$dir/$f" ]; then
+        val=$(grep '^API_KEY=' "$dir/$f" | head -n1 | sed 's/API_KEY=//') || true
+        if [ -n "$val" ]; then
+          API_KEY="$val"
+          break 2
+        fi
+      fi
+      dir="../$dir"
+    done
+  done
+fi
+
+# Also check backend/ for .env files if still not found (common when running from repo root)
+if [ -z "$API_KEY" ] && [ -f "backend/.env.dev" ]; then
+  API_KEY=$(grep '^API_KEY=' backend/.env.dev | head -n1 | sed 's/API_KEY=//') || true
+fi
+if [ -z "$API_KEY" ] && [ -f "backend/.env" ]; then
+  API_KEY=$(grep '^API_KEY=' backend/.env | head -n1 | sed 's/API_KEY=//') || true
 fi
 
 if [ -z "$API_KEY" ]; then
-  echo "Error: API_KEY not provided. Pass as second arg or set in .env/.env.dev" >&2
+  echo "Error: API_KEY not provided. Pass as second arg or set in .env/.env.dev or export API_KEY env var" >&2
   exit 1
 fi
 
@@ -46,7 +74,9 @@ fi
 echo "Token obtained: ${TOKEN}"
 
 echo "Submitting RAG request..."
-SUB_RES=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -X POST "$BASE_URL/api/rag" -d "{\"text\":\"${TEXT//"/\"}\"}")
+# Safely build JSON body using jq
+BODY=$(jq -nc --arg text "$TEXT" '{text: $text}')
+SUB_RES=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -X POST "$BASE_URL/api/rag" -d "$BODY")
 TASK_ID=$(echo "$SUB_RES" | jq -r '.data.task_id // empty')
 if [ -z "$TASK_ID" ]; then
   echo "Failed to submit RAG request. Response:" >&2
