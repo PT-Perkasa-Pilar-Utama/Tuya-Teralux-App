@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"teralux_app/domain/rag/dtos"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ import (
 // fake usecase implementation for tests
 type fakeUsecase struct{
 	taskID string
+	expiresIn int64
 }
 
 func (f *fakeUsecase) Process(text string) (string, error) {
@@ -21,12 +23,12 @@ func (f *fakeUsecase) Process(text string) (string, error) {
 }
 
 func (f *fakeUsecase) GetStatus(taskID string) (*dtos.RAGStatusDTO, error) {
-	return &dtos.RAGStatusDTO{Status: "pending", Result: ""}, nil
+	return &dtos.RAGStatusDTO{Status: "pending", Result: "", ExpiresInSecond: f.expiresIn, ExpiresAt: time.Now().Add(time.Duration(f.expiresIn)*time.Second).UTC().Format(time.RFC3339)}, nil
 }
 
 func TestProcessTextReturns202(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	fake := &fakeUsecase{taskID: "test-uuid"}
+	fake := &fakeUsecase{taskID: "test-uuid", expiresIn: 3600}
 	controller := NewRAGController(fake)
 
 	r := gin.New()
@@ -54,5 +56,13 @@ func TestProcessTextReturns202(t *testing.T) {
 	}
 	if data["task_id"] != "test-uuid" {
 		t.Fatalf("expected task_id test-uuid, got %v", data["task_id"])
+	}
+	// Check status DTO presence and TTL via DTO (no hardcoded values in controller)
+	statusRaw, ok := data["status"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected status to be present in response Data, got %+v", data["status"])
+	}
+	if int64(statusRaw["expires_in_seconds"].(float64)) != fake.expiresIn {
+		t.Fatalf("expected expires_in_seconds %d, got %v", fake.expiresIn, statusRaw["expires_in_seconds"])
 	}
 }

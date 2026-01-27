@@ -812,6 +812,7 @@ const docTemplate = `{
                     "09. RAG"
                 ],
                 "summary": "Process text via RAG",
+                "description": "Response Data contains task_id and optionally a 'status' DTO with TTL fields (expires_in_seconds, expires_at) when available in cache.",
                 "parameters": [
                     {
                         "description": "RAG request",

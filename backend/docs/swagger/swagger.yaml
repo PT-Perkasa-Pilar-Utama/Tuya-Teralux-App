@@ -855,6 +855,20 @@ paths:
           description: Accepted
           schema:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+          examples:
+            application/json: |
+              {
+                "status": true,
+                "message": "Task submitted",
+                "data": {
+                  "task_id": "<uuid>",
+                  "status": {
+                    "status": "pending",
+                    "expires_in_seconds": 3600,
+                    "expires_at": "2026-01-27T12:34:56Z"
+                  }
+                }
+              }
         "400":
           description: Bad Request
           schema:
