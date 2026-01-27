@@ -824,8 +824,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
                         }
@@ -859,6 +859,7 @@ const docTemplate = `{
                     "09. RAG"
                 ],
                 "summary": "Get RAG task status",
+                "description": "The final task result is cached for 1 hour (TTL). After that it may be evicted from cache.",
                 "parameters": [
                     {
                         "type": "string",

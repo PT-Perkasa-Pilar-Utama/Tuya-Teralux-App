@@ -25,12 +25,12 @@ func init() {
 	UpdateLogLevel()
 }
 
-// UpdateLogLevel reads the 'LOG_LEVEL' setting from AppConfig (preferred) or environment variable and updates the current log level.
-// Valid values: DEBUG, INFO, WARN, ERROR. Defaults to INFO if invalid or unset.
+// UpdateLogLevel reads the 'LOG_LEVEL' setting from the environment (preferred) or AppConfig and updates the current log level.
+// Valid values: DEBUG, INFO, WARN, ERROR. Environment variable takes precedence over AppConfig.
 func UpdateLogLevel() {
-	// Prefer centralized config when available
+	// Prefer the explicit environment setting if present
 	envLevel := os.Getenv("LOG_LEVEL")
-	if AppConfig != nil && AppConfig.LogLevel != "" {
+	if envLevel == "" && AppConfig != nil && AppConfig.LogLevel != "" {
 		envLevel = AppConfig.LogLevel
 	}
 	switch strings.ToUpper(envLevel) {

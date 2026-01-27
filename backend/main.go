@@ -166,7 +166,7 @@ func main() {
 		utils.LogInfo("⚠️ Speech/RAG config incomplete, skipping initialization: %v", missing)
 	} else {
 		speech.InitModule(protected, scfg)
-		rag.InitModule(protected, scfg)
+		rag.InitModule(protected, scfg, badgerService)
 	}
 
 	// Register Health at the end so it appears last in Swagger
