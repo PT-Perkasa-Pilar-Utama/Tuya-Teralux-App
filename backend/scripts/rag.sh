@@ -13,8 +13,19 @@ TEXT="${1:-}"
 API_KEY_ARG="${2:-}"
 BASE_URL="${3:-http://localhost:8081}"
 
+# If no TEXT arg provided, try RAG_TEXT env var or STDIN (allow piping)
+if [ -z "$TEXT" ]; then
+  if [ -n "${RAG_TEXT:-}" ]; then
+    TEXT="$RAG_TEXT"
+  elif [ ! -t 0 ]; then
+    # read from stdin (supports piping)
+    TEXT=$(cat -)
+  fi
+fi
+
 if [ -z "$TEXT" ]; then
   echo "Usage: $0 \"text to process\" [API_KEY] [BASE_URL]"
+  echo "       Or set RAG_TEXT env var or pipe text into the script (echo 'text' | $0)"
   exit 1
 fi
 
