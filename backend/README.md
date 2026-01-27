@@ -187,3 +187,4 @@ The `Makefile` includes several utility commands to manage the project:
 | `make update` | Update running container using Watchtower |
 | `make clean` | Clean build artifacts |
 | `make kill` | Kill any process running on port 8081 |
+| `make rag text="turn on the lamp"` | Helper to authenticate, submit RAG text, poll and print final decision |

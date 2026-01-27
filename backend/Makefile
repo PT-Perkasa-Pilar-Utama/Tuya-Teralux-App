@@ -158,6 +158,12 @@ ollama-setup: ollama-ensure ollama-pull-llm
 	@echo "🔧 Ensuring Ollama image & container (if missing)..."
 	@echo "✅ Ollama setup complete (image + llm)"
 
+# RAG helper - authenticate + submit + poll
+# Usage: make rag text="turn on the lamp"
+rag:
+	@echo "🔧 Running RAG helper (auth -> submit -> poll)..."
+	@bash scripts/rag.sh "${text}" "${API_KEY}" "http://localhost:${PORT}"
+
 # Push to GHCR via GitHub Actions
 push:
 	@echo "🚀 Triggering GitHub Actions workflow for Docker push..."
