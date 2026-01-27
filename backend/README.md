@@ -192,3 +192,4 @@ The `Makefile` includes several utility commands to manage the project:
 Notes:
 - You can run `./scripts/rag.sh` without args if you set `RAG_TEXT` (env) and `API_KEY` in `.env`/`.env.dev`.
 - You can also pipe text: `echo "turn on the lamp" | ./scripts/rag.sh`
+- `make rag` will prefer `PORT` from `.env.dev` if present, otherwise it uses the exported `PORT` env var, and finally defaults to `8081`.
