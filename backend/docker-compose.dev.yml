@@ -7,7 +7,7 @@ services:
       - "8081:${PORT}"
     volumes:
       - ./:/app
-      - /app/tmp
+      - ./tmp:/app/tmp
     env_file:
       - .env.dev
     environment:
