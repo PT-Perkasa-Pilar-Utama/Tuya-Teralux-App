@@ -153,6 +153,44 @@ func (s *BadgerService) SetPersistent(key string, value []byte) error {
 	return nil
 }
 
+// SetPreserveTTL updates an existing key's value while preserving its original TTL (time-to-live).
+// If the key does not exist, this behaves like Set (stores with the default TTL).
+// If the existing key has no TTL (persistent), the new value will be stored persistently as well.
+//
+// param key The key to update.
+// param value The value to write.
+// return error An error if the operation fails.
+func (s *BadgerService) SetPreserveTTL(key string, value []byte) error {
+	return s.db.Update(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(key))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				// key not found; behave like Set (with default TTL)
+				entry := badger.NewEntry([]byte(key), value).WithTTL(s.defaultTTL)
+				return txn.SetEntry(entry)
+			}
+			return err
+		}
+
+		expiresAt := item.ExpiresAt()
+		if expiresAt == 0 {
+			// Persistent entry -> set persistently
+			return txn.Set([]byte(key), value)
+		}
+
+		// Compute remaining TTL
+		ttl := time.Until(time.Unix(int64(expiresAt), 0))
+		if ttl <= 0 {
+			// TTL already expired or zero; write using default TTL
+			entry := badger.NewEntry([]byte(key), value).WithTTL(s.defaultTTL)
+			return txn.SetEntry(entry)
+		}
+
+		entry := badger.NewEntry([]byte(key), value).WithTTL(ttl)
+		return txn.SetEntry(entry)
+	})
+}
+
 // GetAllKeysWithPrefix retrieves all keys that start with the specified prefix.
 // This is useful for cleanup operations or listing related items.
 //

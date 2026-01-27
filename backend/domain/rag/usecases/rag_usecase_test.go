@@ -123,6 +123,15 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 		t.Fatalf("expected no error from Process, got %v", err)
 	}
 
+	// verify pending cached in badger immediately
+	b1, err := badgerSvc.Get("rag:task:" + task)
+	if err != nil {
+		t.Fatalf("failed to read from badger: %v", err)
+	}
+	if b1 == nil {
+		t.Fatalf("expected pending task to be cached in badger")
+	}
+
 	// wait for completion
 	time.Sleep(200 * time.Millisecond)
 
