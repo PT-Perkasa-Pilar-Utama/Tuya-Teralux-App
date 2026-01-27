@@ -5,8 +5,10 @@ type RAGRequestDTO struct {
 }
 
 type RAGStatusDTO struct {
-	Status string `json:"status"`
-	Result string `json:"result"`
+	Status          string `json:"status"`
+	Result          string `json:"result"`
+	ExpiresAt       string `json:"expires_at,omitempty"`
+	ExpiresInSecond int64  `json:"expires_in_seconds,omitempty"`
 }
 
 type StandardResponse struct {
