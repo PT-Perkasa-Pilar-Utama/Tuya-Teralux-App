@@ -45,6 +45,13 @@ func UpdateLogLevel() {
 	default:
 		currentLogLevel = LevelInfo // Default if unset or invalid
 	}
+	// Informative log about current level
+	fmt.Printf("Log level set to %s\n", levelNames[currentLogLevel])
+}
+
+// GetCurrentLogLevelName returns the current log level name for diagnostics.
+func GetCurrentLogLevelName() string {
+	return levelNames[currentLogLevel]
 }
 
 // shouldLog determines if a message with the given level should be logged.

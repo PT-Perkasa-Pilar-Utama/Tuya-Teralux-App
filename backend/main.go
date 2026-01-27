@@ -146,6 +146,8 @@ func main() {
 
 	// 4. Speech & RAG Modules (migrated from stt-service)
 	scfg := utils.GetConfig()
+	// Log current log level for diagnostic purposes
+	fmt.Printf("Application log level: %s\n", utils.GetCurrentLogLevelName())
 	missing := []string{}
 	if scfg.OllamaURL == "" {
 		missing = append(missing, "OLLAMA_URL")
