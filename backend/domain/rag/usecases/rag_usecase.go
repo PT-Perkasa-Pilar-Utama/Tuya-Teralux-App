@@ -39,7 +39,13 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 	// Initially mark pending
 	u.mu.Lock()
 	u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "pending", Result: ""}
+	pending := u.taskStatus[taskID]
 	u.mu.Unlock()
+	// persist pending to cache (with TTL) if available
+	if u.badger != nil {
+		b, _ := json.Marshal(pending)
+		_ = u.badger.Set("rag:task:"+taskID, b)
+	}
 
 	// Run processing asynchronously
 	go func(taskID, text string) {
@@ -148,10 +154,10 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 			u.taskStatus[taskID] = statusDTO
 			u.mu.Unlock()
 			utils.LogDebug("RAG Task %s: LLM returned non-JSON after retry: %s", taskID, resp)
-			// persist final result to cache (with TTL) if we have badger
+			// persist final result by updating existing cache entry while preserving TTL
 			if u.badger != nil {
 				b, _ := json.Marshal(statusDTO)
-				_ = u.badger.Set("rag:task:"+taskID, b)
+				_ = u.badger.SetPreserveTTL("rag:task:"+taskID, b)
 			}
 			return
 		}
@@ -176,10 +182,10 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 		u.mu.Lock()
 		u.taskStatus[taskID] = statusDTO
 		u.mu.Unlock()
-		// persist final result if available
+		// persist final result by updating existing cache entry while preserving TTL
 		if u.badger != nil {
 			b, _ := json.Marshal(statusDTO)
-			_ = u.badger.Set("rag:task:"+taskID, b)
+			_ = u.badger.SetPreserveTTL("rag:task:"+taskID, b)
 		}
 		return
 	}(taskID, text)

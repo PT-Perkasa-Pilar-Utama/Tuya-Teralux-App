@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"os"
+	"time"
 	"teralux_app/domain/common/utils"
 	"testing"
 )
@@ -247,6 +248,48 @@ func TestBadgerService_FlushAll(t *testing.T) {
 	persistentVal, _ := service.Get("persistent:key1")
 	if persistentVal == nil {
 		t.Error("Expected persistent key to remain after flush")
+	}
+}
+
+func TestBadgerService_SetPreserveTTL(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Set short TTL in AppConfig
+	origConfig := utils.AppConfig
+	utils.AppConfig = &utils.Config{CacheTTL: "200ms"}
+	defer func() { utils.AppConfig = origConfig }()
+
+	service, err := NewBadgerService(tmpDir)
+	if err != nil {
+		t.Fatalf("NewBadgerService failed: %v", err)
+	}
+	defer service.Close()
+
+	key := "preserve_key"
+	v1 := []byte("v1")
+	v2 := []byte("v2")
+
+	// Initial set with TTL
+	err = service.Set(key, v1)
+	if err != nil {
+		t.Fatalf("Set failed: %v", err)
+	}
+
+	// Update value preserving TTL
+	err = service.SetPreserveTTL(key, v2)
+	if err != nil {
+		t.Fatalf("SetPreserveTTL failed: %v", err)
+	}
+
+	// Wait for longer than TTL; if TTL was preserved, key should be gone
+	time.Sleep(300 * time.Millisecond)
+
+	val, err := service.Get(key)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if val != nil {
+		t.Fatalf("Expected key to expire after TTL even after update preserving TTL, but got %s", string(val))
 	}
 }
 
