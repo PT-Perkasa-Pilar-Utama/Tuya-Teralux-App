@@ -347,7 +347,7 @@ definitions:
       status:
         type: boolean
     type: object
-host: localhost:8080
+host: localhost:8081
 info:
   contact:
     email: support@swagger.io
@@ -855,20 +855,6 @@ paths:
           description: Accepted
           schema:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-          examples:
-            application/json: |
-              {
-                "status": true,
-                "message": "Task submitted",
-                "data": {
-                  "task_id": "<uuid>",
-                  "status": {
-                    "status": "pending",
-                    "expires_in_seconds": 3600,
-                    "expires_at": "2026-01-27T12:34:56Z"
-                  }
-                }
-              }
         "400":
           description: Bad Request
           schema:
@@ -904,7 +890,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get RAG task status
-      description: The final task result is cached for 1 hour (TTL). After that it may be evicted from cache.
       tags:
       - 09. RAG
   /api/speech/transcribe:

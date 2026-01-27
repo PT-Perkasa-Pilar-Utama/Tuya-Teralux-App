@@ -15,7 +15,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "localhost:8081",
     "basePath": "/",
     "paths": {
         "/api/cache/flush": {
@@ -822,20 +822,6 @@
                         "description": "Accepted",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        },
-                        "examples": {
-                            "application/json": {
-                                "status": true,
-                                "message": "Task submitted",
-                                "data": {
-                                    "task_id": "<uuid>",
-                                    "status": {
-                                        "status": "pending",
-                                        "expires_in_seconds": 3600,
-                                        "expires_at": "2026-01-27T12:34:56Z"
-                                    }
-                                }
-                            }
                         }
                     },
                     "400": {
@@ -867,7 +853,6 @@
                     "09. RAG"
                 ],
                 "summary": "Get RAG task status",
-                "description": "The final task result is cached for 1 hour (TTL). After that it may be evicted from cache.",
                 "parameters": [
                     {
                         "type": "string",
