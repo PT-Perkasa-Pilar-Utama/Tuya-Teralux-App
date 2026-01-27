@@ -162,7 +162,11 @@ ollama-setup: ollama-ensure ollama-pull-llm
 # Usage: make rag text="turn on the lamp"
 rag:
 	@echo "🔧 Running RAG helper (auth -> submit -> poll)..."
-	@bash scripts/rag.sh "${text}" "${API_KEY}" "http://localhost:${PORT}"
+	@if [ -n "${text}" ]; then \
+		RAG_TEXT="${text}" bash scripts/rag.sh "" "${API_KEY}" "http://localhost:${PORT}"; \
+	else \
+		bash scripts/rag.sh "" "${API_KEY}" "http://localhost:${PORT}"; \
+	fi
 
 # Push to GHCR via GitHub Actions
 push:
