@@ -45,7 +45,11 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 	// persist pending to cache (with TTL) if available
 	if u.badger != nil {
 		b, _ := json.Marshal(pending)
-		_ = u.badger.Set("rag:task:"+taskID, b)
+		if err := u.badger.Set("rag:task:"+taskID, b); err != nil {
+			utils.LogError("RAG Task %s: failed to cache pending task: %v", taskID, err)
+		} else {
+			utils.LogDebug("RAG Task %s: pending cached with TTL", taskID)
+		}
 	}
 
 	// Run processing asynchronously
@@ -186,7 +190,11 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 		// persist final result by updating existing cache entry while preserving TTL
 		if u.badger != nil {
 			b, _ := json.Marshal(statusDTO)
-			_ = u.badger.SetPreserveTTL("rag:task:"+taskID, b)
+			if err := u.badger.SetPreserveTTL("rag:task:"+taskID, b); err != nil {
+				utils.LogError("RAG Task %s: failed to update cached final result: %v", taskID, err)
+			} else {
+				utils.LogDebug("RAG Task %s: final result cached (TTL preserved)", taskID)
+			}
 		}
 		return
 	}(taskID, text)
@@ -230,9 +238,12 @@ func (u *RAGUsecase) GetStatus(taskID string) (*ragdtos.RAGStatusDTO, error) {
 					status.ExpiresInSecond = int64(ttl.Seconds())
 					status.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
 				}
+				utils.LogDebug("RAG Task %s: retrieved from badger, ttl=%v", taskID, ttl)
 				return &status, nil
 			}
 		}
+		// Not found in badger either
+		utils.LogDebug("RAG Task %s: not found in cache", taskID)
 	}
 
 	return nil, fmt.Errorf("task not found")

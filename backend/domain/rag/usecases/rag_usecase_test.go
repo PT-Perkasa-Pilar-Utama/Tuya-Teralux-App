@@ -149,9 +149,11 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 	u.mu.Unlock()
 
 	// Now GetStatus should retrieve the persisted copy from Badger
-	status2, err := u.GetStatus(task)
+	// Simulate a restart by creating a new usecase instance without in-memory cache
+	u2 := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc)
+	status2, err := u2.GetStatus(task)
 	if err != nil {
-		t.Fatalf("expected persisted task to be found, got error: %v", err)
+		t.Fatalf("expected persisted task to be found after restart, got error: %v", err)
 	}
 	if status2.Status != "done" {
 		t.Fatalf("expected persisted status done, got %s", status2.Status)
