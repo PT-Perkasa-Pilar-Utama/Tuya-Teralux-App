@@ -812,7 +812,6 @@ const docTemplate = `{
                     "09. RAG"
                 ],
                 "summary": "Process text via RAG",
-                "description": "Response Data contains task_id and optionally a 'status' DTO with TTL fields (expires_in_seconds, expires_at) when available in cache.",
                 "parameters": [
                     {
                         "description": "RAG request",
@@ -860,7 +859,6 @@ const docTemplate = `{
                     "09. RAG"
                 ],
                 "summary": "Get RAG task status",
-                "description": "The final task result is cached for 1 hour (TTL). After that it may be evicted from cache.",
                 "parameters": [
                     {
                         "type": "string",
@@ -2416,7 +2414,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "localhost:8081",
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Teralux API",

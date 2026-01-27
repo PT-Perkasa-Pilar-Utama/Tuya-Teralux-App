@@ -28,6 +28,50 @@ type RAGUsecase struct {
 	taskStatus map[string]*ragdtos.RAGStatusDTO
 }
 
+// extractLastJSONObject scans a string that may contain multiple JSON objects
+// (for example, streaming fragments concatenated together) and returns the last
+// successfully parsed JSON object. This helps recover structured output from
+// tokenized/streaming LLM responses.
+func extractLastJSONObject(s string) (map[string]interface{}, error) {
+	var last map[string]interface{}
+	for i := 0; i < len(s); i++ {
+		if s[i] != '{' {
+			continue
+		}
+		depth := 0
+		for j := i; j < len(s); j++ {
+			if s[j] == '{' {
+				depth++
+			} else if s[j] == '}' {
+				depth--
+				if depth == 0 {
+					candidate := s[i : j+1]
+					var parsed map[string]interface{}
+					if err := json.Unmarshal([]byte(candidate), &parsed); err == nil {
+						last = parsed
+					}
+					break
+				}
+			}
+		}
+	}
+	if last == nil {
+		return nil, fmt.Errorf("no valid JSON object found")
+	}
+	return last, nil
+}
+
+// tryParseOnce attempts to parse the provided string as JSON. It first
+// unmarshals the whole string and, if that fails, attempts to extract
+// the last valid JSON object from streaming/fractured output.
+func tryParseOnce(s string) (map[string]interface{}, error) {
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &parsed); err == nil && parsed != nil {
+		return parsed, nil
+	}
+	return extractLastJSONObject(s)
+}
+
 func NewRAGUsecase(vectorSvc *infrastructure.VectorService, ollama OllamaClient, cfg *utils.Config, badgerSvc *infrastructure.BadgerService) *RAGUsecase {
 	return &RAGUsecase{vectorSvc: vectorSvc, ollama: ollama, config: cfg, badger: badgerSvc, taskStatus: make(map[string]*ragdtos.RAGStatusDTO)}
 }
@@ -113,42 +157,25 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 		utils.LogDebug("RAG Task %s prompt: %s", taskID, prompt)
 		utils.LogDebug("RAG Task %s raw LLM response: %s", taskID, resp)
 
-		// 4) Try to parse LLM response as JSON
+		// 4) Try to parse LLM response as JSON (flattened flow to avoid nested ifs)
 		var parsed map[string]interface{}
-		if err := json.Unmarshal([]byte(resp), &parsed); err != nil {
-			// Try to extract JSON object substring if LLM included commentary
-			start := strings.Index(resp, "{")
-			end := strings.LastIndex(resp, "}")
-			if start != -1 && end != -1 && end > start {
-				candidate := resp[start : end+1]
-				if err2 := json.Unmarshal([]byte(candidate), &parsed); err2 == nil {
-					utils.LogDebug("RAG Task %s: extracted JSON from LLM response", taskID)
-				} else {
-					utils.LogDebug("RAG Task %s: failed to extract JSON: %v", taskID, err2)
-				}
-			}
-		}
-
-		// If still not parsed, try one retry with a stricter instruction
-		if parsed == nil {
-			utils.LogDebug("RAG Task %s: LLM output not JSON, retrying with stricter instruction", taskID)
+		var perr error
+		parsed, perr = tryParseOnce(resp)
+		if perr != nil || parsed == nil {
+			utils.LogDebug("RAG Task %s: initial parse/extract failed: %v", taskID, perr)
+			// Retry once with a stricter instruction
+			utils.LogDebug("RAG Task %s: retrying with stricter instruction", taskID)
 			retryPrompt := prompt + "\nIMPORTANT: Your output must be valid JSON ONLY, with keys: endpoint, method, device_id, body. Do not add any extra text."
 			resp2, err2 := u.ollama.CallModel(retryPrompt, model)
-			if err2 == nil {
-				utils.LogDebug("RAG Task %s: LLM retry response: %s", taskID, resp2)
-				if err3 := json.Unmarshal([]byte(resp2), &parsed); err3 != nil {
-					// attempt to extract JSON substring from retry
-					start := strings.Index(resp2, "{")
-					end := strings.LastIndex(resp2, "}")
-					if start != -1 && end != -1 && end > start {
-						candidate := resp2[start : end+1]
-						if err4 := json.Unmarshal([]byte(candidate), &parsed); err4 != nil {
-							utils.LogDebug("RAG Task %s: retry also failed to produce JSON: %v", taskID, err4)
-						}
-					}
-				}
-			} else {
+			if err2 != nil {
 				utils.LogDebug("RAG Task %s: LLM retry error: %v", taskID, err2)
+			} else {
+				parsed, perr = tryParseOnce(resp2)
+				if perr != nil || parsed == nil {
+					utils.LogDebug("RAG Task %s: retry also failed to produce JSON: %v", taskID, perr)
+				} else {
+					utils.LogDebug("RAG Task %s: extracted JSON from retry", taskID)
+				}
 			}
 		}
 
