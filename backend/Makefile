@@ -162,10 +162,13 @@ ollama-setup: ollama-ensure ollama-pull-llm
 # Usage: make rag text="turn on the lamp"
 rag:
 	@echo "🔧 Running RAG helper (auth -> submit -> poll)..."
-	@if [ -n "${text}" ]; then \
-		RAG_TEXT="${text}" bash scripts/rag.sh "" "${API_KEY}" "http://localhost:${PORT}"; \
+	@# Determine port preference: .env.dev PORT > env PORT > 8081
+	@PORT_VAL=$$(grep -h '^PORT=' .env.dev 2>/dev/null | sed 's/PORT=//' || true); \
+	if [ -z "$$PORT_VAL" ]; then PORT_VAL="$${PORT:-8081}"; fi; \
+	if [ -n "${text}" ]; then \
+		RAG_TEXT="${text}" bash scripts/rag.sh "" "${API_KEY}" "http://localhost:$$PORT_VAL"; \
 	else \
-		bash scripts/rag.sh "" "${API_KEY}" "http://localhost:${PORT}"; \
+		bash scripts/rag.sh "" "${API_KEY}" "http://localhost:$$PORT_VAL"; \
 	fi
 
 # Push to GHCR via GitHub Actions
