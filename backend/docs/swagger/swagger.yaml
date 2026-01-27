@@ -851,8 +851,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "202":
+          description: Accepted
           schema:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
         "400":
@@ -890,6 +890,7 @@ paths:
       security:
       - BearerAuth: []
       summary: Get RAG task status
+      description: The final task result is cached for 1 hour (TTL). After that it may be evicted from cache.
       tags:
       - 09. RAG
   /api/speech/transcribe:

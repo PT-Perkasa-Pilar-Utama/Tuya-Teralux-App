@@ -3,16 +3,21 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/usecases"
-
 	"github.com/gin-gonic/gin"
 )
 
-type RAGController struct {
-	usecase *usecases.RAGUsecase
+// RAGProcessor is an abstraction for RAG operations implemented by the usecase.
+// This allows unit tests to provide a fake implementation.
+type RAGProcessor interface {
+	Process(text string) (string, error)
+	GetStatus(taskID string) (*dtos.RAGStatusDTO, error)
 }
 
-func NewRAGController(u *usecases.RAGUsecase) *RAGController {
+type RAGController struct {
+	usecase RAGProcessor
+}
+
+func NewRAGController(u RAGProcessor) *RAGController {
 	return &RAGController{usecase: u}
 }
 
@@ -24,7 +29,7 @@ func NewRAGController(u *usecases.RAGUsecase) *RAGController {
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGRequestDTO true "RAG request"
-// @Success 200 {object} dtos.StandardResponse
+// @Success 202 {object} dtos.StandardResponse
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
 // @Router /api/rag [post]
@@ -41,7 +46,7 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: true, Message: "Task submitted", Data: map[string]string{"task_id": taskID}})
+	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{Status: true, Message: "Task submitted", Data: map[string]string{"task_id": taskID}})
 }
 
 // GetStatus godoc
