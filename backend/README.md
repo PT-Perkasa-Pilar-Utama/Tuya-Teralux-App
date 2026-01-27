@@ -188,3 +188,7 @@ The `Makefile` includes several utility commands to manage the project:
 | `make clean` | Clean build artifacts |
 | `make kill` | Kill any process running on port 8081 |
 | `make rag text="turn on the lamp"` | Helper to authenticate, submit RAG text, poll and print final decision |
+
+Notes:
+- You can run `./scripts/rag.sh` without args if you set `RAG_TEXT` (env) and `API_KEY` in `.env`/`.env.dev`.
+- You can also pipe text: `echo "turn on the lamp" | ./scripts/rag.sh`
