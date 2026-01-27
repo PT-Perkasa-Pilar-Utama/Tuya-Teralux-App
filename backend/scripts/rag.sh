@@ -23,9 +23,43 @@ if [ -z "$TEXT" ]; then
   fi
 fi
 
+# If still empty, try to find RAG_TEXT in .env files (current dir, parents, backend/)
 if [ -z "$TEXT" ]; then
-  echo "Usage: $0 \"text to process\" [API_KEY] [BASE_URL]"
-  echo "       Or set RAG_TEXT env var or pipe text into the script (echo 'text' | $0)"
+  for f in .env.dev .env; do
+    dir="."
+    for i in 0 1 2 3; do
+      if [ -f "$dir/$f" ]; then
+        val=$(grep '^RAG_TEXT=' "$dir/$f" | head -n1 | sed 's/RAG_TEXT=//') || true
+        if [ -n "$val" ]; then
+          TEXT="$val"
+          break 2
+        fi
+      fi
+      dir="../$dir"
+    done
+  done
+fi
+
+if [ -z "$TEXT" ]; then
+  # also try backend/.env files
+  if [ -f "backend/.env.dev" ]; then
+    TEXT=$(grep '^RAG_TEXT=' backend/.env.dev | head -n1 | sed 's/RAG_TEXT=//') || true
+  fi
+fi
+if [ -z "$TEXT" ]; then
+  if [ -f "backend/.env" ]; then
+    TEXT=$(grep '^RAG_TEXT=' backend/.env | head -n1 | sed 's/RAG_TEXT=//') || true
+  fi
+fi
+
+# If still empty, fall back to interactive prompt
+if [ -z "$TEXT" ]; then
+  echo -n "Enter text for RAG (or press Ctrl+C to cancel): "
+  read -r TEXT
+fi
+
+if [ -z "$TEXT" ]; then
+  echo "No text provided. Exiting." >&2
   exit 1
 fi
 
