@@ -1,11 +1,12 @@
 package usecases
 
 import (
-	"github.com/gin-gonic/gin"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/services"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestGetAllDevices_CachesAndUpsertsVector(t *testing.T) {
@@ -20,7 +21,7 @@ func TestGetAllDevices_CachesAndUpsertsVector(t *testing.T) {
 	}
 	defer cache.Close()
 
-	vector := infrastructure.NewVectorService()
+	vector := infrastructure.NewVectorService("")
 
 	// use the real service in test mode (returns empty list but ok for cache/vector test)
 	svc := services.NewTuyaDeviceService()

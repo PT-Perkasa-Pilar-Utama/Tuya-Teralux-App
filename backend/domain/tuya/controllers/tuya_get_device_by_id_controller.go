@@ -24,7 +24,7 @@ func NewTuyaGetDeviceByIDController(useCase *usecases.TuyaGetDeviceByIDUseCase) 
 
 // GetDeviceByID handles GET /api/tuya/devices/:id endpoint
 // @Summary      Get Device by ID
-// @Description  Retrieves details of a specific device by its ID. Response includes last_commands field containing the last control commands sent to the device.
+// @Description  Retrieves details of a specific device by its ID
 // @Tags         02. Tuya
 // @Accept       json
 // @Produce      json

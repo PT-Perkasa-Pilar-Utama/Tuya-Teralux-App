@@ -68,6 +68,11 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 			var cachedResp dtos.TuyaDevicesResponseDTO
 			if err := json.Unmarshal(cached, &cachedResp); err == nil {
 				utils.LogDebug("GetAllDevices: returning cached devices for key=%s", cacheKey)
+
+				// Ensure Vector DB is still populated even on cache hit
+				// This handles cases where Badger cache exists but Vector DB was cleared or not initialized
+				go uc.populateVectorDB(uid, config.GetAllDevicesResponseType, &cachedResp)
+
 				return &cachedResp, nil
 			}
 		}
@@ -427,20 +432,30 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 
 	// Upsert to Vector DB so LLMs can find device DTOs and learn format
 	if uc.vectorSvc != nil {
-		// Upsert aggregate document
-		if aggB, err := json.Marshal(resp); err == nil {
-			aggID := fmt.Sprintf("tuya:devices:uid:%s:mode:%s", uid, config.GetAllDevicesResponseType)
-			uc.vectorSvc.Upsert(aggID, string(aggB), nil)
-		}
-
-		// Upsert per-device docs
-		for _, d := range deviceDTOs {
-			if db, err := json.Marshal(d); err == nil {
-				dID := fmt.Sprintf("tuya:device:%s", d.ID)
-				uc.vectorSvc.Upsert(dID, string(db), nil)
-			}
-		}
+		go uc.populateVectorDB(uid, config.GetAllDevicesResponseType, resp)
 	}
 
 	return resp, nil
+}
+
+// populateVectorDB handles the background task of updating the vector store with device information.
+func (uc *TuyaGetAllDevicesUseCase) populateVectorDB(uid, mode string, resp *dtos.TuyaDevicesResponseDTO) {
+	if uc.vectorSvc == nil {
+		return
+	}
+
+	// Upsert aggregate document
+	if aggB, err := json.Marshal(resp); err == nil {
+		aggID := fmt.Sprintf("tuya:devices:uid:%s:mode:%s", uid, mode)
+		uc.vectorSvc.Upsert(aggID, string(aggB), nil)
+	}
+
+	// Upsert per-device docs
+	for _, d := range resp.Devices {
+		if db, err := json.Marshal(d); err == nil {
+			dID := fmt.Sprintf("tuya:device:%s", d.ID)
+			uc.vectorSvc.Upsert(dID, string(db), nil)
+		}
+	}
+	utils.LogDebug("populateVectorDB: successfully updated %d documents for user %s", len(resp.Devices)+1, uid)
 }

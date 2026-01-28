@@ -9,21 +9,22 @@ import (
 	"time"
 
 	"teralux_app/domain/rag/dtos"
+
 	"github.com/gin-gonic/gin"
 )
 
 // fake usecase implementation for tests
-type fakeUsecase struct{
-	taskID string
+type fakeUsecase struct {
+	taskID    string
 	expiresIn int64
 }
 
-func (f *fakeUsecase) Process(text string) (string, error) {
+func (f *fakeUsecase) Process(text string, authToken string) (string, error) {
 	return f.taskID, nil
 }
 
 func (f *fakeUsecase) GetStatus(taskID string) (*dtos.RAGStatusDTO, error) {
-	return &dtos.RAGStatusDTO{Status: "pending", Result: "", ExpiresInSecond: f.expiresIn, ExpiresAt: time.Now().Add(time.Duration(f.expiresIn)*time.Second).UTC().Format(time.RFC3339)}, nil
+	return &dtos.RAGStatusDTO{Status: "pending", Result: "", ExpiresInSecond: f.expiresIn, ExpiresAt: time.Now().Add(time.Duration(f.expiresIn) * time.Second).UTC().Format(time.RFC3339)}, nil
 }
 
 func TestProcessTextReturns202(t *testing.T) {

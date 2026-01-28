@@ -21,7 +21,7 @@ func (f *fakeOllama) CallModel(prompt string, model string) (string, error) {
 
 func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 	utils.LoadConfig()
-	vectorSvc := infrastructure.NewVectorService()
+	vectorSvc := infrastructure.NewVectorService("")
 	// seed a device doc containing 'lamp'
 	deviceDoc := map[string]interface{}{"id": "lamp123", "name": "Living Room Lamp", "category": "switch"}
 	b, _ := json.Marshal(deviceDoc)
@@ -39,7 +39,7 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), nil)
 
-	task, err := u.Process("turn on the lamp")
+	task, err := u.Process("turn on the lamp", "mock-token")
 	if err != nil {
 		t.Fatalf("expected no error from Process, got %v", err)
 	}
@@ -98,7 +98,7 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 
 func TestPersistentStorageAfterCompletion(t *testing.T) {
 	utils.LoadConfig()
-	vectorSvc := infrastructure.NewVectorService()
+	vectorSvc := infrastructure.NewVectorService("")
 	// seed device doc
 	deviceDoc := map[string]interface{}{"id": "lamp123", "name": "Living Room Lamp", "category": "switch"}
 	b, _ := json.Marshal(deviceDoc)
@@ -128,7 +128,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc)
 
-	task, err := u.Process("turn on the lamp")
+	task, err := u.Process("turn on the lamp", "mock-token")
 	if err != nil {
 		t.Fatalf("expected no error from Process, got %v", err)
 	}
@@ -172,7 +172,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 
 func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	utils.LoadConfig()
-	vectorSvc := infrastructure.NewVectorService()
+	vectorSvc := infrastructure.NewVectorService("")
 	// seed device doc
 	deviceDoc := map[string]interface{}{"id": "lamp123", "name": "Living Room Lamp", "category": "switch"}
 	b, _ := json.Marshal(deviceDoc)
@@ -206,7 +206,7 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	}()
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc)
-	task, err := u.Process("turn on the lamp")
+	task, err := u.Process("turn on the lamp", "mock-token")
 	if err != nil {
 		t.Fatalf("expected no error from Process, got %v", err)
 	}

@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"teralux_app/domain/common/utils"
@@ -61,7 +60,11 @@ func NewOllamaRepository() *OllamaRepository {
 }
 
 func (r *OllamaRepository) CallModel(prompt string, model string) (string, error) {
-	reqBody := map[string]interface{}{"model": model, "prompt": prompt}
+	reqBody := map[string]interface{}{
+		"model":  model,
+		"prompt": prompt,
+		"stream": false,
+	}
 	b, _ := json.Marshal(reqBody)
 	resp, err := http.Post(r.baseURL+"/api/generate", "application/json", bytes.NewBuffer(b))
 	if err != nil {
@@ -76,24 +79,9 @@ func (r *OllamaRepository) CallModel(prompt string, model string) (string, error
 	// Try to parse Ollama response to extract the generated text
 	var m map[string]interface{}
 	if err := json.Unmarshal(body, &m); err == nil {
-		if results, ok := m["results"].([]interface{}); ok && len(results) > 0 {
-			var outText strings.Builder
-			for _, r := range results {
-				if rm, ok := r.(map[string]interface{}); ok {
-					if contents, ok := rm["content"].([]interface{}); ok {
-						for _, c := range contents {
-							if cm, ok := c.(map[string]interface{}); ok {
-								if txt, ok := cm["text"].(string); ok {
-									outText.WriteString(txt)
-								}
-							}
-						}
-					}
-				}
-			}
-			if outText.Len() > 0 {
-				return outText.String(), nil
-			}
+		// Ollama /api/generate non-stream returns the response in the "response" field
+		if responseText, ok := m["response"].(string); ok {
+			return responseText, nil
 		}
 	}
 

@@ -182,12 +182,6 @@ func (uc *TuyaDeviceControlUseCase) SendIRACCommand(accessToken, infraredID, rem
 
 		if !fallbackResp.Success {
 			utils.LogError("Fallback Legacy API Failed. Code: %d, Msg: %s", fallbackResp.Code, fallbackResp.Msg)
-
-			// Handle code 1106 (Permission Deny) - usually means incorrect request body/parameters
-			if fallbackResp.Code == 1106 {
-				return false, fmt.Errorf("bad request: invalid input parameters. Please verify your request body matches the device's expected command format (code: %d)", fallbackResp.Code)
-			}
-
 			return false, fmt.Errorf("tuya Legacy API failed: %s (code: %d)", fallbackResp.Msg, fallbackResp.Code)
 		}
 
@@ -265,8 +259,6 @@ func (uc *TuyaDeviceControlUseCase) SendIRACCommand(accessToken, infraredID, rem
 		}
 	}
 
-	// Cache invalidation removed
-
 	return resp.Result, nil
 }
 
@@ -336,11 +328,6 @@ func (uc *TuyaDeviceControlUseCase) SendCommand(accessToken, deviceID string, co
 
 	if !resp.Success {
 		utils.LogError("Tuya API Command Failed. Code: %d, Msg: %s", resp.Code, resp.Msg)
-
-		// Handle code 1106 (Permission Deny) - usually means incorrect request body/parameters
-		if resp.Code == 1106 {
-			return false, fmt.Errorf("bad request: invalid input parameters. Please verify your request body matches the device's expected command format (code: %d)", resp.Code)
-		}
 
 		// RETRY LOGIC for "switch_" mismatch (switch_1 -> switch1)
 		if resp.Code == 2008 {
@@ -417,8 +404,6 @@ func (uc *TuyaDeviceControlUseCase) SendCommand(accessToken, deviceID string, co
 			utils.LogWarn("Failed to save device state for %s: %v", deviceID, err)
 		}
 	}
-
-	// Cache invalidation removed
 
 	return resp.Result, nil
 }

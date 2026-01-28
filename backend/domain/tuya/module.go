@@ -37,7 +37,7 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 	deviceStateUseCase := usecases.NewDeviceStateUseCase(badger)
 
 	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc)
-	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaGetAllDevicesUseCase)
+	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, badger)
 	tuyaDeviceControlUseCase := usecases.NewTuyaDeviceControlUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaSensorUseCase := usecases.NewTuyaSensorUseCase(tuyaGetDeviceByIDUseCase)
 	syncDeviceStatusUseCase := usecases.NewSyncDeviceStatusUseCase(tuyaGetAllDevicesUseCase)
