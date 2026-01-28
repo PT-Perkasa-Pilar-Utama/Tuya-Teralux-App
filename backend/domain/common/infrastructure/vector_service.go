@@ -53,3 +53,12 @@ func (s *VectorService) Search(query string) ([]string, error) {
 	}
 	return matches, nil
 }
+
+// FlushAll clears all stored documents from the vector store.
+func (s *VectorService) FlushAll() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.store = make(map[string]string)
+	return nil
+}
+

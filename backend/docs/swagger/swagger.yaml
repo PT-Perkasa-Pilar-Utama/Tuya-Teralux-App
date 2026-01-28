@@ -126,9 +126,33 @@ definitions:
       device_status:
         $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
     type: object
+  dtos.RAGProcessResponseDTO:
+    properties:
+      status:
+        $ref: '#/definitions/dtos.RAGStatusDTO'
+      task_id:
+        type: string
+    type: object
   dtos.RAGRequestDTO:
     properties:
       text:
+        type: string
+    type: object
+  dtos.RAGStatusDTO:
+    properties:
+      body: {}
+      endpoint:
+        type: string
+      expires_at:
+        type: string
+      expires_in_seconds:
+        type: integer
+      method:
+        type: string
+      result:
+        description: raw LLM response when not structured
+        type: string
+      status:
         type: string
     type: object
   dtos.SensorDataDTO:
@@ -854,7 +878,12 @@ paths:
         "202":
           description: Accepted
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGProcessResponseDTO'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -882,7 +911,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGStatusDTO'
+              type: object
         "404":
           description: Not Found
           schema:

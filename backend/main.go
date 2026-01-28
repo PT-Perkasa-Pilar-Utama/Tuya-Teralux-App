@@ -123,12 +123,16 @@ func main() {
 		defer badgerService.Close()
 	}
 
+	// Initialize Vector DB
+	vectorService := infrastructure.NewVectorService()
+
 	// Shared Repositories
 	deviceRepo := teralux_repositories.NewDeviceRepository(badgerService)
 
 	// Initialize Modules
-	commonModule := common.NewCommonModule(badgerService)
-	tuyaModule := tuya.NewTuyaModule(badgerService)
+	commonModule := common.NewCommonModule(badgerService, vectorService)
+	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService)
+
 	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
 	protected := router.Group("/")
@@ -168,7 +172,7 @@ func main() {
 		utils.LogInfo("⚠️ Speech/RAG config incomplete, skipping initialization: %v", missing)
 	} else {
 		speech.InitModule(protected, scfg)
-		rag.InitModule(protected, scfg, badgerService)
+		rag.InitModule(protected, scfg, badgerService, vectorService)
 	}
 
 	// Register Health at the end so it appears last in Swagger

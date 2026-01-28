@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	ragdtos "teralux_app/domain/rag/dtos"
+
+	"github.com/google/uuid"
 )
 
 // OllamaClient represents the external LLM client used by RAG.
@@ -138,7 +139,7 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 		if deviceDoc != "" {
 			prompt += fmt.Sprintf("Candidate device example:\n%s\n\n", deviceDoc)
 		}
-		prompt += "Return a JSON object with keys: endpoint (string), method (GET/POST), device_id (string), body (object|null). Only output the JSON.\n"
+		prompt += "Return a JSON object with keys: endpoint (string), method (GET/POST), device_id (string), body (object|null), headers (object|null). Only output the JSON.\n"
 
 		// 3) Call the LLM
 		model := u.config.LLMModel
@@ -153,29 +154,18 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 			return
 		}
 
-		// Log prompt and raw response for debugging
-		utils.LogDebug("RAG Task %s prompt: %s", taskID, prompt)
-		utils.LogDebug("RAG Task %s raw LLM response: %s", taskID, resp)
+		// Removed noisy debug logs of prompt and raw response
 
 		// 4) Try to parse LLM response as JSON (flattened flow to avoid nested ifs)
 		var parsed map[string]interface{}
 		var perr error
 		parsed, perr = tryParseOnce(resp)
 		if perr != nil || parsed == nil {
-			utils.LogDebug("RAG Task %s: initial parse/extract failed: %v", taskID, perr)
-			// Retry once with a stricter instruction
-			utils.LogDebug("RAG Task %s: retrying with stricter instruction", taskID)
-			retryPrompt := prompt + "\nIMPORTANT: Your output must be valid JSON ONLY, with keys: endpoint, method, device_id, body. Do not add any extra text."
+			// Retry once with a stricter instruction if needed (logging only failure)
+			retryPrompt := prompt + "\nIMPORTANT: Your output must be valid JSON ONLY, with keys: endpoint, method, device_id, body, headers. Do not add any extra text."
 			resp2, err2 := u.ollama.CallModel(retryPrompt, model)
-			if err2 != nil {
-				utils.LogDebug("RAG Task %s: LLM retry error: %v", taskID, err2)
-			} else {
-				parsed, perr = tryParseOnce(resp2)
-				if perr != nil || parsed == nil {
-					utils.LogDebug("RAG Task %s: retry also failed to produce JSON: %v", taskID, perr)
-				} else {
-					utils.LogDebug("RAG Task %s: extracted JSON from retry", taskID)
-				}
+			if err2 == nil {
+				parsed, _ = tryParseOnce(resp2)
 			}
 		}
 
@@ -203,13 +193,27 @@ func (u *RAGUsecase) Process(text string) (string, error) {
 			deviceID = chosenDeviceID
 		}
 		bodyObj := parsed["body"]
-		bodyB, _ := json.Marshal(bodyObj)
 
-		// Log the decision
-		utils.LogDebug("RAG Task %s decided endpoint=%s method=%s device_id=%s body=%s", taskID, endpoint, method, deviceID, string(bodyB))
+		var headers map[string]string
+		if hObj, ok := parsed["headers"].(map[string]interface{}); ok {
+			headers = make(map[string]string)
+			for k, v := range hObj {
+				headers[k] = fmt.Sprintf("%v", v)
+			}
+		}
+
+		// Log the result clearly
+		utils.LogInfo("--- RAG Task Processed: %s ---", taskID)
+		utils.LogInfo("Endpoint: %s", endpoint)
+		utils.LogInfo("Method:   %s", method)
+		bodyB, _ := json.MarshalIndent(bodyObj, "", "  ")
+		utils.LogInfo("Body:     %s", string(bodyB))
+		headersB, _ := json.MarshalIndent(headers, "", "  ")
+		utils.LogInfo("Headers:  %s", string(headersB))
+		utils.LogInfo("--------------------------------------")
 
 		// Store structured result (do NOT perform external fetch)
-		statusDTO := &ragdtos.RAGStatusDTO{Status: "done", Endpoint: endpoint, Method: method, Body: bodyObj}
+		statusDTO := &ragdtos.RAGStatusDTO{Status: "done", Endpoint: endpoint, Method: method, Body: bodyObj, Headers: headers}
 		u.mu.Lock()
 		u.taskStatus[taskID] = statusDTO
 		u.mu.Unlock()
