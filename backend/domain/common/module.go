@@ -20,11 +20,11 @@ type CommonModule struct {
 	DocsController   *controllers.DocsController
 }
 
-// NewCommonModule initializes the common module
-func NewCommonModule(badger *infrastructure.BadgerService) *CommonModule {
+// NewCommonModule initializes the common domain components
+func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService) *CommonModule {
 	return &CommonModule{
 		HealthController: controllers.NewHealthController(),
-		CacheController:  controllers.NewCacheController(badger),
+		CacheController:  controllers.NewCacheController(badger, vector),
 		DocsController:   controllers.NewDocsController(),
 	}
 }

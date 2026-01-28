@@ -29,7 +29,7 @@ func NewRAGController(u RAGProcessor) *RAGController {
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGRequestDTO true "RAG request"
-// @Success 202 {object} dtos.StandardResponse
+// @Success 202 {object} dtos.StandardResponse{data=dtos.RAGProcessResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
 // @Router /api/rag [post]
@@ -63,7 +63,7 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"
-// @Success 200 {object} dtos.StandardResponse
+// @Success 200 {object} dtos.StandardResponse{data=dtos.RAGStatusDTO}
 // @Failure 404 {object} dtos.StandardResponse
 // @Router /api/rag/{task_id} [get]
 func (c *RAGController) GetStatus(ctx *gin.Context) {

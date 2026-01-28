@@ -11,12 +11,16 @@ import (
 
 // CacheController handles cache-related operations
 type CacheController struct {
-	cache *infrastructure.BadgerService
+	cache  *infrastructure.BadgerService
+	vector *infrastructure.VectorService
 }
 
 // NewCacheController creates a new CacheController instance
-func NewCacheController(cache *infrastructure.BadgerService) *CacheController {
-	return &CacheController{cache: cache}
+func NewCacheController(cache *infrastructure.BadgerService, vector *infrastructure.VectorService) *CacheController {
+	return &CacheController{
+		cache:  cache,
+		vector: vector,
+	}
 }
 
 // FlushCache clears the entire cache
@@ -39,20 +43,35 @@ func (ctrl *CacheController) FlushCache(c *gin.Context) {
 		return
 	}
 
+	// 1. Flush BadgerDB Cache
 	err := ctrl.cache.FlushAll()
 	if err != nil {
-		utils.LogError("Failed to flush cache: %v", err)
+		utils.LogError("Failed to flush badger cache: %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to flush cache",
+			Message: "Failed to flush badger cache",
 			Data:    nil,
 		})
 		return
 	}
 
+	// 2. Flush Vector DB Cache (if initialized)
+	if ctrl.vector != nil {
+		err = ctrl.vector.FlushAll()
+		if err != nil {
+			utils.LogError("Failed to flush vector cache: %v", err)
+			c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+				Status:  false,
+				Message: "Failed to flush vector cache",
+				Data:    nil,
+			})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
-		Message: "Cache flushed successfully",
+		Message: "All caches flushed successfully",
 		Data:    nil,
 	})
 }

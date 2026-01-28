@@ -27,7 +27,7 @@ type TuyaModule struct {
 }
 
 // NewTuyaModule initializes the Tuya module
-func NewTuyaModule(badger *infrastructure.BadgerService) *TuyaModule {
+func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) *TuyaModule {
 	// Services
 	tuyaAuthService := services.NewTuyaAuthService()
 	tuyaDeviceService := services.NewTuyaDeviceService()
@@ -35,9 +35,6 @@ func NewTuyaModule(badger *infrastructure.BadgerService) *TuyaModule {
 	// Use Cases
 	tuyaAuthUseCase := usecases.NewTuyaAuthUseCase(tuyaAuthService)
 	deviceStateUseCase := usecases.NewDeviceStateUseCase(badger)
-
-	// Vector service for LLM-oriented indexing
-	vectorSvc := infrastructure.NewVectorService()
 
 	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc)
 	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaGetAllDevicesUseCase)

@@ -12,10 +12,10 @@ import (
 )
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) {
 	// Initialize Dependencies
-	vectorSvc := infrastructure.NewVectorService()
 	ollamaRepo := speechRepos.NewOllamaRepository()
+
 	ragUsecase := usecases.NewRAGUsecase(vectorSvc, ollamaRepo, cfg, badger)
 	ragController := controllers.NewRAGController(ragUsecase)
 

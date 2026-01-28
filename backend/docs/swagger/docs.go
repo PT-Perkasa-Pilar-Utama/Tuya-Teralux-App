@@ -827,7 +827,19 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGProcessResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -872,7 +884,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGStatusDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -2021,10 +2045,46 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.RAGProcessResponseDTO": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/dtos.RAGStatusDTO"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.RAGRequestDTO": {
             "type": "object",
             "properties": {
                 "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RAGStatusDTO": {
+            "type": "object",
+            "properties": {
+                "body": {},
+                "endpoint": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "result": {
+                    "description": "raw LLM response when not structured",
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
