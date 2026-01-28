@@ -55,15 +55,7 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 	success, err := ctrl.useCase.SendCommand(accessToken, deviceID, commands)
 	if err != nil {
 		utils.LogError("SendCommand failed: %v", err)
-
-		// Check if it's a bad request error (code 1106)
-		errorMsg := err.Error()
-		statusCode := http.StatusInternalServerError
-		if len(errorMsg) >= 12 && errorMsg[:12] == "bad request:" {
-			statusCode = http.StatusBadRequest
-		}
-
-		c.JSON(statusCode, dtos.StandardResponse{
+		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: err.Error(),
 			Data:    nil,
@@ -75,7 +67,7 @@ func (ctrl *TuyaDeviceControlController) SendCommand(c *gin.Context) {
 	c.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "Command sent successfully",
-		Data:    dtos.SuccessResponseDTO{Success: success},
+		Data:    map[string]bool{"success": success},
 	})
 }
 
@@ -100,7 +92,7 @@ func (ctrl *TuyaDeviceControlController) SendIRACCommand(c *gin.Context) {
 		utils.LogError("Failed to bind IR AC command: %v", err)
 		c.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Invalid request payload",
 			Data:    nil,
 		})
 		return
@@ -112,15 +104,7 @@ func (ctrl *TuyaDeviceControlController) SendIRACCommand(c *gin.Context) {
 	success, err := ctrl.useCase.SendIRACCommand(accessToken, infraredID, req.RemoteID, req.Code, req.Value)
 	if err != nil {
 		utils.LogError("SendIRACCommand failed: %v", err)
-
-		// Check if it's a bad request error (code 1106)
-		errorMsg := err.Error()
-		statusCode := http.StatusInternalServerError
-		if len(errorMsg) >= 12 && errorMsg[:12] == "bad request:" {
-			statusCode = http.StatusBadRequest
-		}
-
-		c.JSON(statusCode, dtos.StandardResponse{
+		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: err.Error(),
 			Data:    nil,
@@ -132,6 +116,6 @@ func (ctrl *TuyaDeviceControlController) SendIRACCommand(c *gin.Context) {
 	c.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "IR AC Command sent successfully",
-		Data:    dtos.SuccessResponseDTO{Success: success},
+		Data:    map[string]bool{"success": success},
 	})
 }

@@ -11,7 +11,7 @@ type VectorRepository struct {
 }
 
 func NewVectorRepository() *VectorRepository {
-	return &VectorRepository{svc: infrastructure.NewVectorService()}
+	return &VectorRepository{svc: infrastructure.NewVectorService("")}
 }
 
 func (r *VectorRepository) Search(query string) ([]string, error) {

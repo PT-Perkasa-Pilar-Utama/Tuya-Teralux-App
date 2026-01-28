@@ -8,8 +8,6 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/entities"
 	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 // TuyaAuthService handles the OAuth 2.0 authentication flow with the Tuya Cloud API.
@@ -35,22 +33,6 @@ func NewTuyaAuthService() *TuyaAuthService {
 // @throws error If the Tuya API returns a non-200 status code indicating authentication failure.
 func (s *TuyaAuthService) FetchToken(url string, headers map[string]string) (*entities.TuyaAuthResponse, error) {
 	utils.LogDebug("FetchToken: requesting %s", url)
-	if gin.Mode() == gin.TestMode {
-		return &entities.TuyaAuthResponse{
-			Success: true,
-			Result: struct {
-				AccessToken  string `json:"access_token"`
-				ExpireTime   int    `json:"expire_time"`
-				RefreshToken string `json:"refresh_token"`
-				UID          string `json:"uid"`
-			}{
-				AccessToken:  "mock-access-token",
-				ExpireTime:   7200,
-				RefreshToken: "mock-refresh-token",
-				UID:          "mock-uid",
-			},
-		}, nil
-	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

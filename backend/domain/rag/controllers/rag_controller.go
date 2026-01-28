@@ -3,13 +3,14 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/rag/dtos"
+
 	"github.com/gin-gonic/gin"
 )
 
 // RAGProcessor is an abstraction for RAG operations implemented by the usecase.
 // This allows unit tests to provide a fake implementation.
 type RAGProcessor interface {
-	Process(text string) (string, error)
+	Process(text string, authToken string) (string, error)
 	GetStatus(taskID string) (*dtos.RAGStatusDTO, error)
 }
 
@@ -40,7 +41,9 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 		return
 	}
 
-	taskID, err := c.usecase.Process(req.Text)
+	authToken := ctx.GetHeader("Authorization")
+
+	taskID, err := c.usecase.Process(req.Text, authToken)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Processing failed", Details: err.Error()})
 		return

@@ -4,14 +4,10 @@ import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
 	"teralux_app/domain/common/utils"
-	tuya_dtos "teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
-
-// Force import for Swagger
-var _ = tuya_dtos.TuyaAuthResponseDTO{}
 
 // TuyaAuthController handles authentication requests for Tuya
 type TuyaAuthController struct {
@@ -27,8 +23,8 @@ func NewTuyaAuthController(useCase *usecases.TuyaAuthUseCase) *TuyaAuthControlle
 
 // Authenticate handles GET /api/tuya/auth endpoint
 // @Summary      Authenticate with Tuya
-// @Description  Authenticates with Tuya API and retrieves an access token. Requires X-API-KEY header (use ApiKeyAuth, not BearerAuth).
-// @Tags         01. Auth
+// @Description  Authenticates the user and retrieves a Tuya access token
+// @Tags         02. Tuya
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaAuthResponseDTO}

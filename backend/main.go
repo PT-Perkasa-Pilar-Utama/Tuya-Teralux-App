@@ -124,7 +124,7 @@ func main() {
 	}
 
 	// Initialize Vector DB
-	vectorService := infrastructure.NewVectorService()
+	vectorService := infrastructure.NewVectorService("./tmp/vector/store.json")
 
 	// Shared Repositories
 	deviceRepo := teralux_repositories.NewDeviceRepository(badgerService)

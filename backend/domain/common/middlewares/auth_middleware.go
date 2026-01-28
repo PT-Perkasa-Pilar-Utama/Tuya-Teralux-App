@@ -29,14 +29,14 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
+		fields := strings.Fields(authHeader)
 		var accessToken string
-		if len(parts) == 2 && parts[0] == "Bearer" {
-			accessToken = parts[1]
-		} else if len(parts) == 1 {
-			accessToken = parts[0]
+		if len(fields) == 2 && strings.EqualFold(fields[0], "Bearer") {
+			accessToken = fields[1]
+		} else if len(fields) == 1 {
+			accessToken = fields[0]
 		} else {
-			utils.LogWarn("AuthMiddleware: invalid Authorization Header format")
+			utils.LogWarn("AuthMiddleware: invalid Authorization Header format: %q", authHeader)
 			c.JSON(http.StatusUnauthorized, dtos.StandardResponse{
 				Status:  false,
 				Message: "Invalid Authorization header format. Expected 'Bearer <token>'",
@@ -45,8 +45,9 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		accessToken = strings.TrimSpace(accessToken)
 		c.Set("access_token", accessToken)
-		utils.LogDebug("AuthMiddleware: token parsed successfully")
+		utils.LogDebug("AuthMiddleware: token parsed successfully: %s", accessToken)
 
 		tuyaUID := c.GetHeader("X-TUYA-UID")
 		if tuyaUID != "" {
