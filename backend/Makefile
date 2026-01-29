@@ -212,8 +212,8 @@ push-local:
 	[ "$$TAG" = "latest" ] && REF="main"; \
 	echo "🚀 Using tag '$$TAG' (source ref: $$REF)"; \
 	docker buildx inspect multi-arch-builder > /dev/null 2>&1 || docker buildx create --name multi-arch-builder --use; \
-	echo "🚀 Building and pushing '$$TAG' from $$REF (multi-arch: amd64, arm64)..."; \
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):$$TAG --push $(GIT_REPO_URL)#$$REF:backend; \
+	echo "🚀 Building and pushing '$$TAG' (multi-arch: amd64, arm64)..."; \
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):$$TAG --push .; \
 	echo "✅ Images pushed to GHCR (Tags: $$TAG)"
 
 # Pull latest image for Docker Compose
