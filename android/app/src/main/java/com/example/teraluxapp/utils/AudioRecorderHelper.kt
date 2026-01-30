@@ -13,47 +13,49 @@ class AudioRecorderHelper(private val context: Context) {
     private val TAG = "AudioRecorderHelper"
 
     fun startRecording(): File? {
-        val cacheDir = context.cacheDir
-        // Use m4a (AAC) for efficient compression supported by Android
-        outputFile = File.createTempFile("voice_record_", ".m4a", cacheDir)
-        
-        mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(context)
-        } else {
-            MediaRecorder()
-        }
-
         return try {
+            val cacheDir = context.cacheDir
+            outputFile = File.createTempFile("voice_record_", ".m4a", cacheDir)
+            
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }
+
             mediaRecorder?.apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioSamplingRate(44100)
+                setAudioEncodingBitRate(128000)
                 setOutputFile(outputFile?.absolutePath)
                 prepare()
                 start()
             }
             Log.d(TAG, "Recording started: ${outputFile?.absolutePath}")
             outputFile
-        } catch (e: IOException) {
-            Log.e(TAG, "prepare() failed")
-            null
         } catch (e: Exception) {
-            Log.e(TAG, "startRecording failed: ${e.message}")
+            Log.e(TAG, "startRecording failed: ${e.message}", e)
+            mediaRecorder?.release()
+            mediaRecorder = null
             null
         }
     }
 
     fun stopRecording(): File? {
+        val currentRecorder = mediaRecorder ?: return null
         return try {
-            mediaRecorder?.apply {
-                stop()
-                release()
-            }
+            currentRecorder.stop()
+            currentRecorder.release()
             mediaRecorder = null
             Log.d(TAG, "Recording stopped")
             outputFile
         } catch (e: Exception) {
             Log.e(TAG, "stopRecording failed: ${e.message}")
+            try { currentRecorder.release() } catch (ignored: Exception) {}
+            mediaRecorder = null
             null
         }
     }

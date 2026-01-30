@@ -33,7 +33,7 @@ class MqttHelper(context: Context) {
                     disconnectedBufferOptions.isDeleteOldestMessages = false
                     mqttAndroidClient.setBufferOpts(disconnectedBufferOptions)
                     Log.d(TAG, "Success Connected to $serverUri")
-                    subscribeToTopic()
+                    setupCallback()
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken, exception: Throwable) {
@@ -46,44 +46,22 @@ class MqttHelper(context: Context) {
         }
     }
     
-    // Callback for incoming messages
-    var onMessageArrived: ((topic: String, message: String) -> Unit)? = null
+    private fun setupCallback() {
+        mqttAndroidClient.setCallback(object : MqttCallbackExtended {
+            override fun connectComplete(reconnect: Boolean, serverURI: String) {
+                Log.d(TAG, "Connection complete. Reconnect: $reconnect")
+            }
 
-    private fun subscribeToTopic() {
-        val topic = "users/teralux/whisper"
-        try {
-            mqttAndroidClient.subscribe(topic, 0, null, object : IMqttActionListener {
-                override fun onSuccess(asyncActionToken: IMqttToken) {
-                    Log.d(TAG, "Subscribed to $topic")
-                }
+            override fun connectionLost(cause: Throwable) {
+                Log.d(TAG, "The Connection was lost.")
+            }
 
-                override fun onFailure(asyncActionToken: IMqttToken, exception: Throwable) {
-                    Log.w(TAG, "Failed to subscribe to $topic")
-                }
-            })
+            override fun messageArrived(topic: String, message: MqttMessage) {
+                // Not used in send-only mode
+            }
 
-            mqttAndroidClient.setCallback(object : MqttCallbackExtended {
-                override fun connectComplete(reconnect: Boolean, serverURI: String) {
-                   if (reconnect) {
-                       subscribeToTopic() // Re-subscribe on reconnect
-                   }
-                }
-
-                override fun connectionLost(cause: Throwable) {
-                    Log.d(TAG, "The Connection was lost.")
-                }
-
-                override fun messageArrived(topic: String, message: MqttMessage) {
-                    Log.d(TAG, "Incoming message: " + String(message.payload))
-                    onMessageArrived?.invoke(topic, String(message.payload))
-                }
-
-                override fun deliveryComplete(token: IMqttDeliveryToken) {}
-            })
-        } catch (ex: MqttException) {
-            System.err.println("Exception creating subscribe")
-            ex.printStackTrace()
-        }
+            override fun deliveryComplete(token: IMqttDeliveryToken) {}
+        })
     }
     
     fun publishAudio(payload: ByteArray) {

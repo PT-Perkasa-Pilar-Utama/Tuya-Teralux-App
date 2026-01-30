@@ -171,8 +171,12 @@ func main() {
 	if len(missing) > 0 {
 		utils.LogInfo("⚠️ Speech/RAG config incomplete, skipping initialization: %v", missing)
 	} else {
-		speech.InitModule(protected, scfg)
-		rag.InitModule(protected, scfg, badgerService, vectorService)
+		// Initialize RAG first as it's a dependency for Speech
+		utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
+		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService)
+
+		// Initialize Speech with RAG and Tuya Auth dependencies
+		speech.InitModule(protected, scfg, ragUsecase, tuyaModule.AuthUseCase)
 	}
 
 	// Register Health at the end so it appears last in Swagger

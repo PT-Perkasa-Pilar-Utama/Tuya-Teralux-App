@@ -139,7 +139,7 @@ ollama-ensure:
 		echo "ℹ️  Starting existing container 'ollama'..."; docker start ollama; \
 	else \
 		echo "🔁 Creating and starting container 'ollama'..."; \
-		docker run -d --restart unless-stopped -v $(OLLAMA_DATA_DIR):/root/.ollama -p 11434:11434 --name ollama $(OLLAMA_IMAGE) serve; \
+		docker run -d --restart always -v $(OLLAMA_DATA_DIR):/root/.ollama -p 11434:11434 --name ollama $(OLLAMA_IMAGE) serve; \
 	fi
 	@echo "✅ Ollama image, data dir & container ready (data dir: $(OLLAMA_DATA_DIR))"
 

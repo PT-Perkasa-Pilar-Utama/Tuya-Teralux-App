@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"teralux_app/domain/rag/dtos"
 
 	"github.com/gin-gonic/gin"
@@ -77,5 +78,50 @@ func (c *RAGController) GetStatus(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: true, Message: "OK", Data: status})
+	httpStatus := c.determineHTTPStatus(status)
+	message := "OK"
+	if httpStatus >= 400 {
+		message = http.StatusText(httpStatus)
+	}
+	ctx.JSON(httpStatus, dtos.StandardResponse{Status: httpStatus < 400, Message: message, Data: status})
+}
+
+func (c *RAGController) determineHTTPStatus(status *dtos.RAGStatusDTO) int {
+	if status.Status == "error" {
+		if containsAny(status.Result, "429", "quota", "RESOURCE_EXHAUSTED") {
+			return http.StatusTooManyRequests
+		}
+		if containsAny(status.Result, "401", "Unauthorized", "token expired", "Token expired") {
+			return http.StatusUnauthorized
+		}
+		return http.StatusInternalServerError
+	}
+
+	// Also check individual execution result if task is done but failed internally
+	if status.Status == "done" && status.ExecutionResult != nil {
+		// Logic to check if execution result indicates an error
+		if res, ok := status.ExecutionResult.(map[string]interface{}); ok {
+			if s, ok := res["status"].(bool); ok && !s {
+				msg, _ := res["message"].(string)
+				if containsAny(msg, "Token expired", "Unauthorized") {
+					return http.StatusUnauthorized
+				}
+				// For other execution errors, we might still want 200 OK
+				// as the RAG task technically succeeded in making a decision,
+				// but let's be strict if the user wants "error"
+				return http.StatusBadRequest
+			}
+		}
+	}
+
+	return http.StatusOK
+}
+
+func containsAny(s string, keywords ...string) bool {
+	for _, k := range keywords {
+		if strings.Contains(strings.ToLower(s), strings.ToLower(k)) {
+			return true
+		}
+	}
+	return false
 }
