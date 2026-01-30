@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,6 +37,7 @@ import com.example.teraluxapp.utils.PreferencesManager
 fun DashboardScreen(token: String,
                     onDeviceClick: (deviceId: String, category: String, deviceName: String, gatewayId: String?) -> Unit,
                     onSettingsClick: () -> Unit,
+                    onVoiceControlClick: () -> Unit,
                     onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val teraluxId = remember { PreferencesManager.getTeraluxId(context) ?: "" }
@@ -103,6 +105,10 @@ fun DashboardScreen(token: String,
                     }
                 },
                 actions = {
+                    // Voice Control
+                    IconButton(onClick = onVoiceControlClick) {
+                        Icon(Icons.Default.Mic, contentDescription = "Voice Control")
+                    }
                     // Settings icon
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")

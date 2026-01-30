@@ -22,7 +22,7 @@ RUN go mod download
 
 # Prepare setup (build whisper.cpp)
 COPY setup.sh ./
-COPY whisper.cpp ./whisper.cpp
+COPY services/whisper ./services/whisper
 COPY domain ./domain
 COPY docs ./docs
 COPY main.go ./

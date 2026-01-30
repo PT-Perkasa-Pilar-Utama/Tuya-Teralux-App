@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // JoinStrings concatenates a slice of strings into a single string with a given separator.
@@ -25,4 +27,9 @@ func HashString(s string) string {
 	h := sha256.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// GenerateUUID generates a random UUID string using google/uuid.
+func GenerateUUID() string {
+	return uuid.New().String()
 }
