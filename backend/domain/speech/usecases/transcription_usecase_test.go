@@ -30,7 +30,7 @@ func TestNewTranscriptionUsecase(t *testing.T) {
 	// Wait, we can't really test much without mocking.
 	// I'll skip deep logic tests and just check instantiation.
 
-	uc := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, nil, cfg)
+	uc := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, nil, cfg, nil, nil)
 	if uc == nil {
 		t.Error("NewTranscriptionUsecase returned nil")
 	}

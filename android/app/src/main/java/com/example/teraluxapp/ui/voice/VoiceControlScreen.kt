@@ -37,28 +37,12 @@ fun VoiceControlScreen(navController: NavController) {
     
     // State
     var isRecording by remember { mutableStateOf(false) }
-    var transcriptionResult by remember { mutableStateOf("Press and hold the mic to speak") }
-    var connectionStatus by remember { mutableStateOf("Connecting to MQTT...") }
+    var connectionStatus by remember { mutableStateOf("Ready") }
     
     // Helpers
     // NB: In a real app, these should be provided by DI (Hilt)
     val mqttHelper = remember { MqttHelper(context) }
     val audioRecorder = remember { AudioRecorderHelper(context) }
-
-    // Logic: Subscribe to results
-    LaunchedEffect(Unit) {
-        mqttHelper.onMessageArrived = { topic, message ->
-            if (topic == "users/teralux/whisper") {
-                // Check if it looks like a result
-                if (message.startsWith("Result: ")) {
-                     val text = message.removePrefix("Result: ")
-                     transcriptionResult = text
-                }
-            }
-        }
-        // Mock connection success for UI feedback (MqttHelper logs real status)
-        connectionStatus = "Ready" 
-    }
 
     // Permission
     val micPermissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
@@ -68,45 +52,14 @@ fun VoiceControlScreen(navController: NavController) {
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.Center
     ) {
         // Header
         Text(
             text = "Voice Control",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 32.dp)
-        )
-
-        // Result Display
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(vertical = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = transcriptionResult,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        // Status
-        Text(
-            text = "Status: $connectionStatus",
-            style = MaterialTheme.typography.bodySmall,
-             color = Color.Gray,
-             modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 48.dp)
         )
 
         // Mic Button
@@ -114,7 +67,7 @@ fun VoiceControlScreen(navController: NavController) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(160.dp)
                     .clip(CircleShape)
                     .background(if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                     .pointerInput(Unit) {
@@ -123,25 +76,34 @@ fun VoiceControlScreen(navController: NavController) {
                                 try {
                                     // Start Recording
                                     isRecording = true
-                                    transcriptionResult = "Listening..."
-                                    audioRecorder.startRecording()
-                                    
-                                    awaitRelease()
+                                    connectionStatus = "Listening..."
+                                    val startResult = audioRecorder.startRecording()
+                                    if (startResult == null) {
+                                        isRecording = false
+                                        connectionStatus = "Failed to start microphone"
+                                    } else {
+                                        awaitRelease()
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("VoiceControl", "Recording error: ${e.message}", e)
+                                    connectionStatus = "Error: ${e.message}"
                                 } finally {
                                     // Stop Recording
-                                    isRecording = false
-                                    connectionStatus = "Processing..."
-                                    val file = audioRecorder.stopRecording()
-                                    
-                                    if (file != null && file.exists()) {
-                                        // Send to Backend
-                                        Log.d("VoiceControl", "Sending file: ${file.length()} bytes")
-                                        val bytes = file.readBytes()
-                                        mqttHelper.publishAudio(bytes)
-                                        connectionStatus = "Sent. Waiting for response..."
-                                        file.delete()
-                                    } else {
-                                        connectionStatus = "Recording failed"
+                                    if (isRecording) {
+                                        isRecording = false
+                                        connectionStatus = "Processing..."
+                                        val file = audioRecorder.stopRecording()
+                                        
+                                        if (file != null && file.exists() && file.length() > 0) {
+                                            // Send to Backend
+                                            Log.d("VoiceControl", "Sending file: ${file.length()} bytes")
+                                            val bytes = file.readBytes()
+                                            mqttHelper.publishAudio(bytes)
+                                            connectionStatus = "Sent"
+                                            file.delete()
+                                        } else {
+                                            connectionStatus = "Recording failed"
+                                        }
                                     }
                                 }
                             }
@@ -152,12 +114,24 @@ fun VoiceControlScreen(navController: NavController) {
                     imageVector = if (isRecording) Icons.Default.Mic else Icons.Default.MicOff,
                     contentDescription = "Mic",
                     tint = Color.White,
-                    modifier = Modifier.size(60.dp)
+                    modifier = Modifier.size(80.dp)
                 )
             }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+
             Text(
                 text = if (isRecording) "Release to Send" else "Hold to Speak",
-                modifier = Modifier.padding(top = 16.dp, bottom = 48.dp)
+                style = MaterialTheme.typography.bodyLarge
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Status
+            Text(
+                text = "Status: $connectionStatus",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
             )
         } else {
             Button(onClick = { micPermissionState.launchPermissionRequest() }) {

@@ -23,6 +23,8 @@ type Config struct {
 
 	// Speech / RAG
 	OllamaURL        string
+	GeminiApiKey     string
+	LLMProvider      string // "ollama" or "gemini"
 	LLMModel         string
 	WhisperModelPath string
 	MaxFileSize      int64 // bytes
@@ -109,6 +111,8 @@ func LoadConfig() {
 		CacheTTL:                  os.Getenv("CACHE_TTL"),
 
 		OllamaURL:        os.Getenv("OLLAMA_URL"),
+		GeminiApiKey:     os.Getenv("GEMINI_API_KEY"),
+		LLMProvider:      os.Getenv("LLM_PROVIDER"),
 		LLMModel:         os.Getenv("LLM_MODEL"),
 		WhisperModelPath: os.Getenv("WHISPER_MODEL_PATH"),
 		MaxFileSize:      maxFileSize,
@@ -135,6 +139,16 @@ func LoadConfig() {
 	// Ensure sensible defaults are centralized here
 	if AppConfig.Port == "" {
 		AppConfig.Port = "8080"
+	}
+
+	if AppConfig.LLMProvider == "" {
+		AppConfig.LLMProvider = "gemini"
+	}
+
+	if AppConfig.LLMProvider == "gemini" && AppConfig.LLMModel == "" {
+		AppConfig.LLMModel = "gemini-flash-latest"
+	} else if AppConfig.LLMProvider == "ollama" && AppConfig.LLMModel == "" {
+		AppConfig.LLMModel = "gemma"
 	}
 
 	UpdateLogLevel()

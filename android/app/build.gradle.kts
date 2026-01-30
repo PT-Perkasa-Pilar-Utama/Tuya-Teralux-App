@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.teraluxapp"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -54,6 +54,12 @@ android {
             "StateFlowValueCalledInComposition",
             "CoroutineCreationDuringComposition"
         )
+    }
+
+    packaging {
+        jniLibs {
+            excludes += "**/libandroidx.graphics.path.so"
+        }
     }
 }
 
@@ -105,5 +111,6 @@ dependencies {
     // MQTT & Permissions
     implementation(libs.paho.mqtt)
     implementation(libs.paho.android)
+    implementation(libs.localbroadcastmanager)
     implementation(libs.accompanist.permissions)
 }
