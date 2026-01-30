@@ -78,7 +78,7 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string) (string
 	}
 
 	return s2, nil
-} 
+}
 func (r *WhisperRepository) Convert(wavPath string) (string, error) {
 	return "", fmt.Errorf("not implemented")
 }

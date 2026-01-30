@@ -2,26 +2,32 @@ package speech
 
 import (
 	"teralux_app/domain/common/utils"
-	"teralux_app/domain/speech/controllers"
+	"teralux_app/domain/rag/usecases"
+	speechControllers "teralux_app/domain/speech/controllers"
 	"teralux_app/domain/speech/repositories"
-	"teralux_app/domain/speech/routes"
-	"teralux_app/domain/speech/usecases"
+	speechRoutes "teralux_app/domain/speech/routes"
+	speechUsecases "teralux_app/domain/speech/usecases"
+	tuyaUsecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
 
 // InitModule initializes the Speech module with the protected router group.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase) {
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository()
 	ollamaRepo := repositories.NewOllamaRepository()
+	mqttRepo := repositories.NewMqttRepository(cfg)
 
 	// Usecases
-	transcriptionUsecase := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, cfg)
+	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, mqttRepo, cfg, ragUsecase, tuyaAuthUseCase)
+
+	// Start MQTT Listener
+	transcriptionUsecase.StartListening()
 
 	// Controllers
-	transcriptionController := controllers.NewTranscriptionController(transcriptionUsecase, cfg)
+	transcriptionController := speechControllers.NewTranscriptionController(transcriptionUsecase, cfg)
 
 	// Routes
-	routes.SetupSpeechRoutes(protected, transcriptionController)
+	speechRoutes.SetupSpeechRoutes(protected, transcriptionController)
 }

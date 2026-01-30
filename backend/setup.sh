@@ -30,14 +30,14 @@ if ! command -v ffmpeg > /dev/null 2>&1; then
 fi
 
 # 2. Build whisper.cpp
-if [ -d "whisper.cpp" ]; then
+if [ -d "services/whisper" ]; then
     echo "🛠️ Building whisper.cpp..."
-    cd whisper.cpp
+    cd services/whisper
     cmake -B build -DBUILD_SHARED_LIBS=OFF
     cmake --build build --config Release -j$(nproc)
-    cd ..
+    cd ../..
 else
-    echo "⚠️ whisper.cpp not found in repository root. If you run inside Docker, ensure whisper.cpp exists at /app/whisper.cpp"
+    echo "⚠️ whisper.cpp not found in backend/services/whisper. If you run inside Docker, ensure it exists."
 fi
 
 # 3. Setup bin directory
@@ -45,7 +45,7 @@ echo "📂 Setting up bin directory..."
 mkdir -p bin
 
 # Find whisper-cli executable (it might be in build/bin or just build/)
-CLI_PATH=$(find whisper.cpp -name "whisper-cli" -type f | head -n 1)
+CLI_PATH=$(find services/whisper -name "whisper-cli" -type f | head -n 1)
 
 if [ -n "$CLI_PATH" ]; then
     echo "Found whisper-cli at: $CLI_PATH"
@@ -56,14 +56,14 @@ fi
 
 # 4. Download model (only if missing locally)
 if [ ! -f "bin/ggml-base.bin" ]; then
-    if [ -d "whisper.cpp" ]; then
+    if [ -d "services/whisper" ]; then
         echo "📥 Downloading Whisper base model..."
-        ./whisper.cpp/models/download-ggml-model.sh base || true
+        ./services/whisper/models/download-ggml-model.sh base || true
 
         if [ -f "ggml-base.bin" ]; then
             mv ggml-base.bin bin/ || true
-        elif [ -f "whisper.cpp/models/ggml-base.bin" ]; then
-            mv whisper.cpp/models/ggml-base.bin bin/ || true
+        elif [ -f "services/whisper/models/ggml-base.bin" ]; then
+            mv services/whisper/models/ggml-base.bin bin/ || true
         else
             echo "⚠️ Model file not found after download step; it's optional for setup"
         fi

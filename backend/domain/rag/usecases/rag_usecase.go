@@ -18,15 +18,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// OllamaClient represents the external LLM client used by RAG.
+// LLMClient represents the external LLM client used by RAG.
 // This is an interface to allow testing with fakes.
-type OllamaClient interface {
+type LLMClient interface {
 	CallModel(prompt string, model string) (string, error)
 }
 
 type RAGUsecase struct {
 	vectorSvc  *infrastructure.VectorService
-	ollama     OllamaClient
+	llm        LLMClient
 	config     *utils.Config
 	badger     *infrastructure.BadgerService
 	mu         sync.RWMutex
@@ -103,8 +103,8 @@ func tryParseOnce(s string) (map[string]interface{}, error) {
 	return extractLastJSONObject(s)
 }
 
-func NewRAGUsecase(vectorSvc *infrastructure.VectorService, ollama OllamaClient, cfg *utils.Config, badgerSvc *infrastructure.BadgerService) *RAGUsecase {
-	return &RAGUsecase{vectorSvc: vectorSvc, ollama: ollama, config: cfg, badger: badgerSvc, taskStatus: make(map[string]*ragdtos.RAGStatusDTO)}
+func NewRAGUsecase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *utils.Config, badgerSvc *infrastructure.BadgerService) *RAGUsecase {
+	return &RAGUsecase{vectorSvc: vectorSvc, llm: llm, config: cfg, badger: badgerSvc, taskStatus: make(map[string]*ragdtos.RAGStatusDTO)}
 }
 
 // Process accepts user text, queues work to query the vector store and LLM, and stores the result under a task ID
@@ -156,10 +156,27 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 			}
 		}()
 
-		// 1) Search vector DB for all potential device matches
+		// 0) Step 0: Grammar Correction (Fix pronunciation or transcription artifacts)
+		correctedText := text
+		grammarPrompt := fmt.Sprintf("You are a smart home transcription assistant. Fix any pronunciation errors, 'word salads', or grammar mistakes in the following user request while keeping its core intent and language. Return ONLY the corrected text.\n\nRequest: %q", text)
+
+		utils.LogInfo("RAG Task %s: Correcting grammar/pronunciation...", taskID)
+		if gResp, gErr := u.llm.CallModel(grammarPrompt, u.config.LLMModel); gErr == nil {
+			gResp = strings.TrimSpace(gResp)
+			// Remove surrounding quotes if model added them
+			gResp = strings.Trim(gResp, `"'`)
+			if gResp != "" {
+				utils.LogInfo("RAG Task %s: Corrected text: %q -> %q", taskID, text, gResp)
+				correctedText = gResp
+			}
+		} else {
+			utils.LogWarn("RAG Task %s: Grammar correction failed, falling back to original: %v", taskID, gErr)
+		}
+
+		// 1) Search vector DB for all potential device matches using CORRECTED text
 		docCount := u.vectorSvc.Count()
-		utils.LogInfo("RAG Task %s: Searching vector DB (%d documents total)...", taskID, docCount)
-		candidates, err := u.vectorSvc.Search(text)
+		utils.LogInfo("RAG Task %s: Searching vector DB (%d documents total) with text: %q", taskID, docCount, correctedText)
+		candidates, err := u.vectorSvc.Search(correctedText)
 		if err != nil {
 			u.mu.Lock()
 			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: err.Error()}
@@ -214,7 +231,7 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		prompt += "   Body:     null\n"
 		prompt += "   Headers:  {}\n\n"
 
-		prompt += fmt.Sprintf("User request: %q\n\n", text)
+		prompt += fmt.Sprintf("User request: %q\n\n", correctedText)
 
 		if len(deviceContexts) > 0 {
 			prompt += "--- Matching Devices from Vector DB ---\n"
@@ -227,6 +244,10 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 			prompt += "- If the request is for an AC, pick the Candidate with 'remote_category': 'infrared_ac' OR 'category': 'infrared_ac'.\n"
 			prompt += "- For AC: Use its 'id' for the URL's {hub_id} and its 'remote_id' for the body's 'remote_id'. Do NOT swap them.\n"
 			prompt += "- If multiple Candidates match, pick the most relevant one based on the brand or name.\n"
+			prompt += "CRITICAL: You MUST use ONLY the codes listed in the 'status' list of the selected Candidate. Do NOT invent new codes or values.\n"
+			prompt += "- The 'status' list defines the valid commands (e.g., 'switch_1', 'led_switch').\n"
+			prompt += "- If the requested function is NOT in the 'status' list, return an error. DO NOT hallunicate a code.\n"
+			prompt += "- If the device name matches (e.g. 'Smart Switch') but lacks the capability (e.g. 'alarm'), FAIL instead of picking a different device (e.g. 'Receptionist').\n"
 		} else {
 			prompt += "IMPORTANT: No matching devices found. Try to infer or use {id} as placeholder.\n"
 		}
@@ -240,7 +261,7 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		}
 
 		utils.LogInfo("RAG Task %s: Generating decision using LLM (model: %s)...", taskID, model)
-		resp, err := u.ollama.CallModel(prompt, model)
+		resp, err := u.llm.CallModel(prompt, model)
 		if err != nil {
 			u.mu.Lock()
 			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: err.Error()}
@@ -258,7 +279,7 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		if perr != nil || parsed == nil {
 			// Retry once with a stricter instruction if needed (logging only failure)
 			retryPrompt := prompt + "\nIMPORTANT: Your output must be valid JSON ONLY, with keys: endpoint, method, device_id, body, headers. Do not add any extra text."
-			resp2, err2 := u.ollama.CallModel(retryPrompt, model)
+			resp2, err2 := u.llm.CallModel(retryPrompt, model)
 			if err2 == nil {
 				parsed, _ = tryParseOnce(resp2)
 			}
