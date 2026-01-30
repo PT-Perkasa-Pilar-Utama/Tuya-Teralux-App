@@ -11,5 +11,6 @@ func SetupSpeechRoutes(rg *gin.RouterGroup, controller *controllers.Transcriptio
 	api := rg.Group("/api/speech")
 	{
 		api.POST("/transcribe", controller.HandleTranscribe)
+		api.POST("/mqtt/publish", controller.HandlePublishMqtt)
 	}
 }

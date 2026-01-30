@@ -10,3 +10,7 @@ type StandardResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 	Details string      `json:"details,omitempty"`
 }
+
+type MqttPublishRequest struct {
+	Message string `json:"message" binding:"required"`
+}

@@ -5,6 +5,7 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/services"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,6 +34,9 @@ func TestGetAllDevices_CachesAndUpsertsVector(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAllDevices returned error: %v", err)
 	}
+
+	// Wait for background vector DB population
+	time.Sleep(100 * time.Millisecond)
 
 	// Build expected keys
 	cfg := utils.GetConfig()

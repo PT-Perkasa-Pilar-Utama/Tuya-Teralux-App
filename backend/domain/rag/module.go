@@ -12,13 +12,20 @@ import (
 )
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) *usecases.RAGUsecase {
 	// Initialize Dependencies
-	ollamaRepo := speechRepos.NewOllamaRepository()
+	var llmRepo usecases.LLMClient
+	if cfg.LLMProvider == "gemini" {
+		llmRepo = speechRepos.NewGeminiRepository()
+	} else {
+		llmRepo = speechRepos.NewOllamaRepository()
+	}
 
-	ragUsecase := usecases.NewRAGUsecase(vectorSvc, ollamaRepo, cfg, badger)
+	ragUsecase := usecases.NewRAGUsecase(vectorSvc, llmRepo, cfg, badger)
 	ragController := controllers.NewRAGController(ragUsecase)
 
 	// Setup Routes
 	routes.SetupRAGRoutes(protected, ragController)
+
+	return ragUsecase
 }

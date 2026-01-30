@@ -139,7 +139,7 @@ ollama-ensure:
 		echo "ℹ️  Starting existing container 'ollama'..."; docker start ollama; \
 	else \
 		echo "🔁 Creating and starting container 'ollama'..."; \
-		docker run -d --restart unless-stopped -v $(OLLAMA_DATA_DIR):/root/.ollama -p 11434:11434 --name ollama $(OLLAMA_IMAGE) serve; \
+		docker run -d --restart always -v $(OLLAMA_DATA_DIR):/root/.ollama -p 11434:11434 --name ollama $(OLLAMA_IMAGE) serve; \
 	fi
 	@echo "✅ Ollama image, data dir & container ready (data dir: $(OLLAMA_DATA_DIR))"
 
@@ -212,8 +212,8 @@ push-local:
 	[ "$$TAG" = "latest" ] && REF="main"; \
 	echo "🚀 Using tag '$$TAG' (source ref: $$REF)"; \
 	docker buildx inspect multi-arch-builder > /dev/null 2>&1 || docker buildx create --name multi-arch-builder --use; \
-	echo "🚀 Building and pushing '$$TAG' from $$REF (multi-arch: amd64, arm64)..."; \
-	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):$$TAG --push $(GIT_REPO_URL)#$$REF:backend; \
+	echo "🚀 Building and pushing '$$TAG' (multi-arch: amd64, arm64)..."; \
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg AUTO_MIGRATE=true -t $(GHCR_REPO):$$TAG --push .; \
 	echo "✅ Images pushed to GHCR (Tags: $$TAG)"
 
 # Pull latest image for Docker Compose
