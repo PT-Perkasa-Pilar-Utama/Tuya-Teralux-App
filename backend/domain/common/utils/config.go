@@ -28,8 +28,14 @@ type Config struct {
 	MaxFileSize      int64 // bytes
 	Port             string
 
+	// MQTT
+	MqttBroker   string
+	MqttUsername string
+	MqttPassword string
+	MqttTopic    string
+
 	// Runtime & Networking
-	LogLevel   string
+	LogLevel string
 
 	// Database (used for migrations)
 	DBType      string
@@ -107,6 +113,11 @@ func LoadConfig() {
 		WhisperModelPath: os.Getenv("WHISPER_MODEL_PATH"),
 		MaxFileSize:      maxFileSize,
 		Port:             os.Getenv("PORT"),
+
+		MqttBroker:   os.Getenv("MQTT_BROKER"),
+		MqttUsername: os.Getenv("MQTT_USERNAME"),
+		MqttPassword: os.Getenv("MQTT_PASSWORD"),
+		MqttTopic:    os.Getenv("MQTT_TOPIC"),
 
 		// Runtime
 		LogLevel: os.Getenv("LOG_LEVEL"),

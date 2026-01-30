@@ -13,11 +13,16 @@ import (
 // InitModule initializes the Speech module with the protected router group.
 func InitModule(protected *gin.RouterGroup, cfg *utils.Config) {
 	// Repositories
+	// Repositories
 	whisperRepo := repositories.NewWhisperRepository()
 	ollamaRepo := repositories.NewOllamaRepository()
+	mqttRepo := repositories.NewMqttRepository(cfg)
 
 	// Usecases
-	transcriptionUsecase := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, cfg)
+	transcriptionUsecase := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, mqttRepo, cfg)
+
+	// Start MQTT Listener
+	transcriptionUsecase.StartListening()
 
 	// Controllers
 	transcriptionController := controllers.NewTranscriptionController(transcriptionUsecase, cfg)

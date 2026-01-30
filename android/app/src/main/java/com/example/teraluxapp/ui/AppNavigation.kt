@@ -108,6 +108,9 @@ fun AppNavigation() {
                 onSettingsClick = {
                     navController.navigate("settings?token=$token")
                 },
+                onVoiceControlClick = {
+                    navController.navigate("voice_control")
+                },
                 onBack = {
                     navController.navigate("room_status?token=$token&uid=$uid") {
                         popUpTo("dashboard?token=$token&uid=$uid") { inclusive = true }
@@ -207,6 +210,11 @@ fun AppNavigation() {
                     )
                 }
             }
+        }
+        
+        // Voice Control Route
+        composable("voice_control") {
+             com.example.teraluxapp.ui.voice.VoiceControlScreen(navController = navController)
         }
     }
 }

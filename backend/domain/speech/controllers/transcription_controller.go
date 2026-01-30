@@ -110,3 +110,41 @@ func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
 		},
 	})
 }
+
+// HandlePublishMqtt godoc
+// @Summary Publish message to MQTT
+// @Description Publish a message to the configured MQTT topic
+// @Tags 08. Speech
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dtos.MqttPublishRequest true "Message to publish"
+// @Success 200 {object} dtos.StandardResponse
+// @Failure 400 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse
+// @Router /api/speech/mqtt/publish [post]
+func (c *TranscriptionController) HandlePublishMqtt(ctx *gin.Context) {
+	var req dtos.MqttPublishRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "Invalid request body",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	if err := c.usecase.PublishToWhisper(req.Message); err != nil {
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to publish message",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+		Status:  true,
+		Message: "Message published successfully",
+	})
+}

@@ -101,4 +101,9 @@ dependencies {
     androidTestImplementation(libs.mockk.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // MQTT & Permissions
+    implementation(libs.paho.mqtt)
+    implementation(libs.paho.android)
+    implementation(libs.accompanist.permissions)
 }
