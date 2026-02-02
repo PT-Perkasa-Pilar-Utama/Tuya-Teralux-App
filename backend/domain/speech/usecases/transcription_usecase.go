@@ -14,6 +14,7 @@ import (
 type TranscriptionUsecase struct {
 	whisperRepo *repositories.WhisperRepository
 	ollamaRepo  *repositories.OllamaRepository
+	geminiRepo  *repositories.GeminiRepository
 	mqttRepo    *repositories.MqttRepository
 	ragUsecase  *ragUsecases.RAGUsecase
 	authUseCase *tuyaUsecases.TuyaAuthUseCase
@@ -23,6 +24,7 @@ type TranscriptionUsecase struct {
 func NewTranscriptionUsecase(
 	whisperRepo *repositories.WhisperRepository,
 	ollamaRepo *repositories.OllamaRepository,
+	geminiRepo *repositories.GeminiRepository,
 	mqttRepo *repositories.MqttRepository,
 	cfg *utils.Config,
 	ragUsecase *ragUsecases.RAGUsecase,
@@ -31,6 +33,7 @@ func NewTranscriptionUsecase(
 	return &TranscriptionUsecase{
 		whisperRepo: whisperRepo,
 		ollamaRepo:  ollamaRepo,
+		geminiRepo:  geminiRepo,
 		mqttRepo:    mqttRepo,
 		ragUsecase:  ragUsecase,
 		authUseCase: authUseCase,
@@ -65,7 +68,7 @@ func (u *TranscriptionUsecase) StartListening() {
 			}
 			if isText {
 				utils.LogInfo("🔊 Received text command: %s", msg)
-				u.handleCommand(msg)
+				u.HandleCommand(msg)
 				return
 			}
 		}
@@ -98,15 +101,61 @@ func (u *TranscriptionUsecase) StartListening() {
 			utils.LogError("Failed to publish result: %v", err)
 		}
 
-		// Process via RAG
-		u.handleCommand(text)
+		// 1. Translate if needed (e.g. from Indonesian to English)
+		translatedText, err := u.TranslateToEnglish(text)
+		if err != nil {
+			utils.LogWarn("Translation failed, using original text: %v", err)
+			translatedText = text
+		} else {
+			utils.LogInfo("🌐 Translated Result: %s", translatedText)
+			// Publish translated result back
+			if err := u.PublishToWhisper("Translated: " + translatedText); err != nil {
+				utils.LogError("Failed to publish translated result: %v", err)
+			}
+		}
+
+		// 2. Process via RAG (using English text)
+		u.HandleCommand(translatedText)
 	})
 	if err != nil {
 		utils.LogError("Failed to register MQTT callback: %v", err)
 	}
 }
 
-func (u *TranscriptionUsecase) handleCommand(text string) {
+func (u *TranscriptionUsecase) TranslateToEnglish(text string) (string, error) {
+	// Simple check: if text is basic ascii and seems like english, maybe skip?
+	// But it's safer to always ask LLM to translate or refine.
+	prompt := fmt.Sprintf(`You are a translator. Translate the following Indonesian smart home command to a clear, concise English command. 
+If it is already in English, just return it as is.
+Only return the translated text without any explanation or quotes.
+
+Indonesian: "%s"
+English:`, text)
+
+	var translated string
+	var err error
+
+	if u.config.LLMProvider == "ollama" {
+		if u.ollamaRepo == nil {
+			return text, fmt.Errorf("ollama repo not initialized")
+		}
+		translated, err = u.ollamaRepo.CallModel(prompt, u.config.LLMModel)
+	} else {
+		// Default to gemini if provider is gemini or empty
+		if u.geminiRepo == nil {
+			return text, fmt.Errorf("gemini repo not initialized")
+		}
+		translated, err = u.geminiRepo.CallModel(prompt, u.config.LLMModel)
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(translated), nil
+}
+
+func (u *TranscriptionUsecase) HandleCommand(text string) {
 	// Filter out common non-speech results
 	cleanText := strings.TrimSpace(text)
 	if cleanText == "" || cleanText == "[BLANK_AUDIO]" {
@@ -151,8 +200,9 @@ func (u *TranscriptionUsecase) TranscribeAudio(inputPath string) (string, error)
 	// Use model path from config
 	modelPath := u.config.WhisperModelPath
 
-	// Transcribe
-	text, err := u.whisperRepo.Transcribe(wavPath, modelPath)
+	// Transcribe with "id" for Indonesian support as requested
+	// You can also use "auto" for auto detection
+	text, err := u.whisperRepo.Transcribe(wavPath, modelPath, "id")
 	if err != nil {
 		return "", fmt.Errorf("transcription failed: %w", err)
 	}

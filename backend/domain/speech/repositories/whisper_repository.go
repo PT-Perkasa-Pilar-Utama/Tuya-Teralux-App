@@ -19,11 +19,15 @@ func NewWhisperRepository() *WhisperRepository {
 // Transcribe executes the local whisper-cli binary (from whisper.cpp) to transcribe the provided WAV file.
 // It prefers to instruct whisper-cli to write a .txt output file (using -otxt -of <base>) and read that file,
 // falling back to stdout parsing only if the file is not produced.
-func (r *WhisperRepository) Transcribe(wavPath string, modelPath string) (string, error) {
-	// Find whisper-cli in PATH
-	bin, err := exec.LookPath("whisper-cli")
-	if err != nil {
-		return "", fmt.Errorf("whisper-cli not found in PATH. Run ./setup.sh to build whisper.cpp and ensure whisper-cli is available: %w", err)
+func (r *WhisperRepository) Transcribe(wavPath string, modelPath string, lang string) (string, error) {
+	// Find whisper-cli: try local bin first, then PATH
+	bin := "./bin/whisper-cli"
+	if _, err := os.Stat(bin); os.IsNotExist(err) {
+		binInPath, err := exec.LookPath("whisper-cli")
+		if err != nil {
+			return "", fmt.Errorf("whisper-cli not found in ./bin or PATH. Run './setup.sh' to build and prepare the binary: %w", err)
+		}
+		bin = binInPath
 	}
 
 	// First try: ask whisper-cli to write a .txt file next to the wav
@@ -31,7 +35,12 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string) (string
 	txtPath := base + ".txt"
 	_ = os.Remove(txtPath)
 
-	cmd := exec.Command(bin, "-m", modelPath, "-f", wavPath, "--no-timestamps", "-otxt", "-of", base)
+	args := []string{"-m", modelPath, "-f", wavPath, "--no-timestamps", "-otxt", "-of", base}
+	if lang != "" {
+		args = append(args, "-l", lang)
+	}
+
+	cmd := exec.Command(bin, args...)
 	utils.LogDebug("[whisper] running (file output): %v", cmd.Args)
 	out, err := cmd.CombinedOutput()
 	utils.LogDebug("[whisper] output: %s", string(out))
@@ -54,7 +63,11 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string) (string
 
 	// Fallback: capture stdout and filter out timing / progress lines
 	utils.LogDebug("[whisper] falling back to stdout parse")
-	cmd2 := exec.Command(bin, "-m", modelPath, "-f", wavPath, "--no-timestamps")
+	argsFallback := []string{"-m", modelPath, "-f", wavPath, "--no-timestamps"}
+	if lang != "" {
+		argsFallback = append(argsFallback, "-l", lang)
+	}
+	cmd2 := exec.Command(bin, argsFallback...)
 	utils.LogDebug("[whisper] running: %v", cmd2.Args)
 	out2, err2 := cmd2.CombinedOutput()
 	utils.LogDebug("[whisper] output: %s", string(out2))
