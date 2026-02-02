@@ -102,11 +102,19 @@ func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
 		return
 	}
 
+	translated, _ := c.usecase.TranslateToEnglish(text)
+
+	// If it looks like a command, process via RAG
+	if translated != "" {
+		go c.usecase.HandleCommand(translated)
+	}
+
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
-		Message: "Transcription successful",
+		Message: "Transcription and processing successful",
 		Data: dtos.TranscriptionResponseDTO{
-			Text: text,
+			Text:           text,
+			TranslatedText: translated,
 		},
 	})
 }

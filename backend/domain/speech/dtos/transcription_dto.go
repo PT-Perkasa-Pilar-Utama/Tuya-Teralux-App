@@ -1,7 +1,8 @@
 package dtos
 
 type TranscriptionResponseDTO struct {
-	Text string `json:"text"`
+	Text           string `json:"text"`
+	TranslatedText string `json:"translated_text,omitempty"`
 }
 
 type StandardResponse struct {

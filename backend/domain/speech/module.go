@@ -17,10 +17,11 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, ragUsecase *useca
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository()
 	ollamaRepo := repositories.NewOllamaRepository()
+	geminiRepo := repositories.NewGeminiRepository()
 	mqttRepo := repositories.NewMqttRepository(cfg)
 
 	// Usecases
-	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, mqttRepo, cfg, ragUsecase, tuyaAuthUseCase)
+	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, mqttRepo, cfg, ragUsecase, tuyaAuthUseCase)
 
 	// Start MQTT Listener
 	transcriptionUsecase.StartListening()

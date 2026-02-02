@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dgraph-io/badger/v3"
 	"teralux_app/domain/common/utils"
+
+	"github.com/dgraph-io/badger/v3"
 )
 
 // BadgerService handles BadgerDB operations for caching and data persistence.
@@ -44,10 +45,10 @@ func NewBadgerService(dbPath string) (*BadgerService, error) {
 //
 // return error An error if the closing process encounters any issue.
 func (s *BadgerService) Close() error {
-	if s.db != nil {
-		return s.db.Close()
+	if s == nil || s.db == nil {
+		return nil
 	}
-	return nil
+	return s.db.Close()
 }
 
 // Set stores a key-value pair in the database using the configured default Time-To-Live (TTL).
@@ -57,6 +58,9 @@ func (s *BadgerService) Close() error {
 // return error An error if the write operation fails.
 // @throws error If the transaction fails to commit.
 func (s *BadgerService) Set(key string, value []byte) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
 	err := s.db.Update(func(txn *badger.Txn) error {
 		entry := badger.NewEntry([]byte(key), value).WithTTL(s.defaultTTL)
 		return txn.SetEntry(entry)
@@ -83,6 +87,9 @@ func (s *BadgerService) Get(key string) ([]byte, error) {
 // GetWithTTL retrieves a value and also returns the remaining TTL for the key.
 // If the key has no TTL (persistent), the duration returned will be 0.
 func (s *BadgerService) GetWithTTL(key string) ([]byte, time.Duration, error) {
+	if s == nil || s.db == nil {
+		return nil, 0, nil
+	}
 	var valCopy []byte
 	var ttlRemaining time.Duration
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -120,6 +127,9 @@ func (s *BadgerService) GetWithTTL(key string) ([]byte, time.Duration, error) {
 // return error An error if the delete operation fails.
 // @throws error If the transaction fails to commit.
 func (s *BadgerService) Delete(key string) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
 	err := s.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(key))
 	})
@@ -136,6 +146,9 @@ func (s *BadgerService) Delete(key string) error {
 // param prefix The string pattern to match at the beginning of keys.
 // return error An error if the bulk drop operation fails.
 func (s *BadgerService) ClearWithPrefix(prefix string) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
 	return s.db.DropPrefix([]byte(prefix))
 }
 
@@ -147,6 +160,9 @@ func (s *BadgerService) ClearWithPrefix(prefix string) error {
 // return error An error if the write operation fails.
 // @throws error If the transaction fails to commit.
 func (s *BadgerService) SetPersistent(key string, value []byte) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
 	err := s.db.Update(func(txn *badger.Txn) error {
 		// No TTL - data persists indefinitely
 		return txn.Set([]byte(key), value)
@@ -167,6 +183,9 @@ func (s *BadgerService) SetPersistent(key string, value []byte) error {
 // param value The value to write.
 // return error An error if the operation fails.
 func (s *BadgerService) SetPreserveTTL(key string, value []byte) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
 	return s.db.Update(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))
 		if err != nil {
@@ -204,6 +223,9 @@ func (s *BadgerService) SetPreserveTTL(key string, value []byte) error {
 // return []string A slice of all matching keys.
 // return error An error if the iteration fails.
 func (s *BadgerService) GetAllKeysWithPrefix(prefix string) ([]string, error) {
+	if s == nil || s.db == nil {
+		return nil, nil
+	}
 	var keys []string
 	err := s.db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
@@ -235,6 +257,9 @@ func (s *BadgerService) GetAllKeysWithPrefix(prefix string) ([]string, error) {
 //
 // return error An error if the drop operation fails.
 func (s *BadgerService) FlushAll() error {
+	if s == nil || s.db == nil {
+		return nil
+	}
 	// Only clear keys with "cache:" prefix
 	cachePrefix := "cache:"
 	err := s.db.DropPrefix([]byte(cachePrefix))

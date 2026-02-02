@@ -33,6 +33,12 @@ help:
 # Run development server with hot reload (requires air)
 dev:
 	@echo "🚀 Starting development server with hot reload..."
+	@echo "🧹 Cleaning BadgerDB cache for fresh start..."
+	@rm -rf ./tmp/badger
+	@if [ ! -f bin/whisper-cli ]; then \
+		echo "🛠️ whisper-cli missing. Running setup..."; \
+		make setup; \
+	fi
 	@echo "💡 Tip: Install air with 'make install-watch' if not installed"
 	@$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
 
