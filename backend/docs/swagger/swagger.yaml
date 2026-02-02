@@ -126,6 +126,13 @@ definitions:
       device_status:
         $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
     type: object
+  dtos.MqttPublishRequest:
+    properties:
+      message:
+        type: string
+    required:
+    - message
+    type: object
   dtos.RAGProcessResponseDTO:
     properties:
       status:
@@ -143,10 +150,16 @@ definitions:
       body: {}
       endpoint:
         type: string
+      execution_result:
+        description: holds the response from the fetched endpoint
       expires_at:
         type: string
       expires_in_seconds:
         type: integer
+      headers:
+        additionalProperties:
+          type: string
+        type: object
       method:
         type: string
       result:
@@ -200,6 +213,24 @@ definitions:
     properties:
       teralux:
         $ref: '#/definitions/dtos.TeraluxResponseDTO'
+    type: object
+  dtos.TranscriptionLongResponseDTO:
+    properties:
+      detected_language:
+        example: id
+        type: string
+      text:
+        example: Ini adalah transkripsi yang sangat panjang...
+        type: string
+    type: object
+  dtos.TranscriptionResponseDTO:
+    properties:
+      text:
+        example: Halo dunia
+        type: string
+      translated_text:
+        example: Hello world
+        type: string
     type: object
   dtos.TuyaAuthResponseDTO:
     properties:
@@ -371,7 +402,6 @@ definitions:
       status:
         type: boolean
     type: object
-host: localhost:8081
 info:
   contact:
     email: support@swagger.io
@@ -926,6 +956,38 @@ paths:
       summary: Get RAG task status
       tags:
       - 09. RAG
+  /api/speech/mqtt/publish:
+    post:
+      consumes:
+      - application/json
+      description: Publish a message to the configured MQTT topic
+      parameters:
+      - description: Message to publish
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.MqttPublishRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Publish message to MQTT
+      tags:
+      - 08. Speech
   /api/speech/transcribe:
     post:
       consumes:
@@ -943,7 +1005,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionResponseDTO'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -963,6 +1030,55 @@ paths:
       security:
       - BearerAuth: []
       summary: Transcribe audio file
+      tags:
+      - 08. Speech
+  /api/speech/transcribe/long:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Transcribe long audio to text using Whisper. No translation, no
+        RAG.
+      parameters:
+      - description: Audio file
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en, auto)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionLongResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe long audio file
       tags:
       - 08. Speech
   /api/teralux:
@@ -1239,8 +1355,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Authenticates with Tuya API and retrieves an access token. Requires
-        X-API-KEY header (use ApiKeyAuth, not BearerAuth).
+      description: Authenticates the user and retrieves a Tuya access token
       produces:
       - application/json
       responses:
@@ -1312,8 +1427,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves details of a specific device by its ID. Response includes
-        last_commands field containing the last control commands sent to the device.
+      description: Retrieves details of a specific device by its ID
       parameters:
       - description: Device ID
         in: path
@@ -1507,6 +1621,9 @@ paths:
       summary: Health check endpoint
       tags:
       - 10. Health
+schemes:
+- http
+- https
 securityDefinitions:
   ApiKeyAuth:
     in: header

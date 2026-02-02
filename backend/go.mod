@@ -5,6 +5,7 @@ go 1.24.0
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/eclipse/paho.mqtt.golang v1.5.1
+	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/gomarkdown/markdown v0.0.0-20250810172220-2e2c11897d1a
 	github.com/google/uuid v1.6.0

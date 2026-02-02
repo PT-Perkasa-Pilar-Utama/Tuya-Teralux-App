@@ -17,7 +17,6 @@ type Config struct {
 	TuyaBaseURL               string
 	TuyaUserID                string
 	ApiKey                    string
-	SwaggerBaseURL            string
 	GetAllDevicesResponseType string
 	CacheTTL                  string
 
@@ -106,7 +105,6 @@ func LoadConfig() {
 		TuyaBaseURL:               os.Getenv("TUYA_BASE_URL"),
 		TuyaUserID:                os.Getenv("TUYA_USER_ID"),
 		ApiKey:                    os.Getenv("API_KEY"),
-		SwaggerBaseURL:            os.Getenv("SWAGGER_BASE_URL"),
 		GetAllDevicesResponseType: os.Getenv("GET_ALL_DEVICES_RESPONSE"),
 		CacheTTL:                  os.Getenv("CACHE_TTL"),
 

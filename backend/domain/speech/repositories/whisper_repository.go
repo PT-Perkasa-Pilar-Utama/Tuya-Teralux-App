@@ -92,6 +92,71 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string, lang st
 
 	return s2, nil
 }
+
+// TranscribeFull executes whisper-cli and returns a concatenated string of all transcription segments.
+func (r *WhisperRepository) TranscribeFull(wavPath string, modelPath string, lang string) (string, error) {
+	// Find whisper-cli: try local bin first, then PATH
+	bin := "./bin/whisper-cli"
+	if _, err := os.Stat(bin); os.IsNotExist(err) {
+		binInPath, err := exec.LookPath("whisper-cli")
+		if err != nil {
+			return "", fmt.Errorf("whisper-cli not found in ./bin or PATH. Run './setup.sh' to build and prepare the binary: %w", err)
+		}
+		bin = binInPath
+	}
+
+	// instructed whisper-cli to write a .txt file (it formats it nicely without weights/timings)
+	base := strings.TrimSuffix(wavPath, ".wav")
+	txtPath := base + ".txt"
+	_ = os.Remove(txtPath)
+
+	args := []string{"-m", modelPath, "-f", wavPath, "--no-timestamps", "-otxt", "-of", base}
+	if lang != "" && lang != "auto" {
+		args = append(args, "-l", lang)
+	}
+
+	cmd := exec.Command(bin, args...)
+	utils.LogDebug("[whisper-full] running: %v", cmd.Args)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("whisper-cli failed: %w - output: %s", err, string(out))
+	}
+
+	// Read produced .txt file
+	b, err := os.ReadFile(txtPath)
+	if err != nil {
+		// If file not produced, try to parse stdout (similar to Transcribe but join all)
+		s := strings.TrimSpace(string(out))
+		lines := strings.Split(s, "\n")
+		var result []string
+		for _, l := range lines {
+			line := strings.TrimSpace(l)
+			if line == "" {
+				continue
+			}
+			low := strings.ToLower(line)
+			if strings.Contains(low, "whisper_") || strings.Contains(low, "total time") || strings.Contains(low, "error") {
+				continue
+			}
+			result = append(result, line)
+		}
+		return strings.Join(result, " "), nil
+	}
+
+	// Tidy up the text file content
+	s := strings.TrimSpace(string(b))
+	lines := strings.Split(s, "\n")
+	var result []string
+	for _, l := range lines {
+		line := strings.TrimSpace(l)
+		if line != "" {
+			result = append(result, line)
+		}
+	}
+
+	return strings.Join(result, " "), nil
+}
+
 func (r *WhisperRepository) Convert(wavPath string) (string, error) {
 	return "", fmt.Errorf("not implemented")
 }
