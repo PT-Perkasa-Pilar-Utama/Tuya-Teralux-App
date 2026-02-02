@@ -11,8 +11,14 @@ import (
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
 )
 
+// WhisperRepositoryInterface defines the methods required from the Whisper repository
+type WhisperRepositoryInterface interface {
+	Transcribe(wavPath string, modelPath string, lang string) (string, error)
+	TranscribeFull(wavPath string, modelPath string, lang string) (string, error)
+}
+
 type TranscriptionUsecase struct {
-	whisperRepo *repositories.WhisperRepository
+	whisperRepo WhisperRepositoryInterface
 	ollamaRepo  *repositories.OllamaRepository
 	geminiRepo  *repositories.GeminiRepository
 	mqttRepo    *repositories.MqttRepository
@@ -22,7 +28,7 @@ type TranscriptionUsecase struct {
 }
 
 func NewTranscriptionUsecase(
-	whisperRepo *repositories.WhisperRepository,
+	whisperRepo WhisperRepositoryInterface,
 	ollamaRepo *repositories.OllamaRepository,
 	geminiRepo *repositories.GeminiRepository,
 	mqttRepo *repositories.MqttRepository,
@@ -203,6 +209,29 @@ func (u *TranscriptionUsecase) TranscribeAudio(inputPath string) (string, error)
 	// Transcribe with "id" for Indonesian support as requested
 	// You can also use "auto" for auto detection
 	text, err := u.whisperRepo.Transcribe(wavPath, modelPath, "id")
+	if err != nil {
+		return "", fmt.Errorf("transcription failed: %w", err)
+	}
+
+	return text, nil
+}
+
+func (u *TranscriptionUsecase) TranscribeLongAudio(inputPath string, lang string) (string, error) {
+	// Create temp directory for conversion if not exists
+	tempDir := filepath.Dir(inputPath)
+
+	// Convert to WAV if needed (Whisper needs 16kHz mono WAV)
+	wavPath := filepath.Join(tempDir, "processed_long.wav")
+	if err := utils.ConvertToWav(inputPath, wavPath); err != nil {
+		return "", fmt.Errorf("failed to convert audio: %w", err)
+	}
+	defer os.Remove(wavPath)
+
+	// Use model path from config
+	modelPath := u.config.WhisperModelPath
+
+	// Use TranscribeFull to get all text
+	text, err := u.whisperRepo.TranscribeFull(wavPath, modelPath, lang)
 	if err != nil {
 		return "", fmt.Errorf("transcription failed: %w", err)
 	}

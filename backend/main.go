@@ -33,8 +33,8 @@ import (
 // @license.name    Apache 2.0
 // @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host            localhost:8081
 // @BasePath        /
+// @schemes         http https
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name X-API-KEY
@@ -113,6 +113,7 @@ func main() {
 	utils.LogInfo("Entities auto-migrated successfully")
 
 	router := gin.Default()
+	router.Use(middlewares.CorsMiddleware())
 
 	// Initialize Models & Repositories
 	// Initialize BadgerDB

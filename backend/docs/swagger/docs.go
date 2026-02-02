@@ -908,6 +908,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/speech/mqtt/publish": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Publish a message to the configured MQTT topic",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "08. Speech"
+                ],
+                "summary": "Publish message to MQTT",
+                "parameters": [
+                    {
+                        "description": "Message to publish",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.MqttPublishRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/speech/transcribe": {
             "post": {
                 "security": [
@@ -939,7 +990,98 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
                             "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/transcribe/long": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transcribe long audio to text using Whisper. No translation, no RAG.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "08. Speech"
+                ],
+                "summary": "Transcribe long audio file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en, auto)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionLongResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1418,7 +1560,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Authenticates with Tuya API and retrieves an access token. Requires X-API-KEY header (use ApiKeyAuth, not BearerAuth).",
+                "description": "Authenticates the user and retrieves a Tuya access token",
                 "consumes": [
                     "application/json"
                 ],
@@ -1594,7 +1736,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves details of a specific device by its ID. Response includes last_commands field containing the last control commands sent to the device.",
+                "description": "Retrieves details of a specific device by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2045,6 +2187,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.MqttPublishRequest": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.RAGProcessResponseDTO": {
             "type": "object",
             "properties": {
@@ -2071,11 +2224,20 @@ const docTemplate = `{
                 "endpoint": {
                     "type": "string"
                 },
+                "execution_result": {
+                    "description": "holds the response from the fetched endpoint"
+                },
                 "expires_at": {
                     "type": "string"
                 },
                 "expires_in_seconds": {
                     "type": "integer"
+                },
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "method": {
                     "type": "string"
@@ -2157,6 +2319,32 @@ const docTemplate = `{
             "properties": {
                 "teralux": {
                     "$ref": "#/definitions/dtos.TeraluxResponseDTO"
+                }
+            }
+        },
+        "dtos.TranscriptionLongResponseDTO": {
+            "type": "object",
+            "properties": {
+                "detected_language": {
+                    "type": "string",
+                    "example": "id"
+                },
+                "text": {
+                    "type": "string",
+                    "example": "Ini adalah transkripsi yang sangat panjang..."
+                }
+            }
+        },
+        "dtos.TranscriptionResponseDTO": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "example": "Halo dunia"
+                },
+                "translated_text": {
+                    "type": "string",
+                    "example": "Hello world"
                 }
             }
         },
@@ -2474,9 +2662,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8081",
+	Host:             "",
 	BasePath:         "/",
-	Schemes:          []string{},
+	Schemes:          []string{"http", "https"},
 	Title:            "Teralux API",
 	Description:      "This is the API server for Teralux App. <br> For full documentation, visit <a href=\"/docs\">/docs</a>.",
 	InfoInstanceName: "swagger",

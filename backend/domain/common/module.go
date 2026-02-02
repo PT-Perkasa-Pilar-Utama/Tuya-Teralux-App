@@ -1,12 +1,10 @@
 package common
 
 import (
-	"net/url"
 	"teralux_app/docs/swagger"
 	"teralux_app/domain/common/controllers"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/routes"
-	"teralux_app/domain/common/utils"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -31,19 +29,22 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 
 // RegisterRoutes registers common routes
 func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
-	// Configure Swagger Info
-	if swaggerURL := utils.AppConfig.SwaggerBaseURL; swaggerURL != "" {
-		if parsedURL, err := url.Parse(swaggerURL); err == nil {
-			swagger.SwaggerInfo.Host = parsedURL.Host
-			swagger.SwaggerInfo.Schemes = []string{parsedURL.Scheme}
-		}
-	}
 	// Markdown Docs
 	router.GET("/docs/*path", m.DocsController.ServeDocs)
 
 	// Swagger Routes
 	router.Static("/swagger-assets", "./docs/swagger-ui")
 	router.GET("/swagger/*any", func(c *gin.Context) {
+		// Dynamic Host and Scheme based on the request
+		swagger.SwaggerInfo.Host = c.Request.Host
+
+		// Handle proxies for scheme detection
+		scheme := "http"
+		if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+			scheme = "https"
+		}
+		swagger.SwaggerInfo.Schemes = []string{scheme}
+
 		if c.Param("any") == "" || c.Param("any") == "/" || c.Param("any") == "/index.html" {
 			c.Header("Content-Type", "text/html; charset=utf-8")
 			c.String(200, swagger.CustomSwaggerHTML)

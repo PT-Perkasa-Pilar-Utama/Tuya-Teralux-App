@@ -1,8 +1,13 @@
 package dtos
 
 type TranscriptionResponseDTO struct {
-	Text           string `json:"text"`
-	TranslatedText string `json:"translated_text,omitempty"`
+	Text           string `json:"text" example:"Halo dunia"`
+	TranslatedText string `json:"translated_text,omitempty" example:"Hello world"`
+}
+
+type TranscriptionLongResponseDTO struct {
+	Text             string `json:"text" example:"Ini adalah transkripsi yang sangat panjang..."`
+	DetectedLanguage string `json:"detected_language,omitempty" example:"id"`
 }
 
 type StandardResponse struct {

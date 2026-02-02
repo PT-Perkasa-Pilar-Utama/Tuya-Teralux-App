@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
 	"teralux_app/domain/common/utils"
+	tuya_dtos "teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -21,10 +22,12 @@ func NewTuyaAuthController(useCase *usecases.TuyaAuthUseCase) *TuyaAuthControlle
 	}
 }
 
+var _ = tuya_dtos.TuyaAuthResponseDTO{}
+
 // Authenticate handles GET /api/tuya/auth endpoint
 // @Summary      Authenticate with Tuya
 // @Description  Authenticates the user and retrieves a Tuya access token
-// @Tags         02. Tuya
+// @Tags         01. Auth
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaAuthResponseDTO}
