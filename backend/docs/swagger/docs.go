@@ -966,7 +966,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Transcribe audio to text using Whisper or configured STT pipeline",
+                "description": "Transcribe audio to text using Whisper. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -980,7 +980,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Audio file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "name": "audio",
                         "in": "formData",
                         "required": true
@@ -1039,7 +1039,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Transcribe long audio to text using Whisper. No translation, no RAG.",
+                "description": "Transcribe long audio to text using Whisper. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac. No translation, no RAG.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1053,16 +1053,17 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Audio file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "name": "audio",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Language code (e.g. id, en, auto)",
+                        "description": "Language code (e.g. id, en)",
                         "name": "language",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {

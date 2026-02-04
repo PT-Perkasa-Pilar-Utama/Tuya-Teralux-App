@@ -37,7 +37,7 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 	rb, _ := json.Marshal(llmResp)
 	fake := &fakeOllama{resp: string(rb)}
 
-	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), nil)
+	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), nil, nil)
 
 	task, err := u.Process("turn on the lamp", "mock-token")
 	if err != nil {
@@ -126,7 +126,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 		_ = os.RemoveAll(dbDir)
 	}()
 
-	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc)
+	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
 
 	task, err := u.Process("turn on the lamp", "mock-token")
 	if err != nil {
@@ -160,7 +160,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 
 	// Now GetStatus should retrieve the persisted copy from Badger
 	// Simulate a restart by creating a new usecase instance without in-memory cache
-	u2 := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc)
+	u2 := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
 	status2, err := u2.GetStatus(task)
 	if err != nil {
 		t.Fatalf("expected persisted task to be found after restart, got error: %v", err)
@@ -205,7 +205,7 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 		_ = os.RemoveAll(dbDir)
 	}()
 
-	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc)
+	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
 	task, err := u.Process("turn on the lamp", "mock-token")
 	if err != nil {
 		t.Fatalf("expected no error from Process, got %v", err)

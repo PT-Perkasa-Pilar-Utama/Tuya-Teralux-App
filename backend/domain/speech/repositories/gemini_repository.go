@@ -16,7 +16,7 @@ type GeminiRepository struct {
 func NewGeminiRepository() *GeminiRepository {
 	cfg := utils.GetConfig()
 	return &GeminiRepository{
-		apiKey: cfg.GeminiApiKey,
+		apiKey: cfg.LLMApiKey,
 	}
 }
 
@@ -44,7 +44,7 @@ type geminiResponse struct {
 
 func (r *GeminiRepository) CallModel(prompt string, model string) (string, error) {
 	if r.apiKey == "" {
-		return "", fmt.Errorf("GEMINI_API_KEY is not configured")
+		return "", fmt.Errorf("LLM_API_KEY is not configured")
 	}
 
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, r.apiKey)

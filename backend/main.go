@@ -154,8 +154,12 @@ func main() {
 	// Log current log level for diagnostic purposes
 	fmt.Printf("Application log level: %s\n", utils.GetCurrentLogLevelName())
 	missing := []string{}
-	if scfg.OllamaURL == "" {
-		missing = append(missing, "OLLAMA_URL")
+	if scfg.LLMProvider == "" {
+		missing = append(missing, "LLM_PROVIDER")
+	}
+	// LLM_BASE_URL is required for Antigravity and Ollama, but not for direct Gemini (uses Google SDK/API default)
+	if scfg.LLMProvider != "gemini" && scfg.LLMBaseURL == "" {
+		missing = append(missing, "LLM_BASE_URL")
 	}
 	if scfg.LLMModel == "" {
 		missing = append(missing, "LLM_MODEL")
@@ -170,11 +174,12 @@ func main() {
 		missing = append(missing, "PORT")
 	}
 	if len(missing) > 0 {
-		utils.LogInfo("⚠️ Speech/RAG config incomplete, skipping initialization: %v", missing)
+		utils.LogError("FATAL: Speech/RAG config incomplete: %v", missing)
+		os.Exit(1)
 	} else {
 		// Initialize RAG first as it's a dependency for Speech
 		utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
-		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService)
+		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase)
 
 		// Initialize Speech with RAG and Tuya Auth dependencies
 		speech.InitModule(protected, scfg, ragUsecase, tuyaModule.AuthUseCase)

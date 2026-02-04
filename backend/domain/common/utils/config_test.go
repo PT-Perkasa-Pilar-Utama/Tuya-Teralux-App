@@ -33,7 +33,7 @@ func TestLoadConfig(t *testing.T) {
 func TestLoadConfig_SetsValues(t *testing.T) {
 	// Backup and restore env
 	backup := map[string]string{}
-	keys := []string{"OLLAMA_URL", "LLM_MODEL", "WHISPER_MODEL_PATH", "MAX_FILE_SIZE_MB", "PORT", "GET_ALL_DEVICES_RESPONSE", "CACHE_TTL"}
+	keys := []string{"LLM_BASE_URL", "LLM_MODEL", "WHISPER_MODEL_PATH", "MAX_FILE_SIZE_MB", "PORT", "GET_ALL_DEVICES_RESPONSE", "CACHE_TTL"}
 	for _, k := range keys {
 		backup[k] = os.Getenv(k)
 	}
@@ -44,7 +44,7 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 		AppConfig = nil
 	}()
 
-	os.Setenv("OLLAMA_URL", "http://test-ollama")
+	os.Setenv("LLM_BASE_URL", "http://test-ollama")
 	os.Setenv("LLM_MODEL", "gemma-test")
 	os.Setenv("WHISPER_MODEL_PATH", "/tmp/whisper.bin")
 	os.Setenv("MAX_FILE_SIZE_MB", "10")
@@ -56,8 +56,8 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 	LoadConfig()
 	cfg := GetConfig()
 
-	if cfg.OllamaURL != "http://test-ollama" {
-		t.Fatalf("expected OllamaURL to be set, got %s", cfg.OllamaURL)
+	if cfg.LLMBaseURL != "http://test-ollama" {
+		t.Fatalf("expected LLMBaseURL to be set, got %s", cfg.LLMBaseURL)
 	}
 	if cfg.LLMModel != "gemma-test" {
 		t.Fatalf("expected LLMModel to be set, got %s", cfg.LLMModel)
