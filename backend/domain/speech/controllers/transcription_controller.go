@@ -26,12 +26,12 @@ func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, cfg *uti
 
 // TranscribeAudio godoc
 // @Summary Transcribe audio file
-// @Description Transcribe audio to text using Whisper or configured STT pipeline
+// @Description Transcribe audio to text using Whisper. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
 // @Tags 08. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
-// @Param audio formData file true "Audio file"
+// @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
 // @Success 200 {object} dtos.StandardResponse{data=dtos.TranscriptionResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
@@ -121,13 +121,13 @@ func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
 
 // TranscribeLongAudio godoc
 // @Summary Transcribe long audio file
-// @Description Transcribe long audio to text using Whisper. No translation, no RAG.
+// @Description Transcribe long audio to text using Whisper. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac. No translation, no RAG.
 // @Tags 08. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
-// @Param audio formData file true "Audio file"
-// @Param language formData string false "Language code (e.g. id, en, auto)"
+// @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
+// @Param language formData string true "Language code (e.g. id, en)"
 // @Success 200 {object} dtos.StandardResponse{data=dtos.TranscriptionLongResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
@@ -145,7 +145,15 @@ func (c *TranscriptionController) HandleTranscribeLong(ctx *gin.Context) {
 		return
 	}
 
-	lang := ctx.DefaultPostForm("language", "auto")
+	lang := ctx.PostForm("language")
+	if lang == "" {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "Language is required",
+			Details: "Please provide a language code (e.g. 'id', 'en')",
+		})
+		return
+	}
 
 	if file.Size > c.config.MaxFileSize {
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{

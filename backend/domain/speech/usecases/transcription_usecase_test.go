@@ -37,7 +37,7 @@ func TestNewTranscriptionUsecase(t *testing.T) {
 	ollamaRepo := repositories.NewOllamaRepository()
 	geminiRepo := repositories.NewGeminiRepository()
 
-	uc := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, nil, cfg, nil, nil)
+	uc := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, nil, nil, cfg, nil, nil)
 	if uc == nil {
 		t.Error("NewTranscriptionUsecase returned nil")
 	}
@@ -50,7 +50,7 @@ func TestTranscriptionUsecase_TranscribeLongAudio(t *testing.T) {
 
 	t.Run("File Not Found", func(t *testing.T) {
 		mockRepo := &MockWhisperRepository{}
-		uc := usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, cfg, nil, nil)
+		uc := usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, nil, cfg, nil, nil)
 
 		_, err := uc.TranscribeLongAudio("non_existent.mp3", "id")
 		if err == nil {
@@ -67,7 +67,7 @@ func TestTranscriptionUsecase_TranscribeLongAudio(t *testing.T) {
 			},
 		}
 
-		uc := usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, cfg, nil, nil)
+		uc := usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, nil, cfg, nil, nil)
 
 		dummyFile := "dummy_test.txt"
 		_ = os.WriteFile(dummyFile, []byte("not an audio"), 0644)

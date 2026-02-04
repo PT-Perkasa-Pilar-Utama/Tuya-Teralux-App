@@ -992,9 +992,10 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Transcribe audio to text using Whisper or configured STT pipeline
+      description: 'Transcribe audio to text using Whisper. Supports: .mp3, .wav,
+        .m4a, .aac, .ogg, .flac.'
       parameters:
-      - description: Audio file
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
         in: formData
         name: audio
         required: true
@@ -1036,17 +1037,18 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Transcribe long audio to text using Whisper. No translation, no
-        RAG.
+      description: 'Transcribe long audio to text using Whisper. Supports: .mp3, .wav,
+        .m4a, .aac, .ogg, .flac. No translation, no RAG.'
       parameters:
-      - description: Audio file
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
         in: formData
         name: audio
         required: true
         type: file
-      - description: Language code (e.g. id, en, auto)
+      - description: Language code (e.g. id, en)
         in: formData
         name: language
+        required: true
         type: string
       produces:
       - application/json

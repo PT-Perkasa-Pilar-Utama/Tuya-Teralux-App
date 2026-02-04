@@ -18,32 +18,35 @@ type WhisperRepositoryInterface interface {
 }
 
 type TranscriptionUsecase struct {
-	whisperRepo WhisperRepositoryInterface
-	ollamaRepo  *repositories.OllamaRepository
-	geminiRepo  *repositories.GeminiRepository
-	mqttRepo    *repositories.MqttRepository
-	ragUsecase  *ragUsecases.RAGUsecase
-	authUseCase *tuyaUsecases.TuyaAuthUseCase
-	config      *utils.Config
+	whisperRepo     WhisperRepositoryInterface
+	ollamaRepo      *repositories.OllamaRepository
+	geminiRepo      *repositories.GeminiRepository
+	antigravityRepo *repositories.AntigravityRepository
+	mqttRepo        *repositories.MqttRepository
+	ragUsecase      *ragUsecases.RAGUsecase
+	authUseCase     *tuyaUsecases.TuyaAuthUseCase
+	config          *utils.Config
 }
 
 func NewTranscriptionUsecase(
 	whisperRepo WhisperRepositoryInterface,
 	ollamaRepo *repositories.OllamaRepository,
 	geminiRepo *repositories.GeminiRepository,
+	antigravityRepo *repositories.AntigravityRepository,
 	mqttRepo *repositories.MqttRepository,
 	cfg *utils.Config,
 	ragUsecase *ragUsecases.RAGUsecase,
 	authUseCase *tuyaUsecases.TuyaAuthUseCase,
 ) *TranscriptionUsecase {
 	return &TranscriptionUsecase{
-		whisperRepo: whisperRepo,
-		ollamaRepo:  ollamaRepo,
-		geminiRepo:  geminiRepo,
-		mqttRepo:    mqttRepo,
-		ragUsecase:  ragUsecase,
-		authUseCase: authUseCase,
-		config:      cfg,
+		whisperRepo:     whisperRepo,
+		ollamaRepo:      ollamaRepo,
+		geminiRepo:      geminiRepo,
+		antigravityRepo: antigravityRepo,
+		mqttRepo:        mqttRepo,
+		ragUsecase:      ragUsecase,
+		authUseCase:     authUseCase,
+		config:          cfg,
 	}
 }
 
@@ -146,6 +149,11 @@ English:`, text)
 			return text, fmt.Errorf("ollama repo not initialized")
 		}
 		translated, err = u.ollamaRepo.CallModel(prompt, u.config.LLMModel)
+	} else if u.config.LLMProvider == "antigravity" {
+		if u.antigravityRepo == nil {
+			return text, fmt.Errorf("antigravity repo not initialized")
+		}
+		translated, err = u.antigravityRepo.CallModel(prompt, u.config.LLMModel)
 	} else {
 		// Default to gemini if provider is gemini or empty
 		if u.geminiRepo == nil {

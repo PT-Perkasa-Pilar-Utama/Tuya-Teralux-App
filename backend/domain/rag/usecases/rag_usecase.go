@@ -14,6 +14,7 @@ import (
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	ragdtos "teralux_app/domain/rag/dtos"
+	tuyaUsecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/google/uuid"
 )
@@ -25,12 +26,13 @@ type LLMClient interface {
 }
 
 type RAGUsecase struct {
-	vectorSvc  *infrastructure.VectorService
-	llm        LLMClient
-	config     *utils.Config
-	badger     *infrastructure.BadgerService
-	mu         sync.RWMutex
-	taskStatus map[string]*ragdtos.RAGStatusDTO
+	vectorSvc   *infrastructure.VectorService
+	llm         LLMClient
+	config      *utils.Config
+	badger      *infrastructure.BadgerService
+	authUseCase *tuyaUsecases.TuyaAuthUseCase
+	mu          sync.RWMutex
+	taskStatus  map[string]*ragdtos.RAGStatusDTO
 }
 
 // extractLastJSONObject scans a string that may contain multiple JSON objects
@@ -103,8 +105,8 @@ func tryParseOnce(s string) (map[string]interface{}, error) {
 	return extractLastJSONObject(s)
 }
 
-func NewRAGUsecase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *utils.Config, badgerSvc *infrastructure.BadgerService) *RAGUsecase {
-	return &RAGUsecase{vectorSvc: vectorSvc, llm: llm, config: cfg, badger: badgerSvc, taskStatus: make(map[string]*ragdtos.RAGStatusDTO)}
+func NewRAGUsecase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, authUseCase *tuyaUsecases.TuyaAuthUseCase) *RAGUsecase {
+	return &RAGUsecase{vectorSvc: vectorSvc, llm: llm, config: cfg, badger: badgerSvc, authUseCase: authUseCase, taskStatus: make(map[string]*ragdtos.RAGStatusDTO)}
 }
 
 // Process accepts user text, queues work to query the vector store and LLM, and stores the result under a task ID
@@ -150,6 +152,7 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 
 		defer func() {
 			if r := recover(); r != nil {
+				utils.LogError("RAG Task %s: Panic recovered: %v", taskID, r)
 				u.mu.Lock()
 				u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: fmt.Sprintf("panic: %v", r)}
 				u.mu.Unlock()
@@ -178,6 +181,7 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		utils.LogInfo("RAG Task %s: Searching vector DB (%d documents total) with text: %q", taskID, docCount, correctedText)
 		candidates, err := u.vectorSvc.Search(correctedText)
 		if err != nil {
+			utils.LogError("RAG Task %s: Vector search failed: %v", taskID, err)
 			u.mu.Lock()
 			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: err.Error()}
 			u.mu.Unlock()
@@ -263,6 +267,7 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		utils.LogInfo("RAG Task %s: Generating decision using LLM (model: %s)...", taskID, model)
 		resp, err := u.llm.CallModel(prompt, model)
 		if err != nil {
+			utils.LogError("RAG Task %s: LLM call failed: %v", taskID, err)
 			u.mu.Lock()
 			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: err.Error()}
 			u.mu.Unlock()
@@ -368,11 +373,31 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		statusDTO := &ragdtos.RAGStatusDTO{Status: "done", Endpoint: endpoint, Method: method, Body: bodyObj, Headers: headers}
 
 		// EXECUTE the decision by fetching the internal endpoint
-		if endpoint != "" && authToken != "" {
-			utils.LogInfo("RAG Task %s: Executing action via internal fetch...", taskID)
-			execRes := u.executeAction(method, endpoint, bodyObj, authToken)
-			statusDTO.ExecutionResult = execRes
-			utils.LogInfo("RAG Task %s: Action execution completed", taskID)
+		if endpoint != "" {
+			validToken := authToken
+			if u.authUseCase != nil {
+				utils.LogDebug("RAG Task %s: Refreshing Tuya Token...", taskID)
+				if authResp, err := u.authUseCase.Authenticate(); err == nil && authResp.AccessToken != "" {
+					validToken = authResp.AccessToken
+					utils.LogDebug("RAG Task %s: Token refreshed successfully", taskID)
+				} else {
+					utils.LogWarn("RAG Task %s: Token refresh failed, falling back to user token: %v", taskID, err)
+				}
+			}
+
+			// Validate if ID is a placeholder (prevent 500/1106 errors)
+			if strings.Contains(endpoint, "{id}") || strings.Contains(endpoint, "{hub_id}") || deviceID == "{id}" || deviceID == "" {
+				utils.LogError("RAG Task %s: Aborting execution - invalid device ID placeholder detected (Device not found in DB?)", taskID)
+
+				statusDTO.Status = "error"
+				statusDTO.Result = "Action blocked: Device not identified (Placeholder ID detected). Please sync your devices."
+				// Do not execute
+			} else {
+				utils.LogInfo("RAG Task %s: Executing action via internal fetch...", taskID)
+				execRes := u.executeAction(method, endpoint, bodyObj, validToken)
+				statusDTO.ExecutionResult = execRes
+				utils.LogInfo("RAG Task %s: Action execution completed", taskID)
+			}
 		}
 
 		u.mu.Lock()

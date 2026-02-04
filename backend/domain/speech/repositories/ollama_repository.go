@@ -29,7 +29,7 @@ func tryDial(host, port string) error {
 
 func NewOllamaRepository() *OllamaRepository {
 	cfg := utils.GetConfig()
-	base := cfg.OllamaURL
+	base := cfg.LLMBaseURL
 	if base == "" {
 		base = "http://localhost:11434"
 	}
