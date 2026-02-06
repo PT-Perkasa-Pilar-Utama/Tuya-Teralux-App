@@ -15,7 +15,7 @@ import (
 // InitModule initializes the Speech module with the protected router group.
 func InitModule(protected *gin.RouterGroup, cfg *utils.Config, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase) {
 	// Repositories
-	whisperRepo := repositories.NewWhisperRepository()
+	whisperRepo := repositories.NewWhisperRepository(cfg)
 	ollamaRepo := repositories.NewOllamaRepository()
 	geminiRepo := repositories.NewGeminiRepository()
 	antigravityRepo := repositories.NewAntigravityRepository()

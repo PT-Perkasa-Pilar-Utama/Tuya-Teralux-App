@@ -25,6 +25,7 @@ type Config struct {
 	LLMBaseURL       string
 	LLMApiKey        string
 	LLMModel         string
+	WhisperServerURL string
 	WhisperModelPath string
 	MaxFileSize      int64 // bytes
 	Port             string
@@ -112,6 +113,7 @@ func LoadConfig() {
 		LLMBaseURL:       os.Getenv("LLM_BASE_URL"),
 		LLMApiKey:        os.Getenv("LLM_API_KEY"),
 		LLMModel:         os.Getenv("LLM_MODEL"),
+		WhisperServerURL: os.Getenv("WHISPER_SERVER_URL"),
 		WhisperModelPath: os.Getenv("WHISPER_MODEL_PATH"),
 		MaxFileSize:      maxFileSize,
 		Port:             os.Getenv("PORT"),
