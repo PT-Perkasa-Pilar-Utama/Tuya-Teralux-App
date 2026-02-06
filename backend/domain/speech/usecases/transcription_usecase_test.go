@@ -33,7 +33,7 @@ func TestNewTranscriptionUsecase(t *testing.T) {
 	cfg := &utils.Config{
 		WhisperModelPath: "test_model",
 	}
-	whisperRepo := repositories.NewWhisperRepository()
+	whisperRepo := repositories.NewWhisperRepository(cfg)
 	ollamaRepo := repositories.NewOllamaRepository()
 	geminiRepo := repositories.NewGeminiRepository()
 

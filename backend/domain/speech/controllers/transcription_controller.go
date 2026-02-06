@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -39,8 +40,12 @@ func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, cfg *uti
 // @Failure 500 {object} dtos.StandardResponse
 // @Router /api/speech/transcribe [post]
 func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
+	log.Println("[DEBUG] HandleTranscribe: Request received")
+	log.Printf("[DEBUG] HandleTranscribe: Content-Type: %s", ctx.GetHeader("Content-Type"))
+
 	file, err := ctx.FormFile("audio")
 	if err != nil {
+		log.Printf("[DEBUG] HandleTranscribe: FormFile error: %v", err)
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
 			Message: "Failed to get audio file",
@@ -48,6 +53,7 @@ func (c *TranscriptionController) HandleTranscribe(ctx *gin.Context) {
 		})
 		return
 	}
+	log.Printf("[DEBUG] HandleTranscribe: File received: %s, Size: %d", file.Filename, file.Size)
 
 	if file.Size > c.config.MaxFileSize {
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
