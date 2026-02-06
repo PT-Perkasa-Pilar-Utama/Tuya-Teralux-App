@@ -137,7 +137,7 @@ func main() {
 	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
 	protected := router.Group("/")
-	protected.Use(middlewares.AuthMiddleware())
+	protected.Use(middlewares.AuthMiddleware(tuyaModule.AuthUseCase))
 	protected.Use(middlewares.TuyaErrorMiddleware())
 
 	// 1. Common Routes (Health, Cache)
