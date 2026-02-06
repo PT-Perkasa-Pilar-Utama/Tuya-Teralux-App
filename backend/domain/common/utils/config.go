@@ -47,6 +47,7 @@ type Config struct {
 	DBUser      string
 	DBPassword  string
 	DBName      string
+	JWTSecret   string
 }
 
 // AppConfig is the global configuration instance.
@@ -134,6 +135,7 @@ func LoadConfig() {
 		DBUser:      os.Getenv("DB_USER"),
 		DBPassword:  os.Getenv("DB_PASSWORD"),
 		DBName:      os.Getenv("DB_NAME"),
+		JWTSecret:   os.Getenv("JWT_SECRET"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables
