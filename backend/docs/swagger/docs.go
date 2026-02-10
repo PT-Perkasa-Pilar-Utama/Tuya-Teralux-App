@@ -966,7 +966,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Transcribe audio to text using Whisper. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "description": "Start transcription of audio file. Attempts PPU (Outsystems) first, falls back to local Whisper if PPU fails. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -976,7 +976,7 @@ const docTemplate = `{
                 "tags": [
                     "08. Speech"
                 ],
-                "summary": "Transcribe audio file",
+                "summary": "Transcribe audio file (with PPU fallback)",
                 "parameters": [
                     {
                         "type": "file",
@@ -987,8 +987,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
                             "allOf": [
                                 {
@@ -998,7 +998,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.TranscriptionResponseDTO"
+                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessResponseDTO"
                                         }
                                     }
                                 }
@@ -1039,7 +1039,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Transcribe long audio to text using Whisper. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac. No translation, no RAG.",
+                "description": "Start transcription of long audio file using Whisper. Asynchronous processing with background execution. No translation, no RAG. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1067,8 +1067,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
                             "allOf": [
                                 {
@@ -1078,7 +1078,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.TranscriptionLongResponseDTO"
+                                            "$ref": "#/definitions/dtos.AsyncTranscriptionLongProcessResponseDTO"
                                         }
                                     }
                                 }
@@ -1099,6 +1099,137 @@ const docTemplate = `{
                     },
                     "415": {
                         "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/transcribe/ppu": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Outsystems proxy. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "08. Speech"
+                ],
+                "summary": "Transcribe audio file (Proxy to Outsystems)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.WhisperProxyProcessResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/transcribe/{transcribe_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the status and result of any transcription task (Short, Long, or PPU).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "08. Speech"
+                ],
+                "summary": "Get transcription status (Consolidated)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "transcribe_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
                         }
@@ -1996,6 +2127,90 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dtos.AsyncTranscriptionLongProcessResponseDTO": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/dtos.AsyncTranscriptionLongStatusDTO"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.AsyncTranscriptionLongResultDTO": {
+            "type": "object",
+            "properties": {
+                "detected_language": {
+                    "type": "string",
+                    "example": "id"
+                },
+                "text": {
+                    "type": "string",
+                    "example": "Ini adalah transkripsi yang sangat panjang..."
+                }
+            }
+        },
+        "dtos.AsyncTranscriptionLongStatusDTO": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                },
+                "result": {
+                    "$ref": "#/definitions/dtos.AsyncTranscriptionLongResultDTO"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                }
+            }
+        },
+        "dtos.AsyncTranscriptionProcessResponseDTO": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.AsyncTranscriptionResultDTO": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "example": "Halo dunia"
+                },
+                "translated_text": {
+                    "type": "string",
+                    "example": "Hello world"
+                }
+            }
+        },
+        "dtos.AsyncTranscriptionStatusDTO": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                },
+                "result": {
+                    "$ref": "#/definitions/dtos.AsyncTranscriptionResultDTO"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                }
+            }
+        },
         "dtos.CreateDeviceRequestDTO": {
             "type": "object",
             "required": [
@@ -2199,6 +2414,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.OutsystemsTranscriptionResultDTO": {
+            "type": "object",
+            "properties": {
+                "detected_language": {
+                    "type": "string",
+                    "example": "id"
+                },
+                "filename": {
+                    "type": "string",
+                    "example": "audio.mp3"
+                },
+                "transcription": {
+                    "type": "string",
+                    "example": "Halo dunia"
+                }
+            }
+        },
         "dtos.RAGProcessResponseDTO": {
             "type": "object",
             "properties": {
@@ -2320,32 +2552,6 @@ const docTemplate = `{
             "properties": {
                 "teralux": {
                     "$ref": "#/definitions/dtos.TeraluxResponseDTO"
-                }
-            }
-        },
-        "dtos.TranscriptionLongResponseDTO": {
-            "type": "object",
-            "properties": {
-                "detected_language": {
-                    "type": "string",
-                    "example": "id"
-                },
-                "text": {
-                    "type": "string",
-                    "example": "Ini adalah transkripsi yang sangat panjang..."
-                }
-            }
-        },
-        "dtos.TranscriptionResponseDTO": {
-            "type": "object",
-            "properties": {
-                "text": {
-                    "type": "string",
-                    "example": "Halo dunia"
-                },
-                "translated_text": {
-                    "type": "string",
-                    "example": "Hello world"
                 }
             }
         },
@@ -2560,6 +2766,35 @@ const docTemplate = `{
                 },
                 "room_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.WhisperProxyProcessResponseDTO": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/dtos.WhisperProxyStatusDTO"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.WhisperProxyStatusDTO": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                },
+                "result": {
+                    "$ref": "#/definitions/dtos.OutsystemsTranscriptionResultDTO"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
                 }
             }
         },

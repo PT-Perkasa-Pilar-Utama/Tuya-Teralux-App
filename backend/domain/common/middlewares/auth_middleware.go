@@ -5,18 +5,21 @@ import (
 	"strings"
 	"teralux_app/domain/common/dtos"
 	"teralux_app/domain/common/utils"
-	"teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
 
 // AuthMiddleware processes the Authorization header to extract and validate the BE-generated Bearer token.
+// TuyaTokenProvider defines the interface for retrieving Tuya access tokens.
+// This allows for mocking in tests and decoupling from the concrete implementation.
+type TuyaTokenProvider interface {
+	GetTuyaAccessToken() (string, error)
+}
+
+// AuthMiddleware processes the Authorization header to extract and validate the BE-generated Bearer token.
 // After validation, it automatically fetches a valid Tuya access token and stores it in the context.
-//
-// @param tuyaAuthUC The TuyaAuthUseCase used to get/refresh Tuya tokens.
-// @return gin.HandlerFunc The Gin middleware handler.
-// @throws 401 If the Authorization header is missing, malformed, or the token is invalid.
-func AuthMiddleware(tuyaAuthUC *usecases.TuyaAuthUseCase) gin.HandlerFunc {
+// Returns 401 if the Authorization header is missing, malformed, or the token is invalid.
+func AuthMiddleware(tuyaAuthUC TuyaTokenProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		utils.LogDebug("AuthMiddleware: processing request")
 		authHeader := c.GetHeader("Authorization")

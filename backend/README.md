@@ -20,11 +20,11 @@ Backend service for the Teralux application, built with Go.
 
 ---
 
-## �️ Database Configuration
+## 🗄️ Database Configuration
 
-The application supports two database types: **SQLite** and **MySQL**. Configure via the `DB_TYPE` environment variable in your `.env` file.
+The application uses **SQLite** as its database engine. This provides a zero-configuration setup that is perfect for development and production for this scale.
 
-### SQLite (Default - Recommended for Development)
+### SQLite Configuration
 
 ```env
 DB_TYPE=sqlite
@@ -32,38 +32,13 @@ DB_SQLITE_PATH=./tmp/teralux.db
 ```
 
 **Features:**
-- ✅ **Auto-migration on Docker startup**: When running via Docker (`make start-docker` or `make start-compose`), the `entrypoint.sh` script automatically runs migrations from `./migrations` folder
-- ✅ **Zero configuration**: No external database server required
-- ✅ **Perfect for development and testing**
-- ⚠️ **Note**: Currently, migration files are in `domain/teralux/migrations/` but `entrypoint.sh` looks for `./migrations/` at root. You may need to copy or symlink migration files for auto-migration to work.
-
-### MySQL (Production)
-
-```env
-DB_TYPE=mysql
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=your_user
-DB_PASSWORD=your_password
-DB_NAME=teralux_db
-```
-
-**Features:**
-- ✅ **Production-ready**: Scalable and robust
-- ✅ **Better for multi-instance deployments**
-- ⚠️ **Manual migration required**: The `entrypoint.sh` script **skips auto-migration** for MySQL
-- ⚠️ **You must manually run migrations** using a migration tool or execute SQL files from `domain/teralux/migrations/`:
-  ```bash
-  # Example using migrate tool
-  migrate -path ./domain/teralux/migrations -database "mysql://user:pass@tcp(host:3306)/dbname" up
-  ```
+- ✅ **Zero configuration**: No external database server required.
+- ✅ **Auto-migration**: Entities are automatically migrated on startup.
+- ✅ **Persistence**: When running in Docker, the database is persisted in the `teralux_data` volume.
 
 ### Migration Files
 
-Current migrations are located in:
-- `domain/teralux/migrations/000001_create_teralux_table.up.sql`
-- `domain/teralux/migrations/000002_create_devices_table.up.sql`  
-- `domain/teralux/migrations/000003_create_device_statuses_table.up.sql`
+Current migrations and entity definitions are handled automatically by GORM auto-migration.
 
 **Tables Created:**
 1. **teralux** - Main teralux devices table with soft delete support
@@ -190,6 +165,6 @@ The `Makefile` includes several utility commands to manage the project:
 | `make rag text="turn on the lamp"` | Helper to authenticate, submit RAG text, poll and print final decision |
 
 Notes:
-- You can run `./scripts/rag.sh` without args if you set `RAG_TEXT` (env) and `API_KEY` in `.env`/`.env.dev`.
+- You can run `./scripts/rag.sh` without args if you set `RAG_TEXT` (env) and `API_KEY` in `.env`.
 - You can also pipe text: `echo "turn on the lamp" | ./scripts/rag.sh`
-- `make rag` will prefer `PORT` from `.env.dev` if present, otherwise it uses the exported `PORT` env var, and finally defaults to `8081`.
+- `make rag` will use `PORT` from `.env` if present, otherwise it uses the exported `PORT` env var, and finally defaults to `8081`.

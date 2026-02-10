@@ -7,34 +7,11 @@ services:
     env_file:
       - .env
     environment:
-      - DB_TYPE=${DB_TYPE}
-      - DB_HOST=teralux-mysql
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-    restart: unless-stopped
-    depends_on:
-      teralux-mysql:
-        condition: service_healthy
-
-  teralux-mysql:
-    image: mysql:8.0
-    container_name: teralux-mysql
-    ports:
-      - "${DB_PORT}:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      - DB_TYPE=sqlite
+      - DB_SQLITE_PATH=/app/tmp/teralux.db
     volumes:
-      - teralux_mysql_data:/var/lib/mysql
+      - teralux_data:/app/tmp
     restart: unless-stopped
 
 volumes:
-  teralux_mysql_data:
+  teralux_data:
