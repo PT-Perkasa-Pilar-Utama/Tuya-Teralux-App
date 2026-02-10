@@ -123,11 +123,19 @@ func main() {
 	// Initialize Vector DB
 	vectorService := infrastructure.NewVectorService("./tmp/vector/store.json")
 
+	// Initialize MQTT Service
+	mqttService := infrastructure.NewMqttService(utils.GetConfig())
+	if err := mqttService.Connect(); err != nil {
+		utils.LogError("Warning: Failed to connect to MQTT: %v", err)
+	} else {
+		defer mqttService.Close()
+	}
+
 	// Shared Repositories
 	deviceRepo := teralux_repositories.NewDeviceRepository(badgerService)
 
 	// Initialize Modules
-	commonModule := common.NewCommonModule(badgerService, vectorService)
+	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService)
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService)
 
 	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
@@ -178,7 +186,7 @@ func main() {
 		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase)
 
 		// Initialize Speech with RAG, Badger and Tuya Auth dependencies
-		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase)
+		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService)
 	}
 
 	// Register Health at the end so it appears last in Swagger
