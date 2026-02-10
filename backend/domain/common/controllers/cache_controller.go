@@ -26,7 +26,7 @@ func NewCacheController(cache *infrastructure.BadgerService, vector *infrastruct
 // FlushCache clears the entire cache
 // @Summary Flush all cache
 // @Description Remove all data from the cache storage
-// @Tags         03. Flush
+// @Tags         06. Flush
 // @Accept json
 // @Produce json
 // @Security BearerAuth

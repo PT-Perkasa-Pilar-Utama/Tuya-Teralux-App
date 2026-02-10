@@ -39,7 +39,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "03. Flush"
+                    "06. Flush"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -167,6 +167,188 @@ const docTemplate = `{
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/scenes": {
+            "get": {
+                "description": "Retrieve a list of all configured scenes",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "List all scenes",
+                "responses": {
+                    "200": {
+                        "description": "List of scenes",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dtos.SceneListResponseDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a scene with a name and a list of actions (Tuya/MQTT)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Create a new scene",
+                "parameters": [
+                    {
+                        "description": "Scene configuration",
+                        "name": "scene",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CreateSceneRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Scene created",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/scenes/{id}": {
+            "put": {
+                "description": "Update the configuration of a specific scene",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Update an existing scene",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Scene UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated scene configuration",
+                        "name": "scene",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateSceneRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scene updated",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Scene not found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove a specific scene configuration",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Delete a scene",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Scene UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scene deleted",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/scenes/{id}/control": {
+            "get": {
+                "description": "Trigger all actions defined in a specific scene",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Apply/Trigger a scene",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Scene UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scene applied",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -928,7 +1110,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "06. Health"
+                    "07. Health"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -949,6 +1131,24 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dtos.ActionDTO": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "device_id": {
+                    "type": "string"
+                },
+                "remote_id": {
+                    "type": "string"
+                },
+                "topic": {
+                    "type": "string"
+                },
+                "value": {}
+            }
+        },
         "dtos.AsyncTranscriptionLongProcessResponseDTO": {
             "type": "object",
             "properties": {
@@ -1033,6 +1233,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.CreateSceneRequestDTO": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionDTO"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.MqttPublishRequest": {
             "type": "object",
             "required": [
@@ -1094,6 +1311,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.SceneListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -1294,6 +1522,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.UpdateSceneRequestDTO": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionDTO"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.WhisperProxyProcessResponseDTO": {
             "type": "object",
             "properties": {
@@ -1390,32 +1635,24 @@ const docTemplate = `{
             "name": "02. Tuya"
         },
         {
-            "description": "Teralux device management endpoints",
-            "name": "03. Teralux"
+            "description": "Scene management and control endpoints",
+            "name": "03. Scenes"
         },
         {
-            "description": "Teralux specific devices endpoints",
-            "name": "04. Devices"
+            "description": "Speech endpoints",
+            "name": "04. Speech"
         },
         {
-            "description": "Device status management endpoints",
-            "name": "05. Device Statuses"
+            "description": "RAG endpoints",
+            "name": "05. RAG"
         },
         {
             "description": "Cache management endpoints",
             "name": "06. Flush"
         },
         {
-            "description": "Speech endpoints",
-            "name": "08. Speech"
-        },
-        {
-            "description": "RAG endpoints",
-            "name": "09. RAG"
-        },
-        {
             "description": "Health check endpoint",
-            "name": "10. Health"
+            "name": "07. Health"
         }
     ]
 }`
