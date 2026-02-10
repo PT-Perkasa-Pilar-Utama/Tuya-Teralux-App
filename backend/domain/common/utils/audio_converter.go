@@ -18,4 +18,4 @@ func ConvertToWav(inputPath, outputPath string) error {
 		return fmt.Errorf("ffmpeg error: %v, output: %s", err, string(output))
 	}
 	return nil
-} 
+}

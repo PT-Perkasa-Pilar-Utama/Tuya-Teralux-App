@@ -28,7 +28,7 @@ func TestAuthMiddleware(t *testing.T) {
 	// We might need to ensure utils picks it up. Config loading usually handles this.
 	// As utils.GenerateToken uses config, let's verify utils/jwt.go usage in next thought if this fails.
 	// Assuming utils.GenerateToken works with env var or we need to init config.
-	
+
 	// Pre-generate a valid token
 	validToken, _ := utils.GenerateToken("user-123")
 

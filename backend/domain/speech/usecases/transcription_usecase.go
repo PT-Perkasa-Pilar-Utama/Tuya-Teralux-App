@@ -50,15 +50,15 @@ func NewTranscriptionUsecase(
 	badger *infrastructure.BadgerService,
 ) *TranscriptionUsecase {
 	return &TranscriptionUsecase{
-		whisperRepo:     whisperRepo,
-		ollamaRepo:      ollamaRepo,
-		geminiRepo:      geminiRepo,
-		antigravityRepo: antigravityRepo,
-		mqttRepo:        mqttRepo,
-		ragUsecase:      ragUsecase,
-		authUseCase:     authUseCase,
-		config:          cfg,
-		badger:          badger,
+		whisperRepo:         whisperRepo,
+		ollamaRepo:          ollamaRepo,
+		geminiRepo:          geminiRepo,
+		antigravityRepo:     antigravityRepo,
+		mqttRepo:            mqttRepo,
+		ragUsecase:          ragUsecase,
+		authUseCase:         authUseCase,
+		config:              cfg,
+		badger:              badger,
 		transcribeTasks:     make(map[string]*speechdtos.AsyncTranscriptionStatusDTO),
 		transcribeLongTasks: make(map[string]*speechdtos.AsyncTranscriptionLongStatusDTO),
 	}
@@ -261,7 +261,6 @@ func (u *TranscriptionUsecase) TranscribeLongAudio(inputPath string, lang string
 
 	return text, nil
 }
-
 
 // ProxyTranscribeAudio starts async transcription task for short audio
 func (u *TranscriptionUsecase) ProxyTranscribeAudio(inputPath string, fileName string) (string, error) {

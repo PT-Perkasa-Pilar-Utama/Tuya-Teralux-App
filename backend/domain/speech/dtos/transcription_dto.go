@@ -18,10 +18,10 @@ type OutsystemsTranscriptionResultDTO struct {
 }
 
 type WhisperProxyStatusDTO struct {
-	Status          string                           `json:"status" example:"completed"`
+	Status          string                            `json:"status" example:"completed"`
 	Result          *OutsystemsTranscriptionResultDTO `json:"result,omitempty"`
-	ExpiresAt       string                           `json:"expires_at,omitempty"`
-	ExpiresInSecond int64                            `json:"expires_in_seconds,omitempty"`
+	ExpiresAt       string                            `json:"expires_at,omitempty"`
+	ExpiresInSecond int64                             `json:"expires_in_seconds,omitempty"`
 }
 
 type WhisperProxyProcessResponseDTO struct {
@@ -52,17 +52,17 @@ type AsyncTranscriptionLongResultDTO struct {
 }
 
 type AsyncTranscriptionStatusDTO struct {
-	Status          string                          `json:"status" example:"completed"`
-	Result          *AsyncTranscriptionResultDTO    `json:"result,omitempty"`
-	ExpiresAt       string                          `json:"expires_at,omitempty"`
-	ExpiresInSecond int64                           `json:"expires_in_seconds,omitempty"`
+	Status          string                       `json:"status" example:"completed"`
+	Result          *AsyncTranscriptionResultDTO `json:"result,omitempty"`
+	ExpiresAt       string                       `json:"expires_at,omitempty"`
+	ExpiresInSecond int64                        `json:"expires_in_seconds,omitempty"`
 }
 
 type AsyncTranscriptionLongStatusDTO struct {
-	Status          string                              `json:"status" example:"completed"`
-	Result          *AsyncTranscriptionLongResultDTO    `json:"result,omitempty"`
-	ExpiresAt       string                              `json:"expires_at,omitempty"`
-	ExpiresInSecond int64                               `json:"expires_in_seconds,omitempty"`
+	Status          string                           `json:"status" example:"completed"`
+	Result          *AsyncTranscriptionLongResultDTO `json:"result,omitempty"`
+	ExpiresAt       string                           `json:"expires_at,omitempty"`
+	ExpiresInSecond int64                            `json:"expires_in_seconds,omitempty"`
 }
 
 type AsyncTranscriptionProcessResponseDTO struct {

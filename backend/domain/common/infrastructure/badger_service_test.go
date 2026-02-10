@@ -2,9 +2,9 @@ package infrastructure
 
 import (
 	"os"
-	"time"
 	"teralux_app/domain/common/utils"
 	"testing"
+	"time"
 )
 
 func TestNewBadgerService(t *testing.T) {

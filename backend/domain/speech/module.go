@@ -34,4 +34,5 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	whisperProxyController := speechControllers.NewWhisperProxyController(whisperProxyUsecase, cfg)
 
 	// Routes
-	speechRoutes.SetupSpeechRoutes(protected, transcriptionController, whisperProxyController)}
+	speechRoutes.SetupSpeechRoutes(protected, transcriptionController, whisperProxyController)
+}

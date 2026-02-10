@@ -21,15 +21,15 @@ type Config struct {
 	CacheTTL                  string
 
 	// Speech / RAG
-	LLMProvider           string // "antigravity", "ollama", "gemini"
-	LLMBaseURL            string
-	LLMApiKey             string
-	LLMModel              string
-	WhisperServerURL      string
-	WhisperModelPath      string
+	LLMProvider             string // "antigravity", "ollama", "gemini"
+	LLMBaseURL              string
+	LLMApiKey               string
+	LLMModel                string
+	WhisperServerURL        string
+	WhisperModelPath        string
 	OutsystemsTranscribeURL string
-	MaxFileSize           int64 // bytes
-	Port                  string
+	MaxFileSize             int64 // bytes
+	Port                    string
 
 	// MQTT
 	MqttBroker   string

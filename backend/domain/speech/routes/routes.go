@@ -14,7 +14,6 @@ func SetupSpeechRoutes(rg *gin.RouterGroup, controller *controllers.Transcriptio
 		api.POST("/transcribe", controller.HandleProxyTranscribe)
 		api.GET("/transcribe/:transcribe_id", controller.GetProxyTranscribeStatus)
 
-
 		// Transcription long routes (async) - kept for explicit access if needed
 		api.POST("/transcribe/long", controller.HandleProxyTranscribeLong)
 
