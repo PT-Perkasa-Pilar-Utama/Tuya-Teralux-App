@@ -1,5 +1,7 @@
 package main
 
+// Trigger documentation refresh build
+
 import (
 	"fmt"
 	"net/http"
@@ -50,25 +52,19 @@ import (
 // @tag.name 02. Tuya
 // @tag.description Tuya related endpoints
 
-// @tag.name 03. Teralux
-// @tag.description Teralux device management endpoints
+// @tag.name 03. Scenes
+// @tag.description Scene management and control endpoints
 
-// @tag.name 04. Devices
-// @tag.description Teralux specific devices endpoints
+// @tag.name 04. Speech
+// @tag.description Speech endpoints
 
-// @tag.name 05. Device Statuses
-// @tag.description Device status management endpoints
+// @tag.name 05. RAG
+// @tag.description RAG endpoints
 
 // @tag.name 06. Flush
 // @tag.description Cache management endpoints
 
-// @tag.name 08. Speech
-// @tag.description Speech endpoints
-
-// @tag.name 09. RAG
-// @tag.description RAG endpoints
-
-// @tag.name 10. Health
+// @tag.name 07. Health
 // @tag.description Health check endpoint
 func main() {
 	// CLI: Healthcheck

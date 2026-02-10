@@ -36,7 +36,7 @@ func NewSceneController(
 // AddScene handles POST /api/scenes
 // @Summary Create a new scene
 // @Description Create a scene with a name and a list of actions (Tuya/MQTT)
-// @Tags scenes
+// @Tags 03. Scenes
 // @Accept json
 // @Produce json
 // @Param scene body scene_dtos.CreateSceneRequestDTO true "Scene configuration"
@@ -73,7 +73,7 @@ func (c *SceneController) AddScene(ctx *gin.Context) {
 // UpdateScene handles PUT /api/scenes/:id
 // @Summary Update an existing scene
 // @Description Update the configuration of a specific scene
-// @Tags scenes
+// @Tags 03. Scenes
 // @Accept json
 // @Produce json
 // @Param id path string true "Scene UUID"
@@ -110,7 +110,7 @@ func (c *SceneController) UpdateScene(ctx *gin.Context) {
 // DeleteScene handles DELETE /api/scenes/:id
 // @Summary Delete a scene
 // @Description Remove a specific scene configuration
-// @Tags scenes
+// @Tags 03. Scenes
 // @Produce json
 // @Param id path string true "Scene UUID"
 // @Success 200 {object} dtos.StandardResponse "Scene deleted"
@@ -134,7 +134,7 @@ func (c *SceneController) DeleteScene(ctx *gin.Context) {
 // GetAllScenes handles GET /api/scenes
 // @Summary List all scenes
 // @Description Retrieve a list of all configured scenes
-// @Tags scenes
+// @Tags 03. Scenes
 // @Produce json
 // @Success 200 {object} dtos.StandardResponse{data=[]scene_dtos.SceneListResponseDTO} "List of scenes"
 // @Router /api/scenes [get]
@@ -158,7 +158,7 @@ func (c *SceneController) GetAllScenes(ctx *gin.Context) {
 // ControlScene handles GET /api/scenes/:id/control
 // @Summary Apply/Trigger a scene
 // @Description Trigger all actions defined in a specific scene
-// @Tags scenes
+// @Tags 03. Scenes
 // @Produce json
 // @Param id path string true "Scene UUID"
 // @Success 200 {object} dtos.StandardResponse "Scene applied"
