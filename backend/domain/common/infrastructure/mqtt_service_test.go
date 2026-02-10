@@ -90,7 +90,7 @@ func TestMqttService_Connect(t *testing.T) {
 	mockClient := new(MockMqttClient)
 	mockToken := new(MockToken)
 	
-	s := &mqttService{
+	s := &MqttService{
 		client: mockClient,
 		config: &utils.Config{},
 	}
@@ -122,7 +122,7 @@ func TestMqttService_Publish(t *testing.T) {
 	mockClient := new(MockMqttClient)
 	mockToken := new(MockToken)
 	
-	s := &mqttService{
+	s := &MqttService{
 		client: mockClient,
 		config: &utils.Config{},
 	}
@@ -151,7 +151,7 @@ func TestMqttService_Subscribe(t *testing.T) {
 	mockClient := new(MockMqttClient)
 	mockToken := new(MockToken)
 	
-	s := &mqttService{
+	s := &MqttService{
 		client: mockClient,
 		config: &utils.Config{},
 	}
