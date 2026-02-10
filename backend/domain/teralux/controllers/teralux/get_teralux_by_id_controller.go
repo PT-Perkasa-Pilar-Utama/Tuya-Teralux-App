@@ -25,19 +25,6 @@ func NewGetTeraluxByIDController(useCase *usecases.GetTeraluxByIDUseCase) *GetTe
 }
 
 // GetTeraluxByID handles GET /api/teralux/:id endpoint
-// @Summary      Get Teralux by ID
-// @Description  Retrieves a single teralux device by ID
-// @Tags         03. Teralux
-// @Accept       json
-// @Produce      json
-// @Param        id   path      string  true  "Teralux ID"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxSingleResponseDTO}  "Returns teralux with room_id and devices array"
-// @Failure      400  {object}  dtos.StandardResponse "Invalid ID format"
-// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404  {object}  dtos.StandardResponse "Teralux not found"
-// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/teralux/{id} [get]
 func (c *GetTeraluxByIDController) GetTeraluxByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 

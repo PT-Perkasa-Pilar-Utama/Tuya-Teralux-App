@@ -26,20 +26,6 @@ func NewGetDeviceStatusesByDeviceIDController(useCase *usecases.GetDeviceStatuse
 }
 
 // GetDeviceStatusesByDeviceID handles GET /api/device/statuses/:deviceId endpoint
-// @Summary      Get Device Statuses by Device ID
-// @Description  Retrieves all statuses for a specific device
-// @Tags         05. Device Statuses
-// @Produce      json
-// @Param        id        path      string  true  "Device ID"
-// @Param        page      query     int     false "Page number"
-// @Param        limit     query     int     false "Items per page"
-// @Param        per_page  query     int     false "Items per page (alias for limit)"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceStatusListResponseDTO}
-// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404  {object}  dtos.StandardResponse "Device not found"
-// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/devices/{id}/statuses [get]
 func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

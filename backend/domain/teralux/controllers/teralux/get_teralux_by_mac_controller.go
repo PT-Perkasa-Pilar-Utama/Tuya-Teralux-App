@@ -26,19 +26,6 @@ func NewGetTeraluxByMACController(useCase *usecases.GetTeraluxByMACUseCase) *Get
 }
 
 // GetTeraluxByMAC handles GET /api/teralux/mac/:mac endpoint
-// @Summary      Get Teralux by MAC Address
-// @Description  Retrieves a teralux device by its MAC address
-// @Tags         03. Teralux
-// @Accept       json
-// @Produce      json
-// @Param        mac  path      string  true  "MAC Address"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxSingleResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse "Invalid MAC Address format"
-// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404  {object}  dtos.StandardResponse "Teralux not found"
-// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/teralux/mac/{mac} [get]
 func (c *GetTeraluxByMACController) GetTeraluxByMAC(ctx *gin.Context) {
 	mac := ctx.Param("mac")
 	if strings.TrimSpace(mac) == "" || strings.Contains(mac, "INVALID") {

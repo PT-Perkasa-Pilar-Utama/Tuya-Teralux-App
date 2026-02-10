@@ -35,7 +35,7 @@ func NewWhisperProxyController(usecase *usecases.WhisperProxyUsecase, cfg *utils
 // ProxyTranscribeAudio godoc
 // @Summary Transcribe audio file (Proxy to Outsystems)
 // @Description Submit audio file for transcription via Outsystems proxy. Processing is asynchronous.
-// @Tags 08. Speech
+// @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
