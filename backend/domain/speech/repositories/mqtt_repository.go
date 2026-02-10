@@ -3,20 +3,20 @@ package repositories
 import (
 	"sync"
 
-	common_infra "teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 type MqttRepository struct {
-	mqttSvc  common_infra.MqttService
+	mqttSvc  *infrastructure.MqttService
 	topic    string
 	mu       sync.RWMutex
 	callback func([]byte)
 }
 
-func NewMqttRepository(mqttSvc common_infra.MqttService, cfg *utils.Config) *MqttRepository {
+func NewMqttRepository(mqttSvc *infrastructure.MqttService, cfg *utils.Config) *MqttRepository {
 	r := &MqttRepository{
 		mqttSvc: mqttSvc,
 		topic:   cfg.MqttTopic,

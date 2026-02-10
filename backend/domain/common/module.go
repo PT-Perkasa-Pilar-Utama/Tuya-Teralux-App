@@ -16,11 +16,11 @@ type CommonModule struct {
 	HealthController *controllers.HealthController
 	CacheController  *controllers.CacheController
 	DocsController   *controllers.DocsController
-	MqttService      infrastructure.MqttService
+	MqttService      *infrastructure.MqttService
 }
 
 // NewCommonModule initializes the common domain components
-func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc infrastructure.MqttService) *CommonModule {
+func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService) *CommonModule {
 	return &CommonModule{
 		HealthController: controllers.NewHealthController(),
 		CacheController:  controllers.NewCacheController(badger, vector),

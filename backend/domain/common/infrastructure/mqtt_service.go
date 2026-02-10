@@ -9,25 +9,15 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-// MqttService defines the interface for MQTT operations
-type MqttService interface {
-	Connect() error
-	Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error
-	Unsubscribe(topic string) error
-	Publish(topic string, qos byte, retained bool, payload interface{}) error
-	IsConnected() bool
-	Close()
-}
-
-// mqttService manages the MQTT client connection
-type mqttService struct {
+// MqttService manages the MQTT client connection
+type MqttService struct {
 	client mqtt.Client
 	config *utils.Config
 }
 
 // NewMqttService initializes a new MQTT service
-func NewMqttService(cfg *utils.Config) MqttService {
-	s := &mqttService{
+func NewMqttService(cfg *utils.Config) *MqttService {
+	s := &MqttService{
 		config: cfg,
 	}
 
@@ -52,7 +42,7 @@ func NewMqttService(cfg *utils.Config) MqttService {
 }
 
 // Connect initiates the connection to the MQTT broker
-func (s *mqttService) Connect() error {
+func (s *MqttService) Connect() error {
 	if token := s.client.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
@@ -60,7 +50,7 @@ func (s *mqttService) Connect() error {
 }
 
 // Subscribe subscribes to a topic
-func (s *mqttService) Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error {
+func (s *MqttService) Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error {
 	if token := s.client.Subscribe(topic, qos, handler); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
@@ -69,7 +59,7 @@ func (s *mqttService) Subscribe(topic string, qos byte, handler mqtt.MessageHand
 }
 
 // Unsubscribe unsubscribes from a topic
-func (s *mqttService) Unsubscribe(topic string) error {
+func (s *MqttService) Unsubscribe(topic string) error {
 	if token := s.client.Unsubscribe(topic); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
@@ -77,7 +67,7 @@ func (s *mqttService) Unsubscribe(topic string) error {
 }
 
 // Publish publishes a message to a topic
-func (s *mqttService) Publish(topic string, qos byte, retained bool, payload interface{}) error {
+func (s *MqttService) Publish(topic string, qos byte, retained bool, payload interface{}) error {
 	if !s.client.IsConnected() {
 		return fmt.Errorf("MQTT client not connected")
 	}
@@ -87,12 +77,12 @@ func (s *mqttService) Publish(topic string, qos byte, retained bool, payload int
 }
 
 // IsConnected checks if the client is connected
-func (s *mqttService) IsConnected() bool {
+func (s *MqttService) IsConnected() bool {
 	return s.client.IsConnected()
 }
 
 // Close disconnects the client
-func (s *mqttService) Close() {
+func (s *MqttService) Close() {
 	if s.client != nil && s.client.IsConnected() {
 		s.client.Disconnect(250)
 		utils.LogInfo("Common MQTT Disconnected")

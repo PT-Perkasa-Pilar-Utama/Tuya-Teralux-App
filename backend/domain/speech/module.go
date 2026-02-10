@@ -14,7 +14,7 @@ import (
 )
 
 // InitModule initializes the Speech module with the protected router group.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase, mqttSvc infrastructure.MqttService) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase, mqttSvc *infrastructure.MqttService) {
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository(cfg)
 	ollamaRepo := repositories.NewOllamaRepository()
