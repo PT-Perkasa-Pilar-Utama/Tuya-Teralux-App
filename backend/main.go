@@ -13,6 +13,7 @@ import (
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag"
+	"teralux_app/domain/scene"
 	"teralux_app/domain/speech"
 	"teralux_app/domain/teralux"
 	teralux_entities "teralux_app/domain/teralux/entities"
@@ -187,6 +188,10 @@ func main() {
 
 		// Initialize Speech with RAG, Badger and Tuya Auth dependencies
 		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService)
+
+		// 5. Scene Module
+		sceneModule := scene.NewSceneModule(badgerService, tuyaModule.DeviceControlUseCase, mqttService)
+		sceneModule.RegisterRoutes(protected)
 	}
 
 	// Register Health at the end so it appears last in Swagger
