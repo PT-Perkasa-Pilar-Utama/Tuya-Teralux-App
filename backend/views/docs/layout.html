@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teralux Docs - {{ .Title }}</title>
+    
+    <!-- Design System Tokens & Style -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/docs/assets/css/docs.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2><span>📚</span> Teralux Docs</h2>
+        </div>
+        <nav class="sidebar-nav">
+            {{ template "sidebar" dict "Tree" .Tree "CurrentPath" .CurrentPath }}
+        </nav>
+        <div class="sidebar-resizer"></div>
+    </aside>
+
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <span>☰</span>
+    </button>
+    
+    <main class="main-container">
+        <div class="content">
+            <article class="markdown-body">
+                {{ .Content }}
+                <footer class="content-footer">
+                    &copy; 2026 Teralux. Built with Goldmark & Go.
+                </footer>
+            </article>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+             // Copy Button Injection
+             document.querySelectorAll('pre').forEach(pre => {
+                const button = document.createElement('button');
+                button.className = 'copy-btn';
+                button.textContent = 'Copy';
+                
+                button.addEventListener('click', () => {
+                    const code = pre.querySelector('code');
+                    const text = code ? code.innerText : pre.innerText;
+                    
+                    navigator.clipboard.writeText(text).then(() => {
+                        button.textContent = 'Copied!';
+                        setTimeout(() => button.textContent = 'Copy', 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy:', err);
+                        button.textContent = 'Error';
+                    });
+                });
+                
+                // Ensure pre has relative positioning for absolute button
+                if (getComputedStyle(pre).position === 'static') {
+                    pre.style.position = 'relative';
+                }
+                
+                pre.appendChild(button);
+            });
+
+            // Mobile Menu Toggle
+            const mobileToggle = document.getElementById('mobile-menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.createElement('div');
+            
+            overlay.className = 'sidebar-overlay';
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.5); z-index: 15; display: none;
+                transition: opacity 0.3s; opacity: 0;
+            `;
+            document.body.appendChild(overlay);
+
+            function toggleMobileMenu() {
+                sidebar.classList.toggle('mobile-open');
+                const isOpen = sidebar.classList.contains('mobile-open');
+                mobileToggle.innerHTML = isOpen ? '<span>✕</span>' : '<span>☰</span>';
+                
+                if (isOpen) {
+                    overlay.style.display = 'block';
+                    setTimeout(() => overlay.style.opacity = '1', 10);
+                } else {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.style.display = 'none', 300);
+                }
+            }
+
+            mobileToggle.addEventListener('click', toggleMobileMenu);
+            overlay.addEventListener('click', toggleMobileMenu);
+
+            // Resizable Sidebar
+            const resizer = document.querySelector('.sidebar-resizer');
+            let isResizing = false;
+
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                resizer.classList.add('resizing');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none'; // Prevent text selection
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                // Limit width between 240px and 600px
+                let newWidth = e.clientX;
+                if (newWidth < 240) newWidth = 240;
+                if (newWidth > 600) newWidth = 600;
+
+                sidebar.style.width = `${newWidth}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    resizer.classList.remove('resizing');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+
+            // Directory toggling
+            document.querySelectorAll('.dir-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const content = item.nextElementSibling;
+                    const toggle = item.querySelector('.dir-toggle');
+                    const isHidden = content.style.display === 'none';
+                    
+                    content.style.display = isHidden ? 'block' : 'none';
+                    toggle.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+                });
+            });
+
+            // Mobile: Close sidebar on link click
+            document.querySelectorAll('.file-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        toggleMobileMenu();
+                    }
+                });
+            });
+
+            // Modern Alert Transformer
+            document.querySelectorAll('blockquote').forEach(bq => {
+                const firstP = bq.querySelector('p');
+                if (firstP && firstP.textContent.trim().startsWith('[!')) {
+                    const match = firstP.textContent.trim().match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
+                    if (match) {
+                        const type = match[1].toLowerCase();
+                        bq.classList.add('markdown-alert', 'markdown-alert-' + type);
+                        
+                        const title = document.createElement('div');
+                        title.className = 'markdown-alert-title';
+                        title.innerHTML = `<span>${match[1]}</span>`;
+                        
+                        firstP.innerHTML = firstP.innerHTML.replace(match[0], '').trim();
+                        bq.prepend(title);
+                    }
+                }
+            });
+            
+            // Auto-scroll to active link in sidebar
+            const activeLink = document.querySelector('.file-link.active');
+            if (activeLink) {
+                activeLink.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>

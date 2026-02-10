@@ -7,13 +7,13 @@ This is the initial setup screen for the Teralux Device, used to register the ph
 ## API Used
 *   **Register Teralux**: `POST /api/teralux`
 *   **Request Body**:
-    ```json
+```json
     {
       "mac_address": "AA:BB:CC:11:22:33",
       "room_id": "Meeting Room 1",
       "name": "Front Wall Tablet"
     }
-    ```
+```
 
 ## Flow
 1.  **Display**:

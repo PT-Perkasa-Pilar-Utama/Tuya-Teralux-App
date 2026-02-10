@@ -1,85 +1,157 @@
-# ENDPOINT: POST /api/tuya/devices/:id/commands/*
+# ENDPOINTS: Device Control (Switch & IR)
 
 ## Description
-Controls Tuya devices by sending commands. Supports standard switch controls and IR remote commands (AC, TV, etc).
+Controls Tuya devices by sending commands. This documentation covers two types of controls:
+1. **Standard Switch Control**: For standard devices like lights, switches, and breakers.
+2. **Infrared (IR) Control**: For IR-controlled devices like ACs and TVs via an IR Blaster hub.
 
-## Test Scenarios
+---
 
-### 1. Control Switch (Success)
-- **URL**: `http://localhost:8080/api/tuya/devices/:id/commands/switch`
+## 1. Standard Switch Control
+**URL**: `POST /api/tuya/devices/{id}/commands/switch`
+
+### Authentication
+- **Type**: BearerAuth
+- **Header**: `Authorization: Bearer <token>`
+
+### Path Parameters
+- `id` (string, required) - Target device ID
+
+### Test Scenarios
+
+#### 1.1 Control Switch (Success)
 - **Method**: `POST`
 - **Headers**:
-  ```json
-  {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer <valid_token>"
-  }
-  ```
-- **Pre-conditions**: Device supports switch commands (e.g., lights, breakers).
+```json
+{
+  "Content-Type": "application/json",
+  "Authorization": "Bearer <valid_token>"
+}
+```
+- **Pre-conditions**: Device supports switch commands.
 - **Request Body**:
-  ```json
-  {
-    "value": true
-  }
-  ```
+```json
+{
+  "code": "switch_1",
+  "value": true
+}
+```
 - **Expected Response**:
-  ```json
-  {
-    "status": true,
-    "message": "Command sent successfully",
-    "data": true
-  }
-  ```
+```json
+{
+  "status": true,
+  "message": "Command sent successfully",
+  "data": true
+}
+```
   *(Status: 200 OK)*
 - **Side Effects**: Physical device turns ON.
 
-### 2. Control IR Device (AC/TV) (Success)
-- **URL**: `http://localhost:8080/api/tuya/devices/:id/commands/ir`
+#### 1.2 Validation: Missing Body
 - **Method**: `POST`
-- **Headers**:
-  ```json
-  {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer <valid_token>"
-  }
-  ```
-- **Pre-conditions**: Device is an IR Blaster and `remote_id` is configured.
-- **Request Body**:
-  ```json
-  {
-    "remote_id": "remote_123",
-    "key": "PowerOn"
-  }
-  ```
+- **Request Body**: `{}`
 - **Expected Response**:
-  ```json
-  {
-    "status": true,
-    "message": "IR command sent successfully"
-  }
-  ```
-  *(Status: 200 OK)*
-- **Side Effects**: IR Blaster emits signal.
-
-### 3. Validation: Missing Parameters
-- **URL**: `http://localhost:8080/api/tuya/devices/:id/commands/switch`
-- **Method**: `POST`
-- **Headers**:
-  ```json
-  {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer <valid_token>"
-  }
-  ```
-- **Request Body**:
-  ```json
-  {} 
-  ```
-- **Expected Response**:
-  ```json
-  {
-    "status": false,
-    "message": "Invalid request body"
-  }
-  ```
+```json
+{
+  "status": false,
+  "message": "Invalid request body"
+}
+```
   *(Status: 400 Bad Request)*
+
+---
+
+## 2. Infrared (IR) Control
+**URL**: `POST /api/tuya/devices/{id}/commands/ir`
+
+### Authentication
+- **Type**: BearerAuth
+- **Header**: `Authorization: Bearer <token>`
+
+### Path Parameters
+- `id` (string, required) - IR Blaster (Hub) device ID
+
+### Test Scenarios
+
+#### 2.1 Control IR Device (AC/TV) (Success)
+- **Method**: `POST`
+- **Headers**:
+```json
+{
+  "Content-Type": "application/json",
+  "Authorization": "Bearer <valid_token>"
+}
+```
+- **Pre-conditions**: Device is an IR Blaster and target `remote_id` is configured.
+- **Request Body**:
+```json
+{
+  "remote_id": "remote_123",
+  "code": "PowerOn",
+  "value": "1"
+}
+```
+- **Expected Response**:
+```json
+{
+  "status": true,
+  "message": "IR command sent successfully"
+}
+```
+  *(Status: 200 OK)*
+- **Side Effects**: IR Blaster emits the specific "PowerOn" signal to the remote device.
+
+#### 2.2 Validation: Missing Remote ID
+- **Method**: `POST`
+- **Request Body**: 
+```json
+{
+  "code": "PowerOn",
+  "value": "1"
+}
+```
+- **Expected Response**:
+```json
+{
+  "status": false,
+  "message": "Invalid request body: remote_id is required"
+}
+```
+  *(Status: 400 Bad Request)*
+
+---
+
+## Common Security & Error Scenarios (Both Endpoints)
+
+### 3.1 Security: Unauthorized
+- **Headers**: No Authorization header.
+- **Expected Response**:
+```json
+{
+  "status": false,
+  "message": "Unauthorized"
+}
+```
+  *(Status: 401 Unauthorized)*
+
+### 3.2 Error: Device Not Found
+- **Pre-conditions**: Invalid device ID provided.
+- **Expected Response**:
+```json
+{
+  "status": false,
+  "message": "Device not found"
+}
+```
+  *(Status: 500 Internal Server Error)*
+
+### 3.3 Error: Tuya Cloud Error
+- **Pre-conditions**: Valid request but Tuya Cloud returns an error (e.g., device offline).
+- **Expected Response**:
+```json
+{
+  "status": false,
+  "message": "Failed to send command to Tuya"
+}
+```
+  *(Status: 500 Internal Server Error)*

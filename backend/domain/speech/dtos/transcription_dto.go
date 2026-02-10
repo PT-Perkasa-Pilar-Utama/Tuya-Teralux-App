@@ -25,8 +25,8 @@ type WhisperProxyStatusDTO struct {
 }
 
 type WhisperProxyProcessResponseDTO struct {
-	TaskID string                 `json:"task_id"`
-	Status *WhisperProxyStatusDTO `json:"status,omitempty"`
+	TaskID     string                 `json:"task_id"`
+	TaskStatus *WhisperProxyStatusDTO `json:"task_status,omitempty"`
 }
 
 type StandardResponse struct {
@@ -66,13 +66,13 @@ type AsyncTranscriptionLongStatusDTO struct {
 }
 
 type AsyncTranscriptionProcessResponseDTO struct {
-	TaskID string                       `json:"task_id"`
-	Status *AsyncTranscriptionStatusDTO `json:"status,omitempty"`
+	TaskID     string                       `json:"task_id"`
+	TaskStatus *AsyncTranscriptionStatusDTO `json:"task_status,omitempty"`
 }
 
 type AsyncTranscriptionLongProcessResponseDTO struct {
-	TaskID string                           `json:"task_id"`
-	Status *AsyncTranscriptionLongStatusDTO `json:"status,omitempty"`
+	TaskID     string                           `json:"task_id"`
+	TaskStatus *AsyncTranscriptionLongStatusDTO `json:"task_status,omitempty"`
 }
 
 // StatusUpdateMessage is used for real-time notifications via MQTT

@@ -54,7 +54,7 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 	status, _ := c.usecase.GetStatus(taskID)
 	// Use DTOs directly in the response, avoid hardcoding TTL values here
 	if status != nil {
-		ctx.JSON(http.StatusAccepted, dtos.StandardResponse{Status: true, Message: "Task submitted", Data: map[string]interface{}{"task_id": taskID, "status": status}})
+		ctx.JSON(http.StatusAccepted, dtos.StandardResponse{Status: true, Message: "Task submitted", Data: map[string]interface{}{"task_id": taskID, "task_status": status}})
 		return
 	}
 

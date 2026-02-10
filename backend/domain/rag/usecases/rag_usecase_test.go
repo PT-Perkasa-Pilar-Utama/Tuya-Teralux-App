@@ -29,7 +29,7 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 
 	// Prepare fake LLM response
 	llmResp := map[string]interface{}{
-		"endpoint":  "/api/tuya/devices/{id}/commands/switch",
+		"endpoint":  "/api/tuya/devices/lamp123/commands/switch",
 		"method":    "POST",
 		"device_id": "lamp123",
 		"body":      map[string]interface{}{"commands": []map[string]interface{}{{"code": "switch", "value": 1}}},
@@ -80,8 +80,8 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 	}
 
 	// verify structured result contains chosen endpoint, method and body
-	if status.Endpoint != "/api/tuya/devices/{id}/commands/switch" {
-		t.Fatalf("expected endpoint /api/tuya/devices/{id}/commands/switch, got %s", status.Endpoint)
+	if status.Endpoint != "/api/tuya/devices/lamp123/commands/switch" {
+		t.Fatalf("expected endpoint /api/tuya/devices/lamp123/commands/switch, got %s", status.Endpoint)
 	}
 	if status.Method != "POST" {
 		t.Fatalf("expected method POST, got %s", status.Method)
@@ -106,7 +106,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 
 	// fake LLM as before
 	llmResp := map[string]interface{}{
-		"endpoint":  "/api/tuya/devices/{id}/commands/switch",
+		"endpoint":  "/api/tuya/devices/lamp123/commands/switch",
 		"method":    "POST",
 		"device_id": "lamp123",
 		"body":      map[string]interface{}{"commands": []map[string]interface{}{{"code": "switch", "value": 1}}},
@@ -180,7 +180,7 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 
 	// fake LLM as before
 	llmResp := map[string]interface{}{
-		"endpoint":  "/api/tuya/devices/{id}/commands/switch",
+		"endpoint":  "/api/tuya/devices/lamp123/commands/switch",
 		"method":    "POST",
 		"device_id": "lamp123",
 		"body":      map[string]interface{}{"commands": []map[string]interface{}{{"code": "switch", "value": 1}}},

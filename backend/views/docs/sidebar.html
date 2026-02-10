@@ -1,0 +1,23 @@
+{{ define "sidebar" }}
+{{ $currentPath := .CurrentPath }}
+<ul class="file-tree">
+    {{ range .Tree.Children }}
+        <li class="tree-item">
+            {{ if .IsDir }}
+                <div class="dir-item">
+                    <span class="dir-toggle">▼</span>
+                    <span class="dir-name">{{ .Name }}</span>
+                </div>
+                <div class="dir-content">
+                    {{ template "sidebar" dict "Tree" . "CurrentPath" $currentPath }}
+                </div>
+            {{ else }}
+                <a href="/docs/{{ .Path }}" class="file-link {{ if eq .Path $currentPath }}active{{ end }}">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">{{ .Name }}</span>
+                </a>
+            {{ end }}
+        </li>
+    {{ end }}
+</ul>
+{{ end }}
