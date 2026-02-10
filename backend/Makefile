@@ -118,21 +118,21 @@ setup:
 # Run in Docker (dev mode with hot reload)
 dev-docker: dev-docker-stop
 	@echo "🚀 Starting development environment in Docker (Fast Mode)..."
-	@trap 'echo "🛑 Cleaning up..."; docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
-	docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes; \
-	docker compose --env-file .env.dev -f docker-compose.dev.yml up
+	@trap 'echo "🛑 Cleaning up..."; docker compose -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
+	docker compose -f docker-compose.dev.yml down --remove-orphans --volumes; \
+	docker compose -f docker-compose.dev.yml up
 
 # Run development environment with forced rebuild
 dev-docker-build: dev-docker-stop
 	@echo "🚀 Starting development environment in Docker (Forced Rebuild)..."
-	@trap 'echo "🛑 Cleaning up..."; docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
-	docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes; \
-	docker compose --env-file .env.dev -f docker-compose.dev.yml up --build
+	@trap 'echo "🛑 Cleaning up..."; docker compose -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
+	docker compose -f docker-compose.dev.yml down --remove-orphans --volumes; \
+	docker compose -f docker-compose.dev.yml up --build
 
 # Stop development environment
 dev-docker-stop:
 	@echo "🛑 Stopping development environment (removing volumes)..."
-	docker compose --env-file .env.dev -f docker-compose.dev.yml down --remove-orphans --volumes
+	docker compose -f docker-compose.dev.yml down --remove-orphans --volumes
 
 # Ensure Ollama image, data dir & container exist
 ollama-ensure:
@@ -168,8 +168,8 @@ ollama-setup: ollama-ensure ollama-pull-llm
 # Usage: make rag text="turn on the lamp"
 rag:
 	@echo "🔧 Running RAG helper (auth -> submit -> poll)..."
-	@# Determine port preference: .env.dev PORT > env PORT > 8081
-	@PORT_VAL=$$(grep -h '^PORT=' .env.dev 2>/dev/null | sed 's/PORT=//' || true); \
+	@# Determine port preference: .env PORT > env PORT > 8081
+	@PORT_VAL=$$(grep -h '^PORT=' .env 2>/dev/null | sed 's/PORT=//' || true); \
 	if [ -z "$$PORT_VAL" ]; then PORT_VAL="$${PORT:-8081}"; fi; \
 	if [ -n "${text}" ]; then \
 		RAG_TEXT="${text}" bash scripts/rag.sh "" "${API_KEY}" "http://localhost:$$PORT_VAL"; \

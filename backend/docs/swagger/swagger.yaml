@@ -1,5 +1,61 @@
 basePath: /
 definitions:
+  dtos.AsyncTranscriptionLongProcessResponseDTO:
+    properties:
+      status:
+        $ref: '#/definitions/dtos.AsyncTranscriptionLongStatusDTO'
+      task_id:
+        type: string
+    type: object
+  dtos.AsyncTranscriptionLongResultDTO:
+    properties:
+      detected_language:
+        example: id
+        type: string
+      text:
+        example: Ini adalah transkripsi yang sangat panjang...
+        type: string
+    type: object
+  dtos.AsyncTranscriptionLongStatusDTO:
+    properties:
+      expires_at:
+        type: string
+      expires_in_seconds:
+        type: integer
+      result:
+        $ref: '#/definitions/dtos.AsyncTranscriptionLongResultDTO'
+      status:
+        example: completed
+        type: string
+    type: object
+  dtos.AsyncTranscriptionProcessResponseDTO:
+    properties:
+      status:
+        $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
+      task_id:
+        type: string
+    type: object
+  dtos.AsyncTranscriptionResultDTO:
+    properties:
+      text:
+        example: Halo dunia
+        type: string
+      translated_text:
+        example: Hello world
+        type: string
+    type: object
+  dtos.AsyncTranscriptionStatusDTO:
+    properties:
+      expires_at:
+        type: string
+      expires_in_seconds:
+        type: integer
+      result:
+        $ref: '#/definitions/dtos.AsyncTranscriptionResultDTO'
+      status:
+        example: completed
+        type: string
+    type: object
   dtos.CreateDeviceRequestDTO:
     properties:
       id:
@@ -133,6 +189,18 @@ definitions:
     required:
     - message
     type: object
+  dtos.OutsystemsTranscriptionResultDTO:
+    properties:
+      detected_language:
+        example: id
+        type: string
+      filename:
+        example: audio.mp3
+        type: string
+      transcription:
+        example: Halo dunia
+        type: string
+    type: object
   dtos.RAGProcessResponseDTO:
     properties:
       status:
@@ -213,24 +281,6 @@ definitions:
     properties:
       teralux:
         $ref: '#/definitions/dtos.TeraluxResponseDTO'
-    type: object
-  dtos.TranscriptionLongResponseDTO:
-    properties:
-      detected_language:
-        example: id
-        type: string
-      text:
-        example: Ini adalah transkripsi yang sangat panjang...
-        type: string
-    type: object
-  dtos.TranscriptionResponseDTO:
-    properties:
-      text:
-        example: Halo dunia
-        type: string
-      translated_text:
-        example: Hello world
-        type: string
     type: object
   dtos.TuyaAuthResponseDTO:
     properties:
@@ -371,6 +421,25 @@ definitions:
       name:
         type: string
       room_id:
+        type: string
+    type: object
+  dtos.WhisperProxyProcessResponseDTO:
+    properties:
+      status:
+        $ref: '#/definitions/dtos.WhisperProxyStatusDTO'
+      task_id:
+        type: string
+    type: object
+  dtos.WhisperProxyStatusDTO:
+    properties:
+      expires_at:
+        type: string
+      expires_in_seconds:
+        type: integer
+      result:
+        $ref: '#/definitions/dtos.OutsystemsTranscriptionResultDTO'
+      status:
+        example: completed
         type: string
     type: object
   teralux_app_domain_common_dtos.StandardResponse:
@@ -992,8 +1061,9 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: 'Transcribe audio to text using Whisper. Supports: .mp3, .wav,
-        .m4a, .aac, .ogg, .flac.'
+      description: 'Start transcription of audio file. Attempts PPU (Outsystems) first,
+        falls back to local Whisper if PPU fails. Asynchronous processing. Supports:
+        .mp3, .wav, .m4a, .aac, .ogg, .flac.'
       parameters:
       - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
         in: formData
@@ -1003,14 +1073,14 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "202":
+          description: Accepted
           schema:
             allOf:
             - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.TranscriptionResponseDTO'
+                  $ref: '#/definitions/dtos.AsyncTranscriptionProcessResponseDTO'
               type: object
         "400":
           description: Bad Request
@@ -1030,15 +1100,51 @@ paths:
             $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Transcribe audio file
+      summary: Transcribe audio file (with PPU fallback)
+      tags:
+      - 08. Speech
+  /api/speech/transcribe/{transcribe_id}:
+    get:
+      description: Get the status and result of any transcription task (Short, Long,
+        or PPU).
+      parameters:
+      - description: Task ID
+        in: path
+        name: transcribe_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.AsyncTranscriptionProcessResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transcription status (Consolidated)
       tags:
       - 08. Speech
   /api/speech/transcribe/long:
     post:
       consumes:
       - multipart/form-data
-      description: 'Transcribe long audio to text using Whisper. Supports: .mp3, .wav,
-        .m4a, .aac, .ogg, .flac. No translation, no RAG.'
+      description: 'Start transcription of long audio file using Whisper. Asynchronous
+        processing with background execution. No translation, no RAG. Supports: .mp3,
+        .wav, .m4a, .aac, .ogg, .flac.'
       parameters:
       - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
         in: formData
@@ -1053,14 +1159,14 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "202":
+          description: Accepted
           schema:
             allOf:
             - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.TranscriptionLongResponseDTO'
+                  $ref: '#/definitions/dtos.AsyncTranscriptionLongProcessResponseDTO'
               type: object
         "400":
           description: Bad Request
@@ -1081,6 +1187,51 @@ paths:
       security:
       - BearerAuth: []
       summary: Transcribe long audio file
+      tags:
+      - 08. Speech
+  /api/speech/transcribe/ppu:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Outsystems proxy. Processing
+        is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.WhisperProxyProcessResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Proxy to Outsystems)
       tags:
       - 08. Speech
   /api/teralux:

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -88,9 +87,6 @@ func main() {
 	}
 
 	utils.LoadConfig()
-
-	// Handle Migrations (replacement for entrypoint.sh in distroless)
-	RunMigrations()
 
 	// Initialize database connection
 	_, err := infrastructure.InitDB()
@@ -181,8 +177,8 @@ func main() {
 		utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
 		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase)
 
-		// Initialize Speech with RAG and Tuya Auth dependencies
-		speech.InitModule(protected, scfg, ragUsecase, tuyaModule.AuthUseCase)
+		// Initialize Speech with RAG, Badger and Tuya Auth dependencies
+		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase)
 	}
 
 	// Register Health at the end so it appears last in Swagger
@@ -196,39 +192,4 @@ func main() {
 	if err := router.Run(":" + port); err != nil {
 		utils.LogInfo("Failed to start server: %v", err)
 	}
-}
-
-func RunMigrations() {
-	cfg := utils.GetConfig()
-	if cfg.DBType != "mysql" || cfg.AutoMigrate != "true" {
-		return
-	}
-
-	dbHost := cfg.DBHost
-	dbPort := cfg.DBPort
-	dbUser := cfg.DBUser
-	dbPass := cfg.DBPassword
-	dbName := cfg.DBName
-
-	dsn := fmt.Sprintf("mysql://%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
-
-	// Wait for DB
-	utils.LogInfo("⏳ Waiting for MySQL to be ready...")
-	for i := 0; i < 30; i++ {
-		cmd := exec.Command("mysqladmin", "ping", "-h", dbHost, "--silent")
-		if err := cmd.Run(); err == nil {
-			break
-		}
-		time.Sleep(2 * time.Second)
-	}
-
-	utils.LogInfo("🔄 Running MySQL migrations...")
-	cmd := exec.Command("/usr/local/bin/migrate", "-path", "/app/migrations", "-database", dsn, "up")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		utils.LogInfo("❌ MySQL migrations failed: %v", err)
-		os.Exit(1)
-	}
-	utils.LogInfo("✅ MySQL migrations completed")
 }

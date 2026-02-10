@@ -28,6 +28,4 @@
 
 # Environment files (do not commit secrets)
 /.env
-/.env.dev
 /backend/.env
-/backend/.env.dev

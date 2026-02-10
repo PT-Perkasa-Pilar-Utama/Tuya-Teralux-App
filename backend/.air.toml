@@ -19,7 +19,7 @@ tmp_dir = "tmp"
   # Watch these directories if you specified.
   include_dir = []
   # Watch these files.
-  include_file = [".env", ".env.dev"]
+  include_file = [".env"]
   # Exclude files.
   exclude_file = []
   # Exclude specific regular expressions.
