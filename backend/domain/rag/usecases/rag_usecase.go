@@ -369,8 +369,15 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		utils.LogInfo("\n--- RAG Decision ---\nUser Request: %q\naccessed %s\nDetail: [%s] %s\nDeviceID: %s\nBody: %s\nHeaders: {\"Authorization\": %q}\n--------------------",
 			text, endpointDesc, method, endpoint, logDeviceID, bodyStr, authToken)
 
-		// Store structured result (do NOT perform external fetch)
-		statusDTO := &ragdtos.RAGStatusDTO{Status: "done", Endpoint: endpoint, Method: method, Body: bodyObj, Headers: headers}
+		// Store structured result
+		statusDTO := &ragdtos.RAGStatusDTO{
+			Status:   "done",
+			Endpoint: endpoint,
+			Method:   method,
+			Body:     bodyObj,
+			Headers:  headers,
+			Result:   fmt.Sprintf("Planned action: [%s] %s", method, endpoint),
+		}
 
 		// EXECUTE the decision by fetching the internal endpoint
 		if endpoint != "" {
@@ -396,6 +403,22 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 				utils.LogInfo("RAG Task %s: Executing action via internal fetch...", taskID)
 				execRes := u.executeAction(method, endpoint, bodyObj, validToken)
 				statusDTO.ExecutionResult = execRes
+
+				// Populate user-friendly result text from execution response
+				if m, ok := execRes.(map[string]interface{}); ok {
+					if errVal, exists := m["error"]; exists {
+						statusDTO.Result = fmt.Sprintf("Action execution failed: %v", errVal)
+					} else if msg, exists := m["message"]; exists {
+						statusDTO.Result = fmt.Sprintf("%v", msg)
+					} else {
+						statusDTO.Result = "Action executed successfully"
+					}
+				} else if s, ok := execRes.(string); ok && s != "" {
+					statusDTO.Result = s
+				} else {
+					statusDTO.Result = "Action completed"
+				}
+
 				utils.LogInfo("RAG Task %s: Action execution completed", taskID)
 			}
 		}

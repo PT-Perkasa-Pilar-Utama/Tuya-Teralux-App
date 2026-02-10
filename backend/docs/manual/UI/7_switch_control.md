@@ -24,12 +24,12 @@ A dedicated control screen for smart switches (1-gang, 2-gang, 3-gang, etc.). Di
     *   User taps a switch panel to toggle.
     *   **Optimistic Update**: UI updates immediately.
     *   Sends `PUT /api/devices/{id}/status` with:
-        ```json
+```json
         {
           "code": "switch_1",
           "value": true
         }
-        ```
+```
     *   **Rollback**: If API call fails, reverts the UI state.
 4.  **Offline Handling**:
     *   Entire screen is dimmed (50% opacity) when device is offline.

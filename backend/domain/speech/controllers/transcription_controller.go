@@ -186,8 +186,8 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 			Status:  true,
 			Message: "Task status retrieved successfully",
 			Data: dtos.AsyncTranscriptionProcessResponseDTO{
-				TaskID: taskID,
-				Status: status,
+				TaskID:     taskID,
+				TaskStatus: status,
 			},
 		})
 		return
@@ -200,8 +200,8 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 			Status:  true,
 			Message: "Task status retrieved successfully",
 			Data: dtos.AsyncTranscriptionLongProcessResponseDTO{
-				TaskID: taskID,
-				Status: statusLong,
+				TaskID:     taskID,
+				TaskStatus: statusLong,
 			},
 		})
 		return
@@ -214,8 +214,8 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 			Status:  true,
 			Message: "Task status retrieved successfully",
 			Data: dtos.WhisperProxyProcessResponseDTO{
-				TaskID: taskID,
-				Status: proxyStatus,
+				TaskID:     taskID,
+				TaskStatus: proxyStatus,
 			},
 		})
 		return
@@ -352,8 +352,8 @@ func (c *TranscriptionController) GetProxyTranscribeLongStatus(ctx *gin.Context)
 		Status:  true,
 		Message: "Task status retrieved successfully",
 		Data: dtos.AsyncTranscriptionLongProcessResponseDTO{
-			TaskID: taskID,
-			Status: status,
+			TaskID:     taskID,
+			TaskStatus: status,
 		},
 	})
 }

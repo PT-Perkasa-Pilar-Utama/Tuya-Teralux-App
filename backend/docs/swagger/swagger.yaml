@@ -2,10 +2,10 @@ basePath: /
 definitions:
   dtos.AsyncTranscriptionLongProcessResponseDTO:
     properties:
-      status:
-        $ref: '#/definitions/dtos.AsyncTranscriptionLongStatusDTO'
       task_id:
         type: string
+      task_status:
+        $ref: '#/definitions/dtos.AsyncTranscriptionLongStatusDTO'
     type: object
   dtos.AsyncTranscriptionLongResultDTO:
     properties:
@@ -30,10 +30,10 @@ definitions:
     type: object
   dtos.AsyncTranscriptionProcessResponseDTO:
     properties:
-      status:
-        $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
       task_id:
         type: string
+      task_status:
+        $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
     type: object
   dtos.AsyncTranscriptionResultDTO:
     properties:
@@ -77,10 +77,10 @@ definitions:
     type: object
   dtos.RAGProcessResponseDTO:
     properties:
-      status:
-        $ref: '#/definitions/dtos.RAGStatusDTO'
       task_id:
         type: string
+      task_status:
+        $ref: '#/definitions/dtos.RAGStatusDTO'
     type: object
   dtos.RAGRequestDTO:
     properties:
@@ -89,21 +89,10 @@ definitions:
     type: object
   dtos.RAGStatusDTO:
     properties:
-      body: {}
-      endpoint:
-        type: string
-      execution_result:
-        description: holds the response from the fetched endpoint
       expires_at:
         type: string
       expires_in_seconds:
         type: integer
-      headers:
-        additionalProperties:
-          type: string
-        type: object
-      method:
-        type: string
       result:
         description: raw LLM response when not structured
         type: string
@@ -241,10 +230,10 @@ definitions:
     type: object
   dtos.WhisperProxyProcessResponseDTO:
     properties:
-      status:
-        $ref: '#/definitions/dtos.WhisperProxyStatusDTO'
       task_id:
         type: string
+      task_status:
+        $ref: '#/definitions/dtos.WhisperProxyStatusDTO'
     type: object
   dtos.WhisperProxyStatusDTO:
     properties:
@@ -886,12 +875,17 @@ tags:
   name: 01. Auth
 - description: Tuya related endpoints
   name: 02. Tuya
+- description: Teralux device management endpoints
+  name: 03. Teralux
+- description: Teralux specific devices endpoints
+  name: 04. Devices
+- description: Device status management endpoints
+  name: 05. Device Statuses
 - description: Cache management endpoints
-  name: 03. Flush
+  name: 06. Flush
 - description: Speech endpoints
-  name: 04. Speech
+  name: 08. Speech
 - description: RAG endpoints
-  name: 05. RAG
+  name: 09. RAG
 - description: Health check endpoint
-  name: 06. Health
-
+  name: 10. Health

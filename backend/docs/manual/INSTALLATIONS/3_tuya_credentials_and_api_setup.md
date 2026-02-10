@@ -13,14 +13,14 @@ On your Project Overview page, you will see your **Access ID (Client ID)** and *
 2.  Open your backend `.env` file (copy from `.env.example` if you haven't).
 3.  Fill in the credentials:
 
-    ```env
+```env
     # Tuya Configuration
     TUYA_CLIENT_ID=your_access_id
     TUYA_SECRET=your_access_secret
     
     # INDONESIA USERS (Singapore Data Center)
     TUYA_BASE_URL=https://openapi-sg.iotbing.com
-    ```
+```
 
 ## 2. Verify Service APIs
 

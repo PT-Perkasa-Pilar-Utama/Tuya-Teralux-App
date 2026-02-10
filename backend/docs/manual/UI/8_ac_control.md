@@ -29,13 +29,13 @@ A dedicated control screen for Air Conditioners connected via Smart IR Hub. Prov
     *   **Fan Speed**: Tap to cycle through Auto → Low → Medium → High.
     *   **Power**: Tap to toggle ON/OFF.
     *   Each interaction sends `PUT /api/devices/{id}/status` with:
-        ```json
+```json
         {
           "remote_id": "actual_ac_remote_id",
           "code": "temp",
           "value": 24
         }
-        ```
+```
 4.  **Offline Handling**:
     *   Screen dimmed to 50% opacity when offline.
     *   Commands blocked with "Device is offline" snackbar.

@@ -59,7 +59,7 @@ func TestProcessTextReturns202(t *testing.T) {
 		t.Fatalf("expected task_id test-uuid, got %v", data["task_id"])
 	}
 	// Check status DTO presence and TTL via DTO (no hardcoded values in controller)
-	statusRaw, ok := data["status"].(map[string]interface{})
+	statusRaw, ok := data["task_status"].(map[string]interface{})
 	if !ok {
 		t.Fatalf("expected status to be present in response Data, got %+v", data["status"])
 	}

@@ -952,11 +952,11 @@ const docTemplate = `{
         "dtos.AsyncTranscriptionLongProcessResponseDTO": {
             "type": "object",
             "properties": {
-                "status": {
-                    "$ref": "#/definitions/dtos.AsyncTranscriptionLongStatusDTO"
-                },
                 "task_id": {
                     "type": "string"
+                },
+                "task_status": {
+                    "$ref": "#/definitions/dtos.AsyncTranscriptionLongStatusDTO"
                 }
             }
         },
@@ -994,11 +994,11 @@ const docTemplate = `{
         "dtos.AsyncTranscriptionProcessResponseDTO": {
             "type": "object",
             "properties": {
-                "status": {
-                    "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
-                },
                 "task_id": {
                     "type": "string"
+                },
+                "task_status": {
+                    "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
                 }
             }
         },
@@ -1064,11 +1064,11 @@ const docTemplate = `{
         "dtos.RAGProcessResponseDTO": {
             "type": "object",
             "properties": {
-                "status": {
-                    "$ref": "#/definitions/dtos.RAGStatusDTO"
-                },
                 "task_id": {
                     "type": "string"
+                },
+                "task_status": {
+                    "$ref": "#/definitions/dtos.RAGStatusDTO"
                 }
             }
         },
@@ -1083,27 +1083,11 @@ const docTemplate = `{
         "dtos.RAGStatusDTO": {
             "type": "object",
             "properties": {
-                "body": {},
-                "endpoint": {
-                    "type": "string"
-                },
-                "execution_result": {
-                    "description": "holds the response from the fetched endpoint"
-                },
                 "expires_at": {
                     "type": "string"
                 },
                 "expires_in_seconds": {
                     "type": "integer"
-                },
-                "headers": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "method": {
-                    "type": "string"
                 },
                 "result": {
                     "description": "raw LLM response when not structured",
@@ -1313,11 +1297,11 @@ const docTemplate = `{
         "dtos.WhisperProxyProcessResponseDTO": {
             "type": "object",
             "properties": {
-                "status": {
-                    "$ref": "#/definitions/dtos.WhisperProxyStatusDTO"
-                },
                 "task_id": {
                     "type": "string"
+                },
+                "task_status": {
+                    "$ref": "#/definitions/dtos.WhisperProxyStatusDTO"
                 }
             }
         },
@@ -1406,20 +1390,32 @@ const docTemplate = `{
             "name": "02. Tuya"
         },
         {
+            "description": "Teralux device management endpoints",
+            "name": "03. Teralux"
+        },
+        {
+            "description": "Teralux specific devices endpoints",
+            "name": "04. Devices"
+        },
+        {
+            "description": "Device status management endpoints",
+            "name": "05. Device Statuses"
+        },
+        {
             "description": "Cache management endpoints",
-            "name": "03. Flush"
+            "name": "06. Flush"
         },
         {
             "description": "Speech endpoints",
-            "name": "04. Speech"
+            "name": "08. Speech"
         },
         {
             "description": "RAG endpoints",
-            "name": "05. RAG"
+            "name": "09. RAG"
         },
         {
             "description": "Health check endpoint",
-            "name": "06. Health"
+            "name": "10. Health"
         }
     ]
 }`
