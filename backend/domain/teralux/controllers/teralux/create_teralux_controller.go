@@ -23,19 +23,6 @@ func NewCreateTeraluxController(useCase *usecases.CreateTeraluxUseCase) *CreateT
 }
 
 // CreateTeralux handles POST /api/teralux endpoint
-// @Summary      Create Teralux
-// @Description  Creates a new teralux device
-// @Tags         03. Teralux
-// @Accept       json
-// @Produce      json
-// @Param        request  body      teralux_dtos.CreateTeraluxRequestDTO  true  "Create Teralux Request"
-// @Success      201      {object}  dtos.StandardResponse{data=teralux_dtos.CreateTeraluxResponseDTO}  "New record created"
-// @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.CreateTeraluxResponseDTO}  "Idempotent: record already exists"
-// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      422      {object}  dtos.StandardResponse "Validation Error"
-// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/teralux [post]
 func (c *CreateTeraluxController) CreateTeralux(ctx *gin.Context) {
 	var req teralux_dtos.CreateTeraluxRequestDTO
 

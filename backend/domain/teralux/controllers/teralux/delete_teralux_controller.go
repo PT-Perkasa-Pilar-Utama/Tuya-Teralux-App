@@ -22,19 +22,6 @@ func NewDeleteTeraluxController(useCase *usecases.DeleteTeraluxUseCase) *DeleteT
 }
 
 // DeleteTeralux handles DELETE /api/teralux/:id endpoint
-// @Summary      Delete Teralux
-// @Description  Soft deletes a teralux device by ID
-// @Tags         03. Teralux
-// @Accept       json
-// @Produce      json
-// @Param        id   path      string  true  "Teralux ID"
-// @Success      200  {object}  dtos.StandardResponse "Successfully deleted"
-// @Failure      400  {object}  dtos.StandardResponse "Invalid ID format"
-// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404  {object}  dtos.StandardResponse "Teralux not found"
-// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/teralux/{id} [delete]
 func (c *DeleteTeraluxController) DeleteTeralux(ctx *gin.Context) {
 	id := ctx.Param("id")
 

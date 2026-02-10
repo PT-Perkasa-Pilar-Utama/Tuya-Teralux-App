@@ -23,20 +23,6 @@ func NewUpdateDeviceController(useCase *usecases.UpdateDeviceUseCase) *UpdateDev
 }
 
 // UpdateDevice handles PUT /api/devices/:id endpoint
-// @Summary      Update Device
-// @Description  Updates an existing device
-// @Tags         04. Devices
-// @Accept       json
-// @Produce      json
-// @Param        id       path      string                        true  "Device ID"
-// @Param        request  body      teralux_dtos.UpdateDeviceRequestDTO  true  "Update Device Request"
-// @Success      200      {object}  dtos.StandardResponse "Successfully updated"
-// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404      {object}  dtos.StandardResponse "Device not found"
-// @Failure      422      {object}  dtos.StandardResponse "Validation Error"
-// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/devices/{id} [put]
 func (c *UpdateDeviceController) UpdateDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

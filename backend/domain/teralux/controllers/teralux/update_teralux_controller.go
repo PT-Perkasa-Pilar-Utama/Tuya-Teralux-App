@@ -24,21 +24,6 @@ func NewUpdateTeraluxController(useCase *usecases.UpdateTeraluxUseCase) *UpdateT
 }
 
 // UpdateTeralux handles PUT /api/teralux/:id endpoint
-// @Summary      Update Teralux
-// @Description  Updates an existing teralux device
-// @Tags         03. Teralux
-// @Accept       json
-// @Produce      json
-// @Param        id       path      string                                true  "Teralux ID"
-// @Param        request  body      teralux_dtos.UpdateTeraluxRequestDTO  true  "Update Teralux Request"
-// @Success      200      {object}  dtos.StandardResponse "Successfully updated"
-// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404      {object}  dtos.StandardResponse "Record not found"
-// @Failure      409      {object}  dtos.StandardResponse "Conflict: Mac Address already in use"
-// @Failure      422      {object}  dtos.StandardResponse "Validation Error"
-// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/teralux/{id} [put]
 func (c *UpdateTeraluxController) UpdateTeralux(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var req teralux_dtos.UpdateTeraluxRequestDTO

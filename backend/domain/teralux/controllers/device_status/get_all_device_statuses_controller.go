@@ -26,19 +26,6 @@ func NewGetAllDeviceStatusesController(useCase *usecases.GetAllDeviceStatusesUse
 }
 
 // GetAllDeviceStatuses handles GET /api/devices/statuses endpoint
-// @Summary      Get All Device Statuses
-// @Description  Retrieves all device statuses
-// @Tags         05. Device Statuses
-// @Accept       json
-// @Produce      json
-// @Param        page      query  int     false  "Page number"
-// @Param        limit     query  int     false  "Items per page"
-// @Param        per_page  query  int     false  "Items per page (alias for limit)"
-// @Success      200      {object}  dtos.StandardResponse{data=teralux_dtos.DeviceStatusListResponseDTO}
-// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/devices/statuses [get]
 func (c *GetAllDeviceStatusesController) GetAllDeviceStatuses(ctx *gin.Context) {
 	pageStr := ctx.Query("page")
 	limitStr := ctx.Query("limit")

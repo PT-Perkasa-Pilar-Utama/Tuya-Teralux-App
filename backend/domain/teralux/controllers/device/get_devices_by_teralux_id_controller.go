@@ -27,22 +27,6 @@ func NewGetDevicesByTeraluxIDController(useCase *usecases.GetDevicesByTeraluxIDU
 }
 
 // GetDevicesByTeraluxID handles GET /api/devices/teralux/:teralux_id endpoint
-// @Summary      Get Devices by Teralux ID
-// @Description  Retrieves all devices linked to a specific teralux ID
-// @Tags         04. Devices
-// @Accept       json
-// @Produce      json
-// @Param        teralux_id   path      string  true  "Teralux ID"
-// @Param        page         query     int     false "Page number"
-// @Param        limit        query     int     false "Items per page"
-// @Param        per_page     query     int     false "Items per page (alias for limit)"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceListResponseDTO}  "Returns list of devices"
-// @Failure      400  {object}  dtos.StandardResponse "Invalid Teralux ID format"
-// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404  {object}  dtos.StandardResponse "Teralux hub not found"
-// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/devices/teralux/{teralux_id} [get]
 func (c *GetDevicesByTeraluxIDController) GetDevicesByTeraluxID(ctx *gin.Context) {
 	teraluxID := ctx.Param("teralux_id")
 	if strings.TrimSpace(teraluxID) == "" || strings.Contains(teraluxID, "INVALID") {

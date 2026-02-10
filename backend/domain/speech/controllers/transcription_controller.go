@@ -29,7 +29,7 @@ func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, whisperP
 // HandlePublishMqtt godoc
 // @Summary Publish message to MQTT
 // @Description Publish a message to the configured MQTT topic
-// @Tags 08. Speech
+// @Tags 04. Speech
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -64,11 +64,10 @@ func (c *TranscriptionController) HandlePublishMqtt(ctx *gin.Context) {
 	})
 }
 
-
 // HandleProxyTranscribe godoc
 // @Summary Transcribe audio file (with PPU fallback)
 // @Description Start transcription of audio file. Attempts PPU (Outsystems) first, falls back to local Whisper if PPU fails. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
-// @Tags 08. Speech
+// @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
@@ -162,7 +161,7 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 // GetProxyTranscribeStatus godoc
 // @Summary Get transcription status (Consolidated)
 // @Description Get the status and result of any transcription task (Short, Long, or PPU).
-// @Tags 08. Speech
+// @Tags 04. Speech
 // @Security BearerAuth
 // @Produce json
 // @Param transcribe_id path string true "Task ID"
@@ -231,7 +230,7 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 // HandleProxyTranscribeLong godoc
 // @Summary Transcribe long audio file
 // @Description Start transcription of long audio file using Whisper. Asynchronous processing with background execution. No translation, no RAG. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
-// @Tags 08. Speech
+// @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json

@@ -25,20 +25,6 @@ func NewGetAllTeraluxController(useCase *usecases.GetAllTeraluxUseCase) *GetAllT
 }
 
 // GetAllTeralux handles GET /api/teralux endpoint
-// @Summary      Get All Teralux
-// @Description  Retrieves a list of all teralux devices
-// @Tags         03. Teralux
-// @Accept       json
-// @Produce      json
-// @Param        page      query  int     false  "Page number"
-// @Param        limit     query  int     false  "Items per page"
-// @Param        per_page  query  int     false  "Items per page (alias for limit)"
-// @Param        room_id   query  string  false  "Filter by Room ID"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.TeraluxListResponseDTO}
-// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/teralux [get]
 func (c *GetAllTeraluxController) GetAllTeralux(ctx *gin.Context) {
 	var filter teralux_dtos.TeraluxFilterDTO
 	if err := ctx.ShouldBindQuery(&filter); err != nil {

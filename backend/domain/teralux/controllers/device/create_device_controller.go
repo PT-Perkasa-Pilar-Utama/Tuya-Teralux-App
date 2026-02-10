@@ -23,19 +23,6 @@ func NewCreateDeviceController(useCase *usecases.CreateDeviceUseCase) *CreateDev
 }
 
 // CreateDevice handles POST /api/devices endpoint
-// @Summary      Create Device
-// @Description  Creates a new device under a teralux unit
-// @Tags         04. Devices
-// @Accept       json
-// @Produce      json
-// @Param        request  body      teralux_dtos.CreateDeviceRequestDTO  true  "Create Device Request"
-// @Success      201      {object}  dtos.StandardResponse{data=teralux_dtos.CreateDeviceResponseDTO}  "Device created successfully"
-// @Failure      401      {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      409      {object}  dtos.StandardResponse "Device already exists"
-// @Failure      422      {object}  dtos.StandardResponse "Validation Error"
-// @Failure      500      {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/devices [post]
 func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 	var req teralux_dtos.CreateDeviceRequestDTO
 

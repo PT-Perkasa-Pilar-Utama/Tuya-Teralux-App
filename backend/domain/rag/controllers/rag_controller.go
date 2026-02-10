@@ -26,7 +26,7 @@ func NewRAGController(u RAGProcessor) *RAGController {
 // ProcessText godoc
 // @Summary Process text via RAG
 // @Description Submit text for RAG processing
-// @Tags 09. RAG
+// @Tags 05. RAG
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -63,7 +63,7 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 
 // GetStatus godoc
 // @Summary Get RAG task status
-// @Tags 09. RAG
+// @Tags 05. RAG
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"

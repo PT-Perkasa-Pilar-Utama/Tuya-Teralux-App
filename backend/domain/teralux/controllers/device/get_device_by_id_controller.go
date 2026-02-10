@@ -26,19 +26,6 @@ func NewGetDeviceByIDController(useCase *usecases.GetDeviceByIDUseCase) *GetDevi
 }
 
 // GetDeviceByID handles GET /api/devices/:id endpoint
-// @Summary      Get Device by ID
-// @Description  Retrieves a single device by ID
-// @Tags         04. Devices
-// @Accept       json
-// @Produce      json
-// @Param        id   path      string  true  "Device ID"
-// @Success      200  {object}  dtos.StandardResponse{data=teralux_dtos.DeviceSingleResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse "Invalid ID format"
-// @Failure      401  {object}  dtos.StandardResponse "Unauthorized"
-// @Failure      404  {object}  dtos.StandardResponse "Device not found"
-// @Failure      500  {object}  dtos.StandardResponse "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /api/devices/{id} [get]
 func (c *GetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if strings.TrimSpace(id) == "" || strings.Contains(id, "INVALID") {
