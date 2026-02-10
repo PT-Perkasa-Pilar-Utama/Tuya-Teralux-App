@@ -1,14 +1,19 @@
 package usecases
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	ragUsecases "teralux_app/domain/rag/usecases"
+	speechdtos "teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/repositories"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"time"
 )
 
 // WhisperRepositoryInterface defines the methods required from the Whisper repository
@@ -26,6 +31,11 @@ type TranscriptionUsecase struct {
 	ragUsecase      *ragUsecases.RAGUsecase
 	authUseCase     *tuyaUsecases.TuyaAuthUseCase
 	config          *utils.Config
+	badger          *infrastructure.BadgerService
+	// Async transcription task tracking
+	tasksMutex          sync.RWMutex
+	transcribeTasks     map[string]*speechdtos.AsyncTranscriptionStatusDTO
+	transcribeLongTasks map[string]*speechdtos.AsyncTranscriptionLongStatusDTO
 }
 
 func NewTranscriptionUsecase(
@@ -37,6 +47,7 @@ func NewTranscriptionUsecase(
 	cfg *utils.Config,
 	ragUsecase *ragUsecases.RAGUsecase,
 	authUseCase *tuyaUsecases.TuyaAuthUseCase,
+	badger *infrastructure.BadgerService,
 ) *TranscriptionUsecase {
 	return &TranscriptionUsecase{
 		whisperRepo:     whisperRepo,
@@ -47,6 +58,9 @@ func NewTranscriptionUsecase(
 		ragUsecase:      ragUsecase,
 		authUseCase:     authUseCase,
 		config:          cfg,
+		badger:          badger,
+		transcribeTasks:     make(map[string]*speechdtos.AsyncTranscriptionStatusDTO),
+		transcribeLongTasks: make(map[string]*speechdtos.AsyncTranscriptionLongStatusDTO),
 	}
 }
 
@@ -63,7 +77,8 @@ func (u *TranscriptionUsecase) StartListening() {
 			msg := string(payload)
 
 			// Loop prevention: ignore our own results
-			if strings.HasPrefix(msg, "Result: ") {
+			// Loop prevention: ignore our own results and JSON status updates
+			if strings.HasPrefix(msg, "Result: ") || strings.HasPrefix(msg, "Translated: ") || strings.HasPrefix(msg, "{") {
 				return
 			}
 
@@ -245,4 +260,302 @@ func (u *TranscriptionUsecase) TranscribeLongAudio(inputPath string, lang string
 	}
 
 	return text, nil
+}
+
+
+// ProxyTranscribeAudio starts async transcription task for short audio
+func (u *TranscriptionUsecase) ProxyTranscribeAudio(inputPath string, fileName string) (string, error) {
+	// Validate file
+	if _, err := os.Stat(inputPath); err != nil {
+		utils.LogError("Transcription: Failed to stat audio file: %v", err)
+		return "", fmt.Errorf("audio file not found")
+	}
+
+	// Generate task ID
+	taskID := utils.GenerateUUID()
+
+	// Store initial status in memory
+	status := &speechdtos.AsyncTranscriptionStatusDTO{
+		Status:    "pending",
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	u.tasksMutex.Lock()
+	if u.transcribeTasks == nil {
+		u.transcribeTasks = make(map[string]*speechdtos.AsyncTranscriptionStatusDTO)
+	}
+	u.transcribeTasks[taskID] = status
+	u.tasksMutex.Unlock()
+
+	// Store in persistent cache if available
+	if u.badger != nil {
+		taskData, _ := json.Marshal(status)
+		key := "transcribe:task:" + taskID
+		u.badger.Set(key, taskData)
+	}
+
+	utils.LogInfo("Transcription Task %s: Started processing audio file: %s", taskID, fileName)
+
+	// Start async processing
+	go u.processTranscribeAudioAsync(taskID, inputPath)
+
+	return taskID, nil
+}
+
+// ProxyTranscribeLongAudio starts async transcription task for long audio
+func (u *TranscriptionUsecase) ProxyTranscribeLongAudio(inputPath string, fileName string, lang string) (string, error) {
+	// Validate file
+	if _, err := os.Stat(inputPath); err != nil {
+		utils.LogError("Transcription Long: Failed to stat audio file: %v", err)
+		return "", fmt.Errorf("audio file not found")
+	}
+
+	// Generate task ID
+	taskID := utils.GenerateUUID()
+
+	// Store initial status in memory
+	status := &speechdtos.AsyncTranscriptionLongStatusDTO{
+		Status:    "pending",
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	u.tasksMutex.Lock()
+	if u.transcribeLongTasks == nil {
+		u.transcribeLongTasks = make(map[string]*speechdtos.AsyncTranscriptionLongStatusDTO)
+	}
+	u.transcribeLongTasks[taskID] = status
+	u.tasksMutex.Unlock()
+
+	// Store in persistent cache if available
+	if u.badger != nil {
+		taskData, _ := json.Marshal(status)
+		key := "transcribe_long:task:" + taskID
+		u.badger.Set(key, taskData)
+	}
+
+	utils.LogInfo("Transcription Long Task %s: Started processing audio file: %s", taskID, fileName)
+
+	// Start async processing
+	go u.processTranscribeLongAudioAsync(taskID, inputPath, lang)
+
+	return taskID, nil
+}
+
+// processTranscribeAudioAsync processes audio transcription in background
+func (u *TranscriptionUsecase) processTranscribeAudioAsync(taskID string, inputPath string) {
+	defer func() {
+		if r := recover(); r != nil {
+			utils.LogError("Transcription Task %s: Panic recovered: %v", taskID, r)
+			u.updateTranscribeTaskStatus(taskID, "failed", nil)
+		}
+	}()
+
+	// Transcribe audio
+	text, err := u.TranscribeAudio(inputPath)
+	if err != nil {
+		utils.LogError("Transcription Task %s: Transcription failed: %v", taskID, err)
+		u.updateTranscribeTaskStatus(taskID, "failed", nil)
+		return
+	}
+
+	// Try to translate
+	translated, _ := u.TranslateToEnglish(text)
+
+	// Build result
+	result := &speechdtos.AsyncTranscriptionResultDTO{
+		Text:           text,
+		TranslatedText: translated,
+	}
+
+	utils.LogInfo("Transcription Task %s: Successfully transcribed, triggering RAG processing", taskID)
+
+	// If translated, trigger RAG processing
+	if translated != "" {
+		go u.HandleCommand(translated)
+	}
+
+	u.updateTranscribeTaskStatus(taskID, "completed", result)
+}
+
+// processTranscribeLongAudioAsync processes long audio transcription in background
+func (u *TranscriptionUsecase) processTranscribeLongAudioAsync(taskID string, inputPath string, lang string) {
+	defer func() {
+		if r := recover(); r != nil {
+			utils.LogError("Transcription Long Task %s: Panic recovered: %v", taskID, r)
+			u.updateTranscribeLongTaskStatus(taskID, "failed", nil)
+		}
+	}()
+
+	// Transcribe long audio
+	text, err := u.TranscribeLongAudio(inputPath, lang)
+	if err != nil {
+		utils.LogError("Transcription Long Task %s: Transcription failed: %v", taskID, err)
+		u.updateTranscribeLongTaskStatus(taskID, "failed", nil)
+		return
+	}
+
+	// Build result
+	result := &speechdtos.AsyncTranscriptionLongResultDTO{
+		Text:             text,
+		DetectedLanguage: lang,
+	}
+
+	utils.LogInfo("Transcription Long Task %s: Successfully transcribed", taskID)
+	u.updateTranscribeLongTaskStatus(taskID, "completed", result)
+}
+
+// updateTranscribeTaskStatus updates the status of a short transcription task
+func (u *TranscriptionUsecase) updateTranscribeTaskStatus(taskID string, status string, result *speechdtos.AsyncTranscriptionResultDTO) {
+	newStatus := &speechdtos.AsyncTranscriptionStatusDTO{
+		Status:    status,
+		Result:    result,
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	// Update in memory
+	u.tasksMutex.Lock()
+	if u.transcribeTasks == nil {
+		u.transcribeTasks = make(map[string]*speechdtos.AsyncTranscriptionStatusDTO)
+	}
+	u.transcribeTasks[taskID] = newStatus
+	u.tasksMutex.Unlock()
+
+	// Update in persistent cache
+	if u.badger != nil {
+		taskData, _ := json.Marshal(newStatus)
+		key := "transcribe:task:" + taskID
+		u.badger.SetPreserveTTL(key, taskData)
+	}
+
+	// Broadcast via MQTT
+	updateMsg := speechdtos.StatusUpdateMessage{
+		Type:   "status_update",
+		TaskID: taskID,
+		Status: status,
+		Data:   result,
+	}
+	if msgBytes, err := json.Marshal(updateMsg); err == nil {
+		u.mqttRepo.Publish(string(msgBytes))
+	}
+
+	utils.LogDebug("Transcription Task %s: Status updated to %s", taskID, status)
+}
+
+// updateTranscribeLongTaskStatus updates the status of a long transcription task
+func (u *TranscriptionUsecase) updateTranscribeLongTaskStatus(taskID string, status string, result *speechdtos.AsyncTranscriptionLongResultDTO) {
+	newStatus := &speechdtos.AsyncTranscriptionLongStatusDTO{
+		Status:    status,
+		Result:    result,
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	// Update in memory
+	u.tasksMutex.Lock()
+	if u.transcribeLongTasks == nil {
+		u.transcribeLongTasks = make(map[string]*speechdtos.AsyncTranscriptionLongStatusDTO)
+	}
+	u.transcribeLongTasks[taskID] = newStatus
+	u.tasksMutex.Unlock()
+
+	// Update in persistent cache
+	if u.badger != nil {
+		taskData, _ := json.Marshal(newStatus)
+		key := "transcribe_long:task:" + taskID
+		u.badger.SetPreserveTTL(key, taskData)
+	}
+
+	// Broadcast via MQTT
+	updateMsg := speechdtos.StatusUpdateMessage{
+		Type:   "status_update",
+		TaskID: taskID,
+		Status: status,
+		Data:   result,
+	}
+	if msgBytes, err := json.Marshal(updateMsg); err == nil {
+		u.mqttRepo.Publish(string(msgBytes))
+	}
+
+	utils.LogDebug("Transcription Long Task %s: Status updated to %s", taskID, status)
+}
+
+// GetTranscriptionStatus retrieves the status of a short transcription task
+func (u *TranscriptionUsecase) GetTranscriptionStatus(taskID string) (*speechdtos.AsyncTranscriptionStatusDTO, error) {
+	u.tasksMutex.RLock()
+	status, exists := u.transcribeTasks[taskID]
+	u.tasksMutex.RUnlock()
+
+	if exists && status != nil {
+		calculateTranscriptionTTL(status)
+		return status, nil
+	}
+
+	// If not found in-memory, try persistent store (Badger) if configured
+	if u.badger != nil {
+		key := "transcribe:task:" + taskID
+		b, ttl, err := u.badger.GetWithTTL(key)
+		if err != nil {
+			utils.LogDebug("Transcription Task %s: not found in cache", taskID)
+		}
+
+		if len(b) > 0 {
+			var status speechdtos.AsyncTranscriptionStatusDTO
+			if err := json.Unmarshal(b, &status); err == nil {
+				status.ExpiresInSecond = int64(ttl.Seconds())
+				return &status, nil
+			}
+		}
+	}
+
+	utils.LogWarn("Transcription: Task %s not found in any cache", taskID)
+	return nil, fmt.Errorf("task not found")
+}
+
+// GetTranscriptionLongStatus retrieves the status of a long transcription task
+func (u *TranscriptionUsecase) GetTranscriptionLongStatus(taskID string) (*speechdtos.AsyncTranscriptionLongStatusDTO, error) {
+	u.tasksMutex.RLock()
+	status, exists := u.transcribeLongTasks[taskID]
+	u.tasksMutex.RUnlock()
+
+	if exists && status != nil {
+		calculateTranscriptionLongTTL(status)
+		return status, nil
+	}
+
+	// If not found in-memory, try persistent store (Badger) if configured
+	if u.badger != nil {
+		key := "transcribe_long:task:" + taskID
+		b, ttl, err := u.badger.GetWithTTL(key)
+		if err != nil {
+			utils.LogDebug("Transcription Long Task %s: not found in cache", taskID)
+		}
+
+		if len(b) > 0 {
+			var status speechdtos.AsyncTranscriptionLongStatusDTO
+			if err := json.Unmarshal(b, &status); err == nil {
+				status.ExpiresInSecond = int64(ttl.Seconds())
+				return &status, nil
+			}
+		}
+	}
+
+	utils.LogWarn("Transcription Long: Task %s not found in any cache", taskID)
+	return nil, fmt.Errorf("task not found")
+}
+
+// calculateTranscriptionTTL calculates TTL for short transcription status
+func calculateTranscriptionTTL(status *speechdtos.AsyncTranscriptionStatusDTO) {
+	if status.ExpiresAt != "" {
+		if t, err := time.Parse(time.RFC3339, status.ExpiresAt); err == nil {
+			status.ExpiresInSecond = int64(time.Until(t).Seconds())
+		}
+	}
+}
+
+// calculateTranscriptionLongTTL calculates TTL for long transcription status
+func calculateTranscriptionLongTTL(status *speechdtos.AsyncTranscriptionLongStatusDTO) {
+	if status.ExpiresAt != "" {
+		if t, err := time.Parse(time.RFC3339, status.ExpiresAt); err == nil {
+			status.ExpiresInSecond = int64(time.Until(t).Seconds())
+		}
+	}
 }

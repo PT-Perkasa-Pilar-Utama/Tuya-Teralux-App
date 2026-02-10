@@ -1,6 +1,7 @@
 package speech
 
 import (
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/usecases"
 	speechControllers "teralux_app/domain/speech/controllers"
@@ -13,7 +14,7 @@ import (
 )
 
 // InitModule initializes the Speech module with the protected router group.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase) {
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository(cfg)
 	ollamaRepo := repositories.NewOllamaRepository()
@@ -22,14 +23,15 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, ragUsecase *useca
 	mqttRepo := repositories.NewMqttRepository(cfg)
 
 	// Usecases
-	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, antigravityRepo, mqttRepo, cfg, ragUsecase, tuyaAuthUseCase)
+	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, antigravityRepo, mqttRepo, cfg, ragUsecase, tuyaAuthUseCase, badgerSvc)
+	whisperProxyUsecase := speechUsecases.NewWhisperProxyUsecase(badgerSvc, cfg, mqttRepo)
 
 	// Start MQTT Listener
 	transcriptionUsecase.StartListening()
 
 	// Controllers
-	transcriptionController := speechControllers.NewTranscriptionController(transcriptionUsecase, cfg)
+	transcriptionController := speechControllers.NewTranscriptionController(transcriptionUsecase, whisperProxyUsecase, cfg)
+	whisperProxyController := speechControllers.NewWhisperProxyController(whisperProxyUsecase, cfg)
 
 	// Routes
-	speechRoutes.SetupSpeechRoutes(protected, transcriptionController)
-}
+	speechRoutes.SetupSpeechRoutes(protected, transcriptionController, whisperProxyController)}

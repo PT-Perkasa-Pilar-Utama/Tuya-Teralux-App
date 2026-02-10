@@ -21,14 +21,15 @@ type Config struct {
 	CacheTTL                  string
 
 	// Speech / RAG
-	LLMProvider      string // "antigravity", "ollama", "gemini"
-	LLMBaseURL       string
-	LLMApiKey        string
-	LLMModel         string
-	WhisperServerURL string
-	WhisperModelPath string
-	MaxFileSize      int64 // bytes
-	Port             string
+	LLMProvider           string // "antigravity", "ollama", "gemini"
+	LLMBaseURL            string
+	LLMApiKey             string
+	LLMModel              string
+	WhisperServerURL      string
+	WhisperModelPath      string
+	OutsystemsTranscribeURL string
+	MaxFileSize           int64 // bytes
+	Port                  string
 
 	// MQTT
 	MqttBroker   string
@@ -39,15 +40,9 @@ type Config struct {
 	// Runtime & Networking
 	LogLevel string
 
-	// Database (used for migrations)
-	DBType      string
-	AutoMigrate string
-	DBHost      string
-	DBPort      string
-	DBUser      string
-	DBPassword  string
-	DBName      string
-	JWTSecret   string
+	// Database
+	DBType    string
+	JWTSecret string
 }
 
 // AppConfig is the global configuration instance.
@@ -57,7 +52,7 @@ var AppConfig *Config
 // It searches for a .env file in the current and parent directories if not already set.
 // It also triggers an update of the log level based on the loaded configuration.
 func LoadConfig() {
-	// Load .env first (if present), then overlay with .env.dev if that exists.
+	// Load .env (if present)
 	envPath := findEnvFile()
 	if envPath == "" {
 		log.Println("Warning: .env file not found")
@@ -72,22 +67,6 @@ func LoadConfig() {
 				}
 			}
 			log.Printf("Loaded env file: %s", envPath)
-		}
-	}
-
-	// Attempt to load .env.dev (load values only if not already set in the environment)
-	devEnvPath := findFileInParents(".env.dev")
-	if devEnvPath != "" {
-		m, err := godotenv.Read(devEnvPath)
-		if err != nil {
-			log.Println("Warning: Error reading .env.dev file")
-		} else {
-			for k, v := range m {
-				if os.Getenv(k) == "" {
-					os.Setenv(k, v)
-				}
-			}
-			log.Printf("Loaded env file: %s", devEnvPath)
 		}
 	}
 
@@ -110,14 +89,15 @@ func LoadConfig() {
 		GetAllDevicesResponseType: os.Getenv("GET_ALL_DEVICES_RESPONSE"),
 		CacheTTL:                  os.Getenv("CACHE_TTL"),
 
-		LLMProvider:      os.Getenv("LLM_PROVIDER"),
-		LLMBaseURL:       os.Getenv("LLM_BASE_URL"),
-		LLMApiKey:        os.Getenv("LLM_API_KEY"),
-		LLMModel:         os.Getenv("LLM_MODEL"),
-		WhisperServerURL: os.Getenv("WHISPER_SERVER_URL"),
-		WhisperModelPath: os.Getenv("WHISPER_MODEL_PATH"),
-		MaxFileSize:      maxFileSize,
-		Port:             os.Getenv("PORT"),
+		LLMProvider:             os.Getenv("LLM_PROVIDER"),
+		LLMBaseURL:              os.Getenv("LLM_BASE_URL"),
+		LLMApiKey:               os.Getenv("LLM_API_KEY"),
+		LLMModel:                os.Getenv("LLM_MODEL"),
+		WhisperServerURL:        os.Getenv("WHISPER_SERVER_URL"),
+		WhisperModelPath:        os.Getenv("WHISPER_MODEL_PATH"),
+		OutsystemsTranscribeURL: os.Getenv("OUTSYSTEMS_TRANSCRIBE_URL"),
+		MaxFileSize:             maxFileSize,
+		Port:                    os.Getenv("PORT"),
 
 		MqttBroker:   os.Getenv("MQTT_BROKER"),
 		MqttUsername: os.Getenv("MQTT_USERNAME"),
@@ -128,14 +108,8 @@ func LoadConfig() {
 		LogLevel: os.Getenv("LOG_LEVEL"),
 
 		// Database
-		DBType:      os.Getenv("DB_TYPE"),
-		AutoMigrate: os.Getenv("AUTO_MIGRATE"),
-		DBHost:      os.Getenv("DB_HOST"),
-		DBPort:      os.Getenv("DB_PORT"),
-		DBUser:      os.Getenv("DB_USER"),
-		DBPassword:  os.Getenv("DB_PASSWORD"),
-		DBName:      os.Getenv("DB_NAME"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
+		DBType:    os.Getenv("DB_TYPE"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables
