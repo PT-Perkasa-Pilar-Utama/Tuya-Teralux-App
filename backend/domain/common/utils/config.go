@@ -17,7 +17,6 @@ type Config struct {
 	TuyaBaseURL               string
 	TuyaUserID                string
 	ApiKey                    string
-	GetAllDevicesResponseType string
 	CacheTTL                  string
 
 	// Speech / RAG
@@ -41,8 +40,13 @@ type Config struct {
 	LogLevel string
 
 	// Database
-	DBType    string
-	JWTSecret string
+	DBType     string
+	DBHost     string
+	DBPort     string
+	DBUser     string
+	DBPassword string
+	DBName     string
+	JWTSecret  string
 }
 
 // AppConfig is the global configuration instance.
@@ -86,7 +90,6 @@ func LoadConfig() {
 		TuyaBaseURL:               os.Getenv("TUYA_BASE_URL"),
 		TuyaUserID:                os.Getenv("TUYA_USER_ID"),
 		ApiKey:                    os.Getenv("API_KEY"),
-		GetAllDevicesResponseType: os.Getenv("GET_ALL_DEVICES_RESPONSE"),
 		CacheTTL:                  os.Getenv("CACHE_TTL"),
 
 		LLMProvider:             os.Getenv("LLM_PROVIDER"),
@@ -108,8 +111,13 @@ func LoadConfig() {
 		LogLevel: os.Getenv("LOG_LEVEL"),
 
 		// Database
-		DBType:    os.Getenv("DB_TYPE"),
-		JWTSecret: os.Getenv("JWT_SECRET"),
+		DBType:     os.Getenv("DB_TYPE"),
+		DBHost:     os.Getenv("DB_HOST"),
+		DBPort:     os.Getenv("DB_PORT"),
+		DBUser:     os.Getenv("DB_USER"),
+		DBPassword: os.Getenv("DB_PASSWORD"),
+		DBName:     os.Getenv("DB_NAME"),
+		JWTSecret:  os.Getenv("JWT_SECRET"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables

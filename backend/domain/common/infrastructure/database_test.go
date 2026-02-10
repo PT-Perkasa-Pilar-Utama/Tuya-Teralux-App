@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"os"
 	"path/filepath"
+	"teralux_app/domain/common/utils"
 	"testing"
 )
 
@@ -19,6 +20,7 @@ func TestInitDB_SQLite(t *testing.T) {
 		os.Unsetenv("DB_SQLITE_PATH")
 	}()
 
+	utils.AppConfig = nil
 	db, err := InitDB()
 	if err != nil {
 		t.Fatalf("InitDB failed: %v", err)
@@ -46,6 +48,7 @@ func TestInitDB_DefaultsToSQLite(t *testing.T) {
 	os.Setenv("DB_SQLITE_PATH", dbPath)
 	defer os.Unsetenv("DB_SQLITE_PATH")
 
+	utils.AppConfig = nil
 	db, err := InitDB()
 	if err != nil {
 		t.Fatalf("InitDB failed: %v", err)
@@ -62,6 +65,7 @@ func TestInitDB_UnsupportedType(t *testing.T) {
 	os.Setenv("DB_TYPE", "unsupported")
 	defer os.Unsetenv("DB_TYPE")
 
+	utils.AppConfig = nil
 	_, err := InitDB()
 	if err == nil {
 		t.Fatal("Expected error for unsupported DB type, got nil")
@@ -90,6 +94,7 @@ func TestPingDB(t *testing.T) {
 			os.Unsetenv("DB_SQLITE_PATH")
 		}()
 
+		utils.AppConfig = nil
 		_, err := InitDB()
 		if err != nil {
 			t.Fatalf("InitDB failed: %v", err)
@@ -124,6 +129,7 @@ func TestCloseDB(t *testing.T) {
 			os.Unsetenv("DB_SQLITE_PATH")
 		}()
 
+		utils.AppConfig = nil
 		_, err := InitDB()
 		if err != nil {
 			t.Fatalf("InitDB failed: %v", err)

@@ -62,7 +62,7 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	config := utils.GetConfig()
 
 	// Build cache key (namespaced to avoid collisions)
-	cacheKey := fmt.Sprintf("cache:tuya:devices:uid:%s:cat:%s:page:%d:limit:%d:mode:%s", uid, category, page, limit, config.GetAllDevicesResponseType)
+	cacheKey := fmt.Sprintf("cache:tuya:devices:uid:%s:cat:%s:page:%d:limit:%d", uid, category, page, limit)
 	if uc.cache != nil {
 		if cached, err := uc.cache.Get(cacheKey); err == nil && cached != nil {
 			var cachedResp dtos.TuyaDevicesResponseDTO
@@ -71,7 +71,7 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 
 				// Ensure Vector DB is still populated even on cache hit
 				// This handles cases where Badger cache exists but Vector DB was cleared or not initialized
-				go uc.populateVectorDB(uid, config.GetAllDevicesResponseType, &cachedResp)
+				go uc.populateVectorDB(uid, &cachedResp)
 
 				return &cachedResp, nil
 			}
@@ -426,21 +426,21 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 
 	// Upsert to Vector DB so LLMs can find device DTOs and learn format
 	if uc.vectorSvc != nil {
-		go uc.populateVectorDB(uid, config.GetAllDevicesResponseType, resp)
+		go uc.populateVectorDB(uid, resp)
 	}
 
 	return resp, nil
 }
 
 // populateVectorDB handles the background task of updating the vector store with device information.
-func (uc *TuyaGetAllDevicesUseCase) populateVectorDB(uid, mode string, resp *dtos.TuyaDevicesResponseDTO) {
+func (uc *TuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.TuyaDevicesResponseDTO) {
 	if uc.vectorSvc == nil {
 		return
 	}
 
 	// Upsert aggregate document
 	if aggB, err := json.Marshal(resp); err == nil {
-		aggID := fmt.Sprintf("tuya:devices:uid:%s:mode:%s", uid, mode)
+		aggID := fmt.Sprintf("tuya:devices:uid:%s", uid)
 		if err := uc.vectorSvc.Upsert(aggID, string(aggB), nil); err != nil {
 			utils.LogError("populateVectorDB: failed to upsert aggregate doc: %v", err)
 		}

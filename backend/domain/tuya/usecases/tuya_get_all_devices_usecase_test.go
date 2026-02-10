@@ -40,9 +40,8 @@ func TestGetAllDevices_CachesAndUpsertsVector(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Build expected keys
-	cfg := utils.GetConfig()
-	cacheKey := "cache:tuya:devices:uid:user123:cat::page:1:limit:10:mode:" + cfg.GetAllDevicesResponseType
-	aggID := "tuya:devices:uid:user123:mode:" + cfg.GetAllDevicesResponseType
+	cacheKey := "cache:tuya:devices:uid:user123:cat::page:1:limit:10"
+	aggID := "tuya:devices:uid:user123"
 
 	// Assert cache exists
 	cached, err := cache.Get(cacheKey)

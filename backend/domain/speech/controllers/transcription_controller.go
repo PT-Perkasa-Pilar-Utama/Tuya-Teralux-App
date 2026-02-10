@@ -328,36 +328,3 @@ func (c *TranscriptionController) HandleProxyTranscribeLong(ctx *gin.Context) {
 		},
 	})
 }
-
-// GetProxyTranscribeLongStatus godoc
-// @Summary [DEPRECATED] Get long transcription task status
-// @Description [DEPRECATED] Use /api/speech/transcribe/{transcribe_id} instead. Gets handle of a long transcription task.
-func (c *TranscriptionController) GetProxyTranscribeLongStatus(ctx *gin.Context) {
-	taskID := ctx.Param("transcribe_id")
-	if taskID == "" {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
-			Status:  false,
-			Message: "Task ID is required",
-		})
-		return
-	}
-
-	status, err := c.usecase.GetTranscriptionLongStatus(taskID)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
-			Status:  false,
-			Message: "Task not found",
-			Details: err.Error(),
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{
-		Status:  true,
-		Message: "Task status retrieved successfully",
-		Data: dtos.AsyncTranscriptionLongProcessResponseDTO{
-			TaskID:     taskID,
-			TaskStatus: status,
-		},
-	})
-}
