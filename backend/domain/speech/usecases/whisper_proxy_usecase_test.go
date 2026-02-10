@@ -190,4 +190,3 @@ func TestWhisperProxyStatusDTOSerialization(t *testing.T) {
 		t.Errorf("result transcription mismatch: expected %s, got %s", resultDTO.Transcription, unmarshalled.Result.Transcription)
 	}
 }
-

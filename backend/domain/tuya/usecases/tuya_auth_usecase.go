@@ -5,21 +5,21 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"sync"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/services"
 	tuya_utils "teralux_app/domain/tuya/utils"
-	"sync"
 	"time"
 )
 
 // TuyaAuthUseCase handles the core business logic for Tuya API authentication.
 // It orchestrates signature generation, timestamp creation, and service interaction.
 type TuyaAuthUseCase struct {
-	service          *services.TuyaAuthService
-	tokenCache       string
-	tokenExpiry      time.Time
-	tokenCacheMutex  sync.RWMutex
+	service         *services.TuyaAuthService
+	tokenCache      string
+	tokenExpiry     time.Time
+	tokenCacheMutex sync.RWMutex
 }
 
 // NewTuyaAuthUseCase creates a new instance of TuyaAuthUseCase.
