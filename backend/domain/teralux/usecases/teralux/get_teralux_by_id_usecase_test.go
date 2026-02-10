@@ -11,9 +11,9 @@ func TestGetTeraluxByID_UserBehavior(t *testing.T) {
 	useCase := NewGetTeraluxByIDUseCase(repo, devRepo)
 
 	// Seed data
-	repo.Create(&entities.Teralux{ID: "t1", Name: "Living Room", MacAddress: "M1", RoomID: "r1"})
+	_ = repo.Create(&entities.Teralux{ID: "t1", Name: "Living Room", MacAddress: "M1", RoomID: "r1"})
 	// Seed associated device
-	devRepo.Create(&entities.Device{ID: "d1", TeraluxID: "t1", Name: "Light 1"})
+	_ = devRepo.Create(&entities.Device{ID: "d1", TeraluxID: "t1", Name: "Light 1"})
 
 	// 1. Get Teralux By ID (Success)
 	// URL: GET /api/teralux/t1

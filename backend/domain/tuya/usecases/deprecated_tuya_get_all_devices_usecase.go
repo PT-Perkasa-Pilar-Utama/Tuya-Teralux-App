@@ -200,10 +200,7 @@ func (uc *TuyaGetAllDevicesUseCaseDeprecated) GetAllDevices(accessToken, uid str
 				utils.LogDebug("GetAllDevices: Populating infrared_ac status for device %s from saved state", device.ID)
 				statusDTOs = make([]dtos.TuyaDeviceStatusDTO, len(savedState.LastCommands))
 				for i, cmd := range savedState.LastCommands {
-					statusDTOs[i] = dtos.TuyaDeviceStatusDTO{
-						Code:  cmd.Code,
-						Value: cmd.Value,
-					}
+					statusDTOs[i] = dtos.TuyaDeviceStatusDTO(cmd)
 				}
 			} else {
 				// Use default values if no saved state

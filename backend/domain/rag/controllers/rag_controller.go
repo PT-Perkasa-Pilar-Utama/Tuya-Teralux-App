@@ -11,7 +11,7 @@ import (
 // RAGProcessor is an abstraction for RAG operations implemented by the usecase.
 // This allows unit tests to provide a fake implementation.
 type RAGProcessor interface {
-	Process(text string, authToken string) (string, error)
+	Process(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error)
 	GetStatus(taskID string) (*dtos.RAGStatusDTO, error)
 }
 
@@ -44,7 +44,7 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 
 	authToken := ctx.GetHeader("Authorization")
 
-	taskID, err := c.usecase.Process(req.Text, authToken)
+	taskID, err := c.usecase.Process(req.Text, authToken, nil)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Processing failed", Details: err.Error()})
 		return

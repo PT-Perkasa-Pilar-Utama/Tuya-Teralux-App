@@ -12,7 +12,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 	useCase := NewUpdateTeraluxUseCase(repo)
 
 	// Seed data
-	repo.Create(&entities.Teralux{ID: "t1", Name: "Old Name", MacAddress: "AA:BB", RoomID: "r1"})
+	_ = repo.Create(&entities.Teralux{ID: "t1", Name: "Old Name", MacAddress: "AA:BB", RoomID: "r1"})
 
 	// 1. Update Teralux (Success - Name Only)
 	// URL: PUT /api/teralux/t1
@@ -110,7 +110,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 	// RES: 409 Conflict
 	t.Run("Conflict: Update to Duplicate MAC", func(t *testing.T) {
 		// Seed another device
-		repo.Create(&entities.Teralux{ID: "t2", MacAddress: "MAC-2", Name: "Device 2", RoomID: "r2"})
+		_ = repo.Create(&entities.Teralux{ID: "t2", MacAddress: "MAC-2", Name: "Device 2", RoomID: "r2"})
 
 		duplicateMac := "MAC-2"
 		req := &dtos.UpdateTeraluxRequestDTO{MacAddress: &duplicateMac}

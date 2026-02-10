@@ -30,7 +30,7 @@ func TestWhisperProxyUsecase_ProxyTranscribe_WithoutBadger(t *testing.T) {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
 	defer os.Remove(tempFile.Name())
-	tempFile.Write([]byte("fake audio data"))
+	_, _ = tempFile.Write([]byte("fake audio data"))
 	tempFile.Close()
 
 	// Test task submission without badger
@@ -91,7 +91,7 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
 	defer os.Remove(tempFile.Name())
-	tempFile.Write([]byte("fake audio data"))
+	_, _ = tempFile.Write([]byte("fake audio data"))
 	tempFile.Close()
 
 	// Submit task

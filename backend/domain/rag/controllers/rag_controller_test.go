@@ -19,7 +19,7 @@ type fakeUsecase struct {
 	expiresIn int64
 }
 
-func (f *fakeUsecase) Process(text string, authToken string) (string, error) {
+func (f *fakeUsecase) Process(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error) {
 	return f.taskID, nil
 }
 

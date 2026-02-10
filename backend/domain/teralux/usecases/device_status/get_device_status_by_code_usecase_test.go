@@ -11,8 +11,8 @@ func TestGetDeviceStatusByCode_UserBehavior(t *testing.T) {
 	useCase := NewGetDeviceStatusByCodeUseCase(repo, devRepo)
 
 	// Seed data
-	devRepo.Create(&entities.Device{ID: "dev-1", Name: "D1"})
-	repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_1", Value: "true"})
+	_ = devRepo.Create(&entities.Device{ID: "dev-1", Name: "D1"})
+	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_1", Value: "true"})
 
 	// 1. Get Status By Code (Success)
 	// URL: GET /api/device-statuses/code/switch_1?device_id=dev-1

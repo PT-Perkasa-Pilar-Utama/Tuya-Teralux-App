@@ -1,70 +1,45 @@
 package repositories
 
 import (
-	"encoding/json"
-	"fmt"
-	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/scene/entities"
+
+	"gorm.io/gorm"
 )
 
-const ScenePrefix = "scene:"
-
-// SceneRepository handles persistent storage of scenes using BadgerService
+// SceneRepository handles persistent storage of scenes using GORM/SQLite
 type SceneRepository struct {
-	cache *infrastructure.BadgerService
+	db *gorm.DB
 }
 
 // NewSceneRepository creates a new instance of SceneRepository
-func NewSceneRepository(cache *infrastructure.BadgerService) *SceneRepository {
-	return &SceneRepository{cache: cache}
+func NewSceneRepository(db *gorm.DB) *SceneRepository {
+	return &SceneRepository{db: db}
 }
 
-// Save persists a scene to the database
+// Save persists a scene to the database (Upsert)
 func (r *SceneRepository) Save(scene *entities.Scene) error {
-	data, err := json.Marshal(scene)
-	if err != nil {
-		return fmt.Errorf("failed to marshal scene: %w", err)
-	}
-	return r.cache.SetPersistent(ScenePrefix+scene.ID, data)
+	return r.db.Save(scene).Error
 }
 
-// GetByID retrieves a scene by its unique identifier
-func (r *SceneRepository) GetByID(id string) (*entities.Scene, error) {
-	data, err := r.cache.Get(ScenePrefix + id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get scene from cache: %w", err)
-	}
-	if data == nil {
-		return nil, fmt.Errorf("scene not found")
-	}
+// GetByID retrieves a scene by its unique identifier and TeraluxID
+func (r *SceneRepository) GetByID(teraluxID, id string) (*entities.Scene, error) {
 	var scene entities.Scene
-	if err := json.Unmarshal(data, &scene); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal scene: %w", err)
+	if err := r.db.Where("id = ? AND teralux_id = ?", id, teraluxID).First(&scene).Error; err != nil {
+		return nil, err
 	}
 	return &scene, nil
 }
 
-// GetAll retrieves all configured scenes
-func (r *SceneRepository) GetAll() ([]entities.Scene, error) {
-	keys, err := r.cache.GetAllKeysWithPrefix(ScenePrefix)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get scene keys: %w", err)
-	}
+// GetAll retrieves all configured scenes for a specific Teralux device
+func (r *SceneRepository) GetAll(teraluxID string) ([]entities.Scene, error) {
 	var scenes []entities.Scene
-	for _, key := range keys {
-		data, err := r.cache.Get(key)
-		if err != nil {
-			continue
-		}
-		var scene entities.Scene
-		if err := json.Unmarshal(data, &scene); err == nil {
-			scenes = append(scenes, scene)
-		}
+	if err := r.db.Where("teralux_id = ?", teraluxID).Find(&scenes).Error; err != nil {
+		return nil, err
 	}
 	return scenes, nil
 }
 
-// Delete removes a scene from the database
-func (r *SceneRepository) Delete(id string) error {
-	return r.cache.Delete(ScenePrefix + id)
+// Delete removes a scene from the database if it belongs to the specified Teralux device
+func (r *SceneRepository) Delete(teraluxID, id string) error {
+	return r.db.Where("id = ? AND teralux_id = ?", id, teraluxID).Delete(&entities.Scene{}).Error
 }

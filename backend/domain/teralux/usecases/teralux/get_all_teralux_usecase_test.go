@@ -30,11 +30,11 @@ func TestGetAllTeralux_UserBehavior(t *testing.T) {
 	})
 
 	// Seed data
-	repo.Create(&entities.Teralux{ID: "t1", Name: "Hub 1", MacAddress: "M1", RoomID: "r1"})
-	repo.Create(&entities.Teralux{ID: "t2", Name: "Hub 2", MacAddress: "M2", RoomID: "r2"})
+	_ = repo.Create(&entities.Teralux{ID: "t1", Name: "Hub 1", MacAddress: "M1", RoomID: "r1"})
+	_ = repo.Create(&entities.Teralux{ID: "t2", Name: "Hub 2", MacAddress: "M2", RoomID: "r2"})
 	// Add more for pagination
 	for i := 3; i <= 15; i++ {
-		repo.Create(&entities.Teralux{ID: fmt.Sprintf("t%d", i), Name: fmt.Sprintf("Hub %d", i), MacAddress: fmt.Sprintf("M%d", i), RoomID: "r3"})
+		_ = repo.Create(&entities.Teralux{ID: fmt.Sprintf("t%d", i), Name: fmt.Sprintf("Hub %d", i), MacAddress: fmt.Sprintf("M%d", i), RoomID: "r3"})
 	}
 
 	// 2. Get All Teralux (Success - With Data)

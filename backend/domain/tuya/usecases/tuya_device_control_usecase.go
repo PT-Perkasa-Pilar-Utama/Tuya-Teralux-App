@@ -395,10 +395,7 @@ func (uc *TuyaDeviceControlUseCase) SendCommand(accessToken, deviceID string, co
 	if uc.deviceStateUC != nil {
 		stateCommands := make([]dtos.DeviceStateCommandDTO, len(commands))
 		for i, cmd := range commands {
-			stateCommands[i] = dtos.DeviceStateCommandDTO{
-				Code:  cmd.Code,
-				Value: cmd.Value,
-			}
+			stateCommands[i] = dtos.DeviceStateCommandDTO(cmd)
 		}
 		if err := uc.deviceStateUC.SaveDeviceState(deviceID, stateCommands); err != nil {
 			utils.LogWarn("Failed to save device state for %s: %v", deviceID, err)

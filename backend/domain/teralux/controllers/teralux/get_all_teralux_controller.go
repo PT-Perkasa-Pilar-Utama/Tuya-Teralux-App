@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/teralux"
 
@@ -28,8 +29,7 @@ func NewGetAllTeraluxController(useCase *usecases.GetAllTeraluxUseCase) *GetAllT
 func (c *GetAllTeraluxController) GetAllTeralux(ctx *gin.Context) {
 	var filter teralux_dtos.TeraluxFilterDTO
 	if err := ctx.ShouldBindQuery(&filter); err != nil {
-		// If query params are invalid, we can just proceed with empty/default filter or return error.
-		// Usually ignoring bad query params or defaulting is safe.
+		utils.LogWarn("GetAllTeralux: Failed to bind query filter: %v", err)
 	}
 
 	// Execute use case

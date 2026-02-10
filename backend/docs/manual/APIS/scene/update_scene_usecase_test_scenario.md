@@ -1,12 +1,12 @@
-# ENDPOINT: PUT /api/scenes/{id}
+# ENDPOINT: PUT /api/teralux/:id/scenes/:scene_id
 
 ## Description
-Update an existing Scene's configuration, including its name and list of actions.
+Update an existing Scene configuration for a specific Teralux device.
 
 ## Test Scenarios
 
 ### 1. Update Scene (Success)
-- **URL**: `http://localhost:8080/api/scenes/{id}`
+- **URL**: `http://localhost:8080/api/teralux/:id/scenes/:scene_id`
 - **Method**: `PUT`
 - **Path Parameters**:
     - `id`: The UUID of the scene to update.

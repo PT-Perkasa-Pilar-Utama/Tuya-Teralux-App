@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device"
 
@@ -28,7 +29,7 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 func (c *GetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	var filter teralux_dtos.DeviceFilterDTO
 	if err := ctx.ShouldBindQuery(&filter); err != nil {
-		// Ignore or handle
+		utils.LogWarn("GetAllDevices: Failed to bind query filter: %v", err)
 	}
 
 	devices, err := c.useCase.Execute(&filter)

@@ -46,9 +46,9 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 	useCase := NewUpdateDeviceStatusUseCase(repo, devRepo, mockTuya)
 
 	// Seed data
-	devRepo.Create(&entities.Device{ID: "d1", Name: "D1"})
-	repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "switch_1", Value: "false"})
-	repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "dimmer", Value: "50"})
+	_ = devRepo.Create(&entities.Device{ID: "d1", Name: "D1"})
+	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "switch_1", Value: "false"})
+	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "dimmer", Value: "50"})
 
 	// 1. Update Status (Success)
 	// URL: PUT /api/devices/d1/status

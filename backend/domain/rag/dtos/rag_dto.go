@@ -7,11 +7,11 @@ type RAGRequestDTO struct {
 type RAGStatusDTO struct {
 	Status          string            `json:"status"`
 	Result          string            `json:"result,omitempty"` // raw LLM response when not structured
-	Endpoint        string            `json:"-"`
-	Method          string            `json:"-"`
-	Body            interface{}       `json:"-"`
-	Headers         map[string]string `json:"-"`
-	ExecutionResult interface{}       `json:"-"` // holds the response from the fetched endpoint
+	Endpoint        string            `json:"endpoint,omitempty"`
+	Method          string            `json:"method,omitempty"`
+	Body            interface{}       `json:"body,omitempty"`
+	Headers         map[string]string `json:"headers,omitempty"`
+	ExecutionResult interface{}       `json:"execution_result,omitempty"` // holds the response from the fetched endpoint
 	ExpiresAt       string            `json:"expires_at,omitempty"`
 	ExpiresInSecond int64             `json:"expires_in_seconds,omitempty"`
 }

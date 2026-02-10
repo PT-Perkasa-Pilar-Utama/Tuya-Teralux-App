@@ -11,7 +11,7 @@ func TestGetTeraluxByMAC_UserBehavior(t *testing.T) {
 	useCase := NewGetTeraluxByMACUseCase(repo)
 
 	// Seed data
-	repo.Create(&entities.Teralux{ID: "t1", Name: "Living Room", MacAddress: "AA:BB:CC:11:22:33"})
+	_ = repo.Create(&entities.Teralux{ID: "t1", Name: "Living Room", MacAddress: "AA:BB:CC:11:22:33"})
 
 	// 1. Get Teralux By MAC (Success)
 	// URL: GET /api/teralux/mac/AA:BB:CC:11:22:33

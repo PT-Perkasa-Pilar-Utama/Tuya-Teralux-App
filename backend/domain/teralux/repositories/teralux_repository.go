@@ -97,8 +97,11 @@ func (r *TeraluxRepository) GetByID(id string) (*entities.Teralux, error) {
 
 	// Save to cache
 	if jsonData, err := json.Marshal(teralux); err == nil {
-		r.cache.Set(cacheKey, jsonData)
-		utils.LogDebug("TeraluxRepository: Cached teralux ID %s", id)
+		if err := r.cache.Set(cacheKey, jsonData); err != nil {
+			utils.LogWarn("TeraluxRepository: Failed to cache teralux ID %s: %v", id, err)
+		} else {
+			utils.LogDebug("TeraluxRepository: Cached teralux ID %s", id)
+		}
 	}
 
 	return &teralux, nil
@@ -131,8 +134,11 @@ func (r *TeraluxRepository) GetByMacAddress(macAddress string) (*entities.Teralu
 
 	// Save to cache
 	if jsonData, err := json.Marshal(teralux); err == nil {
-		r.cache.Set(cacheKey, jsonData)
-		utils.LogDebug("TeraluxRepository: Cached teralux MAC %s", macAddress)
+		if err := r.cache.Set(cacheKey, jsonData); err != nil {
+			utils.LogWarn("TeraluxRepository: Failed to cache teralux MAC %s: %v", macAddress, err)
+		} else {
+			utils.LogDebug("TeraluxRepository: Cached teralux MAC %s", macAddress)
+		}
 	}
 
 	return &teralux, nil

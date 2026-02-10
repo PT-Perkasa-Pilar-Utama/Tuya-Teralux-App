@@ -131,8 +131,11 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 
 	// 2. Save to Cache
 	if jsonData, err := json.Marshal(dto); err == nil {
-		uc.cache.Set(cacheKey, jsonData)
-		utils.LogDebug("GetDeviceByID: Saved device %s to cache", deviceID)
+		if err := uc.cache.Set(cacheKey, jsonData); err != nil {
+			utils.LogWarn("GetDeviceByID: failed to save device %s to cache: %v", deviceID, err)
+		} else {
+			utils.LogDebug("GetDeviceByID: Saved device %s to cache", deviceID)
+		}
 	} else {
 		utils.LogError("GetDeviceByID: Failed to marshal device for cache: %v", err)
 	}

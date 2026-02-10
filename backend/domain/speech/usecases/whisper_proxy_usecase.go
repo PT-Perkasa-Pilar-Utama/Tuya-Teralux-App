@@ -87,7 +87,9 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 			u.mu.Unlock()
 			if u.badger != nil {
 				b, _ := json.Marshal(statusDTO)
-				u.badger.SetPreserveTTL("whisper:task:"+taskID, b)
+				if err := u.badger.SetPreserveTTL("whisper:task:"+taskID, b); err != nil {
+					utils.LogWarn("Whisper Task %s: failed to update persistent cache: %v", taskID, err)
+				}
 			}
 			return
 		}
@@ -129,7 +131,9 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 			Data:   statusDTO.Result,
 		}
 		if msgBytes, err := json.Marshal(updateMsg); err == nil {
-			u.mqttRepo.Publish(string(msgBytes))
+			if err := u.mqttRepo.Publish(string(msgBytes)); err != nil {
+				utils.LogError("Whisper Task %s: failed to publish status update: %v", taskID, err)
+			}
 		}
 	}(taskID, filePath, fileName)
 

@@ -1,12 +1,12 @@
-# ENDPOINT: GET /api/scenes
+# ENDPOINT: GET /api/teralux/:id/scenes
 
 ## Description
-Retrieve a list of all configured Scenes.
+Retrieve all Scenes configured for a specific Teralux device.
 
 ## Test Scenarios
 
 ### 1. Get All Scenes (Success)
-- **URL**: `http://localhost:8080/api/scenes`
+- **URL**: `http://localhost:8080/api/teralux/:id/scenes`
 - **Method**: `GET`
 - **Headers**:
 ```json

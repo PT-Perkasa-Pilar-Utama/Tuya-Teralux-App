@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -71,7 +71,10 @@ func (r *OllamaRepository) CallModel(prompt string, model string) (string, error
 		return "", err
 	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("ollama error: %s", string(body))
 	}

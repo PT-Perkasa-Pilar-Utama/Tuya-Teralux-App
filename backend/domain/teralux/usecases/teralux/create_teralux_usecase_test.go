@@ -166,7 +166,7 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	// SCENARIO: MAC already exists (idempotent for booting).
 	// RES: 200 OK
 	t.Run("Idempotent: Duplicate MAC Address Returns Existing ID", func(t *testing.T) {
-		repo.Create(&entities.Teralux{ID: "existing-id", MacAddress: "DD:EE:FF:11:22:33", RoomID: "r1", Name: "Existing"})
+		_ = repo.Create(&entities.Teralux{ID: "existing-id", MacAddress: "DD:EE:FF:11:22:33", RoomID: "r1", Name: "Existing"})
 
 		req := &dtos.CreateTeraluxRequestDTO{
 			Name:       "New Hub",

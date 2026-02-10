@@ -57,9 +57,13 @@ func TuyaErrorMiddleware() gin.HandlerFunc {
 			}
 			c.Header("Content-Type", "application/json")
 			c.Status(http.StatusUnauthorized)
-			json.NewEncoder(w.ResponseWriter).Encode(newResponse)
+			if err := json.NewEncoder(w.ResponseWriter).Encode(newResponse); err != nil {
+				utils.LogError("TuyaErrorMiddleware: Failed to encode response: %v", err)
+			}
 		} else {
-			w.ResponseWriter.Write(w.body.Bytes())
+			if _, err := w.ResponseWriter.Write(w.body.Bytes()); err != nil {
+				utils.LogError("TuyaErrorMiddleware: Failed to write response: %v", err)
+			}
 		}
 	}
 }
