@@ -14,13 +14,13 @@ import (
 )
 
 // InitModule initializes the Speech module with the protected router group.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragUsecase *usecases.RAGUsecase, tuyaAuthUseCase *tuyaUsecases.TuyaAuthUseCase, mqttSvc infrastructure.MqttService) {
 	// Repositories
 	whisperRepo := repositories.NewWhisperRepository(cfg)
 	ollamaRepo := repositories.NewOllamaRepository()
 	geminiRepo := repositories.NewGeminiRepository()
 	antigravityRepo := repositories.NewAntigravityRepository()
-	mqttRepo := repositories.NewMqttRepository(cfg)
+	mqttRepo := repositories.NewMqttRepository(mqttSvc, cfg)
 
 	// Usecases
 	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, antigravityRepo, mqttRepo, cfg, ragUsecase, tuyaAuthUseCase, badgerSvc)
