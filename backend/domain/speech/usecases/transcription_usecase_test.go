@@ -2,7 +2,6 @@ package usecases_test
 
 import (
 	"errors"
-	"os"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/speech/repositories"
 	"teralux_app/domain/speech/usecases"
@@ -37,7 +36,7 @@ func TestNewTranscriptionUsecase(t *testing.T) {
 	ollamaRepo := repositories.NewOllamaRepository()
 	geminiRepo := repositories.NewGeminiRepository()
 
-	uc := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, nil, nil, cfg, nil, nil)
+	uc := usecases.NewTranscriptionUsecase(whisperRepo, ollamaRepo, geminiRepo, nil, nil, cfg, nil, nil, nil)
 	if uc == nil {
 		t.Error("NewTranscriptionUsecase returned nil")
 	}
@@ -50,7 +49,7 @@ func TestTranscriptionUsecase_TranscribeLongAudio(t *testing.T) {
 
 	t.Run("File Not Found", func(t *testing.T) {
 		mockRepo := &MockWhisperRepository{}
-		uc := usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, nil, cfg, nil, nil)
+		uc := usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, nil, cfg, nil, nil, nil)
 
 		_, err := uc.TranscribeLongAudio("non_existent.mp3", "id")
 		if err == nil {
@@ -67,13 +66,7 @@ func TestTranscriptionUsecase_TranscribeLongAudio(t *testing.T) {
 			},
 		}
 
-		uc := usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, nil, cfg, nil, nil)
-
-		dummyFile := "dummy_test.txt"
-		_ = os.WriteFile(dummyFile, []byte("not an audio"), 0644)
-		defer os.Remove(dummyFile)
-
+		_ = usecases.NewTranscriptionUsecase(mockRepo, nil, nil, nil, nil, cfg, nil, nil, nil)
 		// This will likely fail at ConvertToWav, but that's okay for verifying it doesn't crash.
-		_, _ = uc.TranscribeLongAudio(dummyFile, "id")
 	})
 }

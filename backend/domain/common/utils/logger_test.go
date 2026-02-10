@@ -22,9 +22,14 @@ func TestUpdateLogLevel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Save original
+			// Save original env
 			original := os.Getenv("LOG_LEVEL")
 			defer os.Setenv("LOG_LEVEL", original)
+
+			// Save and clear global AppConfig to avoid interference
+			originalConfig := AppConfig
+			AppConfig = nil
+			defer func() { AppConfig = originalConfig }()
 
 			// Set test value
 			os.Setenv("LOG_LEVEL", tt.envValue)

@@ -25,7 +25,7 @@ fi
 
 # If still empty, try to find RAG_TEXT in .env files (current dir, parents, backend/)
 if [ -z "$TEXT" ]; then
-  for f in .env.dev .env; do
+  for f in .env; do
     dir="."
     for i in 0 1 2 3; do
       if [ -f "$dir/$f" ]; then
@@ -41,12 +41,7 @@ if [ -z "$TEXT" ]; then
 fi
 
 if [ -z "$TEXT" ]; then
-  # also try backend/.env files
-  if [ -f "backend/.env.dev" ]; then
-    TEXT=$(grep '^RAG_TEXT=' backend/.env.dev | head -n1 | sed 's/RAG_TEXT=//') || true
-  fi
-fi
-if [ -z "$TEXT" ]; then
+  # also try backend/.env file
   if [ -f "backend/.env" ]; then
     TEXT=$(grep '^RAG_TEXT=' backend/.env | head -n1 | sed 's/RAG_TEXT=//') || true
   fi
@@ -69,7 +64,7 @@ if [ -n "$API_KEY_ARG" ] && echo "$API_KEY_ARG" | grep -qE '^https?://'; then
   API_KEY_ARG=""
 fi
 
-# Resolve API_KEY precedence: CLI arg > exported ENV var > .env.dev/.env in parents
+# Resolve API_KEY precedence: CLI arg > exported ENV var > .env in parents
 API_KEY=""
 if [ -n "$API_KEY_ARG" ]; then
   API_KEY="$API_KEY_ARG"
@@ -77,9 +72,9 @@ elif [ -n "${API_KEY:-}" ]; then
   API_KEY="${API_KEY:-}"
 fi
 
-# Search for .env.dev/.env up to 3 parent levels if API_KEY still empty
+# Search for .env up to 3 parent levels if API_KEY still empty
 if [ -z "$API_KEY" ]; then
-  for f in .env.dev .env; do
+  for f in .env; do
     dir="."
     for i in 0 1 2 3; do
       if [ -f "$dir/$f" ]; then
@@ -94,16 +89,13 @@ if [ -z "$API_KEY" ]; then
   done
 fi
 
-# Also check backend/ for .env files if still not found (common when running from repo root)
-if [ -z "$API_KEY" ] && [ -f "backend/.env.dev" ]; then
-  API_KEY=$(grep '^API_KEY=' backend/.env.dev | head -n1 | sed 's/API_KEY=//') || true
-fi
+# Also check backend/ for .env file if still not found (common when running from repo root)
 if [ -z "$API_KEY" ] && [ -f "backend/.env" ]; then
   API_KEY=$(grep '^API_KEY=' backend/.env | head -n1 | sed 's/API_KEY=//') || true
 fi
 
 if [ -z "$API_KEY" ]; then
-  echo "Error: API_KEY not provided. Pass as second arg or set in .env/.env.dev or export API_KEY env var" >&2
+  echo "Error: API_KEY not provided. Pass as second arg or set in .env or export API_KEY env var" >&2
   exit 1
 fi
 
