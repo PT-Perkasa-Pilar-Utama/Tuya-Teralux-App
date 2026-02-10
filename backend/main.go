@@ -16,6 +16,7 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag"
 	"teralux_app/domain/scene"
+	scene_entities "teralux_app/domain/scene/entities"
 	"teralux_app/domain/speech"
 	"teralux_app/domain/teralux"
 	teralux_entities "teralux_app/domain/teralux/entities"
@@ -91,7 +92,9 @@ func main() {
 		utils.LogInfo("FATAL: Failed to initialize database: %v", err)
 		os.Exit(1)
 	}
-	defer infrastructure.CloseDB()
+	defer func() {
+		_ = infrastructure.CloseDB()
+	}()
 	utils.LogInfo("Database initialized successfully")
 
 	// Auto Migrate Entities
@@ -99,6 +102,7 @@ func main() {
 		&teralux_entities.Teralux{},
 		&teralux_entities.Device{},
 		&teralux_entities.DeviceStatus{},
+		&scene_entities.Scene{},
 	); err != nil {
 		utils.LogInfo("FATAL: Failed to auto-migrate entities: %v", err)
 		os.Exit(1)
@@ -186,7 +190,7 @@ func main() {
 		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService)
 
 		// 5. Scene Module
-		sceneModule := scene.NewSceneModule(badgerService, tuyaModule.DeviceControlUseCase, mqttService)
+		sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
 		sceneModule.RegisterRoutes(protected)
 	}
 

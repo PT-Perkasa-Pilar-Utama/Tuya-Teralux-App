@@ -132,17 +132,10 @@ func main() {
 				pkgResults[event.Package].Skipped++
 				utils.LogInfo("%s○ %s%s", ColorYellow, event.Test, ColorReset)
 			}
-		case "output":
-			// We buffer output above, usually don't print immediately for cleaner "Jest-like" look
-			// unless it's package level output not associated with a test
-			if event.Test == "" && event.Output != "" {
-				// Print build errors or package level logs
-				// utils.LogInfo("%s", event.Output)
-			}
 		}
 	}
 
-	cmd.Wait() // Wait for command to finish
+	_ = cmd.Wait() // Wait for command to finish
 
 	duration := time.Since(startTime)
 

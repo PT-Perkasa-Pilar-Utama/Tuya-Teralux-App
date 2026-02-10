@@ -44,8 +44,8 @@ func TestGetAllDeviceStatusesUseCase_UserBehavior(t *testing.T) {
 	useCase := NewGetAllDeviceStatusesUseCase(repo)
 
 	// Seed
-	repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "c1", Value: "v1"})
-	repo.Upsert(&entities.DeviceStatus{DeviceID: "d2", Code: "c2", Value: "v2"})
+	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "c1", Value: "v1"})
+	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "d2", Code: "c2", Value: "v2"})
 
 	// 1. Get All Statuses (Success)
 	// URL: GET /api/device-statuses

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
+	ragdtos "teralux_app/domain/rag/dtos"
 	ragUsecases "teralux_app/domain/rag/usecases"
 	speechdtos "teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/repositories"
@@ -100,7 +101,10 @@ func (u *TranscriptionUsecase) StartListening() {
 		// Assume it's audio. Save to temp file.
 		tempDir := "./tmp"
 		if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-			os.Mkdir(tempDir, 0755)
+			if err := os.Mkdir(tempDir, 0755); err != nil {
+				utils.LogError("Failed to create temp directory: %v", err)
+				return
+			}
 		}
 
 		filePath := filepath.Join(tempDir, fmt.Sprintf("mqtt_audio_%s.m4a", utils.GenerateUUID()))
@@ -206,7 +210,25 @@ func (u *TranscriptionUsecase) HandleCommand(text string) {
 
 	// 2. Process via RAG
 	utils.LogInfo("Speech: Processing command via RAG: %q", text)
-	taskID, err := u.ragUsecase.Process(text, auth.AccessToken)
+	taskID, err := u.ragUsecase.Process(text, auth.AccessToken, func(taskID string, status *ragdtos.RAGStatusDTO) {
+		// Log final result
+		utils.LogInfo("Speech: RAG processing completed for task %s with status %s", taskID, status.Status)
+
+		// Publish result back to MQTT if it was a voice command
+		// (Assuming voice commands are handled via this usecase)
+		var outputMsg string
+		if status.Status == "done" {
+			outputMsg = fmt.Sprintf("Action: %s", status.Result)
+		} else if status.Status == "error" {
+			outputMsg = fmt.Sprintf("Error: %s", status.Result)
+		}
+
+		if outputMsg != "" {
+			if err := u.mqttRepo.Publish(outputMsg); err != nil {
+				utils.LogError("Speech: Failed to publish RAG result to MQTT: %v", err)
+			}
+		}
+	})
 	if err != nil {
 		utils.LogError("Speech: Failed to trigger RAG processing: %v", err)
 		return
@@ -290,7 +312,9 @@ func (u *TranscriptionUsecase) ProxyTranscribeAudio(inputPath string, fileName s
 	if u.badger != nil {
 		taskData, _ := json.Marshal(status)
 		key := "transcribe:task:" + taskID
-		u.badger.Set(key, taskData)
+		if err := u.badger.Set(key, taskData); err != nil {
+			utils.LogWarn("Transcription Task %s: failed to save to persistent cache: %v", taskID, err)
+		}
 	}
 
 	utils.LogInfo("Transcription Task %s: Started processing audio file: %s", taskID, fileName)
@@ -329,7 +353,9 @@ func (u *TranscriptionUsecase) ProxyTranscribeLongAudio(inputPath string, fileNa
 	if u.badger != nil {
 		taskData, _ := json.Marshal(status)
 		key := "transcribe_long:task:" + taskID
-		u.badger.Set(key, taskData)
+		if err := u.badger.Set(key, taskData); err != nil {
+			utils.LogWarn("Transcription Long Task %s: failed to save to persistent cache: %v", taskID, err)
+		}
 	}
 
 	utils.LogInfo("Transcription Long Task %s: Started processing audio file: %s", taskID, fileName)
@@ -423,7 +449,9 @@ func (u *TranscriptionUsecase) updateTranscribeTaskStatus(taskID string, status 
 	if u.badger != nil {
 		taskData, _ := json.Marshal(newStatus)
 		key := "transcribe:task:" + taskID
-		u.badger.SetPreserveTTL(key, taskData)
+		if err := u.badger.SetPreserveTTL(key, taskData); err != nil {
+			utils.LogWarn("Transcription Task %s: failed to update persistent cache: %v", taskID, err)
+		}
 	}
 
 	// Broadcast via MQTT
@@ -434,7 +462,9 @@ func (u *TranscriptionUsecase) updateTranscribeTaskStatus(taskID string, status 
 		Data:   result,
 	}
 	if msgBytes, err := json.Marshal(updateMsg); err == nil {
-		u.mqttRepo.Publish(string(msgBytes))
+		if err := u.mqttRepo.Publish(string(msgBytes)); err != nil {
+			utils.LogError("Transcription Task %s: failed to publish status update: %v", taskID, err)
+		}
 	}
 
 	utils.LogDebug("Transcription Task %s: Status updated to %s", taskID, status)
@@ -460,7 +490,9 @@ func (u *TranscriptionUsecase) updateTranscribeLongTaskStatus(taskID string, sta
 	if u.badger != nil {
 		taskData, _ := json.Marshal(newStatus)
 		key := "transcribe_long:task:" + taskID
-		u.badger.SetPreserveTTL(key, taskData)
+		if err := u.badger.SetPreserveTTL(key, taskData); err != nil {
+			utils.LogWarn("Transcription Long Task %s: failed to update persistent cache: %v", taskID, err)
+		}
 	}
 
 	// Broadcast via MQTT
@@ -471,7 +503,9 @@ func (u *TranscriptionUsecase) updateTranscribeLongTaskStatus(taskID string, sta
 		Data:   result,
 	}
 	if msgBytes, err := json.Marshal(updateMsg); err == nil {
-		u.mqttRepo.Publish(string(msgBytes))
+		if err := u.mqttRepo.Publish(string(msgBytes)); err != nil {
+			utils.LogError("Transcription Long Task %s: failed to publish status update: %v", taskID, err)
+		}
 	}
 
 	utils.LogDebug("Transcription Long Task %s: Status updated to %s", taskID, status)

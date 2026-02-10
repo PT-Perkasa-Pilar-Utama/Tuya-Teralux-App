@@ -118,7 +118,9 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 
 	tempDir := "./tmp"
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-		os.Mkdir(tempDir, 0755)
+		if err := os.Mkdir(tempDir, 0755); err != nil {
+			utils.LogError("HandleProxyTranscribe: Failed to create temp directory: %v", err)
+		}
 	}
 
 	inputPath := filepath.Join(tempDir, file.Filename)
@@ -292,7 +294,9 @@ func (c *TranscriptionController) HandleProxyTranscribeLong(ctx *gin.Context) {
 
 	tempDir := "./tmp"
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-		os.Mkdir(tempDir, 0755)
+		if err := os.Mkdir(tempDir, 0755); err != nil {
+			utils.LogError("HandleProxyTranscribeLong: Failed to create temp directory: %v", err)
+		}
 	}
 
 	inputPath := filepath.Join(tempDir, "long_"+file.Filename)

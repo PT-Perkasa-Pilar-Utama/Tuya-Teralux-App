@@ -30,7 +30,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 	// RES: 201 Created
 	t.Run("Create Device (Success)", func(t *testing.T) {
 		// Seed teralux
-		teraRepo.Create(&entities.Teralux{ID: "tx-1", MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: "room-1", Name: "Test Hub"})
+		_ = teraRepo.Create(&entities.Teralux{ID: "tx-1", MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: "room-1", Name: "Test Hub"})
 
 		req := &dtos.CreateDeviceRequestDTO{
 			ID:        "tuya-device-123",
@@ -66,8 +66,6 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 			if len(valErr.Details) < 2 {
 				t.Errorf("Expected at least 2 validation details, got %d", len(valErr.Details))
 			}
-		} else {
-			// t.Fatalf("Expected utils.ValidationError, got %T: %v", err, err)
 		}
 	})
 
@@ -95,7 +93,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 	// RES: 200 OK (or 201 Created depending on interpretation, here just no error)
 	t.Run("Idempotency: Device Already Exists", func(t *testing.T) {
 		// Seed teralux
-		teraRepo.Create(&entities.Teralux{ID: "tx-3", MacAddress: "AA:BB:CC:DD:EE:FE", RoomID: "room-3", Name: "Test Hub 3"})
+		_ = teraRepo.Create(&entities.Teralux{ID: "tx-3", MacAddress: "AA:BB:CC:DD:EE:FE", RoomID: "room-3", Name: "Test Hub 3"})
 
 		// Create first device
 		req := &dtos.CreateDeviceRequestDTO{

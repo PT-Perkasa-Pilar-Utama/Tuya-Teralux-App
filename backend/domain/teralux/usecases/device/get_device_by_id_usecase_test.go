@@ -10,7 +10,7 @@ func TestGetDeviceByIDUseCase_UserBehavior(t *testing.T) {
 	repo, _, _ := setupDeviceTestEnv(t)
 	useCase := NewGetDeviceByIDUseCase(repo)
 
-	repo.Create(&entities.Device{ID: "dev-1", Name: "Kitchen Switch", TeraluxID: "tx-1"})
+	_ = repo.Create(&entities.Device{ID: "dev-1", Name: "Kitchen Switch", TeraluxID: "tx-1"})
 
 	// 1. Get Device By ID (Success)
 	// URL: GET /api/devices/dev-1

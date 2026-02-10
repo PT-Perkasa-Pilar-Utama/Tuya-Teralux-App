@@ -136,8 +136,11 @@ func (r *DeviceRepository) GetByID(id string) (*entities.Device, error) {
 
 	// Save to cache
 	if jsonData, err := json.Marshal(device); err == nil {
-		r.cache.Set(cacheKey, jsonData)
-		utils.LogDebug("DeviceRepository: Cached device ID %s", id)
+		if err := r.cache.Set(cacheKey, jsonData); err != nil {
+			utils.LogWarn("DeviceRepository: Failed to cache device ID %s: %v", id, err)
+		} else {
+			utils.LogDebug("DeviceRepository: Cached device ID %s", id)
+		}
 	}
 
 	return &device, nil

@@ -11,9 +11,9 @@ func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
 	useCase := NewGetAllDevicesUseCase(repo)
 
 	// Seed data
-	repo.Create(&entities.Device{ID: "d1", Name: "Light 1", TeraluxID: "tx-1"})
-	repo.Create(&entities.Device{ID: "d2", Name: "Light 2", TeraluxID: "tx-1"})
-	repo.Create(&entities.Device{ID: "d3", Name: "Fan", TeraluxID: "tx-2"})
+	_ = repo.Create(&entities.Device{ID: "d1", Name: "Light 1", TeraluxID: "tx-1"})
+	_ = repo.Create(&entities.Device{ID: "d2", Name: "Light 2", TeraluxID: "tx-1"})
+	_ = repo.Create(&entities.Device{ID: "d3", Name: "Fan", TeraluxID: "tx-2"})
 
 	// 1. Get All Devices (Success - Filter by Teralux)
 	// URL: GET /api/devices?teralux_id=tx-1

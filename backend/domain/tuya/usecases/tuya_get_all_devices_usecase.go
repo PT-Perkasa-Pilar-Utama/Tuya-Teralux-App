@@ -209,10 +209,7 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 
 		statusDTOs := make([]dtos.TuyaDeviceStatusDTO, len(device.Status))
 		for j, s := range device.Status {
-			statusDTOs[j] = dtos.TuyaDeviceStatusDTO{
-				Code:  s.Code,
-				Value: s.Value,
-			}
+			statusDTOs[j] = dtos.TuyaDeviceStatusDTO(s)
 		}
 
 		// For infrared_ac devices, populate status from saved state or use defaults
@@ -223,10 +220,7 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 				utils.LogDebug("GetAllDevices: Populating infrared_ac status for device %s from saved state", device.ID)
 				statusDTOs = make([]dtos.TuyaDeviceStatusDTO, len(savedState.LastCommands))
 				for i, cmd := range savedState.LastCommands {
-					statusDTOs[i] = dtos.TuyaDeviceStatusDTO{
-						Code:  cmd.Code,
-						Value: cmd.Value,
-					}
+					statusDTOs[i] = dtos.TuyaDeviceStatusDTO(cmd)
 				}
 			} else {
 				// Use default values if no saved state
@@ -447,14 +441,18 @@ func (uc *TuyaGetAllDevicesUseCase) populateVectorDB(uid, mode string, resp *dto
 	// Upsert aggregate document
 	if aggB, err := json.Marshal(resp); err == nil {
 		aggID := fmt.Sprintf("tuya:devices:uid:%s:mode:%s", uid, mode)
-		uc.vectorSvc.Upsert(aggID, string(aggB), nil)
+		if err := uc.vectorSvc.Upsert(aggID, string(aggB), nil); err != nil {
+			utils.LogError("populateVectorDB: failed to upsert aggregate doc: %v", err)
+		}
 	}
 
 	// Upsert per-device docs
 	for _, d := range resp.Devices {
 		if db, err := json.Marshal(d); err == nil {
 			dID := fmt.Sprintf("tuya:device:%s", d.ID)
-			uc.vectorSvc.Upsert(dID, string(db), nil)
+			if err := uc.vectorSvc.Upsert(dID, string(db), nil); err != nil {
+				utils.LogError("populateVectorDB: failed to upsert device doc %s: %v", d.ID, err)
+			}
 		}
 	}
 	utils.LogDebug("populateVectorDB: successfully updated %d documents for user %s", len(resp.Devices)+1, uid)

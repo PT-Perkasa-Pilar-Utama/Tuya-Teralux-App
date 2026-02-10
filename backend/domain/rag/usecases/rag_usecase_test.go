@@ -25,7 +25,7 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 	// seed a device doc containing 'lamp'
 	deviceDoc := map[string]interface{}{"id": "lamp123", "name": "Living Room Lamp", "category": "switch"}
 	b, _ := json.Marshal(deviceDoc)
-	vectorSvc.Upsert("tuya:device:lamp123", string(b), nil)
+	_ = vectorSvc.Upsert("tuya:device:lamp123", string(b), nil)
 
 	// Prepare fake LLM response
 	llmResp := map[string]interface{}{
@@ -39,7 +39,7 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), nil, nil)
 
-	task, err := u.Process("turn on the lamp", "mock-token")
+	task, err := u.Process("turn on the lamp", "mock-token", nil)
 	if err != nil {
 		t.Fatalf("expected no error from Process, got %v", err)
 	}
@@ -102,7 +102,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 	// seed device doc
 	deviceDoc := map[string]interface{}{"id": "lamp123", "name": "Living Room Lamp", "category": "switch"}
 	b, _ := json.Marshal(deviceDoc)
-	vectorSvc.Upsert("tuya:device:lamp123", string(b), nil)
+	_ = vectorSvc.Upsert("tuya:device:lamp123", string(b), nil)
 
 	// fake LLM as before
 	llmResp := map[string]interface{}{
@@ -128,7 +128,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
 
-	task, err := u.Process("turn on the lamp", "mock-token")
+	task, err := u.Process("turn on the lamp", "mock-token", nil)
 	if err != nil {
 		t.Fatalf("expected no error from Process, got %v", err)
 	}
@@ -176,7 +176,7 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	// seed device doc
 	deviceDoc := map[string]interface{}{"id": "lamp123", "name": "Living Room Lamp", "category": "switch"}
 	b, _ := json.Marshal(deviceDoc)
-	vectorSvc.Upsert("tuya:device:lamp123", string(b), nil)
+	_ = vectorSvc.Upsert("tuya:device:lamp123", string(b), nil)
 
 	// fake LLM as before
 	llmResp := map[string]interface{}{
@@ -206,7 +206,7 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	}()
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
-	task, err := u.Process("turn on the lamp", "mock-token")
+	task, err := u.Process("turn on the lamp", "mock-token", nil)
 	if err != nil {
 		t.Fatalf("expected no error from Process, got %v", err)
 	}

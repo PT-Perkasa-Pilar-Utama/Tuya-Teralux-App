@@ -1,18 +1,17 @@
-# ENDPOINT: DELETE /api/scenes/{id}
+# ENDPOINT: DELETE /api/teralux/:id/scenes/:scene_id
 
 ## Description
-Delete a Scene permanently.
+Delete a Scene configuration for a specific Teralux device.
 
 ## Test Scenarios
 
 ### 1. Delete Scene (Success)
-- **URL**: `http://localhost:8080/api/scenes/{id}`
+- **URL**: `http://localhost:8080/api/teralux/:id/scenes/:scene_id`
 - **Method**: `DELETE`
 - **Path Parameters**:
     - `id`: The UUID of the scene to delete.
 - **Headers**:
 ```json
-{
   "Content-Type": "application/json",
   "Authorization": "Bearer <valid_token>"
 }

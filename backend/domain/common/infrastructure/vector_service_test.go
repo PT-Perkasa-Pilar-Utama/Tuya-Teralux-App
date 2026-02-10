@@ -4,7 +4,7 @@ import "testing"
 
 func TestVectorService_Search(t *testing.T) {
 	svc := NewVectorService("")
-	svc.Upsert("doc1", "hello world", nil)
+	_ = svc.Upsert("doc1", "hello world", nil)
 	res, err := svc.Search("hello world")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

@@ -104,7 +104,7 @@ func TestBadgerService_Delete(t *testing.T) {
 	value := []byte("value")
 
 	// Set then delete
-	service.Set(key, value)
+	_ = service.Set(key, value)
 	err = service.Delete(key)
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
@@ -163,9 +163,9 @@ func TestBadgerService_ClearWithPrefix(t *testing.T) {
 
 	// Set multiple keys with same prefix
 	prefix := "test_prefix:"
-	service.Set(prefix+"key1", []byte("value1"))
-	service.Set(prefix+"key2", []byte("value2"))
-	service.Set("other_key", []byte("other_value"))
+	_ = service.Set(prefix+"key1", []byte("value1"))
+	_ = service.Set(prefix+"key2", []byte("value2"))
+	_ = service.Set("other_key", []byte("other_value"))
 
 	// Clear with prefix
 	err = service.ClearWithPrefix(prefix)
@@ -201,9 +201,9 @@ func TestBadgerService_GetAllKeysWithPrefix(t *testing.T) {
 	defer service.Close()
 
 	prefix := "list_test:"
-	service.Set(prefix+"a", []byte("1"))
-	service.Set(prefix+"b", []byte("2"))
-	service.Set("other", []byte("3"))
+	_ = service.Set(prefix+"a", []byte("1"))
+	_ = service.Set(prefix+"b", []byte("2"))
+	_ = service.Set("other", []byte("3"))
 
 	keys, err := service.GetAllKeysWithPrefix(prefix)
 	if err != nil {
@@ -229,8 +229,8 @@ func TestBadgerService_FlushAll(t *testing.T) {
 	defer service.Close()
 
 	// Set cache and persistent data
-	service.Set("cache:key1", []byte("cache_value"))
-	service.SetPersistent("persistent:key1", []byte("persistent_value"))
+	_ = service.Set("cache:key1", []byte("cache_value"))
+	_ = service.SetPersistent("persistent:key1", []byte("persistent_value"))
 
 	// Flush cache
 	err = service.FlushAll()

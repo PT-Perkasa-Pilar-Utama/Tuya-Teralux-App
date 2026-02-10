@@ -11,7 +11,7 @@ func TestUpdateDeviceUseCase_UserBehavior(t *testing.T) {
 	repo, _, _ := setupDeviceTestEnv(t)
 	useCase := NewUpdateDeviceUseCase(repo)
 
-	repo.Create(&entities.Device{ID: "dev-1", Name: "Old Name"})
+	_ = repo.Create(&entities.Device{ID: "dev-1", Name: "Old Name"})
 
 	// 1. Update Device (Success)
 	// URL: PUT /api/devices/dev-1

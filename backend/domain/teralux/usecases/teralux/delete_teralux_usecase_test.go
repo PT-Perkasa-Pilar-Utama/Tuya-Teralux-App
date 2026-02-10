@@ -12,7 +12,7 @@ func TestDeleteTeralux_UserBehavior(t *testing.T) {
 
 	// Seed data
 	t1 := &entities.Teralux{ID: "tx-1", Name: "T1", MacAddress: "AA:BB"}
-	repo.Create(t1)
+	_ = repo.Create(t1)
 
 	// 1. Delete Teralux (Success Condition)
 	// URL: DELETE /api/teralux/tx-1

@@ -34,7 +34,7 @@ func TestInitDB_SQLite(t *testing.T) {
 	}
 
 	// Clean up
-	CloseDB()
+	_ = CloseDB()
 }
 
 func TestInitDB_DefaultsToSQLite(t *testing.T) {
@@ -55,7 +55,7 @@ func TestInitDB_DefaultsToSQLite(t *testing.T) {
 		t.Fatal("Expected database instance, got nil")
 	}
 
-	CloseDB()
+	_ = CloseDB()
 }
 
 func TestInitDB_UnsupportedType(t *testing.T) {
@@ -100,7 +100,7 @@ func TestPingDB(t *testing.T) {
 			t.Errorf("PingDB failed: %v", err)
 		}
 
-		CloseDB()
+		_ = CloseDB()
 	})
 }
 

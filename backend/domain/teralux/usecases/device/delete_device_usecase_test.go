@@ -44,7 +44,7 @@ func TestDeleteDeviceUseCase_UserBehavior(t *testing.T) {
 	repo, statusRepo, teraRepo := setupDeviceTestEnv(t)
 	useCase := NewDeleteDeviceUseCase(repo, statusRepo, teraRepo)
 
-	repo.Create(&entities.Device{ID: "dev-1", Name: "To Delete", TeraluxID: "tx-1"})
+	_ = repo.Create(&entities.Device{ID: "dev-1", Name: "To Delete", TeraluxID: "tx-1"})
 
 	// 1. Delete Device (Success)
 	// URL: DELETE /api/devices/dev-1

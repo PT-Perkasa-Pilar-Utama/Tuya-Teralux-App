@@ -7,14 +7,15 @@ import (
 	"teralux_app/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type SceneModule struct {
 	Controller *controllers.SceneController
 }
 
-func NewSceneModule(badger *infrastructure.BadgerService, tuyaCmd usecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) *SceneModule {
-	repo := repositories.NewSceneRepository(badger)
+func NewSceneModule(db *gorm.DB, tuyaCmd controllers.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) *SceneModule {
+	repo := repositories.NewSceneRepository(db)
 
 	addUC := usecases.NewAddSceneUseCase(repo)
 	updateUC := usecases.NewUpdateSceneUseCase(repo)
@@ -30,12 +31,12 @@ func NewSceneModule(badger *infrastructure.BadgerService, tuyaCmd usecases.TuyaD
 }
 
 func (m *SceneModule) RegisterRoutes(protected *gin.RouterGroup) {
-	group := protected.Group("/api/scenes")
+	group := protected.Group("/api/teralux/:id/scenes")
 	{
 		group.POST("", m.Controller.AddScene)
 		group.GET("", m.Controller.GetAllScenes)
-		group.PUT("/:id", m.Controller.UpdateScene)
-		group.DELETE("/:id", m.Controller.DeleteScene)
-		group.GET("/:id/control", m.Controller.ControlScene)
+		group.PUT("/:scene_id", m.Controller.UpdateScene)
+		group.DELETE("/:scene_id", m.Controller.DeleteScene)
+		group.GET("/:scene_id/control", m.Controller.ControlScene)
 	}
 }

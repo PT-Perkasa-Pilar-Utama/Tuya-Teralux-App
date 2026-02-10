@@ -1,8 +1,6 @@
 package usecases
 
 import (
-	"fmt"
-	"teralux_app/domain/scene/dtos"
 	"teralux_app/domain/scene/entities"
 	"teralux_app/domain/scene/repositories"
 )
@@ -15,29 +13,18 @@ func NewUpdateSceneUseCase(repo *repositories.SceneRepository) *UpdateSceneUseCa
 	return &UpdateSceneUseCase{repo: repo}
 }
 
-func (uc *UpdateSceneUseCase) Execute(id string, req *dtos.UpdateSceneRequestDTO) error {
-	// Check exist
-	_, err := uc.repo.GetByID(id)
+func (u *UpdateSceneUseCase) Execute(teraluxID, id string, name string, actions entities.Actions) error {
+	scene, err := u.repo.GetByID(teraluxID, id)
 	if err != nil {
-		return fmt.Errorf("scene not found: %w", err)
+		return err
 	}
 
-	var actions []entities.Action
-	for _, a := range req.Actions {
-		actions = append(actions, entities.Action{
-			DeviceID: a.DeviceID,
-			Code:     a.Code,
-			RemoteID: a.RemoteID,
-			Topic:    a.Topic,
-			Value:    a.Value,
-		})
+	if name != "" {
+		scene.Name = name
+	}
+	if actions != nil {
+		scene.Actions = actions
 	}
 
-	scene := &entities.Scene{
-		ID:      id,
-		Name:    req.Name,
-		Actions: actions,
-	}
-
-	return uc.repo.Save(scene)
+	return u.repo.Save(scene)
 }

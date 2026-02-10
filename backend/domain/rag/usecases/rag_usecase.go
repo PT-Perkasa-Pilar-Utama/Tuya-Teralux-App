@@ -111,7 +111,7 @@ func NewRAGUsecase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *
 
 // Process accepts user text, queues work to query the vector store and LLM, and stores the result under a task ID
 // which can later be fetched via GetStatus. Processing is done asynchronously and this method returns immediately.
-func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
+func (u *RAGUsecase) Process(text string, authToken string, onComplete func(string, *ragdtos.RAGStatusDTO)) (string, error) {
 	// Generate UUID task id
 	taskID := uuid.New().String()
 	// Initially mark pending
@@ -426,6 +426,12 @@ func (u *RAGUsecase) Process(text string, authToken string) (string, error) {
 		u.mu.Lock()
 		u.taskStatus[taskID] = statusDTO
 		u.mu.Unlock()
+
+		// Invoke completion callback if provided
+		if onComplete != nil {
+			onComplete(taskID, statusDTO)
+		}
+
 		// persist final result by updating existing cache entry while preserving TTL
 		if u.badger != nil {
 			b, _ := json.Marshal(statusDTO)

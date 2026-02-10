@@ -68,7 +68,9 @@ func TestTuyaErrorMiddleware(t *testing.T) {
 
 		// Response should contain original data
 		var response map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &response)
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
 		if response["success"] != true {
 			t.Error("Expected success to be true")
 		}

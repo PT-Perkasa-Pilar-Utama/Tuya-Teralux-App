@@ -12,11 +12,11 @@ func TestGetDeviceStatusesByDeviceID_UserBehavior(t *testing.T) {
 	useCase := NewGetDeviceStatusesByDeviceIDUseCase(repo, devRepo)
 
 	// Seed data
-	devRepo.Create(&entities.Device{ID: "dev-1", Name: "D1"})
-	devRepo.Create(&entities.Device{ID: "dev-2", Name: "D2"}) // Empty statuses
+	_ = devRepo.Create(&entities.Device{ID: "dev-1", Name: "D1"})
+	_ = devRepo.Create(&entities.Device{ID: "dev-2", Name: "D2"}) // Empty statuses
 
-	repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_1", Value: "true"})
-	repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_2", Value: "false"})
+	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_1", Value: "true"})
+	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_2", Value: "false"})
 
 	// 1. Get Statuses By Device ID (Success)
 	// URL: GET /api/devices/dev-1/statuses
