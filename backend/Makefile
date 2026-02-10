@@ -73,9 +73,9 @@ build:
 
 # --- Docker Configuration ---
 DOCKER_IMAGE_NAME = teralux-backend
-GHCR_REPO = ghcr.io/pt-perkasa-pilar-utama/teralux-backend
 GIT_REPO_URL = https://github.com/farismnrr/Tuya-Teralux-App.git
-# GHCR_REPO = ghcr.io/farismnrr/teralux-backend
+# GHCR_REPO = ghcr.io/pt-perkasa-pilar-utama/teralux-backend
+GHCR_REPO = ghcr.io/farismnrr/teralux-backend
 DOCKER_TAG = latest
 
 # Build via Docker

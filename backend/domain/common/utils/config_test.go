@@ -33,7 +33,7 @@ func TestLoadConfig(t *testing.T) {
 func TestLoadConfig_SetsValues(t *testing.T) {
 	// Backup and restore env
 	backup := map[string]string{}
-	keys := []string{"LLM_BASE_URL", "LLM_MODEL", "WHISPER_MODEL_PATH", "MAX_FILE_SIZE_MB", "PORT", "GET_ALL_DEVICES_RESPONSE", "CACHE_TTL"}
+	keys := []string{"LLM_BASE_URL", "LLM_MODEL", "WHISPER_MODEL_PATH", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
 	for _, k := range keys {
 		backup[k] = os.Getenv(k)
 	}
@@ -49,7 +49,6 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 	os.Setenv("WHISPER_MODEL_PATH", "/tmp/whisper.bin")
 	os.Setenv("MAX_FILE_SIZE_MB", "10")
 	os.Setenv("PORT", "9090")
-	os.Setenv("GET_ALL_DEVICES_RESPONSE", "1")
 	os.Setenv("CACHE_TTL", "30m")
 
 	AppConfig = nil
@@ -70,9 +69,6 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 	}
 	if cfg.Port != "9090" {
 		t.Fatalf("expected Port to be 9090, got %s", cfg.Port)
-	}
-	if cfg.GetAllDevicesResponseType != "1" {
-		t.Fatalf("expected GetAllDevicesResponseType to be '1', got %s", cfg.GetAllDevicesResponseType)
 	}
 }
 

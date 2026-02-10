@@ -17,11 +17,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy source
 COPY . .
 
-# Run Unit Tests
-# RUN --mount=type=cache,target=/root/.cache/go-build \
-#     --mount=type=cache,target=/go/pkg/mod \
-#     go test -v ./...
-
 # Build static binary
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
@@ -46,6 +41,16 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
+# Install build tools and runtime deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    build-essential \
+    git \
+    curl \
+    ca-certificates \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy binary
 COPY --from=builder /app/app /app/app
 
@@ -58,14 +63,18 @@ COPY --from=builder /app/domain/teralux/migrations /app/migrations
 # Copy docs
 COPY --from=builder /app/docs /app/docs
 
+# Copy entrypoint script
+COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh
+
 # Runtime env only
 ENV AUTO_MIGRATE=false
-ENV PORT=8081
+ENV PORT=8080
 
-EXPOSE 8081
+EXPOSE 8080
 
-# Healthcheck (distroless-safe)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD ["/app/app", "healthcheck"]
 
-ENTRYPOINT ["/app/app"]
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
