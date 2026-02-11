@@ -10,9 +10,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,11 +35,17 @@ fun FeatureScreenTemplate(
     isRecording: Boolean,
     isProcessing: Boolean,
     hasPermission: Boolean,
-    transcriptionResults: List<TranscriptionMessage>,
+    transcriptionResults: List<TranscriptionMessage> = emptyList(),
     onMicClick: () -> Unit,
     onClearChat: () -> Unit,
     walkthroughContent: @Composable ColumnScope.() -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPaused: Boolean = false,
+    thinkingState: Boolean = false,
+    onLongMicClick: (() -> Unit)? = null,
+    onDoubleMicClick: (() -> Unit)? = null,
+    customContent: @Composable (ColumnScope.() -> Unit)? = null,
+    extraActions: @Composable RowScope.() -> Unit = {}
 ) {
     var showWalkthrough by remember { mutableStateOf(false) } // Default to false for manual trigger
     val scrollState = rememberLazyListState()
@@ -67,7 +73,7 @@ fun FeatureScreenTemplate(
                 title = { Text(title, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -80,9 +86,10 @@ fun FeatureScreenTemplate(
                             )
                         }
                     }
+                    extraActions()
                     IconButton(onClick = { showWalkthrough = true }) {
                         Icon(
-                            imageVector = Icons.Outlined.HelpOutline,
+                            imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
                             contentDescription = "Help",
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -122,10 +129,13 @@ fun FeatureScreenTemplate(
                 ) {
                     MicButton(
                         isRecording = isRecording,
-                        isProcessing = isProcessing, // Pass explicitly
+                        isProcessing = isProcessing || thinkingState,
+                        isPaused = isPaused,
                         hasPermission = hasPermission,
                         size = 80.dp,
-                        onClick = onMicClick
+                        onClick = onMicClick,
+                        onLongClick = onLongMicClick,
+                        onDoubleClick = onDoubleMicClick
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -133,14 +143,16 @@ fun FeatureScreenTemplate(
                     Text(
                         text = when {
                             !hasPermission -> "No Access"
-                            isProcessing -> "Processing"
+                            isProcessing || thinkingState -> "Thinking..."
+                            isPaused -> "Paused"
                             isRecording -> "REC"
                             else -> "Ready"
                         },
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = when {
                             !hasPermission -> Color.Gray
-                            isProcessing -> MaterialTheme.colorScheme.primary
+                            isProcessing || thinkingState -> Color(0xFFFF9800)
+                            isPaused -> Color(0xFF2196F3)
                             isRecording -> MaterialTheme.colorScheme.error
                             else -> Color(0xFF4CAF50)
                         }
@@ -167,13 +179,17 @@ fun FeatureScreenTemplate(
                         shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     ) {
-                        if (transcriptionResults.isEmpty() && !isProcessing) {
+                        if (customContent != null) {
+                            Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                                customContent()
+                            }
+                        } else if (transcriptionResults.isEmpty() && !isProcessing) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = "Ready to start...",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                               )
+                                )
                             }
                         } else {
                             Box(modifier = Modifier.fillMaxSize()) {

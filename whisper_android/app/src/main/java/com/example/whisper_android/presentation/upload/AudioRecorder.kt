@@ -38,6 +38,20 @@ class AudioRecorder(private val context: Context) {
         Log.d("AudioRecorder", "Recording stopped")
     }
 
+    fun pause() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            recorder?.pause()
+            Log.d("AudioRecorder", "Recording paused")
+        }
+    }
+
+    fun resume() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            recorder?.resume()
+            Log.d("AudioRecorder", "Recording resumed")
+        }
+    }
+
     private fun createRecorder(): MediaRecorder {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(context)

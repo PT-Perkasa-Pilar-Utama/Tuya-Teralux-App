@@ -24,7 +24,7 @@ class DashboardViewModel(
         authenticate()
     }
 
-    private fun authenticate() {
+    fun authenticate() {
         viewModelScope.launch {
             _uiState.value = DashboardUiState(isLoading = true)
             

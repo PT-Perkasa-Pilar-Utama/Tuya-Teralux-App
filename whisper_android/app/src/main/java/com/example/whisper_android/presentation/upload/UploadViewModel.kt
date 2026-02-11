@@ -1,10 +1,11 @@
 package com.example.whisper_android.presentation.upload
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisper_android.data.repository.SpeechRepository
-import com.example.whisper_android.presentation.components.MessageRole
-import com.example.whisper_android.presentation.components.TranscriptionMessage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,13 +13,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 
 data class UploadUiState(
+    val isLoading: Boolean = false,
     val isRecording: Boolean = false,
-    val isProcessing: Boolean = false,
-    val transcriptionResults: List<TranscriptionMessage> = emptyList(),
-    val error: String? = null
+    val isPaused: Boolean = false,
+    val isThinking: Boolean = false,
+    val transcription: String = "",
+    val refinedText: String = "",
+    val summary: String = "",
+    val displaySummary: String = "", // For typing effect
+    val summaryLanguage: String = "id",
+    val error: String? = null,
+    val availableFiles: List<File> = emptyList(),
+    val showInternalPicker: Boolean = false
 )
 
 class UploadViewModel(
@@ -34,11 +45,84 @@ class UploadViewModel(
     private var currentRecordingFile: File? = null
     private var pollingJob: Job? = null
 
-    fun toggleRecording() {
+    fun handleMicClick() {
+        val state = _uiState.value
+        when {
+            !state.isRecording -> startRecording()
+            state.isPaused -> resumeRecording()
+            else -> pauseRecording()
+        }
+    }
+
+    fun handleMicStop() {
         if (_uiState.value.isRecording) {
             stopRecording()
-        } else {
-            startRecording()
+        }
+    }
+
+    fun setSummaryLanguage(lang: String) {
+        _uiState.update { it.copy(summaryLanguage = lang) }
+    }
+
+    fun handleFileSelected(uri: Uri, context: Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isThinking = true, error = null) }
+            val file = copyUriToCache(uri, context)
+            if (file != null) {
+                currentRecordingFile = file
+                uploadAndPoll()
+            } else {
+                _uiState.update { it.copy(isThinking = false, error = "Failed to access selected file") }
+            }
+        }
+    }
+
+    fun handleFileSelected(file: File) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isThinking = true, showInternalPicker = false, error = null) }
+            currentRecordingFile = file
+            uploadAndPoll()
+        }
+    }
+
+    fun scanDownloadsFolder() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true) }
+            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                android.os.Environment.DIRECTORY_DOWNLOADS
+            )
+            val files = downloadsDir.listFiles { file ->
+                val name = file.name.lowercase()
+                file.isFile && (name.endsWith(".mp3") || name.endsWith(".m4a") || name.endsWith(".wav"))
+            }?.toList() ?: emptyList()
+
+            _uiState.update { it.copy(
+                availableFiles = files.sortedByDescending { f -> f.lastModified() },
+                showInternalPicker = true,
+                isLoading = false
+            ) }
+        }
+    }
+
+    fun hideInternalPicker() {
+        _uiState.update { it.copy(showInternalPicker = false) }
+    }
+
+    private suspend fun copyUriToCache(uri: Uri, context: Context): File? = withContext(Dispatchers.IO) {
+        try {
+            val extension = context.contentResolver.getType(uri)?.split("/")?.lastOrNull() ?: "m4a"
+            val file = File(cacheDir, "upload_file_${System.currentTimeMillis()}.$extension")
+            val copied = context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                    true
+                }
+            } ?: false
+            
+            if (copied) file else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -48,10 +132,28 @@ class UploadViewModel(
                 val file = File(cacheDir, "upload_recording_${System.currentTimeMillis()}.m4a")
                 currentRecordingFile = file
                 recorder.start(file)
-                _uiState.update { it.copy(isRecording = true, error = null) }
+                _uiState.update { it.copy(isRecording = true, isPaused = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to start recording: ${e.message}") }
             }
+        }
+    }
+
+    private fun pauseRecording() {
+        try {
+            recorder.pause()
+            _uiState.update { it.copy(isPaused = true) }
+        } catch (e: Exception) {
+            _uiState.update { it.copy(error = "Failed to pause: ${e.message}") }
+        }
+    }
+
+    private fun resumeRecording() {
+        try {
+            recorder.resume()
+            _uiState.update { it.copy(isPaused = false) }
+        } catch (e: Exception) {
+            _uiState.update { it.copy(error = "Failed to resume: ${e.message}") }
         }
     }
 
@@ -59,10 +161,10 @@ class UploadViewModel(
         viewModelScope.launch {
             try {
                 recorder.stop()
-                _uiState.update { it.copy(isRecording = false, isProcessing = true) }
+                _uiState.update { it.copy(isRecording = false, isPaused = false, isThinking = true) }
                 uploadAndPoll()
             } catch (e: Exception) {
-                _uiState.update { it.copy(isRecording = false, error = "Failed to stop recording: ${e.message}") }
+                _uiState.update { it.copy(isRecording = false, isPaused = false, error = "Failed to stop recording: ${e.message}") }
             }
         }
     }
@@ -71,7 +173,7 @@ class UploadViewModel(
         val file = currentRecordingFile ?: return
         val token = tokenManager.getAccessToken()
         if (token == null) {
-            _uiState.update { it.copy(isProcessing = false, error = "Authentication token missing. Please login again.") }
+            _uiState.update { it.copy(isThinking = false, error = "Authentication token missing. Please login again.") }
             return
         }
 
@@ -79,7 +181,7 @@ class UploadViewModel(
             repository.transcribeAudio(file, token).onSuccess { data ->
                 startPolling(data.taskId)
             }.onFailure { e ->
-                _uiState.update { it.copy(isProcessing = false, error = "Upload failed: ${e.message}") }
+                _uiState.update { it.copy(isThinking = false, error = "Upload failed: ${e.message}") }
                 file.delete()
             }
         }
@@ -99,54 +201,90 @@ class UploadViewModel(
 
                 repository.getStatus(taskId, token).onSuccess { data ->
                     val statusStr = data.taskStatus?.status?.lowercase() ?: ""
-                    android.util.Log.d("UploadViewModel", "Task $taskId Status: $statusStr")
                     
                     when (statusStr) {
                         "completed" -> {
                             completed = true
                             val result = data.taskStatus?.result
                             val transcription = result?.transcription ?: ""
-                            val translatedText = result?.translatedText
+                            val refinedText = result?.refinedText ?: transcription
                             val detectedLang = result?.detectedLanguage ?: "unknown"
                             
-                            val displayText = if (!translatedText.isNullOrEmpty()) translatedText else transcription
-                            val finalText = if (displayText.isNotEmpty()) displayText else "No text transcribed"
+                            _uiState.update { it.copy(
+                                transcription = transcription,
+                                refinedText = refinedText
+                            ) }
 
-                            android.util.Log.d("UploadViewModel", "Transcription: $transcription, Translated: $translatedText, Lang: $detectedLang")
-                            
-                            _uiState.update { state ->
-                                val newResults = state.transcriptionResults.toMutableList()
-                                newResults.add(TranscriptionMessage(finalText, MessageRole.USER)) 
-                                // Add dummy agent response as requested
-                                newResults.add(TranscriptionMessage("Agent: I've processed your audio. Is there anything else?", MessageRole.ASSISTANT))
-                                state.copy(
-                                    isProcessing = false,
-                                    transcriptionResults = newResults
-                                )
-                            }
-                            currentRecordingFile?.delete()
+                            processRAGPipeline(refinedText, detectedLang)
                         }
                         "failed" -> {
                             completed = true
-                            _uiState.update { it.copy(isProcessing = false, error = "Transcription failed on server") }
-                            currentRecordingFile?.delete()
+                            _uiState.update { it.copy(isThinking = false, error = "Transcription failed on server") }
                         }
                         else -> {
-                            // Still processing (e.g. "pending", "processing")
+                            // Still processing
                         }
                     }
                 }.onFailure { e ->
-                    // Optionally handle polling error, but keep trying
                     if (attempts >= maxAttempts) {
-                        _uiState.update { it.copy(isProcessing = false, error = "Polling timed out: ${e.message}") }
+                        _uiState.update { it.copy(isThinking = false, error = "Polling timed out: ${e.message}") }
                     }
                 }
+            }
+            currentRecordingFile?.delete()
+        }
+    }
+
+    private fun processRAGPipeline(text: String, detectedLang: String) {
+        val token = tokenManager.getAccessToken() ?: return
+        val targetLang = _uiState.value.summaryLanguage
+
+        viewModelScope.launch {
+            var textToSummarize = text
+
+            // Step 1: Translate if language mismatch
+            if (targetLang != detectedLang && detectedLang != "unknown") {
+                repository.translate(text, token).onSuccess { translated ->
+                    textToSummarize = translated
+                }.onFailure { e ->
+                    android.util.Log.e("UploadViewModel", "Translation failed: ${e.message}")
+                }
+            }
+
+            // Step 2: Generate Summary
+            val summaryRequest = com.example.whisper_android.data.remote.dto.RAGSummaryRequestDto(
+                text = textToSummarize,
+                language = targetLang
+            )
+
+            repository.summary(summaryRequest, token).onSuccess { summaryResult ->
+                _uiState.update { it.copy(summary = summaryResult, isThinking = false) }
+                startTypingEffect(summaryResult)
+            }.onFailure { e ->
+                _uiState.update { it.copy(isThinking = false, error = "Summary generation failed: ${e.message}") }
+            }
+        }
+    }
+
+    private fun startTypingEffect(text: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(displaySummary = "") }
+            val sb = StringBuilder()
+            for (char in text) {
+                sb.append(char)
+                _uiState.update { it.copy(displaySummary = sb.toString()) }
+                delay(30)
             }
         }
     }
 
     fun clearLog() {
-        _uiState.update { it.copy(transcriptionResults = emptyList()) }
+        _uiState.update { it.copy(
+            transcription = "",
+            refinedText = "",
+            summary = "",
+            displaySummary = ""
+        ) }
     }
 
     override fun onCleared() {
