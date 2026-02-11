@@ -1,129 +1,117 @@
 package com.example.whisper_android.presentation.edge
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.padding
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+import com.example.whisper_android.presentation.components.FeatureScreenTemplate
+import com.example.whisper_android.presentation.components.MessageRole
+import com.example.whisper_android.presentation.components.TranscriptionMessage
 
 @Composable
 fun EdgeComputingScreen(
     onNavigateBack: () -> Unit
 ) {
-    var showWalkthrough by remember { mutableStateOf(true) }
+    var isRecording by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var transcriptionResults by remember { mutableStateOf(listOf<TranscriptionMessage>()) }
+    
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    val hasPermission = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 
-    if (showWalkthrough) {
-        AlertDialog(
-            onDismissRequest = { showWalkthrough = false },
-            title = {
-                Text(
-                    text = "Walkthrough",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = "🎯 Purpose",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Offline Voice Transcription & On-Device Processing",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "🔄 Flow Summary (Edge Computing)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "1. The Android app (Kotlin) captures microphone input.\n" +
-                                "2. Audio is processed directly on the device.\n" +
-                                "3. whisper.cpp runs locally within the app.\n" +
-                                "4. Speech is converted to text on-device.\n" +
-                                "5. The transcribed text is returned instantly within the app.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "✅ Advantages",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "• Works offline (no internet required).\n" +
-                                "• Lowest possible latency.\n" +
-                                "• No server infrastructure cost.\n" +
-                                "• Better privacy (audio never leaves the device).\n" +
-                                "• No backend dependency.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "❌ Disadvantages",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        text = "• Heavy CPU and memory usage on the device.\n" +
-                                "• Limited by mobile hardware performance.\n" +
-                                "• Increases app size (model bundled locally).\n" +
-                                "• Harder to update or upgrade the model.\n" +
-                                "• Battery consumption can be high.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = { showWalkthrough = false }) {
-                    Text("Close")
+    FeatureScreenTemplate(
+        title = "Edge Computing",
+        onNavigateBack = onNavigateBack,
+        isRecording = isRecording,
+        isProcessing = isProcessing,
+        hasPermission = hasPermission,
+        transcriptionResults = transcriptionResults,
+        onMicClick = {
+            if (!isRecording && !isProcessing) {
+                isRecording = true
+            } else if (isRecording) {
+                isRecording = false
+                isProcessing = true
+                scope.launch {
+                    delay(800) // Edge is faster (?) simulation
+                    val mockUserText = "Status baterai perangkat."
+                    val mockAssistantText = "Baterai perangkat IoT anda berada di level 85%. Aman bro!"
+                    
+                    transcriptionResults = transcriptionResults + 
+                        TranscriptionMessage(mockUserText, MessageRole.USER)
+                    
+                    delay(400)
+                    transcriptionResults = transcriptionResults + 
+                        TranscriptionMessage(mockAssistantText, MessageRole.ASSISTANT)
+                    
+                    isProcessing = false
                 }
             }
-        )
-    }
-
-    Scaffold { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
+        },
+        onClearChat = { transcriptionResults = emptyList() },
+        walkthroughContent = {
             Text(
-                text = "Edge Computing - Hello World",
-                style = MaterialTheme.typography.headlineMedium
+                text = "🎯 Purpose",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Offline Voice Transcription & On-Device Processing",
+                style = MaterialTheme.typography.bodyMedium
             )
 
-            Button(
-                onClick = onNavigateBack,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-            ) {
-                Text("Back to Dashboard")
-            }
+            Text(
+                text = "🔄 Flow Summary (Edge Computing)",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "1. Microphone input is captured.\n" +
+                        "2. whisper.cpp runs locally within the app.\n" +
+                        "3. Audio is processed directly on the device.\n" +
+                        "4. Results are returned instantly offline.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "✅ Advantages",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "• Works offline (no internet required).\n" +
+                        "• Lowest possible latency.\n" +
+                        "• Superior privacy (audio stays on device).\n" +
+                        "• No server infrastructure costs.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "❌ Disadvantages",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "• High CPU and battery usage.\n" +
+                        "• Limited by mobile hardware performance.\n" +
+                        "• Increases app size (bundled model).\n" +
+                        "• Harder to update/upgrade the model.",
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
-    }
+    )
 }

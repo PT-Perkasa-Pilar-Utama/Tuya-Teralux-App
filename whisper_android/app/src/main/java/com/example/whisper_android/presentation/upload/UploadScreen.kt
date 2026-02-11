@@ -1,131 +1,120 @@
 package com.example.whisper_android.presentation.upload
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.padding
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+import com.example.whisper_android.presentation.components.FeatureScreenTemplate
+import com.example.whisper_android.presentation.components.MessageRole
+import com.example.whisper_android.presentation.components.TranscriptionMessage
 
 @Composable
 fun UploadScreen(
     onNavigateBack: () -> Unit
 ) {
-    var showWalkthrough by remember { mutableStateOf(true) }
+    var isRecording by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var transcriptionResults by remember { mutableStateOf(listOf<TranscriptionMessage>()) }
+    
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    val hasPermission = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 
-    if (showWalkthrough) {
-        AlertDialog(
-            onDismissRequest = { showWalkthrough = false },
-            title = {
-                Text(
-                    text = "Walkthrough",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = "🎯 Purpose",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Long-Form Meeting & Audio Transcription (30 minutes to 4+ hours)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "🔄 Flow Summary (Normal Upload)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "1. The Android app (Kotlin) records audio using the microphone.\n" +
-                                "2. The audio is saved as a complete audio file.\n" +
-                                "3. The app sends the file to the backend (Golang) via REST API.\n" +
-                                "4. The backend receives the audio file (mp3, wav, m4a, aac, flac).\n" +
-                                "5. The backend processes the file using whisper.cpp.\n" +
-                                "6. The system returns the transcribed text.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "✅ Advantages",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "• Simple architecture.\n" +
-                                "• Easy to implement and debug.\n" +
-                                "• No message broker required.\n" +
-                                "• Stable for long recordings.\n" +
-                                "• Full context improves transcription consistency.\n" +
-                                "• Lower operational complexity.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "❌ Disadvantages",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        text = "• Not real-time (must wait until recording finishes).\n" +
-                                "• Higher perceived latency for long meetings.\n" +
-                                "• Large file upload required before processing.\n" +
-                                "• May require background processing for very long sessions.\n" +
-                                "• Requires stable internet connection.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = { showWalkthrough = false }) {
-                    Text("Close")
+    FeatureScreenTemplate(
+        title = "Upload Audio",
+        onNavigateBack = onNavigateBack,
+        isRecording = isRecording,
+        isProcessing = isProcessing,
+        hasPermission = hasPermission,
+        transcriptionResults = transcriptionResults,
+        onMicClick = {
+            if (!isRecording && !isProcessing) {
+                isRecording = true
+            } else if (isRecording) {
+                isRecording = false
+                isProcessing = true
+                scope.launch {
+                    delay(1500)
+                    val mockUserText = "Halo, bisa bantu saya cek status perangkat?"
+                    val mockAssistantText = "Tentu! Semua perangkat IoT Anda saat ini beroperasi dengan normal."
+                    
+                    transcriptionResults = transcriptionResults + 
+                        TranscriptionMessage(mockUserText, MessageRole.USER)
+                    
+                    delay(800)
+                    transcriptionResults = transcriptionResults + 
+                        TranscriptionMessage(mockAssistantText, MessageRole.ASSISTANT)
+                    
+                    isProcessing = false
                 }
             }
-        )
-    }
-
-    Scaffold { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
+        },
+        onClearChat = { transcriptionResults = emptyList() },
+        walkthroughContent = {
             Text(
-                text = "Upload Files - Hello World",
-                style = MaterialTheme.typography.headlineMedium
+                text = "🎯 Purpose",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
             )
-            
-            Button(
-                onClick = onNavigateBack,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-            ) {
-                Text("Back to Dashboard")
-            }
+            Text(
+                text = "Long-Form Meeting & Audio Transcription (30 minutes to 4+ hours)",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "🔄 Flow Summary (Normal Upload)",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "1. The Android app (Kotlin) records audio using the microphone.\n" +
+                        "2. The audio is saved as a complete audio file.\n" +
+                        "3. The app sends the file to the backend (Golang) via REST API.\n" +
+                        "4. The backend receives the audio file.\n" +
+                        "5. The backend processes the file using whisper.cpp.\n" +
+                        "6. The system returns the transcribed text.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "✅ Advantages",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "• Simple architecture & easy to debug.\n" +
+                        "• Stable for very long recordings.\n" +
+                        "• No infrastructure message broker needed.\n" +
+                        "• Better transcription consistency.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "❌ Disadvantages",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "• Not real-time (must wait until finish).\n" +
+                        "• Higher perceived latency for long sessions.\n" +
+                        "• Large file uploads required.\n" +
+                        "• Requires stable internet connection.",
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
-    }
+    )
 }

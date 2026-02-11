@@ -1,27 +1,24 @@
 package com.example.whisper_android.presentation.dashboard
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.DeviceHub
+import androidx.compose.ui.unit.sp
 import com.example.whisper_android.data.di.NetworkModule
+import com.example.whisper_android.presentation.components.DashboardButton
 
 @Composable
 fun DashboardScreen(
@@ -34,6 +31,22 @@ fun DashboardScreen(
     }
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    
+    var hasMicPermission by remember {
+        mutableStateOf(
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.RECORD_AUDIO
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasMicPermission = isGranted
+    }
 
     LaunchedEffect(uiState.isAuthenticated, uiState.error) {
         if (!uiState.isLoading && !uiState.isAuthenticated) {
@@ -45,20 +58,34 @@ fun DashboardScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                        )
+                    )
+                )
+                .padding(paddingValues),
+            contentAlignment = Alignment.TopCenter
         ) {
             if (uiState.isLoading) {
-                 CircularProgressIndicator()
+                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (uiState.isAuthenticated) {
                 DashboardContent(
+                    hasMicPermission = hasMicPermission,
+                    onRequestPermission = {
+                        launcher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    },
                     onNavigateToUpload = onNavigateToUpload,
                     onNavigateToStreaming = onNavigateToStreaming,
                     onNavigateToEdge = onNavigateToEdge
                 )
             } else {
-                 Text("Redirecting to Login...")
+                 Text(
+                     "Redirecting to Login...",
+                     modifier = Modifier.align(Alignment.Center)
+                 )
             }
         }
     }
@@ -66,68 +93,117 @@ fun DashboardScreen(
 
 @Composable
 fun DashboardContent(
+    hasMicPermission: Boolean,
+    onRequestPermission: () -> Unit,
     onNavigateToUpload: () -> Unit,
     onNavigateToStreaming: () -> Unit,
     onNavigateToEdge: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text(
-            text = "Whisper Demo Dashboard",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
+        // --- Header Section ---
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(bottom = 24.dp)
+        ) {
+            Text(
+                text = "Welcome to Whisper Demo",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "Choose your transcription interface",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
 
+        // --- Permission Banner ---
+        if (!hasMicPermission) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+                ),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MicOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.size(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Microphone Required",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            text = "Enable permission to record audio.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                    TextButton(
+                        onClick = onRequestPermission,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Grant", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // --- Feature Selection ---
         DashboardButton(
             text = "Upload Files",
-            icon = androidx.compose.material.icons.Icons.Default.Upload,
+            subtitle = "Long-form processing via Cloud",
+            icon = Icons.Default.Upload,
+            color = MaterialTheme.colorScheme.primary,
             onClick = onNavigateToUpload
         )
 
         DashboardButton(
             text = "Realtime Streaming",
-            icon = androidx.compose.material.icons.Icons.Default.PlayArrow,
+            subtitle = "Low-latency message streaming",
+            icon = Icons.Default.CloudUpload,
+            color = MaterialTheme.colorScheme.secondary,
             onClick = onNavigateToStreaming
         )
 
         DashboardButton(
             text = "Edge Computing",
-            icon = androidx.compose.material.icons.Icons.Default.DeviceHub,
+            subtitle = "Private on-device transcription",
+            icon = Icons.Default.Memory,
+            color = MaterialTheme.colorScheme.tertiary,
             onClick = onNavigateToEdge
         )
-    }
-}
-
-@Composable
-fun DashboardButton(
-    text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    androidx.compose.material3.ElevatedButton(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
-    ) {
-        androidx.compose.foundation.layout.Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
-        ) {
-            androidx.compose.material3.Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp)
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            text = "Powered by Senso",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline
+        )
     }
 }

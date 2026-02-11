@@ -12,6 +12,7 @@ import java.util.UUID
 data class RegisterUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
+    val message: String? = null, // Added message field
     val isSuccess: Boolean = false
 )
 
@@ -34,15 +35,15 @@ class RegisterViewModel(
             result.onSuccess { registration ->
                 if (registration != null) {
                     // Already registered, go to dashboard
-                    _uiState.value = RegisterUiState(isSuccess = true)
+                    _uiState.value = RegisterUiState(
+                        isSuccess = true, 
+                        message = "Device sudah terdaftar. Mengalihkan ke Dashboard..."
+                    )
                 } else {
                     // Not registered, show form
                     _uiState.value = RegisterUiState(isLoading = false)
                 }
             }.onFailure {
-                // Error checking (e.g. network), assume not registered but show error? 
-                // Or best effort: just show form and let user try to register (which might fail if network is down)
-                // For now, stop loading and show form.
                 _uiState.value = RegisterUiState(isLoading = false)
             }
         }
@@ -55,14 +56,16 @@ class RegisterViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.value = RegisterUiState(isLoading = true)
-            // Get device MAC address or generate a random valid one
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val macAddress = getMacAddress()
             
             val result = registerTeraluxUseCase(name, roomId, macAddress)
             
             result.onSuccess {
-                _uiState.value = RegisterUiState(isSuccess = true)
+                _uiState.value = RegisterUiState(
+                    isSuccess = true,
+                    message = "Registrasi berhasil! Selamat datang."
+                )
             }.onFailure { e ->
                 _uiState.value = RegisterUiState(error = e.message ?: "Unknown error", isLoading = false)
             }
@@ -70,6 +73,7 @@ class RegisterViewModel(
     }
 
     private fun getMacAddress(): String {
+        // ... (keep existing implementation)
         try {
             val all = java.util.Collections.list(java.net.NetworkInterface.getNetworkInterfaces())
             for (nif in all) {
@@ -105,5 +109,9 @@ class RegisterViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun clearMessage() {
+        _uiState.value = _uiState.value.copy(message = null)
     }
 }

@@ -7,7 +7,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.whisper_android.data.di.NetworkModule // Manual DI for simplicity
+import com.example.whisper_android.data.di.NetworkModule
+import com.example.whisper_android.presentation.components.ToastObserver
 
 @Composable
 fun RegisterScreen(
@@ -22,6 +23,12 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsState()
     var name by remember { mutableStateOf("") }
     var roomId by remember { mutableStateOf("") }
+
+    // Reusable Toast Observer
+    ToastObserver(
+        message = uiState.message,
+        onToastShown = { viewModel.clearMessage() }
+    )
 
     // Side effect for navigation on success
     LaunchedEffect(uiState.isSuccess) {
