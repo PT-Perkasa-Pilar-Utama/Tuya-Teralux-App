@@ -11,10 +11,16 @@ import okio.BufferedSink
 import okio.source
 import java.io.File
 
+import com.example.whisper_android.data.remote.api.RAGApi
+import com.example.whisper_android.data.remote.dto.*
+
 /**
- * Repository for handling speech transcription operations.
+ * Repository for handling speech transcription and RAG operations.
  */
-class SpeechRepository(private val api: SpeechApi) {
+class SpeechRepository(
+    private val api: com.example.whisper_android.data.remote.api.SpeechApi,
+    private val ragApi: RAGApi
+) {
 
     /**
      * Uploads an audio file using chunked (streaming) multipart request.
@@ -43,6 +49,40 @@ class SpeechRepository(private val api: SpeechApi) {
         return try {
             val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
             val response = api.getTranscriptionStatus(taskId, authToken)
+            if (response.status && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Translates text using RAG API.
+     */
+    suspend fun translate(text: String, token: String): Result<String> {
+        return try {
+            val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+            val response = ragApi.translate(RAGRequestDto(text), authToken)
+            if (response.status && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Generates a summary using RAG API.
+     */
+    suspend fun summary(request: RAGSummaryRequestDto, token: String): Result<String> {
+        return try {
+            val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+            val response = ragApi.summary(request, authToken)
             if (response.status && response.data != null) {
                 Result.success(response.data)
             } else {

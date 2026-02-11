@@ -7,6 +7,7 @@ import com.example.whisper_android.domain.usecase.AuthenticateUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -33,21 +34,34 @@ class RegisterViewModel(
     private fun checkRegistration() {
         viewModelScope.launch {
             val macAddress = getMacAddress()
+            _uiState.update { it.copy(isLoading = true, error = null) }
             val result = getTeraluxByMacUseCase(macAddress)
             
             result.onSuccess { registration ->
                 if (registration != null) {
-                    // Already registered, go to dashboard
-                    _uiState.value = RegisterUiState(
-                        isSuccess = true, 
-                        message = "Device already registered. Redirecting to Dashboard..."
-                    )
+                    // Registration exists, now try to authenticate
+                    val authResult = authenticateUseCase()
+                    authResult.onSuccess {
+                        _uiState.update { it.copy(
+                            isLoading = false,
+                            isSuccess = true,
+                            message = "Logged in successfully. Redirecting..."
+                        ) }
+                    }.onFailure { e ->
+                        // Registration exists but auth failed.
+                        // DO NOT set isSuccess = true to avoid infinite loop.
+                        _uiState.update { it.copy(
+                            isLoading = false,
+                            isSuccess = false,
+                            error = "Device registered but authentication failed: ${e.message}. Please check your connection or try again."
+                        ) }
+                    }
                 } else {
                     // Not registered, show form
-                    _uiState.value = RegisterUiState(isLoading = false)
+                    _uiState.update { it.copy(isLoading = false, isSuccess = false) }
                 }
-            }.onFailure {
-                _uiState.value = RegisterUiState(isLoading = false)
+            }.onFailure { e ->
+                _uiState.update { it.copy(isLoading = false, error = "Failed to check registration: ${e.message}") }
             }
         }
     }

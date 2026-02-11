@@ -80,7 +80,11 @@ object NetworkModule {
     }
 
     val speechRepository: com.example.whisper_android.data.repository.SpeechRepository by lazy {
-        com.example.whisper_android.data.repository.SpeechRepository(speechApi)
+        com.example.whisper_android.data.repository.SpeechRepository(speechApi, ragApi)
+    }
+
+    private val ragApi: com.example.whisper_android.data.remote.api.RAGApi by lazy {
+        retrofit.create(com.example.whisper_android.data.remote.api.RAGApi::class.java)
     }
     
     val registerUseCase: RegisterTeraluxUseCase by lazy {

@@ -48,11 +48,9 @@ fun DashboardScreen(
         hasMicPermission = isGranted
     }
 
-    LaunchedEffect(uiState.isAuthenticated, uiState.error) {
-        if (!uiState.isLoading && !uiState.isAuthenticated) {
-            onNavigateToRegister()
-        }
-    }
+    // Auto-redirect removed to prevent infinite loop
+    // If auth fails, we stay on Dashboard and show the error message.
+    // The user can choose to go back or retry.
     
     Scaffold { paddingValues ->
         Box(
@@ -82,10 +80,36 @@ fun DashboardScreen(
                     onNavigateToEdge = onNavigateToEdge
                 )
             } else {
-                 Text(
-                     "Redirecting to Login...",
-                     modifier = Modifier.align(Alignment.Center)
-                 )
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Text(
+                        text = uiState.error ?: "Authentication Failed",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(
+                        onClick = { viewModel.authenticate() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Retry Login")
+                    }
+                    TextButton(
+                        onClick = onNavigateToRegister,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Back to Register / Setup")
+                    }
+                }
             }
         }
     }
