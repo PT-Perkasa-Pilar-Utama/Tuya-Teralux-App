@@ -20,7 +20,7 @@ type Config struct {
 	CacheTTL                  string
 
 	// Speech / RAG
-	LLMProvider             string // "antigravity", "ollama", "gemini"
+	LLMProvider             string // "ollama", "gemini"
 	LLMBaseURL              string
 	LLMApiKey               string
 	LLMModel                string

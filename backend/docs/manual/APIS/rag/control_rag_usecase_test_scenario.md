@@ -1,7 +1,7 @@
-# ENDPOINT: POST /api/rag
+# ENDPOINT: POST /api/rag/control
 
 ## Description
-Submits text for **RAG (Retrieval-Augmented Generation)** processing. This endpoint processes the input text through an external LLM/Knowledge base and returns a task ID for status tracking. The execution is **asynchronous**.
+Submits text for **RAG Device Control** processing. This endpoint interprets natural language commands to control devices via Tuya or other integrations. The execution is **asynchronous** and returns a task ID.
 
 ## Authentication
 - **Type**: BearerAuth

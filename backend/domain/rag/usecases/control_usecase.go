@@ -35,83 +35,13 @@ type RAGUsecase struct {
 	taskStatus  map[string]*ragdtos.RAGStatusDTO
 }
 
-// extractLastJSONObject scans a string that may contain multiple JSON objects
-// (for example, streaming fragments concatenated together) and returns the last
-// successfully parsed JSON object. This helps recover structured output from
-// tokenized/streaming LLM responses.
-func extractLastJSONObject(s string) (map[string]interface{}, error) {
-	// First, try to clean markdown fences if present
-	s = strings.TrimSpace(s)
-	if strings.HasPrefix(s, "```") {
-		lines := strings.Split(s, "\n")
-		if len(lines) > 2 {
-			// Find first line with { and last line with }
-			var start, end int = -1, -1
-			for i, line := range lines {
-				if strings.Contains(line, "{") && start == -1 {
-					start = i
-				}
-				if strings.Contains(line, "}") {
-					end = i
-				}
-			}
-			if start != -1 && end != -1 && end >= start {
-				candidate := strings.Join(lines[start:end+1], "\n")
-				var parsed map[string]interface{}
-				if err := json.Unmarshal([]byte(candidate), &parsed); err == nil {
-					return parsed, nil
-				}
-			}
-		}
-	}
-
-	// Fallback to brace counting logic
-	var last map[string]interface{}
-	for i := 0; i < len(s); i++ {
-		if s[i] != '{' {
-			continue
-		}
-		depth := 0
-		for j := i; j < len(s); j++ {
-			if s[j] == '{' {
-				depth++
-			} else if s[j] == '}' {
-				depth--
-				if depth == 0 {
-					candidate := s[i : j+1]
-					var parsed map[string]interface{}
-					if err := json.Unmarshal([]byte(candidate), &parsed); err == nil {
-						last = parsed
-					}
-					// Don't break, keep looking for potentially better/longer/later JSON
-				}
-			}
-		}
-	}
-	if last == nil {
-		return nil, fmt.Errorf("no valid JSON object found")
-	}
-	return last, nil
-}
-
-// tryParseOnce attempts to parse the provided string as JSON. It first
-// unmarshals the whole string and, if that fails, attempts to extract
-// the last valid JSON object from streaming/fractured output.
-func tryParseOnce(s string) (map[string]interface{}, error) {
-	var parsed map[string]interface{}
-	if err := json.Unmarshal([]byte(s), &parsed); err == nil && parsed != nil {
-		return parsed, nil
-	}
-	return extractLastJSONObject(s)
-}
-
 func NewRAGUsecase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, authUseCase *tuyaUsecases.TuyaAuthUseCase) *RAGUsecase {
 	return &RAGUsecase{vectorSvc: vectorSvc, llm: llm, config: cfg, badger: badgerSvc, authUseCase: authUseCase, taskStatus: make(map[string]*ragdtos.RAGStatusDTO)}
 }
 
-// Process accepts user text, queues work to query the vector store and LLM, and stores the result under a task ID
+// Control accepts user text, queues work to query the vector store and LLM, and stores the result under a task ID
 // which can later be fetched via GetStatus. Processing is done asynchronously and this method returns immediately.
-func (u *RAGUsecase) Process(text string, authToken string, onComplete func(string, *ragdtos.RAGStatusDTO)) (string, error) {
+func (u *RAGUsecase) Control(text string, authToken string, onComplete func(string, *ragdtos.RAGStatusDTO)) (string, error) {
 	// Generate UUID task id
 	taskID := uuid.New().String()
 	// Initially mark pending
@@ -493,49 +423,72 @@ func (u *RAGUsecase) executeAction(method, path string, body interface{}, token 
 	return resData
 }
 
-func (u *RAGUsecase) GetStatus(taskID string) (*ragdtos.RAGStatusDTO, error) {
-	// First try in-memory map with read lock
-	u.mu.RLock()
-	if s, ok := u.taskStatus[taskID]; ok {
-		u.mu.RUnlock()
-		// augment with TTL info if available
-		if u.badger != nil {
-			key := "rag:task:" + taskID
-			_, ttl, err := u.badger.GetWithTTL(key)
-			if err == nil && ttl > 0 {
-				s.ExpiresInSecond = int64(ttl.Seconds())
-				s.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
-			}
-		}
-		return s, nil
-	}
-	u.mu.RUnlock()
-
-	// If not found in-memory, try persistent store (Badger) if configured
-	if u.badger != nil {
-		key := "rag:task:" + taskID
-		b, ttl, err := u.badger.GetWithTTL(key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read persistent task: %w", err)
-		}
-		if b != nil {
-			var status ragdtos.RAGStatusDTO
-			if err := json.Unmarshal(b, &status); err == nil {
-				// Cache into memory for faster subsequent reads
-				u.mu.Lock()
-				u.taskStatus[taskID] = &status
-				u.mu.Unlock()
-				if ttl > 0 {
-					status.ExpiresInSecond = int64(ttl.Seconds())
-					status.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
+// extractLastJSONObject scans a string that may contain multiple JSON objects
+// (for example, streaming fragments concatenated together) and returns the last
+// successfully parsed JSON object. This helps recover structured output from
+// tokenized/streaming LLM responses.
+func extractLastJSONObject(s string) (map[string]interface{}, error) {
+	// First, try to clean markdown fences if present
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```") {
+		lines := strings.Split(s, "\n")
+		if len(lines) > 2 {
+			// Find first line with { and last line with }
+			var start, end int = -1, -1
+			for i, line := range lines {
+				if strings.Contains(line, "{") && start == -1 {
+					start = i
 				}
-				utils.LogDebug("RAG Task %s: retrieved from badger, ttl=%v", taskID, ttl)
-				return &status, nil
+				if strings.Contains(line, "}") {
+					end = i
+				}
+			}
+			if start != -1 && end != -1 && end >= start {
+				candidate := strings.Join(lines[start:end+1], "\n")
+				var parsed map[string]interface{}
+				if err := json.Unmarshal([]byte(candidate), &parsed); err == nil {
+					return parsed, nil
+				}
 			}
 		}
-		// Not found in badger either
-		utils.LogDebug("RAG Task %s: not found in cache", taskID)
 	}
 
-	return nil, fmt.Errorf("task not found")
+	// Fallback to brace counting logic
+	var last map[string]interface{}
+	for i := 0; i < len(s); i++ {
+		if s[i] != '{' {
+			continue
+		}
+		depth := 0
+		for j := i; j < len(s); j++ {
+			if s[j] == '{' {
+				depth++
+			} else if s[j] == '}' {
+				depth--
+				if depth == 0 {
+					candidate := s[i : j+1]
+					var parsed map[string]interface{}
+					if err := json.Unmarshal([]byte(candidate), &parsed); err == nil {
+						last = parsed
+					}
+					// Don't break, keep looking for potentially better/longer/later JSON
+				}
+			}
+		}
+	}
+	if last == nil {
+		return nil, fmt.Errorf("no valid JSON object found")
+	}
+	return last, nil
+}
+
+// tryParseOnce attempts to parse the provided string as JSON. It first
+// unmarshals the whole string and, if that fails, attempts to extract
+// the last valid JSON object from streaming/fractured output.
+func tryParseOnce(s string) (map[string]interface{}, error) {
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &parsed); err == nil && parsed != nil {
+		return parsed, nil
+	}
+	return extractLastJSONObject(s)
 }

@@ -1,10 +1,7 @@
 # ENDPOINT: POST /api/speech/transcribe
 
 ## Description
-Starts transcription of an audio file. This is the standard entry point for short audio transcription. It follows a fallback logic:
-1. Attempt **PPU (Outsystems Proxy)** transcription first.
-2. If PPU fails or is unavailable, fall back to **Local Whisper** transcription.
-The processing is **asynchronous**.
+Starts transcription of an audio file using **Local Whisper** (Whisper.cpp). This is the standard entry point for short audio transcription. The processing is **asynchronous**.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -46,7 +43,7 @@ The processing is **asynchronous**.
   *(Status: 202 Accepted)*
 - **Side Effects**: 
   - Task entry created in cache storage.
-  - Background processing started (PPU attempted first).
+  - Background processing started.
 
 ### 2. Validation: Missing Audio File
 - **Method**: `POST`

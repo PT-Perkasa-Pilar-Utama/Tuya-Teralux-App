@@ -115,56 +115,7 @@ setup:
 	@chmod +x setup.sh || true
 	@./setup.sh || true
 
-# Run in Docker (dev mode with hot reload)
-dev-docker: dev-docker-stop
-	@echo "🚀 Starting development environment in Docker (Fast Mode)..."
-	@trap 'echo "🛑 Cleaning up..."; docker compose -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
-	docker compose -f docker-compose.dev.yml down --remove-orphans --volumes; \
-	docker compose -f docker-compose.dev.yml up
-
-# Run development environment with forced rebuild
-dev-docker-build: dev-docker-stop
-	@echo "🚀 Starting development environment in Docker (Forced Rebuild)..."
-	@trap 'echo "🛑 Cleaning up..."; docker compose -f docker-compose.dev.yml down --remove-orphans --volumes' EXIT INT TERM; \
-	docker compose -f docker-compose.dev.yml down --remove-orphans --volumes; \
-	docker compose -f docker-compose.dev.yml up --build
-
-# Stop development environment
-dev-docker-stop:
-	@echo "🛑 Stopping development environment (removing volumes)..."
-	docker compose -f docker-compose.dev.yml down --remove-orphans --volumes
-
-# Ensure Ollama image, data dir & container exist
-ollama-ensure:
-	@echo "🔧 Ensuring Ollama image, data dir & container..."
-	@mkdir -p $(OLLAMA_DATA_DIR)
-	@docker image inspect $(OLLAMA_IMAGE) >/dev/null 2>&1 || (echo "🔽 Pulling $(OLLAMA_IMAGE)..." && docker pull $(OLLAMA_IMAGE))
-	@if [ "$(shell docker ps -q -f name=ollama)" != "" ]; then \
-		echo "ℹ️  Container 'ollama' already running"; \
-	elif [ "$(shell docker ps -aq -f name=ollama)" != "" ]; then \
-		echo "ℹ️  Starting existing container 'ollama'..."; docker start ollama; \
-	else \
-		echo "🔁 Creating and starting container 'ollama'..."; \
-		docker run -d --restart always -v $(OLLAMA_DATA_DIR):/root/.ollama -p 11434:11434 --name ollama $(OLLAMA_IMAGE) serve; \
-	fi
-	@echo "✅ Ollama image, data dir & container ready (data dir: $(OLLAMA_DATA_DIR))"
-
-# Note: Whisper handled via local whisper.cpp (STT) — we do not pull a 'whisper' model from Ollama.
-# If you need to import a local ggml model into Ollama, use WHISPER_MODEL_PATH and an import helper (manual copy).
-
-# Pull LLM model if missing
-ollama-pull-llm: ollama-ensure
-	@echo "🔽 Ensuring LLM model ($(LLM_MODEL))..."
-	@docker exec -i ollama sh -c 'for i in 1 20; do ollama ps >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1' \
-		&& docker exec -i ollama ollama show $(LLM_MODEL) >/dev/null 2>&1 || (docker exec -i ollama ollama pull $(LLM_MODEL) >/dev/null 2>&1 || echo "⚠️ Model '$(LLM_MODEL)' not found in Ollama repository - skipping"); true
-	@echo "✅ LLM model ensured (or skipped): $(LLM_MODEL)"
-
-# Convenience: ensure image and LLM model (Whisper is local via whisper.cpp)
-ollama-setup: ollama-ensure ollama-pull-llm
-	@echo "🔧 Ensuring Ollama image & container (if missing)..."
-	@echo "✅ Ollama setup complete (image + llm)"
-
-# RAG helper - authenticate + submit + poll
+# Conveniences
 # Usage: make rag text="turn on the lamp"
 rag:
 	@echo "🔧 Running RAG helper (auth -> submit -> poll)..."

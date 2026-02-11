@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ type fakeUsecase struct {
 	expiresIn int64
 }
 
-func (f *fakeUsecase) Process(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error) {
+func (f *fakeUsecase) Control(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error) {
 	return f.taskID, nil
 }
 
@@ -27,17 +28,22 @@ func (f *fakeUsecase) GetStatus(taskID string) (*dtos.RAGStatusDTO, error) {
 	return &dtos.RAGStatusDTO{Status: "pending", Result: "", ExpiresInSecond: f.expiresIn, ExpiresAt: time.Now().Add(time.Duration(f.expiresIn) * time.Second).UTC().Format(time.RFC3339)}, nil
 }
 
-func TestProcessTextReturns202(t *testing.T) {
+func (f *fakeUsecase) Translate(text string) (string, error) {
+	return "Translated: " + text, nil
+}
+
+func TestControlReturns202(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	fake := &fakeUsecase{taskID: "test-uuid", expiresIn: 3600}
-	controller := NewRAGController(fake)
+	cfg := &utils.Config{}
+	controller := NewRAGController(fake, cfg)
 
 	r := gin.New()
-	r.POST("/api/rag", controller.ProcessText)
+	r.POST("/api/rag/control", controller.Control)
 
 	body := map[string]string{"text": "turn on the lamp"}
 	b, _ := json.Marshal(body)
-	req := httptest.NewRequest("POST", "/api/rag", bytes.NewBuffer(b))
+	req := httptest.NewRequest("POST", "/api/rag/control", bytes.NewBuffer(b))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()

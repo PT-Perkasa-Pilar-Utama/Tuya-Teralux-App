@@ -14,7 +14,6 @@ import (
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	speechdtos "teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/repositories"
 
 	"github.com/google/uuid"
 )
@@ -22,17 +21,15 @@ import (
 type WhisperProxyUsecase struct {
 	badger     *infrastructure.BadgerService
 	config     *utils.Config
-	mqttRepo   *repositories.MqttRepository
 	mu         sync.RWMutex
 	taskStatus map[string]*speechdtos.WhisperProxyStatusDTO
 }
 
 // NewWhisperProxyUsecase creates a new whisper proxy usecase instance
-func NewWhisperProxyUsecase(badgerSvc *infrastructure.BadgerService, cfg *utils.Config, mqttRepo *repositories.MqttRepository) *WhisperProxyUsecase {
+func NewWhisperProxyUsecase(badgerSvc *infrastructure.BadgerService, cfg *utils.Config) *WhisperProxyUsecase {
 	return &WhisperProxyUsecase{
 		badger:     badgerSvc,
 		config:     cfg,
-		mqttRepo:   mqttRepo,
 		taskStatus: make(map[string]*speechdtos.WhisperProxyStatusDTO),
 	}
 }
@@ -123,18 +120,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 			}
 		}
 
-		// Broadcast via MQTT
-		updateMsg := speechdtos.StatusUpdateMessage{
-			Type:   "status_update",
-			TaskID: taskID,
-			Status: statusDTO.Status,
-			Data:   statusDTO.Result,
-		}
-		if msgBytes, err := json.Marshal(updateMsg); err == nil {
-			if err := u.mqttRepo.Publish(string(msgBytes)); err != nil {
-				utils.LogError("Whisper Task %s: failed to publish status update: %v", taskID, err)
-			}
-		}
+		// Broadcast removed
 	}(taskID, filePath, fileName)
 
 	return taskID, nil

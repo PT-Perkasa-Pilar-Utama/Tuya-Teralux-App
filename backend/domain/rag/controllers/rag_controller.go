@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strings"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 
 	"github.com/gin-gonic/gin"
@@ -11,42 +12,50 @@ import (
 // RAGProcessor is an abstraction for RAG operations implemented by the usecase.
 // This allows unit tests to provide a fake implementation.
 type RAGProcessor interface {
-	Process(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error)
+	Control(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error)
 	GetStatus(taskID string) (*dtos.RAGStatusDTO, error)
+	Translate(text string) (string, error)
 }
 
 type RAGController struct {
 	usecase RAGProcessor
+	config  *utils.Config
 }
 
-func NewRAGController(u RAGProcessor) *RAGController {
-	return &RAGController{usecase: u}
+func NewRAGController(usecase RAGProcessor, cfg *utils.Config) *RAGController {
+	return &RAGController{usecase: usecase, config: cfg}
 }
 
-// ProcessText godoc
-// @Summary Process text via RAG
-// @Description Submit text for RAG processing
+// Control godoc
+// @Summary Control devices via natural language
+// @Description Queue a RAG task to process natural language command
 // @Tags 05. RAG
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param request body dtos.RAGRequestDTO true "RAG request"
-// @Success 202 {object} dtos.StandardResponse{data=dtos.RAGProcessResponseDTO}
+// @Param request body dtos.RAGRequestDTO true "RAG Request"
+// @Success 202 {object} dtos.StandardResponse{data=map[string]string}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
-// @Router /api/rag [post]
-func (c *RAGController) ProcessText(ctx *gin.Context) {
+// @Router /api/rag/control [post]
+func (c *RAGController) Control(ctx *gin.Context) {
 	var req dtos.RAGRequestDTO
 	if err := ctx.BindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{Status: false, Message: "Invalid request", Details: err.Error()})
 		return
 	}
 
-	authToken := ctx.GetHeader("Authorization")
+	authHeader := ctx.GetHeader("Authorization")
+	// Extract token from Bearer string
+	parts := strings.Split(authHeader, " ")
+	if len(parts) == 2 {
+		authHeader = parts[1]
+	}
 
-	taskID, err := c.usecase.Process(req.Text, authToken, nil)
+	// Call UseCase via Control
+	taskID, err := c.usecase.Control(req.Text, authHeader, nil)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Processing failed", Details: err.Error()})
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Failed to queue task", Details: err.Error()})
 		return
 	}
 
@@ -59,6 +68,34 @@ func (c *RAGController) ProcessText(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{Status: true, Message: "Task submitted", Data: map[string]string{"task_id": taskID}})
+}
+
+// Translate godoc
+// @Summary Translate text to English
+// @Description Translate text to English using the LLM
+// @Tags 05. RAG
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dtos.RAGRequestDTO true "Translation request"
+// @Success 200 {object} dtos.StandardResponse{data=string}
+// @Failure 400 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse
+// @Router /api/rag/translate [post]
+func (c *RAGController) Translate(ctx *gin.Context) {
+	var req dtos.RAGRequestDTO
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{Status: false, Message: "Invalid request", Details: err.Error()})
+		return
+	}
+
+	translated, err := c.usecase.Translate(req.Text)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Translation failed", Details: err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: true, Message: "Translation successful", Data: translated})
 }
 
 // GetStatus godoc

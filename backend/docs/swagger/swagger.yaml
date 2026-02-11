@@ -12,35 +12,7 @@ definitions:
         type: string
       value: {}
     type: object
-  dtos.AsyncTranscriptionLongProcessResponseDTO:
-    properties:
-      task_id:
-        type: string
-      task_status:
-        $ref: '#/definitions/dtos.AsyncTranscriptionLongStatusDTO'
-    type: object
-  dtos.AsyncTranscriptionLongResultDTO:
-    properties:
-      detected_language:
-        example: id
-        type: string
-      text:
-        example: Ini adalah transkripsi yang sangat panjang...
-        type: string
-    type: object
-  dtos.AsyncTranscriptionLongStatusDTO:
-    properties:
-      expires_at:
-        type: string
-      expires_in_seconds:
-        type: integer
-      result:
-        $ref: '#/definitions/dtos.AsyncTranscriptionLongResultDTO'
-      status:
-        example: completed
-        type: string
-    type: object
-  dtos.AsyncTranscriptionProcessResponseDTO:
+  dtos.AsyncTranscriptionProcessStatusResponseDTO:
     properties:
       task_id:
         type: string
@@ -49,7 +21,10 @@ definitions:
     type: object
   dtos.AsyncTranscriptionResultDTO:
     properties:
-      text:
+      detected_language:
+        example: id
+        type: string
+      transcription:
         example: Halo dunia
         type: string
       translated_text:
@@ -76,34 +51,11 @@ definitions:
         type: array
       name:
         type: string
+      teralux_id:
+        type: string
     required:
     - name
-    type: object
-  dtos.MqttPublishRequest:
-    properties:
-      message:
-        type: string
-    required:
-    - message
-    type: object
-  dtos.OutsystemsTranscriptionResultDTO:
-    properties:
-      detected_language:
-        example: id
-        type: string
-      filename:
-        example: audio.mp3
-        type: string
-      transcription:
-        example: Halo dunia
-        type: string
-    type: object
-  dtos.RAGProcessResponseDTO:
-    properties:
-      task_id:
-        type: string
-      task_status:
-        $ref: '#/definitions/dtos.RAGStatusDTO'
+    - teralux_id
     type: object
   dtos.RAGRequestDTO:
     properties:
@@ -112,10 +64,21 @@ definitions:
     type: object
   dtos.RAGStatusDTO:
     properties:
+      body: {}
+      endpoint:
+        type: string
+      execution_result:
+        description: holds the response from the fetched endpoint
       expires_at:
         type: string
       expires_in_seconds:
         type: integer
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      method:
+        type: string
       result:
         description: raw LLM response when not structured
         type: string
@@ -127,6 +90,8 @@ definitions:
       id:
         type: string
       name:
+        type: string
+      teralux_id:
         type: string
     type: object
   dtos.SensorDataDTO:
@@ -141,6 +106,15 @@ definitions:
         type: string
       temperature:
         type: number
+    type: object
+  dtos.TranscriptionTaskResponseDTO:
+    properties:
+      task_id:
+        example: abc-123
+        type: string
+      task_status:
+        example: pending
+        type: string
     type: object
   dtos.TuyaAuthResponseDTO:
     properties:
@@ -266,27 +240,10 @@ definitions:
         type: array
       name:
         type: string
+      teralux_id:
+        type: string
     required:
     - name
-    type: object
-  dtos.WhisperProxyProcessResponseDTO:
-    properties:
-      task_id:
-        type: string
-      task_status:
-        $ref: '#/definitions/dtos.WhisperProxyStatusDTO'
-    type: object
-  dtos.WhisperProxyStatusDTO:
-    properties:
-      expires_at:
-        type: string
-      expires_in_seconds:
-        type: integer
-      result:
-        $ref: '#/definitions/dtos.OutsystemsTranscriptionResultDTO'
-      status:
-        example: completed
-        type: string
     type: object
   teralux_app_domain_common_dtos.StandardResponse:
     properties:
@@ -310,8 +267,7 @@ definitions:
   teralux_app_domain_speech_dtos.StandardResponse:
     properties:
       data: {}
-      details:
-        type: string
+      details: {}
       message:
         type: string
       status:
@@ -352,43 +308,6 @@ paths:
       summary: Flush all cache
       tags:
       - 06. Flush
-  /api/rag:
-    post:
-      consumes:
-      - application/json
-      description: Submit text for RAG processing
-      parameters:
-      - description: RAG request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.RAGRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.RAGProcessResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Process text via RAG
-      tags:
-      - 05. RAG
   /api/rag/{task_id}:
     get:
       parameters:
@@ -418,162 +337,88 @@ paths:
       summary: Get RAG task status
       tags:
       - 05. RAG
-  /api/scenes:
-    get:
-      description: Retrieve a list of all configured scenes
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of scenes
-          schema:
-            allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/dtos.SceneListResponseDTO'
-                  type: array
-              type: object
-      summary: List all scenes
-      tags:
-      - 03. Scenes
+  /api/rag/control:
     post:
       consumes:
       - application/json
-      description: Create a scene with a name and a list of actions (Tuya/MQTT)
+      description: Queue a RAG task to process natural language command
       parameters:
-      - description: Scene configuration
-        in: body
-        name: scene
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.CreateSceneRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Scene created
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "400":
-          description: Invalid request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "500":
-          description: Internal error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-      summary: Create a new scene
-      tags:
-      - 03. Scenes
-  /api/scenes/{id}:
-    delete:
-      description: Remove a specific scene configuration
-      parameters:
-      - description: Scene UUID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Scene deleted
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-      summary: Delete a scene
-      tags:
-      - 03. Scenes
-    put:
-      consumes:
-      - application/json
-      description: Update the configuration of a specific scene
-      parameters:
-      - description: Scene UUID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated scene configuration
-        in: body
-        name: scene
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.UpdateSceneRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Scene updated
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "404":
-          description: Scene not found
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-      summary: Update an existing scene
-      tags:
-      - 03. Scenes
-  /api/scenes/{id}/control:
-    get:
-      description: Trigger all actions defined in a specific scene
-      parameters:
-      - description: Scene UUID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Scene applied
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-      summary: Apply/Trigger a scene
-      tags:
-      - 03. Scenes
-  /api/speech/mqtt/publish:
-    post:
-      consumes:
-      - application/json
-      description: Publish a message to the configured MQTT topic
-      parameters:
-      - description: Message to publish
+      - description: RAG Request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dtos.MqttPublishRequest'
+          $ref: '#/definitions/dtos.RAGRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Control devices via natural language
+      tags:
+      - 05. RAG
+  /api/rag/translate:
+    post:
+      consumes:
+      - application/json
+      description: Translate text to English using the LLM
+      parameters:
+      - description: Translation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRequestDTO'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Publish message to MQTT
+      summary: Translate text to English
       tags:
-      - 04. Speech
+      - 05. RAG
   /api/speech/transcribe:
     post:
       consumes:
       - multipart/form-data
-      description: 'Start transcription of audio file. Attempts PPU (Outsystems) first,
-        falls back to local Whisper if PPU fails. Asynchronous processing. Supports:
-        .mp3, .wav, .m4a, .aac, .ogg, .flac.'
+      description: 'Start transcription of audio file using local Whisper STT. Asynchronous
+        processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.'
       parameters:
       - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
         in: formData
@@ -590,7 +435,7 @@ paths:
             - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.AsyncTranscriptionProcessResponseDTO'
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
               type: object
         "400":
           description: Bad Request
@@ -610,7 +455,7 @@ paths:
             $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Transcribe audio file (with PPU fallback)
+      summary: Transcribe audio file (Whisper)
       tags:
       - 04. Speech
   /api/speech/transcribe/{transcribe_id}:
@@ -633,7 +478,7 @@ paths:
             - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.AsyncTranscriptionProcessResponseDTO'
+                  $ref: '#/definitions/dtos.AsyncTranscriptionProcessStatusResponseDTO'
               type: object
         "404":
           description: Not Found
@@ -646,57 +491,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get transcription status (Consolidated)
-      tags:
-      - 04. Speech
-  /api/speech/transcribe/long:
-    post:
-      consumes:
-      - multipart/form-data
-      description: 'Start transcription of long audio file using Whisper. Asynchronous
-        processing with background execution. No translation, no RAG. Supports: .mp3,
-        .wav, .m4a, .aac, .ogg, .flac.'
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.AsyncTranscriptionLongProcessResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe long audio file
       tags:
       - 04. Speech
   /api/speech/transcribe/ppu:
@@ -721,7 +515,7 @@ paths:
             - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.WhisperProxyProcessResponseDTO'
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
               type: object
         "400":
           description: Bad Request
@@ -744,6 +538,201 @@ paths:
       summary: Transcribe audio file (Proxy to Outsystems)
       tags:
       - 04. Speech
+  /api/speech/transcribe/whisper/cpp:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 'Start transcription of audio file using Whisper.cpp. Asynchronous
+        processing with background execution. Pure Whisper.cpp, no PPU. Supports:
+        .mp3, .wav, .m4a, .aac, .ogg, .flac.'
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Whisper.cpp)
+      tags:
+      - 04. Speech
+  /api/teralux/{id}/scenes:
+    get:
+      description: Retrieve a list of all configured scenes for a specific Teralux
+        device
+      parameters:
+      - description: Teralux UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of scenes
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dtos.SceneListResponseDTO'
+                  type: array
+              type: object
+      summary: List all scenes for a Teralux device
+      tags:
+      - 03. Scenes
+    post:
+      consumes:
+      - application/json
+      description: Create a scene with a name and a list of actions (Tuya/MQTT)
+      parameters:
+      - description: Teralux UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Scene configuration
+        in: body
+        name: scene
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateSceneRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Scene created
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      summary: Create a new scene
+      tags:
+      - 03. Scenes
+  /api/teralux/{id}/scenes/{scene_id}:
+    delete:
+      description: Remove a specific scene configuration
+      parameters:
+      - description: Teralux UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Scene UUID
+        in: path
+        name: scene_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Scene deleted
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      summary: Delete a scene
+      tags:
+      - 03. Scenes
+    put:
+      consumes:
+      - application/json
+      description: Update the configuration of a specific scene
+      parameters:
+      - description: Teralux UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Scene UUID
+        in: path
+        name: scene_id
+        required: true
+        type: string
+      - description: Updated scene configuration
+        in: body
+        name: scene
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateSceneRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Scene updated
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "404":
+          description: Scene not found
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      summary: Update an existing scene
+      tags:
+      - 03. Scenes
+  /api/teralux/{id}/scenes/{scene_id}/control:
+    get:
+      description: Trigger all actions defined in a specific scene
+      parameters:
+      - description: Teralux UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Scene UUID
+        in: path
+        name: scene_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Scene applied
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      summary: Apply/Trigger a scene
+      tags:
+      - 03. Scenes
   /api/tuya/auth:
     get:
       consumes:

@@ -1,12 +1,12 @@
 package dtos
 
 type TranscriptionResponseDTO struct {
-	Text           string `json:"text" example:"Halo dunia"`
+	Transcription  string `json:"transcription" example:"Halo dunia"`
 	TranslatedText string `json:"translated_text,omitempty" example:"Hello world"`
 }
 
 type TranscriptionLongResponseDTO struct {
-	Text             string `json:"text" example:"Ini adalah transkripsi yang sangat panjang..."`
+	Transcription    string `json:"transcription" example:"Ini adalah transkripsi yang sangat panjang..."`
 	DetectedLanguage string `json:"detected_language,omitempty" example:"id"`
 }
 
@@ -24,30 +24,28 @@ type WhisperProxyStatusDTO struct {
 	ExpiresInSecond int64                             `json:"expires_in_seconds,omitempty"`
 }
 
-type WhisperProxyProcessResponseDTO struct {
-	TaskID     string                 `json:"task_id"`
-	TaskStatus *WhisperProxyStatusDTO `json:"task_status,omitempty"`
+type TranscriptionTaskResponseDTO struct {
+	TaskID     string `json:"task_id" example:"abc-123"`
+	TaskStatus string `json:"task_status" example:"pending"`
 }
+
+type WhisperProxyProcessResponseDTO = TranscriptionTaskResponseDTO
 
 type StandardResponse struct {
 	Status  bool        `json:"status"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Details string      `json:"details,omitempty"`
+	Data    interface{} `json:"data"`
+	Details interface{} `json:"details,omitempty"`
 }
 
 type MqttPublishRequest struct {
 	Message string `json:"message" binding:"required"`
 }
 
-// Async Transcription DTOs
+// Async Transcription DTOs (Consolidated)
 type AsyncTranscriptionResultDTO struct {
-	Text           string `json:"text" example:"Halo dunia"`
-	TranslatedText string `json:"translated_text,omitempty" example:"Hello world"`
-}
-
-type AsyncTranscriptionLongResultDTO struct {
-	Text             string `json:"text" example:"Ini adalah transkripsi yang sangat panjang..."`
+	Transcription    string `json:"transcription" example:"Halo dunia"`
+	TranslatedText   string `json:"translated_text,omitempty" example:"Hello world"`
 	DetectedLanguage string `json:"detected_language,omitempty" example:"id"`
 }
 
@@ -58,22 +56,22 @@ type AsyncTranscriptionStatusDTO struct {
 	ExpiresInSecond int64                        `json:"expires_in_seconds,omitempty"`
 }
 
-type AsyncTranscriptionLongStatusDTO struct {
-	Status          string                           `json:"status" example:"completed"`
-	Result          *AsyncTranscriptionLongResultDTO `json:"result,omitempty"`
-	ExpiresAt       string                           `json:"expires_at,omitempty"`
-	ExpiresInSecond int64                            `json:"expires_in_seconds,omitempty"`
-}
-
-type AsyncTranscriptionProcessResponseDTO struct {
+type AsyncTranscriptionProcessStatusResponseDTO struct {
 	TaskID     string                       `json:"task_id"`
 	TaskStatus *AsyncTranscriptionStatusDTO `json:"task_status,omitempty"`
 }
 
-type AsyncTranscriptionLongProcessResponseDTO struct {
-	TaskID     string                           `json:"task_id"`
-	TaskStatus *AsyncTranscriptionLongStatusDTO `json:"task_status,omitempty"`
+type WhisperProxyProcessStatusResponseDTO struct {
+	TaskID     string                 `json:"task_id"`
+	TaskStatus *WhisperProxyStatusDTO `json:"task_status,omitempty"`
 }
+
+type AsyncTranscriptionProcessResponseDTO = TranscriptionTaskResponseDTO
+
+// Keeping these for backward compatibility if used in code, but they are now aliases/identical
+type AsyncTranscriptionLongResultDTO = AsyncTranscriptionResultDTO
+type AsyncTranscriptionLongStatusDTO = AsyncTranscriptionStatusDTO
+type AsyncTranscriptionLongProcessResponseDTO = AsyncTranscriptionProcessResponseDTO
 
 // StatusUpdateMessage is used for real-time notifications via MQTT
 type StatusUpdateMessage struct {

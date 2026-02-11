@@ -5,9 +5,10 @@ Backend service for the Teralux application, built with Go.
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Go** (for manual execution)
-- **Docker** & **Docker Compose** (for containerized execution)
-- **Make** (optional but recommended for running commands)
+- **Go** (for execution and development)
+- **Air** (for hot reload during development)
+- **Docker** & **Docker Compose** (for production deployment only)
+- **Make** (standardized command runner)
 
 ### Setup
 1.  **Clone the repository** (if you haven't already).
@@ -87,20 +88,9 @@ make dev
 
 ---
 
-### Option 2: Running with Docker
+### Running with Docker (Production)
 
-#### Run Single Container (Local Build)
-To build the Docker image locally and run it immediately:
-```bash
-make start-docker
-```
-This command will:
-1. Build the image as `teralux-backend`.
-2. Run the container with your local `.env` file.
-3. Expose port `8081`.
-
-#### Run via Docker Compose
-To run using Docker Compose (pulls the latest image from the registry):
+To start the backend using Docker Compose (pulls latest image from registry):
 ```bash
 make start-compose
 ```
@@ -111,22 +101,12 @@ To stop the Docker Compose stack:
 make stop-compose
 ```
 
-**Development (Docker) with whisper.cpp & Ollama**
-
-For local development that requires `whisper.cpp` binaries and Ollama support, use the docker-compose development helpers:
-
-```bash
-make dev-docker
-make dev-docker-build
-make dev-docker-stop
-```
+**Setup for Native Whisper (whisper.cpp)**
 
 If you need to build local whisper artifacts (whisper-cli, models) run:
 
 ```bash
 make setup
-# or from repository root:
-make setup-stt
 ```
 
 **Whisper submodule**
@@ -138,7 +118,7 @@ The repository includes `whisper.cpp` as a Git submodule located at `backend/whi
 git submodule update --init --recursive
 ```
 
-This ensures the native Whisper sources and scripts are available for `make setup` and Docker builds.
+This ensures the native Whisper sources and scripts are available for `make setup`.
 
 ---
 
@@ -153,12 +133,8 @@ The `Makefile` includes several utility commands to manage the project:
 | `make start` | Run development server without hot reload |
 | `make install-watch` | Install Air (hot reload tool) |
 | `make build` | Build the project binary |
-| `make build-docker` | Build the Docker image locally |
-| `make start-docker` | Run the Docker image locally |
-| `make push` | Build and push multi-arch image to GHCR |
-| `make pull-docker` | Pull the latest image for Docker Compose |
-| `make start-compose` | Start the Docker Compose stack |
-| `make stop-compose` | Stop the Docker Compose stack |
+| `make start-compose` | Start the Docker Compose stack (Production) |
+| `make stop-compose` | Stop the Docker Compose stack (Production) |
 | `make update` | Update running container using Watchtower |
 | `make clean` | Clean build artifacts |
 | `make kill` | Kill any process running on port 8081 |

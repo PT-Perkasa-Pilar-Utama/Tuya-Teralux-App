@@ -1,7 +1,7 @@
-# ENDPOINT: POST /api/speech/transcribe/long
+# ENDPOINT: POST /api/speech/transcribe/whisper/cpp
 
 ## Description
-Starts transcription of a long audio file using **local Whisper**. This endpoint is optimized for long duration recordings. It provides **background execution** and does **not** perform translation or RAG processing.
+Starts transcription of an audio file using **local Whisper** (Whisper.cpp) without PPU fallback. This endpoint is optimized for longer recordings and provides **background execution**. It does **not** perform translation or RAG processing.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -15,7 +15,7 @@ Starts transcription of a long audio file using **local Whisper**. This endpoint
 
 ## Test Scenarios
 
-### 1. Transcribe Long Audio (Success)
+### 1. Transcribe Audio (Success)
 - **Method**: `POST`
 - **Headers**:
 ```json
@@ -23,15 +23,15 @@ Starts transcription of a long audio file using **local Whisper**. This endpoint
   "Authorization": "Bearer <valid_token>"
 }
 ```
-- **Pre-conditions**: Valid long audio file, valid language code.
-- **Request**: Upload `long_recording.wav` and `language="id"`.
+- **Pre-conditions**: Valid audio file, valid language code.
+- **Request**: Upload `recording.wav` and `language="id"`.
 - **Expected Response**:
 ```json
 {
   "status": true,
-  "message": "Long transcription started",
+  "message": "Transcription task submitted successfully",
   "data": {
-    "task_id": "long-xyz789-abc123",
+    "task_id": "whisper-xyz789-abc123",
     "task_status": {
       "status": "processing",
       "expires_at": "2026-02-10T12:00:00Z",
@@ -51,22 +51,22 @@ Starts transcription of a long audio file using **local Whisper**. This endpoint
 ```json
 {
   "status": false,
-  "message": "Language parameter is required"
+  "message": "Language is required"
 }
 ```
   *(Status: 400 Bad Request)*
 
-### 3. Validation: Invalid Language Code
+### 3. Validation: Unsupported File Type
 - **Method**: `POST`
-- **Request**: `language="xyz"`.
+- **Request**: Upload `video.mp4`.
 - **Expected Response**:
 ```json
 {
   "status": false,
-  "message": "Invalid language code"
+  "message": "Unsupported file type"
 }
 ```
-  *(Status: 400 Bad Request)*
+  *(Status: 415 Unsupported Media Type)*
 
 ### 4. Security: Unauthorized
 - **Headers**: No Authorization header.
@@ -79,13 +79,13 @@ Starts transcription of a long audio file using **local Whisper**. This endpoint
 ```
   *(Status: 401 Unauthorized)*
 
-### 5. Error: Whisper Engine Error
+### 5. Error: Transcription Engine Error
 - **Pre-conditions**: Local Whisper service fails to initialize or process the file.
 - **Expected Response**:
 ```json
 {
   "status": false,
-  "message": "Transcription engine failure"
+  "message": "Failed to start transcription task"
 }
 ```
   *(Status: 500 Internal Server Error)*

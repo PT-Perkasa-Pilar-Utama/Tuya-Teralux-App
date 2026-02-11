@@ -14,7 +14,7 @@ import (
 
 func TestNewWhisperProxyUsecase(t *testing.T) {
 	cfg := &utils.Config{}
-	uc := usecases.NewWhisperProxyUsecase(nil, cfg, nil)
+	uc := usecases.NewWhisperProxyUsecase(nil, cfg)
 	if uc == nil {
 		t.Error("NewWhisperProxyUsecase returned nil")
 	}
@@ -22,7 +22,7 @@ func TestNewWhisperProxyUsecase(t *testing.T) {
 
 func TestWhisperProxyUsecase_ProxyTranscribe_WithoutBadger(t *testing.T) {
 	cfg := &utils.Config{}
-	uc := usecases.NewWhisperProxyUsecase(nil, cfg, nil)
+	uc := usecases.NewWhisperProxyUsecase(nil, cfg)
 
 	// Create temporary audio file
 	tempFile, err := os.CreateTemp("", "test_audio_*.mp3")
@@ -57,7 +57,7 @@ func TestWhisperProxyUsecase_ProxyTranscribe_WithoutBadger(t *testing.T) {
 
 func TestWhisperProxyUsecase_GetStatus_NotFound(t *testing.T) {
 	cfg := &utils.Config{}
-	uc := usecases.NewWhisperProxyUsecase(nil, cfg, nil)
+	uc := usecases.NewWhisperProxyUsecase(nil, cfg)
 
 	status, err := uc.GetStatus("non-existent-task-id")
 	if err == nil {
@@ -76,6 +76,9 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
+	// Initialize global config for badger service
+	utils.AppConfig = &utils.Config{CacheTTL: "1h"}
+
 	badgerSvc, err := infrastructure.NewBadgerService(tempDir)
 	if err != nil {
 		t.Fatalf("failed to create badger service: %v", err)
@@ -83,7 +86,7 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 	defer badgerSvc.Close()
 
 	cfg := &utils.Config{}
-	uc := usecases.NewWhisperProxyUsecase(badgerSvc, cfg, nil)
+	uc := usecases.NewWhisperProxyUsecase(badgerSvc, cfg)
 
 	// Create temporary audio file
 	tempFile, err := os.CreateTemp("", "test_audio_*.mp3")
@@ -120,7 +123,7 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 
 func TestWhisperProxyUsecase_ProxyTranscribe_InvalidFile(t *testing.T) {
 	cfg := &utils.Config{}
-	uc := usecases.NewWhisperProxyUsecase(nil, cfg, nil)
+	uc := usecases.NewWhisperProxyUsecase(nil, cfg)
 
 	// Test with non-existent file
 	taskID, err := uc.ProxyTranscribe("/non/existent/file.mp3", "test.mp3")

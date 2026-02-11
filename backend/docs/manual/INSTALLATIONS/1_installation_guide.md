@@ -6,17 +6,18 @@ Welcome to the **Teralux Smart Home System** installation guide. This document p
 
 Before proceeding, ensure you have the following installed on your system:
 
-*   **Docker & Docker Compose** (for running the backend infrastructure)
 *   **Go (Golang) v1.20+** (for local backend development)
+*   **Air** (for hot reload during development)
 *   **Make** (for executing build commands)
 *   **Android Studio** (for Android development)
 *   **Java Development Kit (JDK) 17** (required for Android build)
+*   **Docker & Docker Compose** (for production deployment only)
 
 ---
 
 ## 🖥️ Backend Setup
 
-The backend is built using Go and uses Docker for easy deployment. All commands are standardized using `Make`.
+The backend is built using Go. For development, we use `air` for hot reloading. Docker is used primarily for production deployment. All commands are standardized using `Make`.
 
 ### 1. Navigate to Backend Directory
 ```bash

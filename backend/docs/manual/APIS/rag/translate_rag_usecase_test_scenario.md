@@ -1,0 +1,65 @@
+# ENDPOINT: POST /api/rag/translate
+
+## Description
+Directly translates input text to English using the configured LLM. This is a synchronous operation used primarily for normalizing commands before processing.
+
+## Authentication
+- **Type**: BearerAuth
+- **Header**: `Authorization: Bearer <token>`
+
+## Request Body
+- **Content-Type**: `application/json`
+- **Required Fields**:
+  - `text` (string): The text to translate.
+
+## Test Scenarios
+
+### 1. Translate Text (Success)
+- **Method**: `POST`
+- **Headers**:
+```json
+{
+  "Content-Type": "application/json",
+  "Authorization": "Bearer <valid_token>"
+}
+```
+- **Request Body**:
+```json
+{
+  "text": "nyalakan lampu ruang tamu"
+}
+```
+- **Expected Response**:
+```json
+{
+  "status": true,
+  "message": "Translation successful",
+  "data": {
+    "translated_text": "turn on the living room lamp"
+  }
+}
+```
+*(Status: 200 OK)*
+
+### 2. Validation: Missing Text
+- **Method**: `POST`
+- **Request Body**: `{}`
+- **Expected Response**:
+```json
+{
+  "status": false,
+  "message": "Text field is required"
+}
+```
+*(Status: 400 Bad Request)*
+
+### 3. Security: Unauthorized
+- **Headers**: No Bearer token provided.
+- **Expected Response**:
+```json
+{
+  "status": false,
+  "message": "Unauthorized"
+}
+```
+*(Status: 401 Unauthorized)*

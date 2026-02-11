@@ -14,13 +14,11 @@ func SetupSpeechRoutes(rg *gin.RouterGroup, controller *controllers.Transcriptio
 		api.POST("/transcribe", controller.HandleProxyTranscribe)
 		api.GET("/transcribe/:transcribe_id", controller.GetProxyTranscribeStatus)
 
-		// Transcription long routes (async) - kept for explicit access if needed
-		api.POST("/transcribe/long", controller.HandleProxyTranscribeLong)
+		// Whisper.cpp transcription route (async)
+		api.POST("/transcribe/whisper/cpp", controller.HandleWhisperCppTranscribe)
 
 		// Whisper proxy routes (external Outsystems integration) - kept for explicit access
 		api.POST("/transcribe/ppu", whisperProxyController.HandleProxyTranscribe)
 
-		// Other routes
-		api.POST("/mqtt/publish", controller.HandlePublishMqtt)
 	}
 }
