@@ -24,7 +24,7 @@ For detailed instructions on how to configure, build, and run both the Backend a
 ## 🛠️ Key Technologies
 
 *   **Mobile**: Android, Kotlin, Jetpack Compose
-*   **Backend**: Go, Docker
+*   **Backend**: Go
 *   **Database**: SQLite
 *   **IoT Integration**: Tuya Smart Cloud
 

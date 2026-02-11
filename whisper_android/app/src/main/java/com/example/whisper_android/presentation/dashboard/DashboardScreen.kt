@@ -103,14 +103,14 @@ fun DashboardContent(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 40.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // --- Header Section ---
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
         ) {
             Text(
                 text = "Welcome to Whisper Demo",
@@ -198,7 +198,6 @@ fun DashboardContent(
             onClick = onNavigateToEdge
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
         
         Text(
             text = "Powered by Senso",

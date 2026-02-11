@@ -26,6 +26,7 @@ type TranscriptionUsecase struct {
 	whisperRepo         WhisperRepositoryInterface
 	ragUsecase          *ragUsecases.RAGUsecase
 	authUseCase         *tuyaUsecases.TuyaAuthUseCase
+	whisperProxyUsecase *WhisperProxyUsecase
 	config              *utils.Config
 	badger              *infrastructure.BadgerService
 	// Async transcription task tracking
@@ -39,12 +40,14 @@ func NewTranscriptionUsecase(
 	cfg *utils.Config,
 	ragUsecase *ragUsecases.RAGUsecase,
 	authUseCase *tuyaUsecases.TuyaAuthUseCase,
+	whisperProxyUsecase *WhisperProxyUsecase,
 	badger *infrastructure.BadgerService,
 ) *TranscriptionUsecase {
 	return &TranscriptionUsecase{
 		whisperRepo:         whisperRepo,
 		ragUsecase:          ragUsecase,
 		authUseCase:         authUseCase,
+		whisperProxyUsecase: whisperProxyUsecase,
 		config:              cfg,
 		badger:              badger,
 		transcribeTasks:     make(map[string]*speechdtos.AsyncTranscriptionStatusDTO),
@@ -95,6 +98,7 @@ func (u *TranscriptionUsecase) HandleCommand(text string) {
 }
 
 func (u *TranscriptionUsecase) TranscribeAudio(inputPath string) (string, string, error) {
+	utils.LogDebug("Speech: Starting local transcription via whisper.cpp...")
 	// Create temp directory for conversion if not exists
 	tempDir := filepath.Dir(inputPath)
 
@@ -118,6 +122,7 @@ func (u *TranscriptionUsecase) TranscribeAudio(inputPath string) (string, string
 }
 
 func (u *TranscriptionUsecase) TranscribeLongAudio(inputPath string, lang string) (string, error) {
+	utils.LogDebug("Speech: Starting local LONG transcription via whisper.cpp...")
 	// Create temp directory for conversion if not exists
 	tempDir := filepath.Dir(inputPath)
 
@@ -231,13 +236,43 @@ func (u *TranscriptionUsecase) processTranscribeAudioAsync(taskID string, inputP
 		}
 	}()
 
-	// Transcribe audio
-	text, lang, err := u.TranscribeAudio(inputPath)
-	if err != nil {
-		utils.LogError("Transcription Task %s: Transcription failed: %v", taskID, err)
-		u.updateTranscribeTaskStatus(taskID, "failed", nil)
-		return
+	// Try PPU first if available
+	var text string
+	var lang string
+	var err error
+	var usedPath string
+
+	if u.whisperProxyUsecase != nil {
+		utils.LogDebug("Transcription Task %s: Checking PPU (Outsystems) availability...", taskID)
+		if proxyErr := u.whisperProxyUsecase.HealthCheck(); proxyErr == nil {
+			utils.LogInfo("Transcription Task %s: PPU is active, trying external transcription...", taskID)
+			result, fetchErr := u.whisperProxyUsecase.FetchToOutsystems(inputPath, filepath.Base(inputPath))
+			if fetchErr == nil && result != nil {
+				text = result.Transcription
+				lang = "id" // PPU currently returns Indonesian
+				usedPath = "PPU (Outsystems)"
+				utils.LogInfo("Transcription Task %s: Successfully transcribed via PPU", taskID)
+			} else {
+				utils.LogWarn("Transcription Task %s: PPU transcription failed, falling back to local: %v", taskID, fetchErr)
+			}
+		} else {
+			utils.LogDebug("Transcription Task %s: PPU is inactive/unreachable, falling back to local", taskID)
+		}
 	}
+
+	// Fallback to local if PPU was not used or failed
+	if text == "" {
+		utils.LogInfo("Transcription Task %s: Using local Whisper (whisper.cpp) path", taskID)
+		text, lang, err = u.TranscribeAudio(inputPath)
+		usedPath = "Local Whisper (whisper.cpp)"
+		if err != nil {
+			utils.LogError("Transcription Task %s: Local transcription failed: %v", taskID, err)
+			u.updateTranscribeTaskStatus(taskID, "failed", nil)
+			return
+		}
+	}
+
+	utils.LogInfo("Transcription Task %s: Transcription finished using %s", taskID, usedPath)
 
 	// Try to translate
 	translated, _ := u.ragUsecase.Translate(text)

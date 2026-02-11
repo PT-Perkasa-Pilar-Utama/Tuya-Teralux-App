@@ -48,8 +48,8 @@ fun EdgeComputingScreen(
                 isProcessing = true
                 scope.launch {
                     delay(800) // Edge is faster (?) simulation
-                    val mockUserText = "Status baterai perangkat."
-                    val mockAssistantText = "Baterai perangkat IoT anda berada di level 85%. Aman bro!"
+                    val mockUserText = "Device battery status."
+                    val mockAssistantText = "Your IoT device battery is at 85%. All good!"
                     
                     transcriptionResults = transcriptionResults + 
                         TranscriptionMessage(mockUserText, MessageRole.USER)

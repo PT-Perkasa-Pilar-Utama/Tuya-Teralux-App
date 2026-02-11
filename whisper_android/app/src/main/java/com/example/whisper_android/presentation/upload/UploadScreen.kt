@@ -14,56 +14,52 @@ import android.content.pm.PackageManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.whisper_android.data.di.NetworkModule
 import com.example.whisper_android.presentation.components.FeatureScreenTemplate
-import com.example.whisper_android.presentation.components.MessageRole
 import com.example.whisper_android.presentation.components.TranscriptionMessage
+import com.example.whisper_android.presentation.components.ToastObserver
+import com.example.whisper_android.MainActivity
 
 @Composable
 fun UploadScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: UploadViewModel = viewModel {
+        UploadViewModel(
+            NetworkModule.speechRepository,
+            AudioRecorder(MainActivity.appContext),
+            NetworkModule.tokenManager,
+            MainActivity.appContext.cacheDir
+        )
+    }
 ) {
-    var isRecording by remember { mutableStateOf(false) }
-    var isProcessing by remember { mutableStateOf(false) }
-    var transcriptionResults by remember { mutableStateOf(listOf<TranscriptionMessage>()) }
-    
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     
     val hasPermission = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
+    // Observe errors
+    ToastObserver(
+        message = uiState.error,
+        onToastShown = { /* Error handled */ }
+    )
+
     FeatureScreenTemplate(
         title = "Upload Audio",
         onNavigateBack = onNavigateBack,
-        isRecording = isRecording,
-        isProcessing = isProcessing,
+        isRecording = uiState.isRecording,
+        isProcessing = uiState.isProcessing,
         hasPermission = hasPermission,
-        transcriptionResults = transcriptionResults,
+        transcriptionResults = uiState.transcriptionResults,
         onMicClick = {
-            if (!isRecording && !isProcessing) {
-                isRecording = true
-            } else if (isRecording) {
-                isRecording = false
-                isProcessing = true
-                scope.launch {
-                    delay(1500)
-                    val mockUserText = "Halo, bisa bantu saya cek status perangkat?"
-                    val mockAssistantText = "Tentu! Semua perangkat IoT Anda saat ini beroperasi dengan normal."
-                    
-                    transcriptionResults = transcriptionResults + 
-                        TranscriptionMessage(mockUserText, MessageRole.USER)
-                    
-                    delay(800)
-                    transcriptionResults = transcriptionResults + 
-                        TranscriptionMessage(mockAssistantText, MessageRole.ASSISTANT)
-                    
-                    isProcessing = false
-                }
+            if (hasPermission) {
+                viewModel.toggleRecording()
             }
         },
-        onClearChat = { transcriptionResults = emptyList() },
+        onClearChat = { viewModel.clearLog() },
         walkthroughContent = {
             Text(
                 text = "🎯 Purpose",

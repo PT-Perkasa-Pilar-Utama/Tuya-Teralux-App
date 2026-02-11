@@ -3,6 +3,7 @@ package com.example.whisper_android.presentation.register
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase
+import com.example.whisper_android.domain.usecase.AuthenticateUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,9 +17,11 @@ data class RegisterUiState(
     val isSuccess: Boolean = false
 )
 
+
 class RegisterViewModel(
     private val registerTeraluxUseCase: RegisterTeraluxUseCase,
-    private val getTeraluxByMacUseCase: com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase
+    private val getTeraluxByMacUseCase: com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase,
+    private val authenticateUseCase: AuthenticateUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(RegisterUiState(isLoading = true)) // Start with loading
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
@@ -37,7 +40,7 @@ class RegisterViewModel(
                     // Already registered, go to dashboard
                     _uiState.value = RegisterUiState(
                         isSuccess = true, 
-                        message = "Device sudah terdaftar. Mengalihkan ke Dashboard..."
+                        message = "Device already registered. Redirecting to Dashboard..."
                     )
                 } else {
                     // Not registered, show form
@@ -62,10 +65,20 @@ class RegisterViewModel(
             val result = registerTeraluxUseCase(name, roomId, macAddress)
             
             result.onSuccess {
-                _uiState.value = RegisterUiState(
-                    isSuccess = true,
-                    message = "Registrasi berhasil! Selamat datang."
-                )
+                // Register success, now authenticate to get token
+                val authResult = authenticateUseCase()
+                
+                authResult.onSuccess {
+                     _uiState.value = RegisterUiState(
+                        isSuccess = true,
+                        message = "Registration & Login successful! Welcome."
+                    )
+                }.onFailure { e ->
+                    _uiState.value = RegisterUiState(
+                        isSuccess = true, // Still success registration, but auth failed. Dashboard will retry auth.
+                        message = "Registration successful. Login failed: ${e.message}"
+                    )
+                }
             }.onFailure { e ->
                 _uiState.value = RegisterUiState(error = e.message ?: "Unknown error", isLoading = false)
             }

@@ -31,29 +31,6 @@ dev:
 	@echo "💡 Tip: Use separate terminals for other tasks."
 	@(cd backend && $(MAKE) dev)
 
-# Docker-based development helpers (forwarded to backend)
-dev-docker:
-	@echo "🚀 Starting backend dev environment in Docker (forwarded)"
-	@(cd backend && $(MAKE) dev-docker)
-
-dev-docker-build:
-	@echo "🚀 Starting backend dev environment in Docker with build (forwarded)"
-	@(cd backend && $(MAKE) dev-docker-build)
-
-dev-docker-stop:
-	@echo "🛑 Stopping backend dev Docker environment (forwarded)"
-	@(cd backend && $(MAKE) dev-docker-stop)
-
-# Run setup script for whisper/whisper.cpp (forwarded to backend)
-setup-stt:
-	@echo "🚀 Running whisper/setup script in backend (forwarded)"
-	@(cd backend && $(MAKE) setup)
-
-# Ollama helper (forwarded to backend)
-ollama-setup:
-	@echo "🔧 Running Ollama setup (forwarded to backend)"
-	@(cd backend && $(MAKE) ollama-setup)
-
 # Clean all
 clean:
 	@echo "🧹 Cleaning backend artifacts..."
