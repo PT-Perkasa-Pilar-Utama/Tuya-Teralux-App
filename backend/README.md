@@ -45,10 +45,40 @@ Current migrations and entity definitions are handled automatically by GORM auto
 1. **teralux** - Main teralux devices table with soft delete support
 2. **devices** - Device information table
 3. **device_statuses** - Device status tracking table
+4. **recordings** - Audio recording metadata and file tracking
 
 ---
 
-## �📚 API Documentation (Swagger)
+
+## 🎙️ Speech Processing (Whisper)
+
+The application provides a robust speech-to-text pipeline with multiple processing paths:
+
+1.  **Standard Transcription (`POST /api/speech/transcribe`)**: 
+    - Optimized for short audio clips.
+    - Automatic fallback: Attempts **PPU (Outsystems)** first, falls back to **Local Whisper** if PPU is offline.
+    - Post-processing: Integrated RAG for grammar correction and spelling refinement.
+2.  **Long Transcription (`POST /api/speech/transcribe/whisper/cpp`)**:
+    - Direct access to the heavy-duty **Local Whisper.cpp** engine.
+    - Explicit language selection support.
+3.  **Proxy Transcription (`POST /api/speech/transcribe/ppu`)**:
+    - Direct proxy to external Outsystems PPU service.
+4.  **Status Tracking (`GET /api/speech/transcribe/{task_id}`)**:
+    - Consolidated endpoint to check status and fetch results for any transcription task.
+
+---
+
+## 📂 Recordings Management
+
+A dedicated domain for managing audio recording files:
+
+- **Storage**: Files are stored as UUID-named `.wav` or original format in the local `uploads` directory.
+- **Serving**: Static files are served at `/api/static/recordings/`.
+- **API**: `GET /api/recordings` provides a paginated list of all successfully processed recordings with metadata.
+
+---
+
+## 📚 API Documentation (Swagger)
 
 The project uses [Swaggo](https://github.com/swaggo/swag) to generate Swagger/OpenAPI documentation.
 

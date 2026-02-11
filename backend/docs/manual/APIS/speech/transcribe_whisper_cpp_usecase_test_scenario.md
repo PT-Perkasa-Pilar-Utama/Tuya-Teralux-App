@@ -32,12 +32,7 @@ Starts transcription of an audio file using **local Whisper** (Whisper.cpp) with
   "message": "Transcription task submitted successfully",
   "data": {
     "task_id": "whisper-xyz789-abc123",
-    "task_status": {
-      "status": "processing",
-      "expires_at": "2026-02-10T12:00:00Z",
-      "expires_in_seconds": 7200,
-      "result": null
-    }
+    "task_status": "pending"
   }
 }
 ```

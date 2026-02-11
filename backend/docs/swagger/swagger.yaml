@@ -57,6 +57,19 @@ definitions:
     - name
     - teralux_id
     type: object
+  dtos.GetAllRecordingsResponseDto:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      recordings:
+        items:
+          $ref: '#/definitions/dtos.RecordingResponseDto'
+        type: array
+      total:
+        type: integer
+    type: object
   dtos.RAGRequestDTO:
     properties:
       text:
@@ -102,6 +115,28 @@ definitions:
         type: string
     required:
     - text
+    type: object
+  dtos.RecordingResponseDto:
+    properties:
+      audio_url:
+        type: string
+      created_at:
+        type: string
+      filename:
+        type: string
+      id:
+        type: string
+      original_name:
+        type: string
+    type: object
+  dtos.RecordingStandardResponse:
+    properties:
+      data: {}
+      details: {}
+      message:
+        type: string
+      status:
+        type: boolean
     type: object
   dtos.SceneListResponseDTO:
     properties:
@@ -325,7 +360,7 @@ paths:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - 06. Flush
+      - 07. Flush
   /api/rag/{task_id}:
     get:
       parameters:
@@ -469,6 +504,42 @@ paths:
       summary: Translate text to English
       tags:
       - 05. RAG
+  /api/recordings:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of recordings
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.GetAllRecordingsResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all recordings
+      tags:
+      - 06. Recordings
   /api/speech/transcribe:
     post:
       consumes:
@@ -1058,7 +1129,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - 07. Health
+      - 08. Health
 schemes:
 - http
 - https
@@ -1084,7 +1155,9 @@ tags:
   name: 04. Speech
 - description: RAG endpoints
   name: 05. RAG
+- description: Recordings management endpoints
+  name: 06. Recordings
 - description: Cache management endpoints
-  name: 06. Flush
+  name: 07. Flush
 - description: Health check endpoint
-  name: 07. Health
+  name: 08. Health

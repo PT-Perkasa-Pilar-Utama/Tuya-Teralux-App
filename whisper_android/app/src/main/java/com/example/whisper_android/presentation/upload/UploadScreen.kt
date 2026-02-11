@@ -30,6 +30,8 @@ import com.example.whisper_android.presentation.components.ToastObserver
 import com.example.whisper_android.presentation.components.AudioFilePicker
 import com.example.whisper_android.MainActivity
 
+import dev.jeziellago.compose.markdown.MarkdownText
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadScreen(
@@ -179,10 +181,15 @@ fun UploadScreen(
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                                     shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                                 ) {
-                                    Text(
-                                        text = uiState.displaySummary,
+                                    MarkdownText(
+                                        markdown = uiState.displaySummary,
                                         modifier = Modifier.padding(16.dp),
-                                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp)
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            lineHeight = 22.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        syntaxHighlightColor = MaterialTheme.colorScheme.primary,
+                                        linkColor = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }

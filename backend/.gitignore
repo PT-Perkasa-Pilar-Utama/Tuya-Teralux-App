@@ -9,4 +9,4 @@ server
 bin/
 
 *.db
-*_backend
+*_backenduploads/

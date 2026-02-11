@@ -32,15 +32,10 @@ Processing is **asynchronous**.
 ```json
 {
   "status": true,
-  "message": "Transcription started",
+  "message": "Transcription task submitted successfully",
   "data": {
     "task_id": "abc123-def456-ghi789",
-    "task_status": {
-      "status": "processing",
-      "expires_at": "2026-02-10T10:00:00Z",
-      "expires_in_seconds": 3600,
-      "result": null
-    }
+    "task_status": "pending"
   }
 }
 ```
