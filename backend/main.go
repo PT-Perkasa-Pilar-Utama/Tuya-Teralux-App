@@ -162,7 +162,7 @@ func main() {
 	if scfg.LLMProvider == "" {
 		missing = append(missing, "LLM_PROVIDER")
 	}
-	// LLM_BASE_URL is required for Antigravity and Ollama, but not for direct Gemini (uses Google SDK/API default)
+	// LLM_BASE_URL is required for Ollama, but not for direct Gemini (uses Google SDK/API default)
 	if scfg.LLMProvider != "gemini" && scfg.LLMBaseURL == "" {
 		missing = append(missing, "LLM_BASE_URL")
 	}

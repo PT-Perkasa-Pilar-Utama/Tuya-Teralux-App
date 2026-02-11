@@ -12,7 +12,6 @@ import (
 	ragdtos "teralux_app/domain/rag/dtos"
 	ragUsecases "teralux_app/domain/rag/usecases"
 	speechdtos "teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/repositories"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
 	"time"
 )
@@ -24,15 +23,11 @@ type WhisperRepositoryInterface interface {
 }
 
 type TranscriptionUsecase struct {
-	whisperRepo     WhisperRepositoryInterface
-	ollamaRepo      *repositories.OllamaRepository
-	geminiRepo      *repositories.GeminiRepository
-	antigravityRepo *repositories.AntigravityRepository
-	mqttRepo        *repositories.MqttRepository
-	ragUsecase      *ragUsecases.RAGUsecase
-	authUseCase     *tuyaUsecases.TuyaAuthUseCase
-	config          *utils.Config
-	badger          *infrastructure.BadgerService
+	whisperRepo         WhisperRepositoryInterface
+	ragUsecase          *ragUsecases.RAGUsecase
+	authUseCase         *tuyaUsecases.TuyaAuthUseCase
+	config              *utils.Config
+	badger              *infrastructure.BadgerService
 	// Async transcription task tracking
 	tasksMutex          sync.RWMutex
 	transcribeTasks     map[string]*speechdtos.AsyncTranscriptionStatusDTO
@@ -41,10 +36,6 @@ type TranscriptionUsecase struct {
 
 func NewTranscriptionUsecase(
 	whisperRepo WhisperRepositoryInterface,
-	ollamaRepo *repositories.OllamaRepository,
-	geminiRepo *repositories.GeminiRepository,
-	antigravityRepo *repositories.AntigravityRepository,
-	mqttRepo *repositories.MqttRepository,
 	cfg *utils.Config,
 	ragUsecase *ragUsecases.RAGUsecase,
 	authUseCase *tuyaUsecases.TuyaAuthUseCase,
@@ -52,10 +43,6 @@ func NewTranscriptionUsecase(
 ) *TranscriptionUsecase {
 	return &TranscriptionUsecase{
 		whisperRepo:         whisperRepo,
-		ollamaRepo:          ollamaRepo,
-		geminiRepo:          geminiRepo,
-		antigravityRepo:     antigravityRepo,
-		mqttRepo:            mqttRepo,
 		ragUsecase:          ragUsecase,
 		authUseCase:         authUseCase,
 		config:              cfg,
@@ -65,128 +52,7 @@ func NewTranscriptionUsecase(
 	}
 }
 
-func (u *TranscriptionUsecase) PublishToWhisper(message string) error {
-	return u.mqttRepo.Publish(message)
-}
 
-func (u *TranscriptionUsecase) StartListening() {
-	err := u.mqttRepo.Subscribe(func(payload []byte) {
-		utils.LogDebug("🔊 Whisper received audio payload: %d bytes", len(payload))
-
-		// If payload is very small, it might look like text command
-		if len(payload) < 256 {
-			msg := string(payload)
-
-			// Loop prevention: ignore our own results
-			// Loop prevention: ignore our own results and JSON status updates
-			if strings.HasPrefix(msg, "Result: ") || strings.HasPrefix(msg, "Translated: ") || strings.HasPrefix(msg, "{") {
-				return
-			}
-
-			// Simple check if it's likely text (printable ascii)
-			isText := true
-			for _, b := range msg {
-				if b < 32 || b > 126 {
-					isText = false
-					break
-				}
-			}
-			if isText {
-				utils.LogInfo("🔊 Received text command: %s", msg)
-				u.HandleCommand(msg)
-				return
-			}
-		}
-
-		// Assume it's audio. Save to temp file.
-		tempDir := "./tmp"
-		if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-			if err := os.Mkdir(tempDir, 0755); err != nil {
-				utils.LogError("Failed to create temp directory: %v", err)
-				return
-			}
-		}
-
-		filePath := filepath.Join(tempDir, fmt.Sprintf("mqtt_audio_%s.m4a", utils.GenerateUUID()))
-		if err := os.WriteFile(filePath, payload, 0644); err != nil {
-			utils.LogError("Failed to write temp audio file: %v", err)
-			return
-		}
-		defer os.Remove(filePath)
-
-		utils.LogDebug("Saved audio to %s, processing...", filePath)
-
-		text, err := u.TranscribeAudio(filePath)
-		if err != nil {
-			utils.LogError("Transcription failed: %v", err)
-			return
-		}
-
-		utils.LogInfo("🎯 Transcription Result: %s", text)
-
-		// Publish result back
-		if err := u.PublishToWhisper("Result: " + text); err != nil {
-			utils.LogError("Failed to publish result: %v", err)
-		}
-
-		// 1. Translate if needed (e.g. from Indonesian to English)
-		translatedText, err := u.TranslateToEnglish(text)
-		if err != nil {
-			utils.LogWarn("Translation failed, using original text: %v", err)
-			translatedText = text
-		} else {
-			utils.LogInfo("🌐 Translated Result: %s", translatedText)
-			// Publish translated result back
-			if err := u.PublishToWhisper("Translated: " + translatedText); err != nil {
-				utils.LogError("Failed to publish translated result: %v", err)
-			}
-		}
-
-		// 2. Process via RAG (using English text)
-		u.HandleCommand(translatedText)
-	})
-	if err != nil {
-		utils.LogError("Failed to register MQTT callback: %v", err)
-	}
-}
-
-func (u *TranscriptionUsecase) TranslateToEnglish(text string) (string, error) {
-	// Simple check: if text is basic ascii and seems like english, maybe skip?
-	// But it's safer to always ask LLM to translate or refine.
-	prompt := fmt.Sprintf(`You are a translator. Translate the following Indonesian smart home command to a clear, concise English command. 
-If it is already in English, just return it as is.
-Only return the translated text without any explanation or quotes.
-
-Indonesian: "%s"
-English:`, text)
-
-	var translated string
-	var err error
-
-	if u.config.LLMProvider == "ollama" {
-		if u.ollamaRepo == nil {
-			return text, fmt.Errorf("ollama repo not initialized")
-		}
-		translated, err = u.ollamaRepo.CallModel(prompt, u.config.LLMModel)
-	} else if u.config.LLMProvider == "antigravity" {
-		if u.antigravityRepo == nil {
-			return text, fmt.Errorf("antigravity repo not initialized")
-		}
-		translated, err = u.antigravityRepo.CallModel(prompt, u.config.LLMModel)
-	} else {
-		// Default to gemini if provider is gemini or empty
-		if u.geminiRepo == nil {
-			return text, fmt.Errorf("gemini repo not initialized")
-		}
-		translated, err = u.geminiRepo.CallModel(prompt, u.config.LLMModel)
-	}
-
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(translated), nil
-}
 
 func (u *TranscriptionUsecase) HandleCommand(text string) {
 	// Filter out common non-speech results
@@ -210,23 +76,14 @@ func (u *TranscriptionUsecase) HandleCommand(text string) {
 
 	// 2. Process via RAG
 	utils.LogInfo("Speech: Processing command via RAG: %q", text)
-	taskID, err := u.ragUsecase.Process(text, auth.AccessToken, func(taskID string, status *ragdtos.RAGStatusDTO) {
+	taskID, err := u.ragUsecase.Control(text, auth.AccessToken, func(taskID string, status *ragdtos.RAGStatusDTO) {
 		// Log final result
 		utils.LogInfo("Speech: RAG processing completed for task %s with status %s", taskID, status.Status)
 
-		// Publish result back to MQTT if it was a voice command
-		// (Assuming voice commands are handled via this usecase)
-		var outputMsg string
 		if status.Status == "done" {
-			outputMsg = fmt.Sprintf("Action: %s", status.Result)
+			utils.LogInfo("Speech: Result: %s", status.Result)
 		} else if status.Status == "error" {
-			outputMsg = fmt.Sprintf("Error: %s", status.Result)
-		}
-
-		if outputMsg != "" {
-			if err := u.mqttRepo.Publish(outputMsg); err != nil {
-				utils.LogError("Speech: Failed to publish RAG result to MQTT: %v", err)
-			}
+			utils.LogError("Speech: RAG Error: %s", status.Result)
 		}
 	})
 	if err != nil {
@@ -237,28 +94,27 @@ func (u *TranscriptionUsecase) HandleCommand(text string) {
 	utils.LogInfo("Speech: RAG processing triggered (TaskID: %s)", taskID)
 }
 
-func (u *TranscriptionUsecase) TranscribeAudio(inputPath string) (string, error) {
+func (u *TranscriptionUsecase) TranscribeAudio(inputPath string) (string, string, error) {
 	// Create temp directory for conversion if not exists
 	tempDir := filepath.Dir(inputPath)
 
 	// Convert to WAV if needed (Whisper needs 16kHz mono WAV)
 	wavPath := filepath.Join(tempDir, "processed.wav")
 	if err := utils.ConvertToWav(inputPath, wavPath); err != nil {
-		return "", fmt.Errorf("failed to convert audio: %w", err)
+		return "", "", fmt.Errorf("failed to convert audio: %w", err)
 	}
 	defer os.Remove(wavPath)
 
 	// Use model path from config
 	modelPath := u.config.WhisperModelPath
 
-	// Transcribe with "id" for Indonesian support as requested
-	// You can also use "auto" for auto detection
-	text, err := u.whisperRepo.Transcribe(wavPath, modelPath, "id")
+	// Use TranscribeFull to get all text
+	text, err := u.whisperRepo.TranscribeFull(wavPath, modelPath, "id")
 	if err != nil {
-		return "", fmt.Errorf("transcription failed: %w", err)
+		return "", "", fmt.Errorf("transcription failed: %w", err)
 	}
 
-	return text, nil
+	return text, "id", nil
 }
 
 func (u *TranscriptionUsecase) TranscribeLongAudio(inputPath string, lang string) (string, error) {
@@ -376,7 +232,7 @@ func (u *TranscriptionUsecase) processTranscribeAudioAsync(taskID string, inputP
 	}()
 
 	// Transcribe audio
-	text, err := u.TranscribeAudio(inputPath)
+	text, lang, err := u.TranscribeAudio(inputPath)
 	if err != nil {
 		utils.LogError("Transcription Task %s: Transcription failed: %v", taskID, err)
 		u.updateTranscribeTaskStatus(taskID, "failed", nil)
@@ -384,20 +240,21 @@ func (u *TranscriptionUsecase) processTranscribeAudioAsync(taskID string, inputP
 	}
 
 	// Try to translate
-	translated, _ := u.TranslateToEnglish(text)
+	translated, _ := u.ragUsecase.Translate(text)
 
 	// Build result
 	result := &speechdtos.AsyncTranscriptionResultDTO{
-		Text:           text,
-		TranslatedText: translated,
+		Transcription:    text,
+		TranslatedText:   translated,
+		DetectedLanguage: lang,
 	}
 
 	utils.LogInfo("Transcription Task %s: Successfully transcribed, triggering RAG processing", taskID)
 
-	// If translated, trigger RAG processing
-	if translated != "" {
-		go u.HandleCommand(translated)
-	}
+	// If translated, trigger RAG processing (DISABLED as per user request)
+	// if translated != "" {
+	// 	go u.HandleCommand(translated)
+	// }
 
 	u.updateTranscribeTaskStatus(taskID, "completed", result)
 }
@@ -421,7 +278,7 @@ func (u *TranscriptionUsecase) processTranscribeLongAudioAsync(taskID string, in
 
 	// Build result
 	result := &speechdtos.AsyncTranscriptionLongResultDTO{
-		Text:             text,
+		Transcription:    text,
 		DetectedLanguage: lang,
 	}
 
@@ -454,19 +311,6 @@ func (u *TranscriptionUsecase) updateTranscribeTaskStatus(taskID string, status 
 		}
 	}
 
-	// Broadcast via MQTT
-	updateMsg := speechdtos.StatusUpdateMessage{
-		Type:   "status_update",
-		TaskID: taskID,
-		Status: status,
-		Data:   result,
-	}
-	if msgBytes, err := json.Marshal(updateMsg); err == nil {
-		if err := u.mqttRepo.Publish(string(msgBytes)); err != nil {
-			utils.LogError("Transcription Task %s: failed to publish status update: %v", taskID, err)
-		}
-	}
-
 	utils.LogDebug("Transcription Task %s: Status updated to %s", taskID, status)
 }
 
@@ -492,19 +336,6 @@ func (u *TranscriptionUsecase) updateTranscribeLongTaskStatus(taskID string, sta
 		key := "transcribe_long:task:" + taskID
 		if err := u.badger.SetPreserveTTL(key, taskData); err != nil {
 			utils.LogWarn("Transcription Long Task %s: failed to update persistent cache: %v", taskID, err)
-		}
-	}
-
-	// Broadcast via MQTT
-	updateMsg := speechdtos.StatusUpdateMessage{
-		Type:   "status_update",
-		TaskID: taskID,
-		Status: status,
-		Data:   result,
-	}
-	if msgBytes, err := json.Marshal(updateMsg); err == nil {
-		if err := u.mqttRepo.Publish(string(msgBytes)); err != nil {
-			utils.LogError("Transcription Long Task %s: failed to publish status update: %v", taskID, err)
 		}
 	}
 

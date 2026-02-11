@@ -58,14 +58,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag": {
+        "/api/rag/control": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Submit text for RAG processing",
+                "description": "Queue a RAG task to process natural language command",
                 "consumes": [
                     "application/json"
                 ],
@@ -75,10 +75,10 @@ const docTemplate = `{
                 "tags": [
                     "05. RAG"
                 ],
-                "summary": "Process text via RAG",
+                "summary": "Control devices via natural language",
                 "parameters": [
                     {
-                        "description": "RAG request",
+                        "description": "RAG Request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -99,7 +99,73 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.RAGProcessResponseDTO"
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rag/translate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Translate text to English using the LLM",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. RAG"
+                ],
+                "summary": "Translate text to English",
+                "parameters": [
+                    {
+                        "description": "Translation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
                                         }
                                     }
                                 }
@@ -172,239 +238,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/scenes": {
-            "get": {
-                "description": "Retrieve a list of all configured scenes",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "03. Scenes"
-                ],
-                "summary": "List all scenes",
-                "responses": {
-                    "200": {
-                        "description": "List of scenes",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dtos.SceneListResponseDTO"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a scene with a name and a list of actions (Tuya/MQTT)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "03. Scenes"
-                ],
-                "summary": "Create a new scene",
-                "parameters": [
-                    {
-                        "description": "Scene configuration",
-                        "name": "scene",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.CreateSceneRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Scene created",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/scenes/{id}": {
-            "put": {
-                "description": "Update the configuration of a specific scene",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "03. Scenes"
-                ],
-                "summary": "Update an existing scene",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Scene UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated scene configuration",
-                        "name": "scene",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.UpdateSceneRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Scene updated",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Scene not found",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Remove a specific scene configuration",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "03. Scenes"
-                ],
-                "summary": "Delete a scene",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Scene UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Scene deleted",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/scenes/{id}/control": {
-            "get": {
-                "description": "Trigger all actions defined in a specific scene",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "03. Scenes"
-                ],
-                "summary": "Apply/Trigger a scene",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Scene UUID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Scene applied",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/mqtt/publish": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Publish a message to the configured MQTT topic",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "04. Speech"
-                ],
-                "summary": "Publish message to MQTT",
-                "parameters": [
-                    {
-                        "description": "Message to publish",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.MqttPublishRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/speech/transcribe": {
             "post": {
                 "security": [
@@ -412,7 +245,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Start transcription of audio file. Attempts PPU (Outsystems) first, falls back to local Whisper if PPU fails. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "description": "Start transcription of audio file using local Whisper STT. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -422,7 +255,7 @@ const docTemplate = `{
                 "tags": [
                     "04. Speech"
                 ],
-                "summary": "Transcribe audio file (with PPU fallback)",
+                "summary": "Transcribe audio file (Whisper)",
                 "parameters": [
                     {
                         "type": "file",
@@ -444,87 +277,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/transcribe/long": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Start transcription of long audio file using Whisper. Asynchronous processing with background execution. No translation, no RAG. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "04. Speech"
-                ],
-                "summary": "Transcribe long audio file",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Language code (e.g. id, en)",
-                        "name": "language",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.AsyncTranscriptionLongProcessResponseDTO"
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
                                         }
                                     }
                                 }
@@ -597,7 +350,87 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.WhisperProxyProcessResponseDTO"
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/transcribe/whisper/cpp": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no PPU. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Speech"
+                ],
+                "summary": "Transcribe audio file (Whisper.cpp)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
                                         }
                                     }
                                 }
@@ -667,7 +500,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessResponseDTO"
+                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessStatusResponseDTO"
                                         }
                                     }
                                 }
@@ -684,6 +517,225 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/teralux/{id}/scenes": {
+            "get": {
+                "description": "Retrieve a list of all configured scenes for a specific Teralux device",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "List all scenes for a Teralux device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of scenes",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dtos.SceneListResponseDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a scene with a name and a list of actions (Tuya/MQTT)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Create a new scene",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Scene configuration",
+                        "name": "scene",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CreateSceneRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Scene created",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/teralux/{id}/scenes/{scene_id}": {
+            "put": {
+                "description": "Update the configuration of a specific scene",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Update an existing scene",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Scene UUID",
+                        "name": "scene_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated scene configuration",
+                        "name": "scene",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateSceneRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scene updated",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Scene not found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove a specific scene configuration",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Delete a scene",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Scene UUID",
+                        "name": "scene_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scene deleted",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/teralux/{id}/scenes/{scene_id}/control": {
+            "get": {
+                "description": "Trigger all actions defined in a specific scene",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "Apply/Trigger a scene",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Scene UUID",
+                        "name": "scene_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scene applied",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1149,49 +1201,7 @@ const docTemplate = `{
                 "value": {}
             }
         },
-        "dtos.AsyncTranscriptionLongProcessResponseDTO": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                },
-                "task_status": {
-                    "$ref": "#/definitions/dtos.AsyncTranscriptionLongStatusDTO"
-                }
-            }
-        },
-        "dtos.AsyncTranscriptionLongResultDTO": {
-            "type": "object",
-            "properties": {
-                "detected_language": {
-                    "type": "string",
-                    "example": "id"
-                },
-                "text": {
-                    "type": "string",
-                    "example": "Ini adalah transkripsi yang sangat panjang..."
-                }
-            }
-        },
-        "dtos.AsyncTranscriptionLongStatusDTO": {
-            "type": "object",
-            "properties": {
-                "expires_at": {
-                    "type": "string"
-                },
-                "expires_in_seconds": {
-                    "type": "integer"
-                },
-                "result": {
-                    "$ref": "#/definitions/dtos.AsyncTranscriptionLongResultDTO"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "completed"
-                }
-            }
-        },
-        "dtos.AsyncTranscriptionProcessResponseDTO": {
+        "dtos.AsyncTranscriptionProcessStatusResponseDTO": {
             "type": "object",
             "properties": {
                 "task_id": {
@@ -1205,7 +1215,11 @@ const docTemplate = `{
         "dtos.AsyncTranscriptionResultDTO": {
             "type": "object",
             "properties": {
-                "text": {
+                "detected_language": {
+                    "type": "string",
+                    "example": "id"
+                },
+                "transcription": {
                     "type": "string",
                     "example": "Halo dunia"
                 },
@@ -1236,7 +1250,8 @@ const docTemplate = `{
         "dtos.CreateSceneRequestDTO": {
             "type": "object",
             "required": [
-                "name"
+                "name",
+                "teralux_id"
             ],
             "properties": {
                 "actions": {
@@ -1247,45 +1262,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "dtos.MqttPublishRequest": {
-            "type": "object",
-            "required": [
-                "message"
-            ],
-            "properties": {
-                "message": {
+                },
+                "teralux_id": {
                     "type": "string"
-                }
-            }
-        },
-        "dtos.OutsystemsTranscriptionResultDTO": {
-            "type": "object",
-            "properties": {
-                "detected_language": {
-                    "type": "string",
-                    "example": "id"
-                },
-                "filename": {
-                    "type": "string",
-                    "example": "audio.mp3"
-                },
-                "transcription": {
-                    "type": "string",
-                    "example": "Halo dunia"
-                }
-            }
-        },
-        "dtos.RAGProcessResponseDTO": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                },
-                "task_status": {
-                    "$ref": "#/definitions/dtos.RAGStatusDTO"
                 }
             }
         },
@@ -1300,11 +1279,27 @@ const docTemplate = `{
         "dtos.RAGStatusDTO": {
             "type": "object",
             "properties": {
+                "body": {},
+                "endpoint": {
+                    "type": "string"
+                },
+                "execution_result": {
+                    "description": "holds the response from the fetched endpoint"
+                },
                 "expires_at": {
                     "type": "string"
                 },
                 "expires_in_seconds": {
                     "type": "integer"
+                },
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "method": {
+                    "type": "string"
                 },
                 "result": {
                     "description": "raw LLM response when not structured",
@@ -1322,6 +1317,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "teralux_id": {
                     "type": "string"
                 }
             }
@@ -1343,6 +1341,19 @@ const docTemplate = `{
                 },
                 "temperature": {
                     "type": "number"
+                }
+            }
+        },
+        "dtos.TranscriptionTaskResponseDTO": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string",
+                    "example": "abc-123"
+                },
+                "task_status": {
+                    "type": "string",
+                    "example": "pending"
                 }
             }
         },
@@ -1536,35 +1547,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "dtos.WhisperProxyProcessResponseDTO": {
-            "type": "object",
-            "properties": {
-                "task_id": {
+                },
+                "teralux_id": {
                     "type": "string"
-                },
-                "task_status": {
-                    "$ref": "#/definitions/dtos.WhisperProxyStatusDTO"
-                }
-            }
-        },
-        "dtos.WhisperProxyStatusDTO": {
-            "type": "object",
-            "properties": {
-                "expires_at": {
-                    "type": "string"
-                },
-                "expires_in_seconds": {
-                    "type": "integer"
-                },
-                "result": {
-                    "$ref": "#/definitions/dtos.OutsystemsTranscriptionResultDTO"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "completed"
                 }
             }
         },
@@ -1600,9 +1585,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {},
-                "details": {
-                    "type": "string"
-                },
+                "details": {},
                 "message": {
                     "type": "string"
                 },

@@ -18,14 +18,12 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	var llmRepo usecases.LLMClient
 	if cfg.LLMProvider == "gemini" {
 		llmRepo = speechRepos.NewGeminiRepository()
-	} else if cfg.LLMProvider == "antigravity" {
-		llmRepo = speechRepos.NewAntigravityRepository()
 	} else {
 		llmRepo = speechRepos.NewOllamaRepository()
 	}
 
 	ragUsecase := usecases.NewRAGUsecase(vectorSvc, llmRepo, cfg, badger, tuyaAuth)
-	ragController := controllers.NewRAGController(ragUsecase)
+	ragController := controllers.NewRAGController(ragUsecase, cfg)
 
 	// Setup Routes
 	routes.SetupRAGRoutes(protected, ragController)

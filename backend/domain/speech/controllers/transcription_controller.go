@@ -26,53 +26,16 @@ func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, whisperP
 	}
 }
 
-// HandlePublishMqtt godoc
-// @Summary Publish message to MQTT
-// @Description Publish a message to the configured MQTT topic
-// @Tags 04. Speech
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param request body dtos.MqttPublishRequest true "Message to publish"
-// @Success 200 {object} dtos.StandardResponse
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
-// @Router /api/speech/mqtt/publish [post]
-func (c *TranscriptionController) HandlePublishMqtt(ctx *gin.Context) {
-	var req dtos.MqttPublishRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
-			Status:  false,
-			Message: "Invalid request body",
-			Details: err.Error(),
-		})
-		return
-	}
-
-	if err := c.usecase.PublishToWhisper(req.Message); err != nil {
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
-			Status:  false,
-			Message: "Failed to publish message",
-			Details: err.Error(),
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{
-		Status:  true,
-		Message: "Message published successfully",
-	})
-}
 
 // HandleProxyTranscribe godoc
-// @Summary Transcribe audio file (with PPU fallback)
-// @Description Start transcription of audio file. Attempts PPU (Outsystems) first, falls back to local Whisper if PPU fails. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
+// @Summary Transcribe audio file (Whisper)
+// @Description Start transcription of audio file using local Whisper STT. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
-// @Success 202 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionProcessResponseDTO}
+// @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
@@ -134,28 +97,23 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 	}
 
 	// Submit async task
-	// Case 1: Try PPU (Outsystems)
-	taskID, err := c.whisperProxyCase.ProxyTranscribe(inputPath, file.Filename)
+	// Use ProxyTranscribeAudio which uses local Whisper
+	taskID, err := c.usecase.ProxyTranscribeAudio(inputPath, file.Filename)
 	if err != nil {
-		utils.LogWarn("Transcription Fallback: PPU failed, falling back to local Whisper: %v", err)
-		// Case 2: Fallback to Long (Local Whisper)
-		// Note: Using "id" as default language for fallback as previously requested for speech
-		taskID, err = c.usecase.ProxyTranscribeLongAudio(inputPath, file.Filename, "id")
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
-				Status:  false,
-				Message: "Failed to start transcription task (All methods failed)",
-				Details: err.Error(),
-			})
-			return
-		}
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to start transcription task",
+			Details: err.Error(),
+		})
+		return
 	}
 
 	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
 		Status:  true,
 		Message: "Transcription task submitted successfully",
-		Data: dtos.AsyncTranscriptionProcessResponseDTO{
-			TaskID: taskID,
+		Data: dtos.TranscriptionTaskResponseDTO{
+			TaskID:     taskID,
+			TaskStatus: "pending",
 		},
 	})
 }
@@ -167,7 +125,7 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 // @Security BearerAuth
 // @Produce json
 // @Param transcribe_id path string true "Task ID"
-// @Success 200 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionProcessResponseDTO}
+// @Success 200 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionProcessStatusResponseDTO}
 // @Failure 404 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
 // @Router /api/speech/transcribe/{transcribe_id} [get]
@@ -187,7 +145,7 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, dtos.StandardResponse{
 			Status:  true,
 			Message: "Task status retrieved successfully",
-			Data: dtos.AsyncTranscriptionProcessResponseDTO{
+			Data: dtos.AsyncTranscriptionProcessStatusResponseDTO{
 				TaskID:     taskID,
 				TaskStatus: status,
 			},
@@ -201,7 +159,7 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, dtos.StandardResponse{
 			Status:  true,
 			Message: "Task status retrieved successfully",
-			Data: dtos.AsyncTranscriptionLongProcessResponseDTO{
+			Data: dtos.AsyncTranscriptionProcessStatusResponseDTO{
 				TaskID:     taskID,
 				TaskStatus: statusLong,
 			},
@@ -215,7 +173,7 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, dtos.StandardResponse{
 			Status:  true,
 			Message: "Task status retrieved successfully",
-			Data: dtos.WhisperProxyProcessResponseDTO{
+			Data: dtos.WhisperProxyProcessStatusResponseDTO{
 				TaskID:     taskID,
 				TaskStatus: proxyStatus,
 			},
@@ -229,22 +187,22 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 	})
 }
 
-// HandleProxyTranscribeLong godoc
-// @Summary Transcribe long audio file
-// @Description Start transcription of long audio file using Whisper. Asynchronous processing with background execution. No translation, no RAG. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
+// HandleWhisperCppTranscribe godoc
+// @Summary Transcribe audio file (Whisper.cpp)
+// @Description Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no PPU. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
 // @Param language formData string true "Language code (e.g. id, en)"
-// @Success 202 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionLongProcessResponseDTO}
+// @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
-// @Router /api/speech/transcribe/long [post]
-func (c *TranscriptionController) HandleProxyTranscribeLong(ctx *gin.Context) {
+// @Router /api/speech/transcribe/whisper/cpp [post]
+func (c *TranscriptionController) HandleWhisperCppTranscribe(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
@@ -295,11 +253,11 @@ func (c *TranscriptionController) HandleProxyTranscribeLong(ctx *gin.Context) {
 	tempDir := "./tmp"
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
 		if err := os.Mkdir(tempDir, 0755); err != nil {
-			utils.LogError("HandleProxyTranscribeLong: Failed to create temp directory: %v", err)
+			utils.LogError("HandleWhisperCppTranscribe: Failed to create temp directory: %v", err)
 		}
 	}
 
-	inputPath := filepath.Join(tempDir, "long_"+file.Filename)
+	inputPath := filepath.Join(tempDir, "whisper_cpp_"+file.Filename)
 	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
@@ -323,8 +281,9 @@ func (c *TranscriptionController) HandleProxyTranscribeLong(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
 		Status:  true,
 		Message: "Transcription task submitted successfully",
-		Data: dtos.AsyncTranscriptionLongProcessResponseDTO{
-			TaskID: taskID,
+		Data: dtos.TranscriptionTaskResponseDTO{
+			TaskID:     taskID,
+			TaskStatus: "pending",
 		},
 	})
 }

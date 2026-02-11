@@ -40,7 +40,7 @@ func NewWhisperProxyController(usecase *usecases.WhisperProxyUsecase, cfg *utils
 // @Accept multipart/form-data
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
-// @Success 202 {object} dtos.StandardResponse{data=dtos.WhisperProxyProcessResponseDTO}
+// @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
@@ -116,26 +116,12 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 		return
 	}
 
-	// Try to fetch cached status via DTO to include TTL info in response (optional)
-	status, _ := c.usecase.GetStatus(taskID)
-	// Use DTOs directly in the response, avoid hardcoding TTL values here
-	if status != nil {
-		ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
-			Status:  true,
-			Message: "Task submitted",
-			Data: map[string]interface{}{
-				"task_id": taskID,
-				"status":  status,
-			},
-		})
-		return
-	}
-
 	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
 		Status:  true,
 		Message: "Task submitted",
-		Data: map[string]string{
-			"task_id": taskID,
+		Data: dtos.TranscriptionTaskResponseDTO{
+			TaskID:     taskID,
+			TaskStatus: "pending",
 		},
 	})
 }

@@ -39,9 +39,9 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), nil, nil)
 
-	task, err := u.Process("turn on the lamp", "mock-token", nil)
+	task, err := u.Control("turn on the lamp", "mock-token", nil)
 	if err != nil {
-		t.Fatalf("expected no error from Process, got %v", err)
+		t.Fatalf("expected no error from Control, got %v", err)
 	}
 	if task == "" {
 		t.Fatalf("expected non-empty task id")
@@ -128,9 +128,9 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
 
-	task, err := u.Process("turn on the lamp", "mock-token", nil)
+	task, err := u.Control("turn on the lamp", "mock-token", nil)
 	if err != nil {
-		t.Fatalf("expected no error from Process, got %v", err)
+		t.Fatalf("expected no error from Control, got %v", err)
 	}
 
 	// verify pending cached in badger immediately
@@ -206,9 +206,9 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	}()
 
 	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
-	task, err := u.Process("turn on the lamp", "mock-token", nil)
+	task, err := u.Control("turn on the lamp", "mock-token", nil)
 	if err != nil {
-		t.Fatalf("expected no error from Process, got %v", err)
+		t.Fatalf("expected no error from Control, got %v", err)
 	}
 
 	// verify pending cached in Badger immediately and TTL exists
