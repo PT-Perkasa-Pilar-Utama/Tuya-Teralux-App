@@ -48,8 +48,9 @@ Retrieves the current status and result of any transcription task. This is a **c
       "expires_at": "2026-02-10T11:00:00Z",
       "expires_in_seconds": 3200,
       "result": {
-        "text": "Halo dunia",
-        "translated_text": "Hello world"
+        "transcription": "halo apa kabar",
+        "refined_text": "Halo, apa kabar?",
+        "detected_language": "id"
       }
     }
   }

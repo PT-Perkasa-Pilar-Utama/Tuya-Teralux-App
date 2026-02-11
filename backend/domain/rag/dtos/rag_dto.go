@@ -4,6 +4,13 @@ type RAGRequestDTO struct {
 	Text string `json:"text"`
 }
 
+type RAGSummaryRequestDTO struct {
+	Text     string `json:"text" binding:"required" example:"This is a long transcript of a technical meeting..."`
+	Language string `json:"language,omitempty" example:"id"` // "id" or "en"
+	Context  string `json:"context,omitempty" example:"technical meeting"`
+	Style    string `json:"style,omitempty" example:"professional"`
+}
+
 type RAGStatusDTO struct {
 	Status          string            `json:"status"`
 	Result          string            `json:"result,omitempty"` // raw LLM response when not structured

@@ -1,7 +1,7 @@
 # ENDPOINT: POST /api/rag/translate
 
 ## Description
-Directly translates input text to English using the configured LLM. This is a synchronous operation used primarily for normalizing commands before processing.
+Directly translates input text to English using the LLM. Best for short phrases or command normalization. For meetings, use the Summary endpoint instead.
 
 ## Authentication
 - **Type**: BearerAuth

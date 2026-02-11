@@ -1,7 +1,11 @@
 # ENDPOINT: POST /api/speech/transcribe
 
 ## Description
-Starts transcription of an audio file using **Local Whisper** (Whisper.cpp). This is the standard entry point for short audio transcription. The processing is **asynchronous**.
+Starts transcription of an audio file. This endpoint automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
+### Processing Flow
+1. **PPU First**: System attempts to send audio to the Outsystems PPU proxy.
+2. **Local Fallback**: If PPU is unreachable or returns an error, the system automatically falls back to the **Local Whisper (Whisper.cpp)** engine.
+Processing is **asynchronous**.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -92,8 +96,19 @@ Starts transcription of an audio file using **Local Whisper** (Whisper.cpp). Thi
 ```
   *(Status: 401 Unauthorized)*
 
-### 6. Error: Internal Server Error
-- **Pre-conditions**: Cache service or transcription engine is down.
+### 6. Scenario: Silent Audio
+- **Request**: Upload 5 seconds of absolute silence.
+- **Expected Behavior**: The transcription process completes successfully.
+- **Expected Result**: `transcription: ""` and `refined_text: ""` because no speech was detected.
+
+### 7. Validation: Wrong Extension / Corrupt Header
+- **Request**: Upload a `.txt` file renamed to `.mp3`.
+- **Expected Behavior**: The file is accepted at the API layer (due to extension check).
+- **Processing Outcome**: The background transcription engine (Whisper) will fail to decode the audio.
+- **Expected Status**: Task status becomes `failed` after processing.
+
+### 8. Error: Internal Server Error
+- **Pre-conditions**: Both PPU and Local Whisper engines are failing or system resources are exhausted.
 - **Expected Response**:
 ```json
 {
@@ -101,4 +116,4 @@ Starts transcription of an audio file using **Local Whisper** (Whisper.cpp). Thi
   "message": "Failed to start transcription"
 }
 ```
-  *(Status: 500 Internal Server Error)*
+*(Status: 500 Internal Server Error)*
