@@ -39,7 +39,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Flush"
+                    "07. Flush"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -296,6 +296,62 @@ const docTemplate = `{
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/recordings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of recordings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Recordings"
+                ],
+                "summary": "Get all recordings",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.GetAllRecordingsResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
                         }
                     }
                 }
@@ -1225,7 +1281,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "07. Health"
+                    "08. Health"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -1331,6 +1387,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.GetAllRecordingsResponseDto": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "recordings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.RecordingResponseDto"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dtos.RAGRequestDTO": {
             "type": "object",
             "properties": {
@@ -1395,6 +1471,39 @@ const docTemplate = `{
                 "text": {
                     "type": "string",
                     "example": "This is a long transcript of a technical meeting..."
+                }
+            }
+        },
+        "dtos.RecordingResponseDto": {
+            "type": "object",
+            "properties": {
+                "audio_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "original_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.RecordingStandardResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "details": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
                 }
             }
         },
@@ -1718,12 +1827,16 @@ const docTemplate = `{
             "name": "05. RAG"
         },
         {
+            "description": "Recordings management endpoints",
+            "name": "06. Recordings"
+        },
+        {
             "description": "Cache management endpoints",
-            "name": "06. Flush"
+            "name": "07. Flush"
         },
         {
             "description": "Health check endpoint",
-            "name": "07. Health"
+            "name": "08. Health"
         }
     ]
 }`

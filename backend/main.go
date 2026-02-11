@@ -15,6 +15,8 @@ import (
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag"
+	"teralux_app/domain/recordings"
+	recordings_entities "teralux_app/domain/recordings/entities"
 	"teralux_app/domain/scene"
 	scene_entities "teralux_app/domain/scene/entities"
 	"teralux_app/domain/speech"
@@ -62,10 +64,13 @@ import (
 // @tag.name 05. RAG
 // @tag.description RAG endpoints
 
-// @tag.name 06. Flush
+// @tag.name 06. Recordings
+// @tag.description Recordings management endpoints
+
+// @tag.name 07. Flush
 // @tag.description Cache management endpoints
 
-// @tag.name 07. Health
+// @tag.name 08. Health
 // @tag.description Health check endpoint
 func main() {
 	// CLI: Healthcheck
@@ -103,6 +108,7 @@ func main() {
 		&teralux_entities.Device{},
 		&teralux_entities.DeviceStatus{},
 		&scene_entities.Scene{},
+		&recordings_entities.Recording{},
 	); err != nil {
 		utils.LogInfo("FATAL: Failed to auto-migrate entities: %v", err)
 		os.Exit(1)
@@ -145,6 +151,10 @@ func main() {
 	protected.Use(middlewares.AuthMiddleware(tuyaModule.AuthUseCase))
 	protected.Use(middlewares.TuyaErrorMiddleware())
 
+	// Static File Serving (for audio uploads)
+	// Access via: /api/static/audio/filename.ext
+	router.Static("/api/static", "./uploads")
+
 	// 1. Common Routes (Health, Cache)
 	commonModule.RegisterRoutes(router, protected)
 
@@ -154,7 +164,11 @@ func main() {
 	// 3. Teralux Routes (CRUD)
 	teraluxModule.RegisterRoutes(router, protected)
 
-	// 4. Speech & RAG Modules (migrated from stt-service)
+	// 4. Recordings Module
+	recordingsModule := recordings.NewRecordingsModule(badgerService)
+	recordingsModule.RegisterRoutes(router, protected)
+
+	// 5. Speech & RAG Modules (migrated from stt-service)
 	scfg := utils.GetConfig()
 	// Log current log level for diagnostic purposes
 	fmt.Printf("Application log level: %s\n", utils.GetCurrentLogLevelName())
@@ -187,9 +201,9 @@ func main() {
 		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase)
 
 		// Initialize Speech with RAG, Badger and Tuya Auth dependencies
-		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService)
+		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
 
-		// 5. Scene Module
+		// 6. Scene Module
 		sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
 		sceneModule.RegisterRoutes(protected)
 	}

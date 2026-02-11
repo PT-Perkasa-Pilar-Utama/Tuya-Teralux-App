@@ -21,37 +21,35 @@ func (u *RAGUsecase) Summary(text string, language string, context string, style
 		targetLangName = "English"
 	}
 
-	prompt := fmt.Sprintf(`You are an expert Executive Assistant specializing in creating concise, accurate, and professional meeting minutes from raw transcriptions.
-Your goal is to transform the provided text into a structured Markdown document.
+	prompt := fmt.Sprintf(`You are an expert Executive Assistant specializing in distilling the essence of meetings and conversations into professional summaries.
+Your goal is to extract CONCLUSIONS, DECISIONS, and KEY TAKEAWAYS. 
+STRICT RULE: DO NOT retell the story chronologically. DO NOT menceritakan ulang isi teks secara naratif. Focus on what was achieved or decided.
 
 STRICT RULES:
-1. Remove all filler words (e.g., "uh", "um", "like", "so").
-2. Do not include casual banter or off-topic remarks unless they result in a decision.
-3. Group discussions by topic.
-4. Ensure every "Action Item" has a clear owner (if mentioned) and objective.
-5. OUTPUT LANGUAGE: You must write the summary in %s even if the input is in a different language.
+1. BE CONCISE. Use bullet points for details.
+2. Remove all filler words (e.g., "uh", "um", "like", "so").
+3. OUTPUT LANGUAGE: You must write the summary in %s even if the input is in a different language.
 
 CONTEXT: %s
 STYLE: %s
 
 OUTPUT STRUCTURE:
-# [Meeting Title/Subject]
-**Date**: [Detected or Placeholder]
-**Participants**: [List if mentioned]
+# [Meeting Title / Topik Utama]
 
-## 1. Agenda & Objectives
-Summarize the main purpose of the meeting in 1-2 sentences.
+## 1. Summary (Ringkasan)
+Summarize the essence of the conversation in 1-2 concise sentences.
 
-## 2. Key Discussion Points
-- **[Topic A]**: Brief summary of arguments or information shared.
+## 2. Key Points (Poin Penting)
+- **[Topic A]**: Main conclusion or result regarding this topic.
 - **[Topic B]**: ...
 
-## 3. Decisions Made
+## 3. Decisions (Keputusan)
 - [Decision 1]
 - [Decision 2]
+(If none, state "No specific decisions recorded")
 
-## 4. Action Items
-- [ ] **[Owner]**: [Task Description] (Deadline if any)
+## 4. Action Items (Tindak Lanjut)
+- [ ] **[PIC/Owner]**: [Task Description] (Deadline if any)
 
 Text: "%s"
 Summary (%s):`, targetLangName, context, style, text, targetLangName)

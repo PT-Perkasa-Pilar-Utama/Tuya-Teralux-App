@@ -13,19 +13,25 @@ import (
 )
 
 type TranscriptionController struct {
-	usecase          *usecases.TranscriptionUsecase
-	whisperProxyCase *usecases.WhisperProxyUsecase
-	config           *utils.Config
+	transcribeUC           usecases.TranscribeUseCase
+	transcribeWhisperCppUC usecases.TranscribeWhisperCppUseCase
+	getStatusUC            usecases.GetTranscriptionStatusUseCase
+	config                 *utils.Config
 }
 
-func NewTranscriptionController(usecase *usecases.TranscriptionUsecase, whisperProxyCase *usecases.WhisperProxyUsecase, cfg *utils.Config) *TranscriptionController {
+func NewTranscriptionController(
+	transcribeUC usecases.TranscribeUseCase,
+	transcribeWhisperCppUC usecases.TranscribeWhisperCppUseCase,
+	getStatusUC usecases.GetTranscriptionStatusUseCase,
+	cfg *utils.Config,
+) *TranscriptionController {
 	return &TranscriptionController{
-		usecase:          usecase,
-		whisperProxyCase: whisperProxyCase,
-		config:           cfg,
+		transcribeUC:           transcribeUC,
+		transcribeWhisperCppUC: transcribeWhisperCppUC,
+		getStatusUC:            getStatusUC,
+		config:                 cfg,
 	}
 }
-
 
 // HandleProxyTranscribe godoc
 // @Summary Transcribe audio file (Whisper)
@@ -97,8 +103,7 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 	}
 
 	// Submit async task
-	// Use ProxyTranscribeAudio which uses local Whisper
-	taskID, err := c.usecase.ProxyTranscribeAudio(inputPath, file.Filename)
+	taskID, err := c.transcribeUC.Execute(inputPath, file.Filename)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
@@ -139,44 +144,12 @@ func (c *TranscriptionController) GetProxyTranscribeStatus(ctx *gin.Context) {
 		return
 	}
 
-	// Try Long/Short Whisper first
-	status, err := c.usecase.GetTranscriptionStatus(taskID)
+	status, err := c.getStatusUC.Execute(taskID)
 	if err == nil {
 		ctx.JSON(http.StatusOK, dtos.StandardResponse{
 			Status:  true,
 			Message: "Task status retrieved successfully",
-			Data: dtos.AsyncTranscriptionProcessStatusResponseDTO{
-				TaskID:     taskID,
-				TaskStatus: status,
-			},
-		})
-		return
-	}
-
-	// Try Long Whisper status
-	statusLong, err := c.usecase.GetTranscriptionLongStatus(taskID)
-	if err == nil {
-		ctx.JSON(http.StatusOK, dtos.StandardResponse{
-			Status:  true,
-			Message: "Task status retrieved successfully",
-			Data: dtos.AsyncTranscriptionProcessStatusResponseDTO{
-				TaskID:     taskID,
-				TaskStatus: statusLong,
-			},
-		})
-		return
-	}
-
-	// Try PPU status
-	proxyStatus, err := c.whisperProxyCase.GetStatus(taskID)
-	if err == nil {
-		ctx.JSON(http.StatusOK, dtos.StandardResponse{
-			Status:  true,
-			Message: "Task status retrieved successfully",
-			Data: dtos.WhisperProxyProcessStatusResponseDTO{
-				TaskID:     taskID,
-				TaskStatus: proxyStatus,
-			},
+			Data:    status,
 		})
 		return
 	}
@@ -268,7 +241,7 @@ func (c *TranscriptionController) HandleWhisperCppTranscribe(ctx *gin.Context) {
 	}
 
 	// Submit async task
-	taskID, err := c.usecase.ProxyTranscribeLongAudio(inputPath, file.Filename, lang)
+	taskID, err := c.transcribeWhisperCppUC.Execute(inputPath, file.Filename, lang)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
