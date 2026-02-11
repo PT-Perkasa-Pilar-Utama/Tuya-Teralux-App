@@ -1,7 +1,7 @@
 # ENDPOINT: POST /api/speech/transcribe/whisper/cpp
 
 ## Description
-Starts transcription of an audio file using **local Whisper** (Whisper.cpp) without PPU fallback. This endpoint is optimized for longer recordings and provides **background execution**. It does **not** perform translation or RAG processing.
+Starts transcription of an audio file using **local Whisper** (Whisper.cpp) without PPU fallback. This endpoint is optimized for longer recordings and provides **background execution**. It automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
 
 ## Authentication
 - **Type**: BearerAuth

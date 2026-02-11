@@ -11,6 +11,7 @@ func SetupRAGRoutes(rg *gin.RouterGroup, controller *controllers.RAGController) 
 	api := rg.Group("/api/rag")
 	{
 		api.POST("/translate", controller.Translate)
+		api.POST("/summary", controller.Summary)
 		api.POST("/control", controller.Control)
 		api.GET("/:task_id", controller.GetStatus)
 	}

@@ -273,14 +273,18 @@ func (u *TranscriptionUsecase) processTranscribeAudioAsync(taskID string, inputP
 	}
 
 	utils.LogInfo("Transcription Task %s: Transcription finished using %s", taskID, usedPath)
+	utils.LogDebug("Transcription Task %s: Raw text: %q", taskID, text)
 
-	// Try to translate
-	translated, _ := u.ragUsecase.Translate(text)
+	// Try to refine (grammar fix)
+	refined, err := u.ragUsecase.Refine(text, lang)
+	if err == nil && refined != "" {
+		utils.LogDebug("Transcription Task %s: Refined text: %q", taskID, refined)
+	}
 
 	// Build result
 	result := &speechdtos.AsyncTranscriptionResultDTO{
 		Transcription:    text,
-		TranslatedText:   translated,
+		RefinedText:      refined,
 		DetectedLanguage: lang,
 	}
 
@@ -311,9 +315,13 @@ func (u *TranscriptionUsecase) processTranscribeLongAudioAsync(taskID string, in
 		return
 	}
 
+	// Try to refine (grammar fix)
+	refined, _ := u.ragUsecase.Refine(text, lang)
+
 	// Build result
 	result := &speechdtos.AsyncTranscriptionLongResultDTO{
 		Transcription:    text,
+		RefinedText:      refined,
 		DetectedLanguage: lang,
 	}
 

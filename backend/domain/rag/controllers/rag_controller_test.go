@@ -32,6 +32,10 @@ func (f *fakeUsecase) Translate(text string) (string, error) {
 	return "Translated: " + text, nil
 }
 
+func (f *fakeUsecase) Summary(text string, language string, context string, style string) (string, error) {
+	return "Summary: " + text, nil
+}
+
 func TestControlReturns202(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	fake := &fakeUsecase{taskID: "test-uuid", expiresIn: 3600}

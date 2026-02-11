@@ -2,7 +2,7 @@ package dtos
 
 type TranscriptionResponseDTO struct {
 	Transcription  string `json:"transcription" example:"Halo dunia"`
-	TranslatedText string `json:"translated_text,omitempty" example:"Hello world"`
+	RefinedText    string `json:"refined_text,omitempty" example:"Hello world"`
 }
 
 type TranscriptionLongResponseDTO struct {
@@ -45,7 +45,7 @@ type MqttPublishRequest struct {
 // Async Transcription DTOs (Consolidated)
 type AsyncTranscriptionResultDTO struct {
 	Transcription    string `json:"transcription" example:"Halo dunia"`
-	TranslatedText   string `json:"translated_text,omitempty" example:"Hello world"`
+	RefinedText      string `json:"refined_text,omitempty" example:"Hello world"`
 	DetectedLanguage string `json:"detected_language,omitempty" example:"id"`
 }
 

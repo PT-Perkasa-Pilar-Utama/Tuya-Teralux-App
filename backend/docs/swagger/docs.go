@@ -124,6 +124,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/rag/summary": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transform a long transcription into professional meeting minutes. Supports target language (id/en), context, and style selection.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. RAG"
+                ],
+                "summary": "Generate meeting minutes summary",
+                "parameters": [
+                    {
+                        "description": "Summary request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGSummaryRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/rag/translate": {
             "post": {
                 "security": [
@@ -131,7 +194,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Translate text to English using the LLM",
+                "description": "Translate text to English using the LLM. Best for short phrases/commands.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1219,13 +1282,13 @@ const docTemplate = `{
                     "type": "string",
                     "example": "id"
                 },
+                "refined_text": {
+                    "type": "string",
+                    "example": "Hello world"
+                },
                 "transcription": {
                     "type": "string",
                     "example": "Halo dunia"
-                },
-                "translated_text": {
-                    "type": "string",
-                    "example": "Hello world"
                 }
             }
         },
@@ -1307,6 +1370,31 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.RAGSummaryRequestDTO": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "context": {
+                    "type": "string",
+                    "example": "technical meeting"
+                },
+                "language": {
+                    "description": "\"id\" or \"en\"",
+                    "type": "string",
+                    "example": "id"
+                },
+                "style": {
+                    "type": "string",
+                    "example": "professional"
+                },
+                "text": {
+                    "type": "string",
+                    "example": "This is a long transcript of a technical meeting..."
                 }
             }
         },

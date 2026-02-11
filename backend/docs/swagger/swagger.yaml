@@ -24,11 +24,11 @@ definitions:
       detected_language:
         example: id
         type: string
+      refined_text:
+        example: Hello world
+        type: string
       transcription:
         example: Halo dunia
-        type: string
-      translated_text:
-        example: Hello world
         type: string
     type: object
   dtos.AsyncTranscriptionStatusDTO:
@@ -84,6 +84,24 @@ definitions:
         type: string
       status:
         type: string
+    type: object
+  dtos.RAGSummaryRequestDTO:
+    properties:
+      context:
+        example: technical meeting
+        type: string
+      language:
+        description: '"id" or "en"'
+        example: id
+        type: string
+      style:
+        example: professional
+        type: string
+      text:
+        example: This is a long transcript of a technical meeting...
+        type: string
+    required:
+    - text
     type: object
   dtos.SceneListResponseDTO:
     properties:
@@ -376,11 +394,49 @@ paths:
       summary: Control devices via natural language
       tags:
       - 05. RAG
+  /api/rag/summary:
+    post:
+      consumes:
+      - application/json
+      description: Transform a long transcription into professional meeting minutes.
+        Supports target language (id/en), context, and style selection.
+      parameters:
+      - description: Summary request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGSummaryRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Generate meeting minutes summary
+      tags:
+      - 05. RAG
   /api/rag/translate:
     post:
       consumes:
       - application/json
-      description: Translate text to English using the LLM
+      description: Translate text to English using the LLM. Best for short phrases/commands.
       parameters:
       - description: Translation request
         in: body
