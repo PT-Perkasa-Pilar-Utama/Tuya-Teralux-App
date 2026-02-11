@@ -1,131 +1,120 @@
 package com.example.whisper_android.presentation.streaming
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.padding
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+import com.example.whisper_android.presentation.components.FeatureScreenTemplate
+import com.example.whisper_android.presentation.components.MessageRole
+import com.example.whisper_android.presentation.components.TranscriptionMessage
 
 @Composable
 fun StreamingScreen(
     onNavigateBack: () -> Unit
 ) {
-    var showWalkthrough by remember { mutableStateOf(true) }
+    var isRecording by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var transcriptionResults by remember { mutableStateOf(listOf<TranscriptionMessage>()) }
+    
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    val hasPermission = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 
-    if (showWalkthrough) {
-        AlertDialog(
-            onDismissRequest = { showWalkthrough = false },
-            title = {
-                Text(
-                    text = "Walkthrough",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        text = "🎯 Purpose",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Real-Time Voice Assistant & Live Voice Control",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "🔄 Flow Summary (Streaming)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "1. The Android app (Kotlin) captures microphone input in real time.\n" +
-                                "2. Audio is chunked and encoded into small segments.\n" +
-                                "3. The app publishes audio chunks to a message broker topic.\n" +
-                                "4. The backend (Golang) subscribes to the topic.\n" +
-                                "5. The backend decodes and reassembles the audio stream.\n" +
-                                "6. The backend processes the stream using whisper.cpp.\n" +
-                                "7. The system returns near real-time transcribed text.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "✅ Advantages",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "• Near real-time transcription.\n" +
-                                "• Lower perceived latency.\n" +
-                                "• Suitable for interactive voice commands.\n" +
-                                "• Scalable via Pub/Sub architecture.\n" +
-                                "• Supports distributed backend consumers.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "❌ Disadvantages",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        text = "• More complex architecture (broker, chunking, reassembly).\n" +
-                                "• Higher implementation complexity.\n" +
-                                "• Requires message ordering and reliability handling.\n" +
-                                "• Higher infrastructure cost.\n" +
-                                "• Requires stable internet connection.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = { showWalkthrough = false }) {
-                    Text("Close")
+    FeatureScreenTemplate(
+        title = "Realtime Streaming",
+        onNavigateBack = onNavigateBack,
+        isRecording = isRecording,
+        isProcessing = isProcessing,
+        hasPermission = hasPermission,
+        transcriptionResults = transcriptionResults,
+        onMicClick = {
+            if (!isRecording && !isProcessing) {
+                isRecording = true
+                // In streaming, we might simulate periodic results, 
+                // but for now, let's keep it similar to Upload for consistency
+            } else if (isRecording) {
+                isRecording = false
+                isProcessing = true
+                scope.launch {
+                    delay(1200)
+                    val mockUserText = "Matikan lampu ruang tamu."
+                    val mockAssistantText = "Siap! Lampu ruang tamu telah dimatikan."
+                    
+                    transcriptionResults = transcriptionResults + 
+                        TranscriptionMessage(mockUserText, MessageRole.USER)
+                    
+                    delay(600)
+                    transcriptionResults = transcriptionResults + 
+                        TranscriptionMessage(mockAssistantText, MessageRole.ASSISTANT)
+                    
+                    isProcessing = false
                 }
             }
-        )
-    }
-
-    Scaffold { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
+        },
+        onClearChat = { transcriptionResults = emptyList() },
+        walkthroughContent = {
             Text(
-                text = "Realtime Streaming - Hello World",
-                style = MaterialTheme.typography.headlineMedium
+                text = "🎯 Purpose",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Real-Time Voice Assistant & Live Voice Control",
+                style = MaterialTheme.typography.bodyMedium
             )
 
-            Button(
-                onClick = onNavigateBack,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-            ) {
-                Text("Back to Dashboard")
-            }
+            Text(
+                text = "🔄 Flow Summary (Streaming)",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "1. App captures microphone input in real time.\n" +
+                        "2. Audio is chunked and sent to message broker.\n" +
+                        "3. Backend subscribes and reassembles segments.\n" +
+                        "4. Backend processes stream via whisper.cpp.\n" +
+                        "5. System returns near real-time text.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "✅ Advantages",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "• Near real-time transcription.\n" +
+                        "• Suitable for interactive voice commands.\n" +
+                        "• Scalable via Pub/Sub architecture.\n" +
+                        "• Lower perceived latency for users.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "❌ Disadvantages",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "• Complex architecture (broker, chunking).\n" +
+                        "• Higher infrastructure & implementation cost.\n" +
+                        "• Requires message ordering/reliability.\n" +
+                        "• Requires stable internet connection.",
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
-    }
+    )
 }
