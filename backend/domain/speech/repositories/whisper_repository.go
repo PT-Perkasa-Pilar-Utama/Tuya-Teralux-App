@@ -36,8 +36,10 @@ type WhisperServerResponse struct {
 // Otherwise, it falls back to the local CLI binary.
 func (r *WhisperRepository) Transcribe(wavPath string, modelPath string, lang string) (string, error) {
 	if r.config.WhisperServerURL != "" {
+		utils.LogDebug("Whisper: Transcription Path: Server (%s)", r.config.WhisperServerURL)
 		return r.transcribeViaServer(wavPath, lang)
 	}
+	utils.LogDebug("Whisper: Transcription Path: Local CLI")
 	return r.transcribeViaCLI(wavPath, modelPath, lang, false)
 }
 
@@ -46,8 +48,10 @@ func (r *WhisperRepository) Transcribe(wavPath string, modelPath string, lang st
 // Otherwise, it falls back to the local CLI binary.
 func (r *WhisperRepository) TranscribeFull(wavPath string, modelPath string, lang string) (string, error) {
 	if r.config.WhisperServerURL != "" {
+		utils.LogDebug("Whisper: Transcription Full Path: Server (%s)", r.config.WhisperServerURL)
 		return r.transcribeViaServer(wavPath, lang)
 	}
+	utils.LogDebug("Whisper: Transcription Full Path: Local CLI")
 	return r.transcribeViaCLI(wavPath, modelPath, lang, true)
 }
 

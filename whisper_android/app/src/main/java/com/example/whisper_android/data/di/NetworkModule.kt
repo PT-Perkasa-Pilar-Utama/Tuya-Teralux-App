@@ -66,6 +66,10 @@ object NetworkModule {
         retrofit.create(com.example.whisper_android.data.remote.api.TuyaApi::class.java)
     }
 
+    private val speechApi: com.example.whisper_android.data.remote.api.SpeechApi by lazy {
+        retrofit.create(com.example.whisper_android.data.remote.api.SpeechApi::class.java)
+    }
+
     val repository: TeraluxRepository by lazy {
         // Ensure init() is called before accessing this
         TeraluxRepositoryImpl(api, API_KEY)
@@ -73,6 +77,10 @@ object NetworkModule {
 
     val tuyaRepository: com.example.whisper_android.domain.repository.TuyaRepository by lazy {
         com.example.whisper_android.data.repository.TuyaRepositoryImpl(tuyaApi, API_KEY, tokenManager)
+    }
+
+    val speechRepository: com.example.whisper_android.data.repository.SpeechRepository by lazy {
+        com.example.whisper_android.data.repository.SpeechRepository(speechApi)
     }
     
     val registerUseCase: RegisterTeraluxUseCase by lazy {

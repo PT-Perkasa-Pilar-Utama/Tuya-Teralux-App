@@ -16,7 +16,8 @@ fun RegisterScreen(
     viewModel: RegisterViewModel = viewModel { 
         RegisterViewModel(
             NetworkModule.registerUseCase,
-            NetworkModule.getTeraluxByMacUseCase
+            NetworkModule.getTeraluxByMacUseCase,
+            NetworkModule.authenticateUseCase
         ) 
     }
 ) {

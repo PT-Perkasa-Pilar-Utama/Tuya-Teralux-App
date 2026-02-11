@@ -36,6 +36,7 @@ func NewWhisperProxyUsecase(badgerSvc *infrastructure.BadgerService, cfg *utils.
 
 // ProxyTranscribe accepts audio file and queues async transcription to external Outsystems server
 func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) (string, error) {
+	utils.LogDebug("Whisper Proxy: Starting external transcription via Outsystems (PPU)...")
 	// Generate UUID task id
 	taskID := uuid.New().String()
 
@@ -74,7 +75,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 
 		// Step 1: Health check to verify server is online
 		utils.LogDebug("Whisper Task %s: Checking server health...", taskID)
-		if err := u.healthCheckOutsystems(); err != nil {
+		if err := u.HealthCheck(); err != nil {
 			utils.LogError("Whisper Task %s: Server health check failed: %v", taskID, err)
 			statusDTO := &speechdtos.WhisperProxyStatusDTO{
 				Status: "error",
@@ -92,7 +93,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 		}
 
 		// Step 2: Fetch to external Outsystems server
-		result, err := u.fetchToOutsystems(filePath, fileName)
+		result, err := u.FetchToOutsystems(filePath, fileName)
 
 		statusDTO := &speechdtos.WhisperProxyStatusDTO{
 			Status: "completed",
@@ -126,8 +127,8 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 	return taskID, nil
 }
 
-// healthCheckOutsystems performs a health check to verify the Outsystems server is online
-func (u *WhisperProxyUsecase) healthCheckOutsystems() error {
+// HealthCheck performs a health check to verify the Outsystems server is online
+func (u *WhisperProxyUsecase) HealthCheck() error {
 	outsystemsURL := u.config.OutsystemsTranscribeURL
 	if outsystemsURL == "" {
 		utils.LogError("Whisper: OUTSYSTEMS_TRANSCRIBE_URL not configured")
@@ -168,8 +169,8 @@ func (u *WhisperProxyUsecase) healthCheckOutsystems() error {
 	return nil
 }
 
-// fetchToOutsystems sends the audio file to the external Outsystems server and returns parsed result
-func (u *WhisperProxyUsecase) fetchToOutsystems(filePath string, fileName string) (*speechdtos.OutsystemsTranscriptionResultDTO, error) {
+// FetchToOutsystems sends the audio file to the external Outsystems server and returns parsed result
+func (u *WhisperProxyUsecase) FetchToOutsystems(filePath string, fileName string) (*speechdtos.OutsystemsTranscriptionResultDTO, error) {
 	outsystemsURL := u.config.OutsystemsTranscribeURL
 	if outsystemsURL == "" {
 		utils.LogError("Whisper: OUTSYSTEMS_TRANSCRIBE_URL not configured")

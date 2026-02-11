@@ -24,8 +24,14 @@ import com.example.whisper_android.presentation.dashboard.DashboardScreen
 import com.example.whisper_android.ui.theme.SmartMeetingRoomWhisperDemoTheme
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        lateinit var appContext: android.content.Context
+            private set
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        appContext = applicationContext
         
         // Initialize dependency injection (Manual)
         com.example.whisper_android.data.di.NetworkModule.init(this)

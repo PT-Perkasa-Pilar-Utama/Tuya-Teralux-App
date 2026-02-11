@@ -19,8 +19,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	whisperRepo := repositories.NewWhisperRepository(cfg)
 
 	// Usecases
-	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, cfg, ragUsecase, tuyaAuthUseCase, badgerSvc)
 	whisperProxyUsecase := speechUsecases.NewWhisperProxyUsecase(badgerSvc, cfg)
+	transcriptionUsecase := speechUsecases.NewTranscriptionUsecase(whisperRepo, cfg, ragUsecase, tuyaAuthUseCase, whisperProxyUsecase, badgerSvc)
 
 
 	// Controllers

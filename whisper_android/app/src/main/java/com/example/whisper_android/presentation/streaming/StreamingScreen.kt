@@ -50,8 +50,8 @@ fun StreamingScreen(
                 isProcessing = true
                 scope.launch {
                     delay(1200)
-                    val mockUserText = "Matikan lampu ruang tamu."
-                    val mockAssistantText = "Siap! Lampu ruang tamu telah dimatikan."
+                    val mockUserText = "Turn off the living room lights."
+                    val mockAssistantText = "Sure! The living room lights have been turned off."
                     
                     transcriptionResults = transcriptionResults + 
                         TranscriptionMessage(mockUserText, MessageRole.USER)

@@ -19,10 +19,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MicButton(
     isRecording: Boolean,
-    isProcessing: Boolean = false, // Added isProcessing
     hasPermission: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isProcessing: Boolean = false, // Added isProcessing
     size: Dp = 120.dp
 ) {
     // --- Animation Logic ---
