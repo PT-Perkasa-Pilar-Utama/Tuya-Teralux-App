@@ -15,7 +15,7 @@ import java.net.InetAddress
 
 object NetworkModule {
     // Updated to HTTPS domain (Standard Port 443) as verified by user curl
-    private const val BASE_URL = "https://teralux.farismunir.my.id/" 
+    const val BASE_URL = "https://teralux.farismunir.my.id/"
     private const val API_KEY = "a3f9c8e2d1b74e0c5a6f8d9e2b1c4a7f0e9d6c3b5a8f1e4d7c9b2a6f0e1d8c7a5b9f4e2d6c8a1f3b0d5e9c7a2f4b6d8e1" // From backend .env
 
     // Custom DNS to bypass device DNS scaling issues
