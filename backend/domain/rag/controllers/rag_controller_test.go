@@ -32,8 +32,8 @@ func (f *fakeUsecase) Translate(text string) (string, error) {
 	return "Translated: " + text, nil
 }
 
-func (f *fakeUsecase) Summary(text string, language string, context string, style string) (string, error) {
-	return "Summary: " + text, nil
+func (f *fakeUsecase) Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+	return &dtos.RAGSummaryResponseDTO{Summary: "Summary: " + text, PDFUrl: "http://example.com/pdf"}, nil
 }
 
 func TestControlReturns202(t *testing.T) {

@@ -35,8 +35,8 @@ func TestRAGUsecase_Summary(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if !strings.Contains(got, "# Notulen Rapat") {
-			t.Errorf("expected summary to contain '# Notulen Rapat', got '%s'", got)
+		if !strings.Contains(got.Summary, "# Notulen Rapat") {
+			t.Errorf("expected summary to contain '# Notulen Rapat', got '%s'", got.Summary)
 		}
 
 		if !strings.Contains(mockLLM.CapturedPrompt, "Indonesian") {
@@ -55,8 +55,8 @@ func TestRAGUsecase_Summary(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if !strings.Contains(got, "# Meeting Minutes") {
-			t.Errorf("expected summary to contain '# Meeting Minutes', got '%s'", got)
+		if !strings.Contains(got.Summary, "# Meeting Minutes") {
+			t.Errorf("expected summary to contain '# Meeting Minutes', got '%s'", got.Summary)
 		}
 
 		if !strings.Contains(mockLLM.CapturedPrompt, "English") {

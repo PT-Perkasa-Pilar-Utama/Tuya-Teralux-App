@@ -2,14 +2,27 @@ package usecases
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/rag/dtos"
+	"time"
+
+	"github.com/johnfercher/maroto/v2"
+	"github.com/johnfercher/maroto/v2/pkg/components/col"
+	"github.com/johnfercher/maroto/v2/pkg/components/row"
+	"github.com/johnfercher/maroto/v2/pkg/components/text"
+	"github.com/johnfercher/maroto/v2/pkg/config"
+	"github.com/johnfercher/maroto/v2/pkg/consts/align"
+	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
+	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
 // Summary generates professional meeting minutes from the provided text using the LLM.
-func (u *RAGUsecase) Summary(text string, language string, context string, style string) (string, error) {
+func (u *RAGUsecase) Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
-		return "", fmt.Errorf("text is empty")
+		return nil, fmt.Errorf("text is empty")
 	}
 
 	if language == "" {
@@ -61,10 +74,123 @@ Summary (%s):`, targetLangName, context, style, text, targetLangName)
 
 	summary, err := u.llm.CallModel(prompt, model)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, model='%s'", language, len(summary), model)
-	utils.LogDebug("RAG Summary Result: %q", summary)
-	return strings.TrimSpace(summary), nil
+	trimmedSummary := strings.TrimSpace(summary)
+
+	// Generate PDF
+	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
+	pdfPath := filepath.Join("uploads", "reports", pdfFilename)
+	
+	// Create reports directory if not exists
+	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+
+	if err := u.generateProfessionalPDF(trimmedSummary, pdfPath); err != nil {
+		utils.LogWarn("Warning: Failed to generate PDF: %v", err)
+	}
+
+	pdfUrl := fmt.Sprintf("/api/static/reports/%s", pdfFilename)
+
+	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, model='%s', pdf='%s'", language, len(trimmedSummary), model, pdfUrl)
+	utils.LogDebug("RAG Summary Result: %q", trimmedSummary)
+
+	return &dtos.RAGSummaryResponseDTO{
+		Summary: trimmedSummary,
+		PDFUrl:  pdfUrl,
+	}, nil
+}
+
+func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error {
+	cfg := config.NewBuilder().
+		WithPageNumber().
+		Build()
+
+	m := maroto.New(cfg)
+
+	// Header
+	m.AddRows(
+		row.New(20).Add(
+			col.New(12).Add(
+				text.New("MEETING SUMMARY REPORT", props.Text{
+					Top:    5,
+					Size:   20,
+					Style:  fontstyle.Bold,
+					Align:  align.Center,
+					Color:  &props.Color{Red: 10, Green: 20, Blue: 100},
+				}),
+			),
+		),
+		row.New(10).Add(
+			col.New(12).Add(
+				text.New(fmt.Sprintf("Generated on: %s", time.Now().Format("02 Jan 2006 15:04")), props.Text{
+					Size:  10,
+					Align: align.Right,
+					Style: fontstyle.Italic,
+				}),
+			),
+		),
+	)
+
+	// Content
+	lines := strings.Split(summary, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			m.AddRows(row.New(5))
+			continue
+		}
+
+		if strings.HasPrefix(line, "# ") {
+			m.AddRows(row.New(12).Add(
+				col.New(12).Add(
+					text.New(strings.TrimPrefix(line, "# "), props.Text{
+						Size:  16,
+						Style: fontstyle.Bold,
+						Color: &props.Color{Red: 50, Green: 50, Blue: 50},
+					}),
+				),
+			))
+		} else if strings.HasPrefix(line, "## ") {
+			m.AddRows(row.New(10).Add(
+				col.New(12).Add(
+					text.New(strings.TrimPrefix(line, "## "), props.Text{
+						Size:  14,
+						Style: fontstyle.Bold,
+						Top:   2,
+					}),
+				),
+			))
+		} else if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
+			content := line
+			if strings.HasPrefix(line, "- ") {
+				content = "• " + strings.TrimPrefix(line, "- ")
+			} else {
+				content = "• " + strings.TrimPrefix(line, "* ")
+			}
+			m.AddRows(row.New(8).Add(
+				col.New(12).Add(
+					text.New(content, props.Text{
+						Size: 11,
+						Left: 5,
+					}),
+				),
+			))
+		} else {
+			m.AddRows(row.New(8).Add(
+				col.New(12).Add(
+					text.New(line, props.Text{
+						Size: 11,
+					}),
+				),
+			))
+		}
+	}
+
+	doc, err := m.Generate()
+	if err != nil {
+		return err
+	}
+
+	return doc.Save(path)
 }

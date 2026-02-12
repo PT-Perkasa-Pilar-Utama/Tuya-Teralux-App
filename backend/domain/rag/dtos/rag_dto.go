@@ -36,3 +36,8 @@ type StandardResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 	Details string      `json:"details,omitempty"`
 }
+
+type RAGSummaryResponseDTO struct {
+	Summary string `json:"summary"`
+	PDFUrl  string `json:"pdf_url,omitempty"`
+}
