@@ -29,43 +29,61 @@ func (u *RAGUsecase) Summary(text string, language string, context string, style
 		language = "id"
 	}
 	
-	targetLangName := "Indonesian"
+	targetLang := "Indonesian"
 	if strings.ToLower(language) == "en" {
-		targetLangName = "English"
+		targetLang = "English"
 	}
 
-	prompt := fmt.Sprintf(`You are an expert Executive Assistant specializing in distilling the essence of meetings and conversations into professional summaries.
-Your goal is to extract CONCLUSIONS, DECISIONS, and KEY TAKEAWAYS. 
-STRICT RULE: DO NOT retell the story chronologically. DO NOT menceritakan ulang isi teks secara naratif. Focus on what was achieved or decided.
+	prompt := fmt.Sprintf(`### ROLE
+You are a Senior Project Management Officer and Strategic Analyst. Your goal is to convert raw meeting transcripts into professional meeting intelligence using a structured reporting framework.
 
-STRICT RULES:
-1. BE CONCISE. Use bullet points for details.
-2. Remove all filler words (e.g., "uh", "um", "like", "so").
-3. OUTPUT LANGUAGE: You must write the summary in %s even if the input is in a different language.
+### INSTRUCTIONS
+1. *Language Mirroring*: Detect the transcript language. Headings and content MUST be in %s.
+2. *Denoise & Professionalize*: Remove filler words and convert informal speech into formal business language.
+3. *PPP Framework*: Within the Discussion Points, use the Progress/Masalah/Rencana (Progress/Issues/Plans) structure.
+4. *No Hallucination*: Do NOT invent deadlines, owners, or facts. If a field like "Plans" or "Deadline" is not mentioned, use a dash (-) or omit it as per the format.
+5. *Formatting*: Strictly NO Markdown (no #, *, or |). Use double line breaks between sections for readability.
 
-CONTEXT: %s
-STYLE: %s
+### CONTEXT
+%s
 
-OUTPUT STRUCTURE:
-# [Meeting Title / Topik Utama]
+### STYLE
+%s
 
-## 1. Summary (Ringkasan)
-Summarize the essence of the conversation in 1-2 concise sentences.
+### OUTPUT FORMAT
+Executive Summary
+(3-sentence high-level overview of the meeting)
 
-## 2. Key Points (Poin Penting)
-- **[Topic A]**: Main conclusion or result regarding this topic.
-- **[Topic B]**: ...
+Key Discussion Points
+(Number). (Topic Name)
+(High-level summary of this topic)
+(Number.Number) (Sub-topic Name) - Pelapor: [Speaker Name/Role]
+• Kemajuan: (Current status/what was discussed)
+• Masalah: (Specific challenges or gaps mentioned)
+• Rencana: (Explicit next steps mentioned in text, otherwise -)
 
-## 3. Decisions (Keputusan)
-- [Decision 1]
-- [Decision 2]
-(If none, state "No specific decisions recorded")
+Decisions Made
+(Confirmed decisions or deferred items. If none, state: "Tidak ada keputusan yang secara eksplisit disepakati")
 
-## 4. Action Items (Tindak Lanjut)
-- [ ] **[PIC/Owner]**: [Task Description] (Deadline if any)
+Action Items
+(List each task. Include Owner and Deadline ONLY if explicitly mentioned. If not mentioned, simply list the task without inventing data.)
 
-Text: "%s"
-Summary (%s):`, targetLangName, context, style, text, targetLangName)
+Open Questions
+(Issues raised but not resolved)
+
+Saran AI
+(AI analysis of gaps. Identify items that lack clear follow-up and suggest a constructive next step to resolve the ambiguity.)
+
+### CONSTRAINTS
+- Use double line breaks between all major sections.
+- Use a simple dot (•) for bullet points.
+- Maintain strict objectivity in the main sections; keep suggestions only in the Saran AI section.
+
+---
+Transcript:
+"%s"
+
+Summary (%s):`, targetLang, context, style, text, targetLang)
 
 	model := u.config.LLMModel
 	if model == "" {
@@ -134,6 +152,22 @@ func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error 
 
 	// Content
 	lines := strings.Split(summary, "\n")
+	
+	// Define known section headers (EN and ID)
+	headers := map[string]bool{
+		"Executive Summary":    true,
+		"Ringkasan Eksekutif":  true,
+		"Key Discussion Points": true,
+		"Poin Diskusi Utama":   true,
+		"Decisions Made":       true,
+		"Keputusan":            true,
+		"Action Items":         true,
+		"Tindak Lanjut":        true,
+		"Open Questions":       true,
+		"Pertanyaan Terbuka":   true,
+		"Saran AI":             true,
+	}
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -141,31 +175,31 @@ func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error 
 			continue
 		}
 
-		if strings.HasPrefix(line, "# ") {
-			m.AddRows(row.New(12).Add(
+		// Check if line is a section header (bold and larger font)
+		isHeader := false
+		for h := range headers {
+			if strings.EqualFold(line, h) {
+				isHeader = true
+				break
+			}
+		}
+
+		if isHeader {
+			m.AddRows(row.New(10).Add(
 				col.New(12).Add(
-					text.New(strings.TrimPrefix(line, "# "), props.Text{
-						Size:  16,
+					text.New(strings.ToUpper(line), props.Text{
+						Size:  14,
 						Style: fontstyle.Bold,
+						Top:   2,
 						Color: &props.Color{Red: 50, Green: 50, Blue: 50},
 					}),
 				),
 			))
-		} else if strings.HasPrefix(line, "## ") {
-			m.AddRows(row.New(10).Add(
-				col.New(12).Add(
-					text.New(strings.TrimPrefix(line, "## "), props.Text{
-						Size:  14,
-						Style: fontstyle.Bold,
-						Top:   2,
-					}),
-				),
-			))
-		} else if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
+		} else if strings.HasPrefix(line, "• ") || strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
 			content := line
 			if strings.HasPrefix(line, "- ") {
 				content = "• " + strings.TrimPrefix(line, "- ")
-			} else {
+			} else if strings.HasPrefix(line, "* ") {
 				content = "• " + strings.TrimPrefix(line, "* ")
 			}
 			m.AddRows(row.New(8).Add(
@@ -173,6 +207,16 @@ func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error 
 					text.New(content, props.Text{
 						Size: 11,
 						Left: 5,
+					}),
+				),
+			))
+		} else if (len(line) > 0 && line[0] >= '0' && line[0] <= '9') {
+			// Lines starting with numbers (Task/Topic numbering) - also bolded or slightly emphasized
+			m.AddRows(row.New(8).Add(
+				col.New(12).Add(
+					text.New(line, props.Text{
+						Size:  11,
+						Style: fontstyle.Bold,
 					}),
 				),
 			))
