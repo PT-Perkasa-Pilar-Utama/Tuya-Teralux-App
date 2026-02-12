@@ -200,8 +200,7 @@ fun UploadScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Button(
                                         onClick = {
-                                            val fullUrl = "https://teralux.farismunir.my.id" + uiState.pdfUrl
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uiState.pdfUrl))
                                             context.startActivity(intent)
                                         },
                                         modifier = Modifier.fillMaxWidth(),
