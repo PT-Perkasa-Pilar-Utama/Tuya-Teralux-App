@@ -43,8 +43,7 @@ func TestSceneController(t *testing.T) {
 		ctx, r := gin.CreateTestContext(w)
 
 		reqBody := dtos.CreateSceneRequestDTO{
-			TeraluxID: teraluxID,
-			Name:      "Test Scene",
+			Name: "Test Scene",
 			Actions: []dtos.ActionDTO{
 				{DeviceID: "dev1", Code: "on", Value: 1},
 			},
