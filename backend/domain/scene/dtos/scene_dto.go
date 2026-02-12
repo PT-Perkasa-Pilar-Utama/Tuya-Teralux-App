@@ -11,16 +11,14 @@ type ActionDTO struct {
 
 // CreateSceneRequestDTO for POST /api/scenes
 type CreateSceneRequestDTO struct {
-	TeraluxID string      `json:"teralux_id" binding:"required"`
-	Name      string      `json:"name" binding:"required"`
-	Actions   []ActionDTO `json:"actions"`
+	Name    string      `json:"name" binding:"required"`
+	Actions []ActionDTO `json:"actions"`
 }
 
 // UpdateSceneRequestDTO for PUT /api/scenes/{id}
 type UpdateSceneRequestDTO struct {
-	TeraluxID *string     `json:"teralux_id,omitempty"`
-	Name      string      `json:"name" binding:"required"`
-	Actions   []ActionDTO `json:"actions"`
+	Name    string      `json:"name" binding:"required"`
+	Actions []ActionDTO `json:"actions"`
 }
 
 // SceneResponseDTO for response data

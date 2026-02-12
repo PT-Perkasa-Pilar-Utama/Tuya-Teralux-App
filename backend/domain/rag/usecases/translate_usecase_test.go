@@ -31,7 +31,7 @@ func TestRAGUsecase_Translate(t *testing.T) {
 		}
 		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
 
-		got, err := u.Translate("hallo welt")
+		got, err := u.Translate("hallo welt", "en")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -51,7 +51,7 @@ func TestRAGUsecase_Translate(t *testing.T) {
 		}
 		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
 
-		_, err := u.Translate("fail me")
+		_, err := u.Translate("fail me", "en")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -65,7 +65,7 @@ func TestRAGUsecase_Translate(t *testing.T) {
 		mockLLM := &mockLLMForTranslate{}
 		u := NewRAGUsecase(nil, mockLLM, emptyCfg, nil, nil)
 
-		_, _ = u.Translate("test")
+		_, _ = u.Translate("test", "en")
 		if mockLLM.CapturedModel != "default" {
 			t.Errorf("expected model 'default', got '%s'", mockLLM.CapturedModel)
 		}

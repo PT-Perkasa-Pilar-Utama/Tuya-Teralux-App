@@ -52,6 +52,7 @@ func NewSceneController(
 // @Success 201 {object} dtos.StandardResponse "Scene created"
 // @Failure 400 {object} dtos.StandardResponse "Invalid request"
 // @Failure 500 {object} dtos.StandardResponse "Internal error"
+// @Security BearerAuth
 // @Router /api/teralux/{id}/scenes [post]
 func (c *SceneController) AddScene(ctx *gin.Context) {
 	teraluxID := ctx.Param("id")
@@ -96,6 +97,7 @@ func (c *SceneController) AddScene(ctx *gin.Context) {
 // @Param scene body scene_dtos.UpdateSceneRequestDTO true "Updated scene configuration"
 // @Success 200 {object} dtos.StandardResponse "Scene updated"
 // @Failure 404 {object} dtos.StandardResponse "Scene not found"
+// @Security BearerAuth
 // @Router /api/teralux/{id}/scenes/{scene_id} [put]
 func (c *SceneController) UpdateScene(ctx *gin.Context) {
 	teraluxID := ctx.Param("id")
@@ -144,6 +146,7 @@ func (c *SceneController) UpdateScene(ctx *gin.Context) {
 // @Param id path string true "Teralux UUID"
 // @Param scene_id path string true "Scene UUID"
 // @Success 200 {object} dtos.StandardResponse "Scene deleted"
+// @Security BearerAuth
 // @Router /api/teralux/{id}/scenes/{scene_id} [delete]
 func (c *SceneController) DeleteScene(ctx *gin.Context) {
 	teraluxID := ctx.Param("id")
@@ -169,6 +172,7 @@ func (c *SceneController) DeleteScene(ctx *gin.Context) {
 // @Produce json
 // @Param id path string true "Teralux UUID"
 // @Success 200 {object} dtos.StandardResponse{data=[]scene_dtos.SceneListResponseDTO} "List of scenes"
+// @Security BearerAuth
 // @Router /api/teralux/{id}/scenes [get]
 func (c *SceneController) GetAllScenes(ctx *gin.Context) {
 	teraluxID := ctx.Param("id")
@@ -205,6 +209,7 @@ func (c *SceneController) GetAllScenes(ctx *gin.Context) {
 // @Param id path string true "Teralux UUID"
 // @Param scene_id path string true "Scene UUID"
 // @Success 200 {object} dtos.StandardResponse "Scene applied"
+// @Security BearerAuth
 // @Router /api/teralux/{id}/scenes/{scene_id}/control [get]
 func (c *SceneController) ControlScene(ctx *gin.Context) {
 	teraluxID := ctx.Param("id")

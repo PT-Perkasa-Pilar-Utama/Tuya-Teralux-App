@@ -44,7 +44,8 @@ data class TranscriptionStatusData(
  * RAG Request DTOs
  */
 data class RAGRequestDto(
-    @SerializedName("text") val text: String
+    @SerializedName("text") val text: String,
+    @SerializedName("language") val language: String? = null
 )
 
 data class RAGSummaryRequestDto(
@@ -57,4 +58,21 @@ data class RAGSummaryRequestDto(
 data class RAGSummaryResponseDto(
     @SerializedName("summary") val summary: String,
     @SerializedName("pdf_url") val pdfUrl: String? = null
+)
+
+/**
+ * Nested status object for RAG tasks.
+ */
+data class RAGStatusDto(
+    @SerializedName("status") val status: String,
+    @SerializedName("result") val result: String? = null,
+    @SerializedName("execution_result") val executionResult: RAGSummaryResponseDto? = null
+)
+
+/**
+ * Data for RAG status check response.
+ */
+data class RAGStatusResponseData(
+    @SerializedName("task_id") val taskId: String,
+    @SerializedName("task_status") val taskStatus: RAGStatusDto? = null
 )

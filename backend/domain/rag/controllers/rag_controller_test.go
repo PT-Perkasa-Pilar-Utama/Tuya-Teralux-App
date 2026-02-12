@@ -28,12 +28,20 @@ func (f *fakeUsecase) GetStatus(taskID string) (*dtos.RAGStatusDTO, error) {
 	return &dtos.RAGStatusDTO{Status: "pending", Result: "", ExpiresInSecond: f.expiresIn, ExpiresAt: time.Now().Add(time.Duration(f.expiresIn) * time.Second).UTC().Format(time.RFC3339)}, nil
 }
 
-func (f *fakeUsecase) Translate(text string) (string, error) {
+func (f *fakeUsecase) Translate(text string, language string) (string, error) {
 	return "Translated: " + text, nil
+}
+
+func (f *fakeUsecase) TranslateAsync(text string, language string) (string, error) {
+	return f.taskID, nil
 }
 
 func (f *fakeUsecase) Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
 	return &dtos.RAGSummaryResponseDTO{Summary: "Summary: " + text, PDFUrl: "http://example.com/pdf"}, nil
+}
+
+func (f *fakeUsecase) SummaryAsync(text string, language string, context string, style string) (string, error) {
+	return f.taskID, nil
 }
 
 func TestControlReturns202(t *testing.T) {

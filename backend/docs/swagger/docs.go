@@ -21,7 +21,6 @@ const docTemplate = `{
         },
         "version": "{{.Version}}"
     },
-    "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/cache/flush": {
@@ -797,6 +796,11 @@ const docTemplate = `{
                         "required": true
                     }
                 ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of scenes",
@@ -849,6 +853,11 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dtos.CreateSceneRequestDTO"
                         }
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "responses": {
@@ -911,6 +920,11 @@ const docTemplate = `{
                         }
                     }
                 ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Scene updated",
@@ -935,6 +949,11 @@ const docTemplate = `{
                     "03. Scenes"
                 ],
                 "summary": "Delete a scene",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "type": "string",
@@ -971,6 +990,11 @@ const docTemplate = `{
                     "03. Scenes"
                 ],
                 "summary": "Apply/Trigger a scene",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "type": "string",
@@ -1506,8 +1530,7 @@ const docTemplate = `{
         "dtos.CreateSceneRequestDTO": {
             "type": "object",
             "required": [
-                "name",
-                "teralux_id"
+                "name"
             ],
             "properties": {
                 "actions": {
@@ -1517,9 +1540,6 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "type": "string"
-                },
-                "teralux_id": {
                     "type": "string"
                 }
             }
@@ -1896,9 +1916,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                },
-                "teralux_id": {
-                    "type": "string"
                 }
             }
         },
@@ -1990,7 +2007,8 @@ const docTemplate = `{
             "description": "Health check endpoint",
             "name": "08. Health"
         }
-    ]
+    ],
+    "host": "{{.Host}}"
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it

@@ -15,11 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun MicButton(
     isRecording: Boolean,
@@ -28,73 +28,74 @@ fun MicButton(
     modifier: Modifier = Modifier,
     isProcessing: Boolean = false,
     isPaused: Boolean = false,
-    onLongClick: (() -> Unit)? = null,
-    onDoubleClick: (() -> Unit)? = null,
     size: Dp = 120.dp
 ) {
-    // --- Animation Logic ---
+    // --- Pulse Animation for Active States ---
     val infiniteTransition = rememberInfiniteTransition(label = "Pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.4f,
+        targetValue = 1.35f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "PulseScale"
     )
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
+        initialValue = 0.5f,
         targetValue = 0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "PulseAlpha"
     )
 
+    // --- Color Selection (Solid as requested) ---
+    val buttonColor = remember(isRecording, isPaused, isProcessing, hasPermission) {
+        when {
+            !hasPermission -> Color.Gray
+            isProcessing -> Color(0xFFFF9800) // Orange: Thinking
+            isPaused -> Color(0xFFFF9800)     // Orange: Paused
+            isRecording -> Color(0xFFEF5350)  // Red: Recording
+            else -> Color(0xFF45B058)        // Green: Idle/Enabled
+        }
+    }
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
     ) {
-        // Pulse layer
-        if ((isRecording && !isPaused) || isProcessing) { // Pulse also when processing, but not when paused
-            val pulseColor = if (isProcessing) Color(0xFFFF9800) else MaterialTheme.colorScheme.error
+        // Outer Pulse Layer
+        if ((isRecording && !isPaused) || isProcessing) {
             Box(
                 modifier = Modifier
-                    .size(size * 1.2f)
+                    .size(size * 1.25f)
                     .scale(pulseScale)
                     .alpha(pulseAlpha)
-                    .background(pulseColor.copy(alpha = 0.3f), CircleShape)
+                    .background(buttonColor.copy(alpha = 0.3f), CircleShape)
             )
         }
-        
-        // Main Button Surface
+
+        // Main Surface Logic (No gradients, just solid)
         Surface(
+            onClick = onClick,
+            enabled = hasPermission && !isProcessing,
             shape = CircleShape,
-            color = when {
-                !hasPermission -> Color.LightGray
-                isProcessing -> Color(0xFFFF9800) // Orange for "Thinking"
-                isPaused -> Color(0xFF2196F3) // Blue for Paused
-                isRecording -> MaterialTheme.colorScheme.error
-                else -> Color(0xFF4CAF50) // Material Green 500
-            },
+            color = buttonColor,
             shadowElevation = if (isRecording || isProcessing) 12.dp else 4.dp,
-            modifier = Modifier
-                .size(size)
-                .combinedClickable(
-                    enabled = hasPermission && !isProcessing,
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    onDoubleClick = onDoubleClick
-                )
+            modifier = Modifier.size(size)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = if (isPaused) Icons.Default.PlayArrow else if (isRecording) Icons.Default.Pause else Icons.Default.Mic,
+                    imageVector = when {
+                        isProcessing -> Icons.Default.PlayArrow // Simple play/forward for thinking
+                        isPaused -> Icons.Default.PlayArrow     // Play to resume
+                        else -> Icons.Default.Mic
+                    },
                     contentDescription = "Microphone",
                     tint = Color.White,
-                    modifier = Modifier.size(size / 2)
+                    modifier = Modifier.size(size / 2.3f)
                 )
             }
         }

@@ -14,8 +14,10 @@ import (
 type RAGProcessor interface {
 	Control(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error)
 	GetStatus(taskID string) (*dtos.RAGStatusDTO, error)
-	Translate(text string) (string, error)
+	Translate(text string, language string) (string, error)
+	TranslateAsync(text string, language string) (string, error)
 	Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error)
+	SummaryAsync(text string, language string, context string, style string) (string, error)
 }
 
 type RAGController struct {
@@ -72,8 +74,8 @@ func (c *RAGController) Control(ctx *gin.Context) {
 }
 
 // Translate godoc
-// @Summary Translate text to English
-// @Description Translate text to English using the LLM. Best for short phrases/commands.
+// @Summary Translate text to specified language
+// @Description Translate text to a target language (default English) using the LLM. Best for short phrases/commands.
 // @Tags 05. RAG
 // @Security BearerAuth
 // @Accept json
@@ -82,7 +84,6 @@ func (c *RAGController) Control(ctx *gin.Context) {
 // @Success 200 {object} dtos.StandardResponse{data=string}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
-// @Router /api/rag/translate [post]
 func (c *RAGController) Translate(ctx *gin.Context) {
 	var req dtos.RAGRequestDTO
 	if err := ctx.BindJSON(&req); err != nil {
@@ -90,13 +91,40 @@ func (c *RAGController) Translate(ctx *gin.Context) {
 		return
 	}
 
-	translated, err := c.usecase.Translate(req.Text)
+	translated, err := c.usecase.Translate(req.Text, req.Language)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Translation failed", Details: err.Error()})
 		return
 	}
-
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: true, Message: "Translation successful", Data: translated})
+}
+
+// TranslateAsync godoc
+// @Summary Translate text to specified language (Async)
+// @Description Translate text to a target language asynchronously. Returns a Task ID for polling.
+// @Tags 05. RAG
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dtos.RAGRequestDTO true "Translation request"
+// @Success 202 {object} dtos.StandardResponse{data=map[string]string}
+// @Failure 400 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse
+// @Router /api/rag/translate/async [post]
+func (c *RAGController) TranslateAsync(ctx *gin.Context) {
+	var req dtos.RAGRequestDTO
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{Status: false, Message: "Invalid request", Details: err.Error()})
+		return
+	}
+
+	taskID, err := c.usecase.TranslateAsync(req.Text, req.Language)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Translation task failed to queue", Details: err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{Status: true, Message: "Translation task queued", Data: map[string]string{"task_id": taskID}})
 }
 
 // Summary godoc
@@ -123,8 +151,35 @@ func (c *RAGController) Summary(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Summary generation failed", Details: err.Error()})
 		return
 	}
-
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: true, Message: "Summary generated successfully", Data: result})
+}
+
+// SummaryAsync godoc
+// @Summary Generate meeting minutes summary (Async)
+// @Description Generate meeting minutes summary asynchronously. Returns a Task ID for polling.
+// @Tags 05. RAG
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dtos.RAGSummaryRequestDTO true "Summary request"
+// @Success 202 {object} dtos.StandardResponse{data=map[string]string}
+// @Failure 400 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse
+// @Router /api/rag/summary/async [post]
+func (c *RAGController) SummaryAsync(ctx *gin.Context) {
+	var req dtos.RAGSummaryRequestDTO
+	if err := ctx.BindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{Status: false, Message: "Invalid request", Details: err.Error()})
+		return
+	}
+
+	taskID, err := c.usecase.SummaryAsync(req.Text, req.Language, req.Context, req.Style)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Summary task failed to queue", Details: err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{Status: true, Message: "Summary task queued", Data: map[string]string{"task_id": taskID}})
 }
 
 // GetStatus godoc

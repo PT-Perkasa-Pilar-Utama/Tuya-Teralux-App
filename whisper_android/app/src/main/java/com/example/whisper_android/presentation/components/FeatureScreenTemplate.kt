@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -37,6 +39,7 @@ fun FeatureScreenTemplate(
     hasPermission: Boolean,
     transcriptionResults: List<TranscriptionMessage> = emptyList(),
     onMicClick: () -> Unit,
+    onStopClick: (() -> Unit)? = null, // Added dedicated stop
     onClearChat: () -> Unit,
     walkthroughContent: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
@@ -107,97 +110,48 @@ fun FeatureScreenTemplate(
                     Brush.verticalGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.05f)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.05f)
                         )
                     )
                 )
                 .padding(paddingValues)
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp)
             ) {
-                // --- LEFT PANEL: Controls ---
+                // --- Top Area: Strategic Insights / Insights Area ---
                 Column(
                     modifier = Modifier
-                        .weight(0.3f)
-                        .fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 8.dp)
                 ) {
-                    MicButton(
-                        isRecording = isRecording,
-                        isProcessing = isProcessing || thinkingState,
-                        isPaused = isPaused,
-                        hasPermission = hasPermission,
-                        size = 80.dp,
-                        onClick = onMicClick,
-                        onLongClick = onLongMicClick,
-                        onDoubleClick = onDoubleMicClick
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = when {
-                            !hasPermission -> "No Access"
-                            isProcessing || thinkingState -> "Thinking..."
-                            isPaused -> "Paused"
-                            isRecording -> "REC"
-                            else -> "Ready"
-                        },
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = when {
-                            !hasPermission -> Color.Gray
-                            isProcessing || thinkingState -> Color(0xFFFF9800)
-                            isPaused -> Color(0xFF2196F3)
-                            isRecording -> MaterialTheme.colorScheme.error
-                            else -> Color(0xFF4CAF50)
-                        }
-                    )
-                }
-
-                // --- RIGHT PANEL: Chat History ---
-                Column(
-                    modifier = Modifier
-                        .weight(0.7f)
-                        .fillMaxHeight()
-                        .padding(vertical = 16.dp)
-                ) {
-                    Text(
-                        text = "Interaction Log",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    ) {
-                        if (customContent != null) {
-                            Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-                                customContent()
-                            }
-                        } else if (transcriptionResults.isEmpty() && !isProcessing) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "Ready to start...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize()) {
+                    if (customContent != null) {
+                        customContent()
+                    } else {
+                        // Default transcription list if no custom content
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = Color.Transparent, // Let the background show
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            if (transcriptionResults.isEmpty() && !isProcessing) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "Strategic Insights will appear here...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                                }
+                            } else {
                                 LazyColumn(
                                     state = scrollState,
                                     modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    contentPadding = PaddingValues(bottom = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     items(transcriptionResults) { message ->
                                         TemplateChatBubble(message)
@@ -205,25 +159,113 @@ fun FeatureScreenTemplate(
                                     if (isProcessing) {
                                         item {
                                             Text(
-                                                text = "Agent is thinking...",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                modifier = Modifier.padding(start = 8.dp),
-                                                color = MaterialTheme.colorScheme.primary
+                                                text = "Analyzing...",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(start = 8.dp)
                                             )
                                         }
                                     }
                                 }
-                                VerticalScrollbar(
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .padding(vertical = 12.dp, horizontal = 4.dp),
-                                    lazyListState = scrollState
-                                )
                             }
                         }
                     }
                 }
+
+                // --- Bottom Area: Sleek Control Panel ---
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        // Left: Action Icons
+                        IconButton(
+                            onClick = onClearChat,
+                            enabled = transcriptionResults.isNotEmpty() || customContent != null
+                        ) {
+                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+
+                        // Center: Primary Actions (Mic & Stop)
+                        Box(contentAlignment = Alignment.Center) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                MicButton(
+                                    isRecording = isRecording,
+                                    isProcessing = isProcessing || thinkingState,
+                                    isPaused = isPaused,
+                                    hasPermission = hasPermission,
+                                    size = if (isRecording) 64.dp else 80.dp, // Shrink a bit when stop is shown
+                                    onClick = onMicClick
+                                )
+
+                                if (isRecording && onStopClick != null) {
+                                    StopButton(onClick = onStopClick, size = 64.dp)
+                                }
+                            }
+                        }
+
+                        // Status Indicator/Help
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                           Text(
+                                text = when {
+                                    !hasPermission -> "No Mic"
+                                    isProcessing || thinkingState -> "Thinking"
+                                    isPaused -> "Paused"
+                                    isRecording -> "Recording"
+                                    else -> "Ready"
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = when {
+                                    !hasPermission -> Color.Gray
+                                    isProcessing || thinkingState -> Color(0xFFFF9800)
+                                    isPaused -> Color(0xFF2196F3)
+                                    isRecording -> MaterialTheme.colorScheme.error
+                                    else -> Color(0xFF4CAF50)
+                                }
+                            )
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun StopButton(
+    onClick: () -> Unit,
+    size: Dp = 64.dp
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+        modifier = Modifier.size(size),
+        tonalElevation = 2.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(size / 2.5f)
+                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(4.dp))
+            )
         }
     }
 }
@@ -260,11 +302,5 @@ fun TemplateChatBubble(message: TranscriptionMessage) {
                     MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
-        Text(
-            text = if (isUser) "You" else "Senso",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-        )
     }
 }

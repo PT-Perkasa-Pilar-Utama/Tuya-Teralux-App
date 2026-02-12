@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"teralux_app/domain/rag/dtos"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/col"
 	"github.com/johnfercher/maroto/v2/pkg/components/row"
@@ -19,8 +21,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
-// Summary generates professional meeting minutes from the provided text using the LLM.
-func (u *RAGUsecase) Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *RAGUsecase) summaryInternal(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -38,7 +39,7 @@ func (u *RAGUsecase) Summary(text string, language string, context string, style
 You are a Senior Project Management Officer and Strategic Analyst. Your goal is to convert raw meeting transcripts into professional meeting intelligence using a structured reporting framework.
 
 ### INSTRUCTIONS
-1. *Language Focus*: Regardless of the transcript language, the report MUST be written entirely in English.
+1. *Language Focus*: Regardless of the transcript language, the report MUST be written entirely in %s.
 2. *Denoise & Professionalize*: Remove filler words, stuttering, and informal speech. Convert the text into formal business English.
 3. *PPP Framework*: Within organized Discussion Points, strictly follow the Progress/Issues/Plans structure.
 4. *Objectivity*: Do NOT invent facts, deadlines, or owners. If specific data is missing, use a dash (-) or omit the field.
@@ -82,7 +83,7 @@ AI Strategic Analysis
 "%s"
 </transcript>
 
-Strategic Summary (%s):`, context, style, text, targetLangName)
+Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
 
 	model := u.config.LLMModel
 	if model == "" {
@@ -116,6 +117,48 @@ Strategic Summary (%s):`, context, style, text, targetLangName)
 		Summary: trimmedSummary,
 		PDFUrl:  pdfUrl,
 	}, nil
+}
+
+func (u *RAGUsecase) Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+	return u.summaryInternal(text, language, context, style)
+}
+
+func (u *RAGUsecase) SummaryAsync(text string, language string, context string, style string) (string, error) {
+	taskID := uuid.New().String()
+	u.mu.Lock()
+	u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "pending"}
+	u.mu.Unlock()
+
+	if u.badger != nil {
+		b, _ := json.Marshal(u.taskStatus[taskID])
+		_ = u.badger.Set("rag:task:"+taskID, b)
+	}
+
+	go func() {
+		result, err := u.summaryInternal(text, language, context, style)
+		u.mu.Lock()
+		if err != nil {
+			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "error", Result: err.Error()}
+		} else {
+			// For summary, we might want to store the structured result as JSON in StatusDTO.Result
+			// or just use ExecutionResult. For consistency with Control, let's use Result as string if possible,
+			// or just store the whole DTO as ExecutionResult.
+			u.taskStatus[taskID] = &dtos.RAGStatusDTO{
+				Status:          "done",
+				ExecutionResult: result,
+				Result:          result.Summary, // Fallback for simple consumers
+			}
+		}
+		status := u.taskStatus[taskID]
+		u.mu.Unlock()
+
+		if u.badger != nil {
+			b, _ := json.Marshal(status)
+			_ = u.badger.SetPreserveTTL("rag:task:"+taskID, b)
+		}
+	}()
+
+	return taskID, nil
 }
 
 func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error {
@@ -160,6 +203,13 @@ func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error 
 		"Action Items":          true,
 		"Open Questions":        true,
 		"AI Strategic Analysis": true,
+		// Indonesian headers
+		"Ringkasan Eksekutif":   true,
+		"Poin Diskusi Utama":    true,
+		"Keputusan Utama":       true,
+		"Tindakan Lanjut":       true,
+		"Pertanyaan Terbuka":    true,
+		"Analisis Strategis AI": true,
 	}
 
 	for _, line := range lines {

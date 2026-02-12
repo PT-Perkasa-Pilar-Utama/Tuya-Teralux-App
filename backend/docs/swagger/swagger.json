@@ -5,7 +5,7 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "This is the API server for Teralux App. \u003cbr\u003e For full documentation, visit \u003ca href=\"/docs\"\u003e/docs\u003c/a\u003e.",
+        "description": "This is the API server for Teralux App. <br> For full documentation, visit <a href=\"/docs\">/docs</a>.",
         "title": "Teralux API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
@@ -794,6 +794,11 @@
                         "required": true
                     }
                 ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of scenes",
@@ -846,6 +851,11 @@
                         "schema": {
                             "$ref": "#/definitions/dtos.CreateSceneRequestDTO"
                         }
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "responses": {
@@ -908,6 +918,11 @@
                         }
                     }
                 ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Scene updated",
@@ -932,6 +947,11 @@
                     "03. Scenes"
                 ],
                 "summary": "Delete a scene",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "type": "string",
@@ -968,6 +988,11 @@
                     "03. Scenes"
                 ],
                 "summary": "Apply/Trigger a scene",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "type": "string",
@@ -1503,8 +1528,7 @@
         "dtos.CreateSceneRequestDTO": {
             "type": "object",
             "required": [
-                "name",
-                "teralux_id"
+                "name"
             ],
             "properties": {
                 "actions": {
@@ -1514,9 +1538,6 @@
                     }
                 },
                 "name": {
-                    "type": "string"
-                },
-                "teralux_id": {
                     "type": "string"
                 }
             }
@@ -1892,9 +1913,6 @@
                     }
                 },
                 "name": {
-                    "type": "string"
-                },
-                "teralux_id": {
                     "type": "string"
                 }
             }
