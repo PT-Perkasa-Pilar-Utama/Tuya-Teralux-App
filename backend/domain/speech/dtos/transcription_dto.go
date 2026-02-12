@@ -27,8 +27,9 @@ type WhisperProxyStatusDTO struct {
 }
 
 type TranscriptionTaskResponseDTO struct {
-	TaskID     string `json:"task_id" example:"abc-123"`
-	TaskStatus string `json:"task_status" example:"pending"`
+	TaskID      string `json:"task_id" example:"abc-123"`
+	TaskStatus  string `json:"task_status" example:"pending"`
+	RecordingID string `json:"recording_id,omitempty" example:"uuid-v4"`
 }
 
 type WhisperProxyProcessResponseDTO = TranscriptionTaskResponseDTO

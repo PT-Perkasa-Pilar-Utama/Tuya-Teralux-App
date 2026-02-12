@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"teralux_app/domain/common/utils"
+	recordingUsecases "teralux_app/domain/recordings/usecases"
 	"teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/usecases"
 
@@ -21,14 +22,16 @@ type WhisperProxyProcessor interface {
 }
 
 type WhisperProxyController struct {
-	usecase *usecases.WhisperProxyUsecase
-	config  *utils.Config
+	usecase         *usecases.WhisperProxyUsecase
+	saveRecordingUC recordingUsecases.SaveRecordingUseCase
+	config          *utils.Config
 }
 
-func NewWhisperProxyController(usecase *usecases.WhisperProxyUsecase, cfg *utils.Config) *WhisperProxyController {
+func NewWhisperProxyController(usecase *usecases.WhisperProxyUsecase, saveRecordingUC recordingUsecases.SaveRecordingUseCase, cfg *utils.Config) *WhisperProxyController {
 	return &WhisperProxyController{
-		usecase: usecase,
-		config:  cfg,
+		usecase:         usecase,
+		saveRecordingUC: saveRecordingUC,
+		config:          cfg,
 	}
 }
 
@@ -106,7 +109,20 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 		return
 	}
 
-	taskID, err := c.usecase.ProxyTranscribe(inputPath, file.Filename)
+	// 1. Save as recording first
+	recording, err := c.saveRecordingUC.Execute(file)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to save recording metadata",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	// 2. Submit async task
+	finalPath := filepath.Join("uploads", "audio", recording.Filename)
+	taskID, err := c.usecase.ProxyTranscribe(finalPath, file.Filename)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
@@ -120,8 +136,9 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 		Status:  true,
 		Message: "Task submitted",
 		Data: dtos.TranscriptionTaskResponseDTO{
-			TaskID:     taskID,
-			TaskStatus: "pending",
+			TaskID:      taskID,
+			TaskStatus:  "pending",
+			RecordingID: recording.ID,
 		},
 	})
 }
