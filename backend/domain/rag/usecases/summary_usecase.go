@@ -29,61 +29,55 @@ func (u *RAGUsecase) Summary(text string, language string, context string, style
 		language = "id"
 	}
 	
-	targetLang := "Indonesian"
-	if strings.ToLower(language) == "en" {
-		targetLang = "English"
-	}
-
 	prompt := fmt.Sprintf(`### ROLE
 You are a Senior Project Management Officer and Strategic Analyst. Your goal is to convert raw meeting transcripts into professional meeting intelligence using a structured reporting framework.
 
 ### INSTRUCTIONS
-1. *Language Mirroring*: Detect the transcript language. Headings and content MUST be in %s.
-2. *Denoise & Professionalize*: Remove filler words and convert informal speech into formal business language.
-3. *PPP Framework*: Within the Discussion Points, use the Progress/Masalah/Rencana (Progress/Issues/Plans) structure.
-4. *No Hallucination*: Do NOT invent deadlines, owners, or facts. If a field like "Plans" or "Deadline" is not mentioned, use a dash (-) or omit it as per the format.
-5. *Formatting*: Strictly NO Markdown (no #, *, or |). Use double line breaks between sections for readability.
+1. *Language Focus*: Regardless of the transcript language, the report MUST be written entirely in English.
+2. *Denoise & Professionalize*: Remove filler words, stuttering, and informal speech. Convert the text into formal business English.
+3. *PPP Framework*: Within organized Discussion Points, strictly follow the Progress/Issues/Plans structure.
+4. *Objectivity*: Do NOT invent facts, deadlines, or owners. If specific data is missing, use a dash (-) or omit the field.
+5. *Formatting*: Use strictly plain text. NO Markdown (no #, *, |, or bolding). Use double line breaks between sections.
 
-### CONTEXT
-%s
-
-### STYLE
-%s
+### CONTENT CONTEXT
+- Context: %s
+- Desired Style: %s
 
 ### OUTPUT FORMAT
 Executive Summary
-(3-sentence high-level overview of the meeting)
+(A concise, 3-sentence high-level overview of the meeting goals and outcomes)
 
 Key Discussion Points
 (Number). (Topic Name)
 (High-level summary of this topic)
-(Number.Number) (Sub-topic Name) - Pelapor: [Speaker Name/Role]
-• Kemajuan: (Current status/what was discussed)
-• Masalah: (Specific challenges or gaps mentioned)
-• Rencana: (Explicit next steps mentioned in text, otherwise -)
+(Number.Number) (Sub-topic Name) - Reporter: [Speaker Name/Role]
+• Progress: (Current status/what was achieved)
+• Issues: (Specific obstacles or gaps mentioned)
+• Plans: (Strategic next steps, otherwise -)
 
 Decisions Made
-(Confirmed decisions or deferred items. If none, state: "Tidak ada keputusan yang secara eksplisit disepakati")
+(List confirmed outcomes. If none, state: "No explicit decisions reached during this session")
 
 Action Items
-(List each task. Include Owner and Deadline ONLY if explicitly mentioned. If not mentioned, simply list the task without inventing data.)
+(List specific tasks. Include Owner and Deadline ONLY if explicitly stated in the transcript.)
 
 Open Questions
-(Issues raised but not resolved)
+(Points of discussion left unresolved)
 
-Saran AI
-(AI analysis of gaps. Identify items that lack clear follow-up and suggest a constructive next step to resolve the ambiguity.)
+AI Strategic Analysis
+(AI analysis of gaps. Identify ambiguities and suggest constructive next steps for the project lead.)
 
 ### CONSTRAINTS
-- Use double line breaks between all major sections.
-- Use a simple dot (•) for bullet points.
-- Maintain strict objectivity in the main sections; keep suggestions only in the Saran AI section.
+- Use simple dot (•) for bullet points.
+- Use double line breaks between major headers for readability.
+- Maintain a high-level strategic perspective.
 
 ---
-Transcript:
+<transcript>
 "%s"
+</transcript>
 
-Summary (%s):`, targetLang, context, style, text, targetLang)
+Strategic Summary (English):`, context, style, text)
 
 	model := u.config.LLMModel
 	if model == "" {
@@ -153,19 +147,14 @@ func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error 
 	// Content
 	lines := strings.Split(summary, "\n")
 	
-	// Define known section headers (EN and ID)
+	// Define known section headers (Focus on English-only as per strategy)
 	headers := map[string]bool{
-		"Executive Summary":    true,
-		"Ringkasan Eksekutif":  true,
+		"Executive Summary":     true,
 		"Key Discussion Points": true,
-		"Poin Diskusi Utama":   true,
-		"Decisions Made":       true,
-		"Keputusan":            true,
-		"Action Items":         true,
-		"Tindak Lanjut":        true,
-		"Open Questions":       true,
-		"Pertanyaan Terbuka":   true,
-		"Saran AI":             true,
+		"Decisions Made":        true,
+		"Action Items":          true,
+		"Open Questions":        true,
+		"AI Strategic Analysis": true,
 	}
 
 	for _, line := range lines {
