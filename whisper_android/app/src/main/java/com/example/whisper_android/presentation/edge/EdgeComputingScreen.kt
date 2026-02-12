@@ -43,7 +43,10 @@ fun EdgeComputingScreen(
         onMicClick = {
             if (!isRecording && !isProcessing) {
                 isRecording = true
-            } else if (isRecording) {
+            }
+        },
+        onStopClick = {
+            if (isRecording) {
                 isRecording = false
                 isProcessing = true
                 scope.launch {

@@ -1,8 +1,11 @@
 package com.example.whisper_android.data.remote.api
 
 import com.example.whisper_android.data.remote.dto.RAGRequestDto
+import com.example.whisper_android.data.remote.dto.RAGStatusDto
 import com.example.whisper_android.data.remote.dto.RAGSummaryRequestDto
+import com.example.whisper_android.data.remote.dto.RAGSummaryResponseDto
 import com.example.whisper_android.data.remote.dto.SpeechResponseDto
+import com.example.whisper_android.data.remote.dto.TranscriptionSubmissionData
 import retrofit2.http.*
 
 /**
@@ -23,4 +26,25 @@ interface RAGApi {
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String = "teralux-api-key"
     ): SpeechResponseDto<RAGSummaryResponseDto>
+
+    @POST("/api/rag/translate/async")
+    suspend fun translateAsync(
+        @Body request: RAGRequestDto,
+        @Header("Authorization") token: String,
+        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
+    ): SpeechResponseDto<TranscriptionSubmissionData>
+
+    @POST("/api/rag/summary/async")
+    suspend fun summaryAsync(
+        @Body request: RAGSummaryRequestDto,
+        @Header("Authorization") token: String,
+        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
+    ): SpeechResponseDto<TranscriptionSubmissionData>
+
+    @GET("/api/rag/{task_id}")
+    suspend fun getStatus(
+        @Path("task_id") taskId: String,
+        @Header("Authorization") token: String,
+        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
+    ): SpeechResponseDto<RAGStatusDto>
 }

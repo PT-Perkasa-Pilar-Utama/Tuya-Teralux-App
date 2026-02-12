@@ -43,9 +43,10 @@ fun StreamingScreen(
         onMicClick = {
             if (!isRecording && !isProcessing) {
                 isRecording = true
-                // In streaming, we might simulate periodic results, 
-                // but for now, let's keep it similar to Upload for consistency
-            } else if (isRecording) {
+            }
+        },
+        onStopClick = {
+            if (isRecording) {
                 isRecording = false
                 isProcessing = true
                 scope.launch {

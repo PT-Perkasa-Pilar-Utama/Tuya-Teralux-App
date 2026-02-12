@@ -2,11 +2,15 @@ package com.example.whisper_android.presentation.upload
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,14 +30,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import com.example.whisper_android.data.di.NetworkModule
 import com.example.whisper_android.presentation.components.FeatureScreenTemplate
-import com.example.whisper_android.presentation.components.TranscriptionMessage
 import com.example.whisper_android.presentation.components.ToastObserver
-import com.example.whisper_android.presentation.components.AudioFilePicker
 import com.example.whisper_android.MainActivity
+import com.example.whisper_android.presentation.components.*
 
-import dev.jeziellago.compose.markdown.MarkdownText
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +55,27 @@ fun UploadScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    // Helper for specialized download
+    fun downloadPdf(url: String, fileName: String) {
+        try {
+            val request = android.app.DownloadManager.Request(Uri.parse(url))
+                .setTitle(fileName)
+                .setDescription("Downloading Meeting Report")
+                .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, fileName)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+
+            val dm = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+            dm.enqueue(request)
+            android.widget.Toast.makeText(context, "Downloading report...", android.widget.Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            // Fallback to browser if DownloadManager fails
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            context.startActivity(intent)
+        }
+    }
     
     val hasMicPermission = ContextCompat.checkSelfPermission(
         context,
@@ -96,12 +122,7 @@ fun UploadScreen(
                 viewModel.handleMicClick()
             }
         },
-        onLongMicClick = {
-            if (hasMicPermission) {
-                viewModel.handleMicStop()
-            }
-        },
-        onDoubleMicClick = {
+        onStopClick = {
             if (hasMicPermission) {
                 viewModel.handleMicStop()
             }
@@ -130,34 +151,21 @@ fun UploadScreen(
                     )
                 }
 
-                // Language Selector
+                // Modern Language Selector (Subtle Pill Replaced by Component)
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Summary Language:",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    LanguagePillToggle(
+                        selectedLanguage = uiState.summaryLanguage,
+                        onLanguageSelected = { viewModel.setSummaryLanguage(it) }
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("id" to "🇮🇩 ID", "en" to "🇺🇸 EN").forEach { (code, label) ->
-                            FilterChip(
-                                selected = uiState.summaryLanguage == code,
-                                onClick = { viewModel.setSummaryLanguage(code) },
-                                label = { Text(label) }
-                            )
-                        }
-                    }
                 }
 
-                HorizontalDivider(
-                    modifier = Modifier.padding(bottom = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-
-                // Summary Content
+                // Summary Content (Replaced by Component)
                 if (uiState.displaySummary.isEmpty() && uiState.transcription.isEmpty() && !uiState.isThinking) {
                     Box(modifier = Modifier.weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
                         Text(
@@ -174,63 +182,14 @@ fun UploadScreen(
                     ) {
                         if (uiState.displaySummary.isNotEmpty()) {
                             item {
-                                Text(
-                                    text = "✨ Summary",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-                                ) {
-                                    MarkdownText(
-                                        markdown = uiState.displaySummary,
-                                        modifier = Modifier.padding(16.dp),
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            lineHeight = 22.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        syntaxHighlightColor = MaterialTheme.colorScheme.primary,
-                                        linkColor = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                if (uiState.pdfUrl != null) {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Button(
-                                        onClick = {
-                                            val fullUrl = NetworkModule.BASE_URL.removeSuffix("/") + uiState.pdfUrl
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
-                                            context.startActivity(intent)
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.Download, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Download PDF Report")
+                                SummaryCard(
+                                    summary = uiState.displaySummary,
+                                    pdfUrl = uiState.pdfUrl,
+                                    onDownloadPdf = { pdfUrl ->
+                                        val fullUrl = NetworkModule.BASE_URL.removeSuffix("/") + pdfUrl
+                                        val fileName = pdfUrl.split("/").last()
+                                        downloadPdf(fullUrl, fileName)
                                     }
-                                }
-                            }
-                        }
-
-                        if (uiState.refinedText.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = "📝 Refined Transcription",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = uiState.refinedText,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

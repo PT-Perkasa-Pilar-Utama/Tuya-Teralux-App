@@ -62,10 +62,10 @@ class SpeechRepository(
     /**
      * Translates text using RAG API.
      */
-    suspend fun translate(text: String, token: String): Result<String> {
+    suspend fun translate(text: String, targetLang: String, token: String): Result<String> {
         return try {
             val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-            val response = ragApi.translate(RAGRequestDto(text), authToken)
+            val response = ragApi.translate(RAGRequestDto(text, targetLang), authToken)
             if (response.status && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -77,12 +77,46 @@ class SpeechRepository(
     }
 
     /**
-     * Generates a summary using RAG API.
+     * Translates text using RAG API (Asynchronous).
      */
-    suspend fun summary(request: RAGSummaryRequestDto, token: String): Result<RAGSummaryResponseDto> {
+    suspend fun translateAsync(text: String, targetLang: String, token: String): Result<TranscriptionSubmissionData> {
         return try {
             val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-            val response = ragApi.summary(request, authToken)
+            val response = ragApi.translateAsync(RAGRequestDto(text, targetLang), authToken)
+            if (response.status && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Generates a summary using RAG API (Asynchronous).
+     */
+    suspend fun summaryAsync(request: RAGSummaryRequestDto, token: String): Result<TranscriptionSubmissionData> {
+        return try {
+            val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+            val response = ragApi.summaryAsync(request, authToken)
+            if (response.status && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Checks the status of a RAG task.
+     */
+    suspend fun getRagStatus(taskId: String, token: String): Result<RAGStatusDto> {
+        return try {
+            val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+            val response = ragApi.getStatus(taskId, authToken)
             if (response.status && response.data != null) {
                 Result.success(response.data)
             } else {

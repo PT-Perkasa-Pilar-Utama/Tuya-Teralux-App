@@ -1,7 +1,8 @@
 package dtos
 
 type RAGRequestDTO struct {
-	Text string `json:"text"`
+	Text     string `json:"text" binding:"required"`
+	Language string `json:"language,omitempty"`
 }
 
 type RAGSummaryRequestDTO struct {

@@ -180,7 +180,7 @@ class UploadViewModel(
 
         viewModelScope.launch {
             repository.transcribeAudio(file, token).onSuccess { data ->
-                startPolling(data.taskId)
+                pollTranscription(data.taskId)
             }.onFailure { e ->
                 _uiState.update { it.copy(isThinking = false, error = "Upload failed: ${e.message}") }
                 file.delete()
@@ -188,13 +188,13 @@ class UploadViewModel(
         }
     }
 
-    private fun startPolling(taskId: String) {
+    private fun pollTranscription(taskId: String) {
         val token = tokenManager.getAccessToken() ?: return
         pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
             var completed = false
             var attempts = 0
-            val maxAttempts = 60 // 2 minutes with 2s delay
+            val maxAttempts = 60 // 2 minutes
 
             while (!completed && attempts < maxAttempts) {
                 delay(2000)
@@ -202,33 +202,26 @@ class UploadViewModel(
 
                 repository.getStatus(taskId, token).onSuccess { data ->
                     val statusStr = data.taskStatus?.status?.lowercase() ?: ""
-                    
-                    when (statusStr) {
-                        "completed" -> {
-                            completed = true
-                            val result = data.taskStatus?.result
-                            val transcription = result?.transcription ?: ""
-                            val refinedText = result?.refinedText ?: transcription
-                            val detectedLang = result?.detectedLanguage ?: "unknown"
-                            
-                            _uiState.update { it.copy(
-                                transcription = transcription,
-                                refinedText = refinedText
-                            ) }
+                    if (statusStr == "completed") {
+                        completed = true
+                        val result = data.taskStatus?.result
+                        val transcription = result?.transcription ?: ""
+                        val refinedText = result?.refinedText ?: transcription
+                        val detectedLang = result?.detectedLanguage ?: "unknown"
 
-                            processRAGPipeline(refinedText, detectedLang)
-                        }
-                        "failed" -> {
-                            completed = true
-                            _uiState.update { it.copy(isThinking = false, error = "Transcription failed on server") }
-                        }
-                        else -> {
-                            // Still processing
-                        }
+                        _uiState.update { it.copy(
+                            transcription = transcription,
+                            refinedText = refinedText
+                        ) }
+
+                        startTranslationPipeline(refinedText, detectedLang)
+                    } else if (statusStr == "failed") {
+                        completed = true
+                        _uiState.update { it.copy(isThinking = false, error = "Transcription failed on server") }
                     }
                 }.onFailure { e ->
                     if (attempts >= maxAttempts) {
-                        _uiState.update { it.copy(isThinking = false, error = "Polling timed out: ${e.message}") }
+                        _uiState.update { it.copy(isThinking = false, error = "Transcription polling timed out: ${e.message}") }
                     }
                 }
             }
@@ -236,37 +229,102 @@ class UploadViewModel(
         }
     }
 
-    private fun processRAGPipeline(text: String, detectedLang: String) {
+    private fun startTranslationPipeline(text: String, detectedLang: String) {
         val token = tokenManager.getAccessToken() ?: return
         val targetLang = _uiState.value.summaryLanguage
 
         viewModelScope.launch {
-            var textToSummarize = text
+            repository.translateAsync(text, targetLang, token).onSuccess { data ->
+                pollTranslation(data.taskId, text) // Pass original text as fallback
+            }.onFailure { e ->
+                android.util.Log.e("UploadViewModel", "Translation submission failed: ${e.message}")
+                // Fallback to summary with original text
+                startSummaryPipeline(text)
+            }
+        }
+    }
 
-            // Step 1: Translate if language mismatch
-            if (targetLang != detectedLang && detectedLang != "unknown") {
-                repository.translate(text, token).onSuccess { translated ->
-                    textToSummarize = translated
+    private fun pollTranslation(taskId: String, originalText: String) {
+        val token = tokenManager.getAccessToken() ?: return
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            var completed = false
+            var attempts = 0
+            val maxAttempts = 30 // 1 minute
+
+            while (!completed && attempts < maxAttempts) {
+                delay(2000)
+                attempts++
+
+                repository.getRagStatus(taskId, token).onSuccess { data ->
+                    if (data.status == "done") {
+                        completed = true
+                        startSummaryPipeline(data.result ?: originalText)
+                    } else if (data.status == "error") {
+                        completed = true
+                        startSummaryPipeline(originalText)
+                    }
                 }.onFailure { e ->
-                    android.util.Log.e("UploadViewModel", "Translation failed: ${e.message}")
+                    if (attempts >= maxAttempts) {
+                        startSummaryPipeline(originalText)
+                    }
                 }
             }
+        }
+    }
 
-            // Step 2: Generate Summary
-            val summaryRequest = com.example.whisper_android.data.remote.dto.RAGSummaryRequestDto(
-                text = textToSummarize,
-                language = targetLang
-            )
+    private fun startSummaryPipeline(text: String) {
+        val token = tokenManager.getAccessToken() ?: return
+        val targetLang = _uiState.value.summaryLanguage
+        val request = com.example.whisper_android.data.remote.dto.RAGSummaryRequestDto(
+            text = text,
+            language = targetLang
+        )
 
-            repository.summary(summaryRequest, token).onSuccess { summaryResponse ->
-                _uiState.update { it.copy(
-                    summary = summaryResponse.summary,
-                    pdfUrl = summaryResponse.pdfUrl,
-                    isThinking = false
-                ) }
-                startTypingEffect(summaryResponse.summary)
+        viewModelScope.launch {
+            repository.summaryAsync(request, token).onSuccess { data ->
+                pollSummary(data.taskId)
             }.onFailure { e ->
-                _uiState.update { it.copy(isThinking = false, error = "Summary generation failed: ${e.message}") }
+                _uiState.update { it.copy(isThinking = false, error = "Summary submission failed: ${e.message}") }
+            }
+        }
+    }
+
+    private fun pollSummary(taskId: String) {
+        val token = tokenManager.getAccessToken() ?: return
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            var completed = false
+            var attempts = 0
+            val maxAttempts = 60 // 2 minutes
+
+            while (!completed && attempts < maxAttempts) {
+                delay(2000)
+                attempts++
+
+                repository.getRagStatus(taskId, token).onSuccess { data ->
+                    if (data.status == "done") {
+                        completed = true
+                        val result = data.executionResult
+                        if (result != null) {
+                            _uiState.update { it.copy(
+                                summary = result.summary,
+                                pdfUrl = result.pdfUrl,
+                                isThinking = false
+                            ) }
+                            startTypingEffect(result.summary)
+                        } else {
+                            _uiState.update { it.copy(isThinking = false, error = "Summary result is empty") }
+                        }
+                    } else if (data.status == "error") {
+                        completed = true
+                        _uiState.update { it.copy(isThinking = false, error = "Summary generation failed: ${data.result}") }
+                    }
+                }.onFailure { e ->
+                    if (attempts >= maxAttempts) {
+                        _uiState.update { it.copy(isThinking = false, error = "Summary polling timed out: ${e.message}") }
+                    }
+                }
             }
         }
     }
