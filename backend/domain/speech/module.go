@@ -29,8 +29,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	getStatusUC := speechUsecases.NewGetTranscriptionStatusUseCase(taskRepo, whisperProxyUsecase)
 
 	// Controllers
-	transcriptionController := speechControllers.NewTranscriptionController(transcribeUC, transcribeWhisperCppUC, getStatusUC, cfg)
-	whisperProxyController := speechControllers.NewWhisperProxyController(whisperProxyUsecase, cfg)
+	transcriptionController := speechControllers.NewTranscriptionController(transcribeUC, transcribeWhisperCppUC, getStatusUC, saveRecordingUseCase, cfg)
+	whisperProxyController := speechControllers.NewWhisperProxyController(whisperProxyUsecase, saveRecordingUseCase, cfg)
 
 	// Routes
 	speechRoutes.SetupSpeechRoutes(protected, transcriptionController, whisperProxyController)

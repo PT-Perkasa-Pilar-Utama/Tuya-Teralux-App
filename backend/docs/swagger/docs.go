@@ -1692,6 +1692,10 @@ const docTemplate = `{
         "dtos.TranscriptionTaskResponseDTO": {
             "type": "object",
             "properties": {
+                "recording_id": {
+                    "type": "string",
+                    "example": "uuid-v4"
+                },
                 "task_id": {
                     "type": "string",
                     "example": "abc-123"

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"teralux_app/domain/common/utils"
+	recordingUsecases "teralux_app/domain/recordings/usecases"
 	"teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/usecases"
 
@@ -16,6 +17,7 @@ type TranscriptionController struct {
 	transcribeUC           usecases.TranscribeUseCase
 	transcribeWhisperCppUC usecases.TranscribeWhisperCppUseCase
 	getStatusUC            usecases.GetTranscriptionStatusUseCase
+	saveRecordingUC        recordingUsecases.SaveRecordingUseCase
 	config                 *utils.Config
 }
 
@@ -23,12 +25,14 @@ func NewTranscriptionController(
 	transcribeUC usecases.TranscribeUseCase,
 	transcribeWhisperCppUC usecases.TranscribeWhisperCppUseCase,
 	getStatusUC usecases.GetTranscriptionStatusUseCase,
+	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
 	cfg *utils.Config,
 ) *TranscriptionController {
 	return &TranscriptionController{
 		transcribeUC:           transcribeUC,
 		transcribeWhisperCppUC: transcribeWhisperCppUC,
 		getStatusUC:            getStatusUC,
+		saveRecordingUC:        saveRecordingUC,
 		config:                 cfg,
 	}
 }
@@ -102,8 +106,21 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 		return
 	}
 
-	// Submit async task
-	taskID, err := c.transcribeUC.Execute(inputPath, file.Filename)
+	// 1. Save as recording first (Automatic metadata + physical save)
+	recording, err := c.saveRecordingUC.Execute(file)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to save recording metadata",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	// 2. Submit async task using the file provided by SaveRecording (cleaner pathing)
+	// construction of path matches SaveRecordingUseCase behavior
+	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
+	taskID, err := c.transcribeUC.Execute(finalInputPath, file.Filename)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
@@ -117,8 +134,9 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 		Status:  true,
 		Message: "Transcription task submitted successfully",
 		Data: dtos.TranscriptionTaskResponseDTO{
-			TaskID:     taskID,
-			TaskStatus: "pending",
+			TaskID:      taskID,
+			TaskStatus:  "pending",
+			RecordingID: recording.ID,
 		},
 	})
 }
@@ -240,8 +258,20 @@ func (c *TranscriptionController) HandleWhisperCppTranscribe(ctx *gin.Context) {
 		return
 	}
 
-	// Submit async task
-	taskID, err := c.transcribeWhisperCppUC.Execute(inputPath, file.Filename, lang)
+	// 1. Save as recording first
+	recording, err := c.saveRecordingUC.Execute(file)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to save recording metadata",
+			Details: err.Error(),
+		})
+		return
+	}
+
+	// 2. Submit async task
+	finalPath := filepath.Join("uploads", "audio", recording.Filename)
+	taskID, err := c.transcribeWhisperCppUC.Execute(finalPath, file.Filename, lang)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
@@ -255,8 +285,9 @@ func (c *TranscriptionController) HandleWhisperCppTranscribe(ctx *gin.Context) {
 		Status:  true,
 		Message: "Transcription task submitted successfully",
 		Data: dtos.TranscriptionTaskResponseDTO{
-			TaskID:     taskID,
-			TaskStatus: "pending",
+			TaskID:      taskID,
+			TaskStatus:  "pending",
+			RecordingID: recording.ID,
 		},
 	})
 }

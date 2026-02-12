@@ -169,6 +169,9 @@ definitions:
     type: object
   dtos.TranscriptionTaskResponseDTO:
     properties:
+      recording_id:
+        example: uuid-v4
+        type: string
       task_id:
         example: abc-123
         type: string
