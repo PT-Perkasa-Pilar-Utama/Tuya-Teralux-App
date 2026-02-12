@@ -91,6 +91,9 @@ Summary (%s):`, targetLangName, context, style, text, targetLangName)
 	}
 
 	pdfUrl := fmt.Sprintf("/api/static/reports/%s", pdfFilename)
+	if u.config.AppBaseURL != "" {
+		pdfUrl = strings.TrimSuffix(u.config.AppBaseURL, "/") + pdfUrl
+	}
 
 	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, model='%s', pdf='%s'", language, len(trimmedSummary), model, pdfUrl)
 	utils.LogDebug("RAG Summary Result: %q", trimmedSummary)

@@ -37,7 +37,8 @@ type Config struct {
 	MqttTopic    string
 
 	// Runtime & Networking
-	LogLevel string
+	LogLevel   string
+	AppBaseURL string
 
 	// Database
 	DBType     string
@@ -108,7 +109,8 @@ func LoadConfig() {
 		MqttTopic:    os.Getenv("MQTT_TOPIC"),
 
 		// Runtime
-		LogLevel: os.Getenv("LOG_LEVEL"),
+		LogLevel:   os.Getenv("LOG_LEVEL"),
+		AppBaseURL: os.Getenv("APP_BASE_URL"),
 
 		// Database
 		DBType:     os.Getenv("DB_TYPE"),
