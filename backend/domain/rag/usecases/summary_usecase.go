@@ -82,7 +82,7 @@ Summary (%s):`, targetLangName, context, style, text, targetLangName)
 	// Generate PDF
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
 	pdfPath := filepath.Join("uploads", "reports", pdfFilename)
-	
+
 	// Create reports directory if not exists
 	os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
