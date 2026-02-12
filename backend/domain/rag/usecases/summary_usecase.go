@@ -28,7 +28,12 @@ func (u *RAGUsecase) Summary(text string, language string, context string, style
 	if language == "" {
 		language = "id"
 	}
-	
+
+	targetLangName := "Indonesian"
+	if strings.ToLower(language) == "en" {
+		targetLangName = "English"
+	}
+
 	prompt := fmt.Sprintf(`### ROLE
 You are a Senior Project Management Officer and Strategic Analyst. Your goal is to convert raw meeting transcripts into professional meeting intelligence using a structured reporting framework.
 
@@ -77,7 +82,7 @@ AI Strategic Analysis
 "%s"
 </transcript>
 
-Strategic Summary (English):`, context, style, text)
+Strategic Summary (%s):`, context, style, text, targetLangName)
 
 	model := u.config.LLMModel
 	if model == "" {
