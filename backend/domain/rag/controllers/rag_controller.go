@@ -15,7 +15,7 @@ type RAGProcessor interface {
 	Control(text string, authToken string, onComplete func(string, *dtos.RAGStatusDTO)) (string, error)
 	GetStatus(taskID string) (*dtos.RAGStatusDTO, error)
 	Translate(text string) (string, error)
-	Summary(text string, language string, context string, style string) (string, error)
+	Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error)
 }
 
 type RAGController struct {
@@ -107,7 +107,7 @@ func (c *RAGController) Translate(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGSummaryRequestDTO true "Summary request"
-// @Success 200 {object} dtos.StandardResponse{data=string}
+// @Success 200 {object} dtos.StandardResponse{data=dtos.RAGSummaryResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
 // @Router /api/rag/summary [post]
@@ -118,13 +118,13 @@ func (c *RAGController) Summary(ctx *gin.Context) {
 		return
 	}
 
-	summary, err := c.usecase.Summary(req.Text, req.Language, req.Context, req.Style)
+	result, err := c.usecase.Summary(req.Text, req.Language, req.Context, req.Style)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Summary generation failed", Details: err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: true, Message: "Summary generated successfully", Data: summary})
+	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: true, Message: "Summary generated successfully", Data: result})
 }
 
 // GetStatus godoc
