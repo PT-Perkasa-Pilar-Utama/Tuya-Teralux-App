@@ -200,7 +200,8 @@ fun UploadScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Button(
                                         onClick = {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uiState.pdfUrl))
+                                            val fullUrl = NetworkModule.BASE_URL.removeSuffix("/") + uiState.pdfUrl
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
                                             context.startActivity(intent)
                                         },
                                         modifier = Modifier.fillMaxWidth(),
