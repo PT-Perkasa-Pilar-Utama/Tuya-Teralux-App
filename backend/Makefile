@@ -206,6 +206,11 @@ update:
 test:
 	@go run scripts/test_runner.go
 
+# Run go vet excluding tmp
+vet:
+	@echo "🔍 Running go vet..."
+	@go list ./... 2>/dev/null | grep -v /tmp/ | xargs go vet
+
 
 # Clean build artifacts
 clean:

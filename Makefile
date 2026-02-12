@@ -1,6 +1,6 @@
 # Teralux App - Root Makefile for Project-Wide Automation
 
-.PHONY: help setup backend-setup dev clean kill
+.PHONY: help setup backend-setup dev clean kill test vet
 
 # Default target
 help:
@@ -40,3 +40,13 @@ clean:
 kill:
 	@echo "🔪 Killing backend service..."
 	@$(MAKE) -C backend kill
+
+# Run tests
+test:
+	@echo "🧪 Running backend tests..."
+	@$(MAKE) -C backend test
+
+# Run vet
+vet:
+	@echo "🔍 Running backend go vet..."
+	@$(MAKE) -C backend vet
