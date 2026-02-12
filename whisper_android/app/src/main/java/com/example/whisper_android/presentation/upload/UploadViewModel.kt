@@ -26,6 +26,7 @@ data class UploadUiState(
     val refinedText: String = "",
     val summary: String = "",
     val displaySummary: String = "", // For typing effect
+    val pdfUrl: String? = null,
     val summaryLanguage: String = "id",
     val error: String? = null,
     val availableFiles: List<File> = emptyList(),
@@ -257,9 +258,13 @@ class UploadViewModel(
                 language = targetLang
             )
 
-            repository.summary(summaryRequest, token).onSuccess { summaryResult ->
-                _uiState.update { it.copy(summary = summaryResult, isThinking = false) }
-                startTypingEffect(summaryResult)
+            repository.summary(summaryRequest, token).onSuccess { summaryResponse ->
+                _uiState.update { it.copy(
+                    summary = summaryResponse.summary,
+                    pdfUrl = summaryResponse.pdfUrl,
+                    isThinking = false
+                ) }
+                startTypingEffect(summaryResponse.summary)
             }.onFailure { e ->
                 _uiState.update { it.copy(isThinking = false, error = "Summary generation failed: ${e.message}") }
             }

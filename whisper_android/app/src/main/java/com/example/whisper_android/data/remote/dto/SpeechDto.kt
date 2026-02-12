@@ -53,3 +53,8 @@ data class RAGSummaryRequestDto(
     @SerializedName("context") val context: String? = null,
     @SerializedName("style") val style: String? = null
 )
+
+data class RAGSummaryResponseDto(
+    @SerializedName("summary") val summary: String,
+    @SerializedName("pdf_url") val pdfUrl: String? = null
+)
