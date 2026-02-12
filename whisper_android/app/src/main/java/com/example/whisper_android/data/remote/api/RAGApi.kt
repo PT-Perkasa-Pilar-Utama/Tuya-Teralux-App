@@ -22,5 +22,5 @@ interface RAGApi {
         @Body request: RAGSummaryRequestDto,
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String = "teralux-api-key"
-    ): SpeechResponseDto<String>
+    ): SpeechResponseDto<RAGSummaryResponseDto>
 }

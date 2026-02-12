@@ -79,7 +79,7 @@ class SpeechRepository(
     /**
      * Generates a summary using RAG API.
      */
-    suspend fun summary(request: RAGSummaryRequestDto, token: String): Result<String> {
+    suspend fun summary(request: RAGSummaryRequestDto, token: String): Result<RAGSummaryResponseDto> {
         return try {
             val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
             val response = ragApi.summary(request, authToken)

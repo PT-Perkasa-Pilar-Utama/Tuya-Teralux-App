@@ -1,10 +1,13 @@
 package com.example.whisper_android.presentation.upload
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -191,6 +194,27 @@ fun UploadScreen(
                                         syntaxHighlightColor = MaterialTheme.colorScheme.primary,
                                         linkColor = MaterialTheme.colorScheme.primary
                                     )
+                                }
+
+                                if (uiState.pdfUrl != null) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(
+                                        onClick = {
+                                            val fullUrl = "https://teralux.farismunir.my.id" + uiState.pdfUrl
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
+                                            context.startActivity(intent)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.Download, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Download PDF Report")
+                                    }
                                 }
                             }
                         }
