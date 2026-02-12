@@ -116,6 +116,13 @@ definitions:
     required:
     - text
     type: object
+  dtos.RAGSummaryResponseDTO:
+    properties:
+      pdf_url:
+        type: string
+      summary:
+        type: string
+    type: object
   dtos.RecordingResponseDto:
     properties:
       audio_url:
@@ -452,7 +459,7 @@ paths:
             - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
-                  type: string
+                  $ref: '#/definitions/dtos.RAGSummaryResponseDTO'
               type: object
         "400":
           description: Bad Request
@@ -538,6 +545,93 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all recordings
+      tags:
+      - 06. Recordings
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an audio file and save its metadata
+      parameters:
+      - description: Audio file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dtos.RecordingResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a recording
+      tags:
+      - 06. Recordings
+  /api/recordings/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Hard delete a recording's metadata and its physical file
+      parameters:
+      - description: Recording ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a recording
+      tags:
+      - 06. Recordings
+    get:
+      consumes:
+      - application/json
+      description: Get a single recording's metadata by its ID
+      parameters:
+      - description: Recording ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.RecordingResponseDto'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a recording by ID
       tags:
       - 06. Recordings
   /api/speech/transcribe:
