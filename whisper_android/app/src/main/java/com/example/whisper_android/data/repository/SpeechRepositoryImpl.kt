@@ -1,0 +1,83 @@
+package com.example.whisper_android.data.repository
+
+import android.util.Log
+import com.example.whisper_android.data.remote.api.SpeechApi
+import com.example.whisper_android.data.remote.dto.TranscriptionResultText
+import com.example.whisper_android.domain.repository.Resource
+import com.example.whisper_android.domain.repository.SpeechRepository
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+
+class SpeechRepositoryImpl(
+    private val api: SpeechApi
+) : SpeechRepository {
+
+    override suspend fun transcribeAudio(file: File, token: String, language: String): Flow<Resource<String>> = flow {
+        emit(Resource.Loading())
+        try {
+            val requestFile = file.asRequestBody("audio/mp4".toMediaTypeOrNull())
+            val body = MultipartBody.Part.createFormData("audio", file.name, requestFile)
+            val languageBody = MultipartBody.Part.createFormData("language", language)
+            
+            val response = api.transcribeAudio(body, languageBody, "Bearer $token")
+            val taskId = response.data?.taskId
+            
+            if (response.status && taskId != null) {
+                emit(Resource.Success(taskId))
+            } else {
+                emit(Resource.Error(response.message))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error("Transcribe failed: ${e.message}"))
+        }
+    }
+
+    override suspend fun pollTranscription(taskId: String, token: String): Flow<Resource<TranscriptionResultText>> = flow {
+        emit(Resource.Loading())
+        var attempts = 0
+        val maxAttempts = 60 // 2 minutes (2s interval)
+        
+        while (attempts < maxAttempts) {
+            try {
+                val response = api.getTranscriptionStatus(taskId, "Bearer $token")
+                val statusWrapper = response.data?.taskStatus
+                val status = statusWrapper?.status?.lowercase()
+
+                Log.d("SpeechRepo", "Polling Task $taskId: $status")
+
+                when (status) {
+                    "completed" -> {
+                        val result = statusWrapper.result
+                        if (result != null) {
+                            emit(Resource.Success(result))
+                            return@flow
+                        } else {
+                            emit(Resource.Error("Completed but no result found"))
+                            return@flow
+                        }
+                    }
+                    "failed" -> {
+                        emit(Resource.Error("Transcription task failed"))
+                        return@flow
+                    }
+                    else -> {
+                        // Pending or Processing, continue polling
+                        delay(2000)
+                        attempts++
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SpeechRepo", "Polling error (attempt $attempts): ${e.message}")
+                // Retry on error instead of failing immediately
+                delay(2000)
+                attempts++
+            }
+        }
+        emit(Resource.Error("Transcription timed out"))
+    }
+}

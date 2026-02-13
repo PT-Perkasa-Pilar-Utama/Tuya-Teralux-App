@@ -35,7 +35,7 @@ func NewWhisperProxyUsecase(badgerSvc *infrastructure.BadgerService, cfg *utils.
 }
 
 // ProxyTranscribe accepts audio file and queues async transcription to external Outsystems server
-func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) (string, error) {
+func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, language string) (string, error) {
 	utils.LogDebug("Whisper Proxy: Starting external transcription via Outsystems (PPU)...")
 	// Generate UUID task id
 	taskID := uuid.New().String()
@@ -59,7 +59,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 	}
 
 	// Run processing asynchronously
-	go func(taskID, filePath, fileName string) {
+	go func(taskID, filePath, fileName, language string) {
 		utils.LogInfo("Whisper Task %s: Started processing audio file: %s", taskID, fileName)
 
 		defer func() {
@@ -93,7 +93,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 		}
 
 		// Step 2: Fetch to external Outsystems server
-		result, err := u.FetchToOutsystems(filePath, fileName)
+		result, err := u.FetchToOutsystems(filePath, fileName, language)
 
 		statusDTO := &speechdtos.WhisperProxyStatusDTO{
 			Status: "completed",
@@ -122,7 +122,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string) 
 		}
 
 		// Broadcast removed
-	}(taskID, filePath, fileName)
+	}(taskID, filePath, fileName, language)
 
 	return taskID, nil
 }
@@ -170,7 +170,7 @@ func (u *WhisperProxyUsecase) HealthCheck() error {
 }
 
 // FetchToOutsystems sends the audio file to the external Outsystems server and returns parsed result
-func (u *WhisperProxyUsecase) FetchToOutsystems(filePath string, fileName string) (*speechdtos.OutsystemsTranscriptionResultDTO, error) {
+func (u *WhisperProxyUsecase) FetchToOutsystems(filePath string, fileName string, language string) (*speechdtos.OutsystemsTranscriptionResultDTO, error) {
 	outsystemsURL := u.config.OutsystemsTranscribeURL
 	if outsystemsURL == "" {
 		utils.LogError("Whisper: OUTSYSTEMS_TRANSCRIBE_URL not configured")
@@ -181,6 +181,13 @@ func (u *WhisperProxyUsecase) FetchToOutsystems(filePath string, fileName string
 	bodyBuf := &bytes.Buffer{}
 	writer := multipart.NewWriter(bodyBuf)
 
+	// Read file first
+	fileData, err := os.ReadFile(filePath)
+	if err != nil {
+		utils.LogError("Whisper: Failed to read audio file from %s: %v", filePath, err)
+		return nil, fmt.Errorf("audio file read failed")
+	}
+
 	// Add file to multipart form
 	fileWriter, err := writer.CreateFormFile("file", fileName)
 	if err != nil {
@@ -188,16 +195,16 @@ func (u *WhisperProxyUsecase) FetchToOutsystems(filePath string, fileName string
 		return nil, fmt.Errorf("form file creation failed")
 	}
 
-	fileData, err := os.ReadFile(filePath)
-	if err != nil {
-		utils.LogError("Whisper: Failed to read audio file from %s: %v", filePath, err)
-		return nil, fmt.Errorf("audio file read failed")
-	}
-
 	if _, err := fileWriter.Write(fileData); err != nil {
 		utils.LogError("Whisper: Failed to write file to form: %v", err)
 		return nil, fmt.Errorf("file write to form failed")
 	}
+
+    // Add language field AFTER file is written
+    if err := writer.WriteField("language", language); err != nil {
+        utils.LogError("Whisper: Failed to write language field: %v", err)
+        return nil, fmt.Errorf("language field write failed")
+    }
 
 	if err := writer.Close(); err != nil {
 		utils.LogError("Whisper: Failed to close multipart writer: %v", err)

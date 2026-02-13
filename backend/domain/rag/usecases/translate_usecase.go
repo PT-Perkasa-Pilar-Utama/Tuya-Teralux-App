@@ -60,7 +60,7 @@ func (u *RAGUsecase) TranslateAsync(text, targetLang string) (string, error) {
 		if err != nil {
 			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "error", Result: err.Error()}
 		} else {
-			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "done", Result: translated}
+			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "completed", Result: translated}
 		}
 		status := u.taskStatus[taskID]
 		u.mu.Unlock()

@@ -13,8 +13,6 @@ type TranscriptionLongResponseDTO struct {
 // OutsystemsTranscriptionResultDTO represents the structured response from Outsystems
 type OutsystemsTranscriptionResultDTO struct {
 	Filename         string `json:"filename"`
-	ProcessingTimeMs int64  `json:"processing_time_ms"`
-	AudioUrl         string `json:"audio_url"` // Public URL to access the audio file
 	Transcription    string `json:"transcription" example:"Halo dunia"`
 	DetectedLanguage string `json:"detected_language" example:"id"`
 }

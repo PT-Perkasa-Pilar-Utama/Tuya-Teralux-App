@@ -69,8 +69,12 @@ definitions:
     type: object
   dtos.RAGRequestDTO:
     properties:
+      language:
+        type: string
       text:
         type: string
+    required:
+    - text
     type: object
   dtos.RAGStatusDTO:
     properties:
@@ -472,29 +476,32 @@ paths:
       summary: Generate meeting minutes summary
       tags:
       - 05. RAG
-  /api/rag/translate:
+  /api/rag/summary/async:
     post:
       consumes:
       - application/json
-      description: Translate text to English using the LLM. Best for short phrases/commands.
+      description: Generate meeting minutes summary asynchronously. Returns a Task
+        ID for polling.
       parameters:
-      - description: Translation request
+      - description: Summary request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dtos.RAGRequestDTO'
+          $ref: '#/definitions/dtos.RAGSummaryRequestDTO'
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "202":
+          description: Accepted
           schema:
             allOf:
             - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
-                  type: string
+                  additionalProperties:
+                    type: string
+                  type: object
               type: object
         "400":
           description: Bad Request
@@ -506,7 +513,47 @@ paths:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Translate text to English
+      summary: Generate meeting minutes summary (Async)
+      tags:
+      - 05. RAG
+  /api/rag/translate/async:
+    post:
+      consumes:
+      - application/json
+      description: Translate text to a target language asynchronously. Returns a Task
+        ID for polling.
+      parameters:
+      - description: Translation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Translate text to specified language (Async)
       tags:
       - 05. RAG
   /api/recordings:
@@ -644,6 +691,10 @@ paths:
         name: audio
         required: true
         type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
       produces:
       - application/json
       responses:
@@ -724,6 +775,10 @@ paths:
         name: audio
         required: true
         type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
       produces:
       - application/json
       responses:
@@ -832,11 +887,11 @@ paths:
                     $ref: '#/definitions/dtos.SceneListResponseDTO'
                   type: array
               type: object
+      security:
+      - BearerAuth: []
       summary: List all scenes for a Teralux device
       tags:
       - 03. Scenes
-      security:
-      - BearerAuth: []
     post:
       consumes:
       - application/json
@@ -868,11 +923,11 @@ paths:
           description: Internal error
           schema:
             $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
       summary: Create a new scene
       tags:
       - 03. Scenes
-      security:
-      - BearerAuth: []
   /api/teralux/{id}/scenes/{scene_id}:
     delete:
       description: Remove a specific scene configuration
@@ -894,11 +949,11 @@ paths:
           description: Scene deleted
           schema:
             $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
       summary: Delete a scene
       tags:
       - 03. Scenes
-      security:
-      - BearerAuth: []
     put:
       consumes:
       - application/json
@@ -931,11 +986,11 @@ paths:
           description: Scene not found
           schema:
             $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
       summary: Update an existing scene
       tags:
       - 03. Scenes
-      security:
-      - BearerAuth: []
   /api/teralux/{id}/scenes/{scene_id}/control:
     get:
       description: Trigger all actions defined in a specific scene
@@ -957,11 +1012,11 @@ paths:
           description: Scene applied
           schema:
             $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
       summary: Apply/Trigger a scene
       tags:
       - 03. Scenes
-      security:
-      - BearerAuth: []
   /api/tuya/auth:
     get:
       consumes:

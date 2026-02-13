@@ -21,6 +21,7 @@ const docTemplate = `{
         },
         "version": "{{.Version}}"
     },
+    "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/cache/flush": {
@@ -186,14 +187,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/translate": {
+        "/api/rag/summary/async": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Translate text to English using the LLM. Best for short phrases/commands.",
+                "description": "Generate meeting minutes summary asynchronously. Returns a Task ID for polling.",
                 "consumes": [
                     "application/json"
                 ],
@@ -203,7 +204,73 @@ const docTemplate = `{
                 "tags": [
                     "05. RAG"
                 ],
-                "summary": "Translate text to English",
+                "summary": "Generate meeting minutes summary (Async)",
+                "parameters": [
+                    {
+                        "description": "Summary request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGSummaryRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rag/translate/async": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Translate text to a target language asynchronously. Returns a Task ID for polling.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. RAG"
+                ],
+                "summary": "Translate text to specified language (Async)",
                 "parameters": [
                     {
                         "description": "Translation request",
@@ -216,8 +283,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
                             "allOf": [
                                 {
@@ -227,7 +294,10 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "string"
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
                                         }
                                     }
                                 }
@@ -518,6 +588,12 @@ const docTemplate = `{
                         "name": "audio",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -591,6 +667,12 @@ const docTemplate = `{
                         "name": "audio",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -779,6 +861,11 @@ const docTemplate = `{
         },
         "/api/teralux/{id}/scenes": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieve a list of all configured scenes for a specific Teralux device",
                 "produces": [
                     "application/json"
@@ -794,11 +881,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
                     }
                 ],
                 "responses": {
@@ -826,6 +908,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a scene with a name and a list of actions (Tuya/MQTT)",
                 "consumes": [
                     "application/json"
@@ -855,11 +942,6 @@ const docTemplate = `{
                         }
                     }
                 ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "responses": {
                     "201": {
                         "description": "Scene created",
@@ -884,6 +966,11 @@ const docTemplate = `{
         },
         "/api/teralux/{id}/scenes/{scene_id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update the configuration of a specific scene",
                 "consumes": [
                     "application/json"
@@ -920,11 +1007,6 @@ const docTemplate = `{
                         }
                     }
                 ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "Scene updated",
@@ -941,6 +1023,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Remove a specific scene configuration",
                 "produces": [
                     "application/json"
@@ -949,11 +1036,6 @@ const docTemplate = `{
                     "03. Scenes"
                 ],
                 "summary": "Delete a scene",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "parameters": [
                     {
                         "type": "string",
@@ -982,6 +1064,11 @@ const docTemplate = `{
         },
         "/api/teralux/{id}/scenes/{scene_id}/control": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Trigger all actions defined in a specific scene",
                 "produces": [
                     "application/json"
@@ -990,11 +1077,6 @@ const docTemplate = `{
                     "03. Scenes"
                 ],
                 "summary": "Apply/Trigger a scene",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "parameters": [
                     {
                         "type": "string",
@@ -1566,7 +1648,13 @@ const docTemplate = `{
         },
         "dtos.RAGRequestDTO": {
             "type": "object",
+            "required": [
+                "text"
+            ],
             "properties": {
+                "language": {
+                    "type": "string"
+                },
                 "text": {
                     "type": "string"
                 }
@@ -2007,8 +2095,7 @@ const docTemplate = `{
             "description": "Health check endpoint",
             "name": "08. Health"
         }
-    ],
-    "host": "{{.Host}}"
+    ]
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
