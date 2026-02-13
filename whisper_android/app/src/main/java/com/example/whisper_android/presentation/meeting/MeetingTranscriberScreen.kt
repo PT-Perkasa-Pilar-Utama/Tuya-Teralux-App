@@ -1,21 +1,16 @@
 package com.example.whisper_android.presentation.meeting
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -28,7 +23,7 @@ import android.content.pm.PackageManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import dev.jeziellago.compose.markdowntext.MarkdownText
-import com.example.whisper_android.presentation.components.LanguagePillToggle
+import com.example.whisper_android.presentation.components.*
 
 @Composable
 fun MeetingTranscriberScreen(
@@ -38,7 +33,6 @@ fun MeetingTranscriberScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var summaryLanguage by remember { mutableStateOf("id") }
     var displaySummary by remember { mutableStateOf("") }
-    var pdfUrl by remember { mutableStateOf<String?>(null) }
     
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -48,69 +42,28 @@ fun MeetingTranscriberScreen(
         Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF67E8F9), // Cyan 300
-                        Color(0xFF06B6D4)  // Cyan 500
-                    )
-                )
-            )
-            .statusBarsPadding()
-    ) {
+    FeatureBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 2.dp), // Minimal vertical padding
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 0.dp), // Zero extra padding
-                contentAlignment = Alignment.Center
-            ) {
-                IconButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBackIosNew,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp) // Smaller icon
-                    )
-                }
-                
-                Text(
-                    text = "Meeting Transcriber & Summary",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center
-                )
-            }
+            FeatureHeader(
+                title = "Meeting Transcriber & Summary",
+                onNavigateBack = onNavigateBack,
+                titleColor = MaterialTheme.colorScheme.primary,
+                iconColor = MaterialTheme.colorScheme.primary
+            )
 
             // Main Transcription Card
-            ElevatedCard(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.elevatedCardColors(
-                    containerColor = Color.White.copy(alpha = 0.95f)
-                ),
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
+            FeatureMainCard(
+                modifier = Modifier.weight(1f)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp) // Reduced from 24
                         .verticalScroll(rememberScrollState())
                 ) {
                     // Header Controls (Download + Language)
@@ -130,7 +83,7 @@ fun MeetingTranscriberScreen(
                                 shape = RoundedCornerShape(16.dp)
                             ) {
                                 Icon(
-                                    imageVector = androidx.compose.material.icons.Icons.Default.Download,
+                                    imageVector = Icons.Default.Download,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp),
                                     tint = Color.White
@@ -157,7 +110,7 @@ fun MeetingTranscriberScreen(
 
                     if (displaySummary.isEmpty() && !isProcessing) {
                         Box(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 40.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -169,7 +122,7 @@ fun MeetingTranscriberScreen(
                         }
                     } else if (isProcessing) {
                         Box(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 40.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -187,28 +140,27 @@ fun MeetingTranscriberScreen(
                             markdown = displaySummary,
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = Color.Black,
-                                fontSize = 13.sp, // Reduced from 14
-                                lineHeight = 18.sp // Reduced from 20
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
-                        
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp)) // Added small gap
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Bottom Centered Control Pill
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 4.dp), // Shifted to bottom edge
+                    .padding(bottom = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
                     modifier = Modifier
-                        .height(48.dp) // Ultra-compact height
+                        .height(48.dp)
                         .widthIn(min = 220.dp),
                     shape = RoundedCornerShape(24.dp),
                     color = Color.White.copy(alpha = 0.85f),
@@ -216,55 +168,29 @@ fun MeetingTranscriberScreen(
                     shadowElevation = 8.dp
                 ) {
                     Row(
-                        modifier = Modifier
-                            .padding(horizontal = 10.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Mic Button (The Primary Focal Point)
-                        com.example.whisper_android.presentation.components.MicButton(
+                        MicButton(
                             isRecording = isRecording,
                             hasPermission = hasPermission,
                             isProcessing = isProcessing,
                             onClick = { 
                                 if (!isRecording) isRecording = true 
                             },
-                            size = 38.dp // Compact size
+                            size = 38.dp
                         )
 
-                        // Stop Button (Red Square) - Only shown when recording or processing
                         if (isRecording || isProcessing) {
                             IconButton(
                                 onClick = { 
                                     if (isRecording) {
                                         isRecording = false
                                         isProcessing = true
-                                        
-                                        // Simulation of processing and result delivery
                                         scope.launch {
-                                            delay(3000) // Thinking...
-                                            displaySummary = if (summaryLanguage == "id") {
-                                                "**Ringkasan Pertemuan**  \n" +
-                                                "**Topik Utama:** Evaluasi Q3 dan Perencanaan Q4.  \n" +
-                                                "**Poin Penting:**  \n" +
-                                                "• Pertumbuhan pasar mencapai 15% di kuartal ini.  \n" +
-                                                "• Alokasi anggaran baru sudah disetujui.  \n" +
-                                                "• Perlu fokus pada kemitraan strategis bulan depan.  \n" +
-                                                "**Action Items:**  \n" +
-                                                "**1.** Kirim dokumen anggaran ke tim finance.  \n" +
-                                                "**2.** Jadwalkan meeting dengan partner eksternal."
-                                            } else {
-                                                "**Meeting Summary**  \n" +
-                                                "**Main Topic:** Q3 Performance Review & Q4 Planning.  \n" +
-                                                "**Key Highlights:**  \n" +
-                                                "• Market share growth reached 15% this quarter.  \n" +
-                                                "• New budget allocation has been approved.  \n" +
-                                                "• Strategic partnerships need focus next month.  \n" +
-                                                "**Action Items:**  \n" +
-                                                "**1.** Send budget documents to the finance team.  \n" +
-                                                "**2.** Schedule meeting with external partners."
-                                            }
-                                            pdfUrl = "/api/static/reports/summary.pdf"
+                                            delay(3000)
+                                            displaySummary = SummaryUtils.loadAndFormatSummary(context, summaryLanguage)
                                             isProcessing = false
                                         }
                                     }
@@ -273,17 +199,15 @@ fun MeetingTranscriberScreen(
                             ) {
                                 Surface(
                                     modifier = Modifier.size(16.dp),
-                                    color = Color(0xFFEF5350), // Red
+                                    color = Color(0xFFEF5350),
                                     shape = RoundedCornerShape(2.dp)
                                 ) {}
                             }
                         }
 
-                        // Delete Button (Teal Icon)
                         IconButton(
                             onClick = { 
                                 displaySummary = ""
-                                pdfUrl = null
                                 isRecording = false
                                 isProcessing = false
                             },
@@ -297,7 +221,6 @@ fun MeetingTranscriberScreen(
                             )
                         }
 
-                        // Status Text
                         Text(
                             text = when {
                                 isRecording -> "Recording..."
