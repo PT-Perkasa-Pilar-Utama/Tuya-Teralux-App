@@ -32,7 +32,9 @@ private val DarkColorScheme = darkColorScheme(
     background = Cyan950,
     onBackground = Cyan50,
     surface = Cyan950,
-    onSurface = Cyan50
+    onSurface = Cyan50,
+    surfaceVariant = Color(0xFF37474F), // Darker gray for dark mode
+    onSurfaceVariant = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -47,17 +49,9 @@ private val LightColorScheme = lightColorScheme(
     tertiary = Cyan700,
     onTertiary = Color.White,
     tertiaryContainer = Cyan200,
-    onTertiaryContainer = Cyan900
-    
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onTertiaryContainer = Cyan900,
+    surfaceVariant = NeutralVariant95,
+    onSurfaceVariant = Color(0xFF455A64) // Dark text for light gray bubble
 )
 
 @Composable
