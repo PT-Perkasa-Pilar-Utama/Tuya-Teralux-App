@@ -56,8 +56,8 @@ fun DashboardScreen(
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF67E8F9), // Cyan 300
-                        Color(0xFF06B6D4)  // Cyan 500
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.primary
                     )
                 )
             )
@@ -147,7 +147,7 @@ fun DashboardContent(
                             Icon(
                                 imageVector = Icons.Outlined.Groups,
                                 contentDescription = null,
-                                tint = Color(0xFF06B6D4),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(72.dp) // Reduced icon
                             )
                         },
@@ -161,7 +161,7 @@ fun DashboardContent(
                             Icon(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = null,
-                                tint = Color(0xFF06B6D4),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(72.dp) // Reduced icon
                             )
                         },
@@ -181,7 +181,7 @@ fun DashboardContent(
                             Icon(
                                 imageVector = Icons.Outlined.Groups,
                                 contentDescription = null,
-                                tint = Color(0xFF06B6D4),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(56.dp)
                             )
                         },
@@ -195,7 +195,7 @@ fun DashboardContent(
                             Icon(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = null,
-                                tint = Color(0xFF06B6D4),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(56.dp)
                             )
                         },
