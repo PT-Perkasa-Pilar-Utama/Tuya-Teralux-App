@@ -17,48 +17,58 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Cyan400,
-    onPrimary = Cyan950,
-    primaryContainer = Cyan800,
+    primary = Cyan600,
+    onPrimary = Slate50,
+    primaryContainer = Cyan900,
     onPrimaryContainer = Cyan100,
-    secondary = Cyan500,
-    onSecondary = Cyan950,
-    secondaryContainer = Cyan700,
-    onSecondaryContainer = Cyan100,
-    tertiary = Cyan300,
-    onTertiary = Cyan950,
-    tertiaryContainer = Cyan700,
-    onTertiaryContainer = Cyan100,
-    background = Cyan950,
-    onBackground = Cyan50,
-    surface = Cyan950,
-    onSurface = Cyan50,
-    surfaceVariant = Color(0xFF37474F), // Darker gray for dark mode
-    onSurfaceVariant = Color.White
+    
+    secondary = Slate400,
+    onSecondary = Slate950,
+    secondaryContainer = Slate800,
+    onSecondaryContainer = Slate100,
+    
+    tertiary = Cyan400,
+    onTertiary = Slate950,
+    tertiaryContainer = Cyan800,
+    onTertiaryContainer = Cyan200,
+    
+    background = Slate950,
+    onBackground = Slate50,
+    surface = Slate900,
+    onSurface = Slate50,
+    surfaceVariant = Slate800,
+    onSurfaceVariant = Slate200
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = Cyan600,
-    onPrimary = Color.White,
+    onPrimary = Slate50,
     primaryContainer = Cyan100,
     onPrimaryContainer = Cyan900,
-    secondary = Cyan500,
-    onSecondary = Color.White,
-    secondaryContainer = Cyan100,
-    onSecondaryContainer = Cyan900,
+    
+    secondary = Slate500,
+    onSecondary = Slate50,
+    secondaryContainer = Slate100,
+    onSecondaryContainer = Slate900,
+    
     tertiary = Cyan700,
-    onTertiary = Color.White,
+    onTertiary = Slate50,
     tertiaryContainer = Cyan200,
     onTertiaryContainer = Cyan900,
-    surfaceVariant = NeutralVariant95,
-    onSurfaceVariant = Color(0xFF455A64) // Dark text for light gray bubble
+    
+    background = Slate50,
+    onBackground = Slate950,
+    surface = Slate100,
+    onSurface = Slate950,
+    surfaceVariant = Slate200,
+    onSurfaceVariant = Slate700
 )
 
 @Composable
 fun SmartMeetingRoomWhisperDemoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

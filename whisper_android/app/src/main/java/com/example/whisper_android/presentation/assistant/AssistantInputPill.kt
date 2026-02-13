@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisper_android.presentation.components.MicButton
@@ -28,10 +29,12 @@ fun AssistantInputPill(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = Color.White,
-        shadowElevation = 4.dp
+            .height(64.dp) // Professional 64dp height
+            .padding(horizontal = 4.dp),
+        shape = RoundedCornerShape(32.dp), // Height / 2
+        color = Color.White.copy(alpha = 0.95f), // High-Fi opacity
+        tonalElevation = 2.dp,
+        shadowElevation = 6.dp
     ) {
         Row(
             modifier = Modifier
@@ -72,9 +75,10 @@ fun AssistantInputPill(
                     .padding(horizontal = 4.dp),
                 placeholder = {
                     Text(
-                        text = if (isRecording) "Recording..." else if (isProcessing) "Thinking..." else "Ask me anything...",
-                        fontSize = 16.sp,
-                        color = if (isRecording || isProcessing) MaterialTheme.colorScheme.primary else Color.Gray
+                        text = if (isRecording) "Recording..." else if (isProcessing) "Thinking..." else "Ask Intelligence...",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
                 },
                 colors = TextFieldDefaults.colors(
@@ -84,11 +88,13 @@ fun AssistantInputPill(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.primary
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 singleLine = true,
                 enabled = !isRecording && !isProcessing,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp)
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
             )
 
             // Send Icon Button
@@ -102,8 +108,8 @@ fun AssistantInputPill(
                     tint = if (!isRecording && !isProcessing && inputValue.isNotBlank()) 
                         MaterialTheme.colorScheme.primary 
                     else 
-                        Color.LightGray,
-                    modifier = Modifier.size(24.dp)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }

@@ -8,13 +8,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import com.example.whisper_android.presentation.components.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun AiAssistantScreen(
@@ -38,38 +46,129 @@ fun AiAssistantScreen(
         }
     }
 
-    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+    val hasPermission = ContextCompat.checkSelfPermission(
         context,
-        android.Manifest.permission.RECORD_AUDIO
-    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
+
+    // Permission Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, will update hasPermission next recompose
+        }
+    }
 
     FeatureBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+                .padding(horizontal = 4.dp, vertical = 0.dp), // Zero vertical padding on root for tighter control
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header
-            FeatureHeader(
-                title = "AI Assistant",
-                onNavigateBack = onNavigateBack,
-                titleColor = MaterialTheme.colorScheme.primary,
-                iconColor = MaterialTheme.colorScheme.primary
-            )
+            // Header with Accent
+            Box(modifier = Modifier.fillMaxWidth()) {
+                FeatureHeader(
+                    title = "Whisper Intelligence",
+                    onNavigateBack = onNavigateBack,
+                    titleColor = MaterialTheme.colorScheme.primary,
+                    iconColor = MaterialTheme.colorScheme.primary
+                )
+                
+                // Subtle Neural Accent Icon
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 20.dp, top = 16.dp) // Tighter
+                        .size(20.dp) // Even smaller/minimal
+                        .alpha(0.2f) // "Visible but invisible"
+                ) {
+                    WhisperLogo(showText = false)
+                }
+            }
 
             // Main Conversation Card (Fills space)
             FeatureMainCard(
                 modifier = Modifier.weight(1f)
             ) {
                 if (transcriptionResults.isEmpty() && !isProcessing) {
-                    Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Top
+                    ) {
+                        // 1. Optical Anchor (Upper 35-40%)
+                        Spacer(modifier = Modifier.weight(0.6f))
+                        
+                        // 2. Identification (Orb)
+                        AiMindVisual(isThinking = isProcessing)
+                        
+                        Spacer(modifier = Modifier.height(24.dp)) // Orb -> Title
+                        
+                        // 3. Functional Meta
                         Text(
-                            text = "Ask me anything about your meeting...",
+                            text = "Meeting Index Ready.",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.5).sp,
+                                fontSize = 20.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp)) // Title -> Subtitle (Strict)
+                        Text(
+                            text = "Ask anything from your captured data.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                            fontWeight = FontWeight.Normal,
                             textAlign = TextAlign.Center
                         )
+                        
+                        Spacer(modifier = Modifier.height(32.dp)) // Subtitle -> Intelligence Layer
+                        
+                        // 3. Suggested Action Cards (Horizontal Grid)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp), // Tighter horizontal padding
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val promptActions = listOf(
+                                "Summarize Insight" to "Extract core discussion intent.", // Tighter copy
+                                "List Actions" to "Identify tasks and assignments."
+                            )
+                            
+                            promptActions.forEach { (title, subtitle) ->
+                                SuggestedActionCard(
+                                    title = title,
+                                    subtitle = subtitle,
+                                    modifier = Modifier.weight(1f), // Equal distribution
+                                    onClick = { 
+                                        userInput = title
+                                        scope.launch {
+                                            val p = title
+                                            userInput = ""
+                                            isProcessing = true
+                                            transcriptionResults = transcriptionResults + 
+                                                TranscriptionMessage(p, MessageRole.USER)
+                                            delay(1500)
+                                            transcriptionResults = transcriptionResults + 
+                                                TranscriptionMessage("Processing meeting intelligence for \"$p\"...", MessageRole.ASSISTANT)
+                                            isProcessing = false
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        
+                        // 4. Input Integration Gap
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        // 5. Lower Weight to balance crop test
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 } else {
                     LazyColumn(
@@ -83,19 +182,14 @@ fun AiAssistantScreen(
                         }
                         if (isProcessing) {
                             item {
-                                Text(
-                                    text = "Thinking...",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(start = 12.dp)
-                                )
+                                TypingIndicator()
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            // No Spacer needed for tighter integration
 
             // Bottom Area (Natural height)
             Box(
@@ -111,7 +205,9 @@ fun AiAssistantScreen(
                     isProcessing = isProcessing,
                     hasPermission = hasPermission,
                     onMicClick = {
-                        if (!isRecording && !isProcessing) {
+                        if (!hasPermission) {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else if (!isRecording && !isProcessing) {
                             isRecording = true
                         }
                     },

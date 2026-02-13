@@ -1,11 +1,15 @@
-package com.example.whisper_android.presentation.assistant
+    package com.example.whisper_android.presentation.assistant
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisper_android.presentation.components.TranscriptionMessage
@@ -20,30 +24,38 @@ fun AssistantChatBubble(message: TranscriptionMessage) {
             .padding(horizontal = 12.dp),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
-        Card(
+        Surface(
             shape = RoundedCornerShape(
-                topStart = 20.dp,
-                topEnd = 20.dp,
-                bottomStart = if (isUser) 20.dp else 4.dp,
-                bottomEnd = if (isUser) 4.dp else 20.dp
+                topStart = if (isUser) 24.dp else 4.dp,
+                topEnd = if (isUser) 4.dp else 24.dp,
+                bottomStart = 24.dp,
+                bottomEnd = 24.dp
             ),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isUser) 
-                    MaterialTheme.colorScheme.primary 
-                else 
-                    MaterialTheme.colorScheme.surfaceVariant
-            ),
-            modifier = Modifier.widthIn(max = 280.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            color = if (isUser) 
+                MaterialTheme.colorScheme.primary 
+            else 
+                Color.White.copy(alpha = 0.9f),
+            modifier = Modifier
+                .widthIn(max = 300.dp),
+            border = if (!isUser) androidx.compose.foundation.BorderStroke(
+                1.dp, 
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            ) else null,
+            shadowElevation = if (isUser) 6.dp else 8.dp,
+            tonalElevation = if (isUser) 0.dp else 4.dp
         ) {
             Text(
                 text = message.text,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    lineHeight = 24.sp,
+                    fontSize = 15.sp,
+                    fontWeight = if (isUser) FontWeight.Medium else FontWeight.Normal
+                ),
                 color = if (isUser) 
-                    MaterialTheme.colorScheme.onPrimary 
+                    Color.White 
                 else 
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    MaterialTheme.colorScheme.onSurface
             )
         }
     }

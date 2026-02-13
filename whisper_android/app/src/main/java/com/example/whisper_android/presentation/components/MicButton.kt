@@ -52,13 +52,14 @@ fun MicButton(
     )
 
     // --- Color Selection (Solid as requested) ---
+    val primary = MaterialTheme.colorScheme.primary
     val buttonColor = remember(isRecording, isPaused, isProcessing, hasPermission) {
         when {
             !hasPermission -> Color.Gray
-            isProcessing -> Color(0xFFFF9800) // Orange: Thinking
-            isPaused -> Color(0xFFFF9800)     // Orange: Paused
-            isRecording -> Color(0xFFEF5350)  // Red: Recording
-            else -> Color(0xFF06B6D4)        // Teal/Cyan: Idle/Active
+            isProcessing -> primary // Standardized to Primary
+            isPaused -> primary     // Standardized to Primary
+            isRecording -> Color(0xFFEF5350)  // Keep Red for Recording (Safety/Standard)
+            else -> primary        // Standardized to Primary
         }
     }
 

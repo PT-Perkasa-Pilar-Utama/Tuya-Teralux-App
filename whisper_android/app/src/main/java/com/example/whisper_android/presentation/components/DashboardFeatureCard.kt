@@ -1,14 +1,21 @@
 package com.example.whisper_android.presentation.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,57 +30,82 @@ fun DashboardFeatureCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cardHeight = if (modifier.toString().contains("weight")) 280.dp else 220.dp
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.98f else 1f, label = "scale")
     
-    ElevatedCard(
+    OutlinedCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(220.dp), // Reduced height
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = Color.White
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
         ),
-        elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 6.dp
-        )
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isPressed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+        ),
+        interactionSource = interactionSource
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Subtle internal glow/gradient for the icon area
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 24.dp)
+                    .size(100.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp), // Reduced padding
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 // Icon Section
                 Box(
-                    modifier = Modifier.size(72.dp), // Reduced from 100.dp
+                    modifier = Modifier.size(64.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     icon()
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Text Section
                 Text(
                     text = title,
-                    fontSize = 20.sp, // Reduced from 24.sp
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
-                    lineHeight = 24.sp
+                    lineHeight = 24.sp,
+                    letterSpacing = (-0.2).sp
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = description,
-                    fontSize = 13.sp, // Reduced from 14.sp
-                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
-                    lineHeight = 16.sp
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }

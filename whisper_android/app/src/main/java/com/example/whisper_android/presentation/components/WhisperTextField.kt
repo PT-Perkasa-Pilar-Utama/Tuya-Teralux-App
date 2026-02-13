@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,16 +28,17 @@ fun WhisperTextField(
         leadingIcon = {
             Icon(
                 imageVector = if (isRoomId) Icons.Outlined.QrCodeScanner else Icons.Outlined.Person,
-                contentDescription = null,
-                tint = Color(0xFF06B6D4)
+                contentDescription = null
             )
         },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color(0xFF06B6D4),
-            unfocusedBorderColor = Color(0xFFE2E8F0),
-            focusedLabelColor = Color(0xFF06B6D4),
-            unfocusedLabelColor = Color(0xFF64748B)
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         ),
         singleLine = true,
         modifier = modifier.fillMaxWidth()

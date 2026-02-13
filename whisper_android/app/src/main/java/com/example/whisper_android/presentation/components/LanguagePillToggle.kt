@@ -25,7 +25,7 @@ fun LanguagePillToggle(
     onLanguageSelected: (String) -> Unit
 ) {
     val languages = listOf("ID" to "id", "EN" to "en")
-    val primaryColor = Color(0xFF06B6D4) // Teal Primary
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Row(
         modifier = Modifier

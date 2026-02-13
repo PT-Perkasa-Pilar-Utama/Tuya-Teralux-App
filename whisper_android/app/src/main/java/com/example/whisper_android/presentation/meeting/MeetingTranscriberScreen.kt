@@ -1,5 +1,6 @@
 package com.example.whisper_android.presentation.meeting
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.webkit.MimeTypeMap
 import androidx.compose.material.icons.filled.FolderOpen
+import android.content.Intent
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
 
 @Composable
 fun MeetingTranscriberScreen(
@@ -43,12 +52,34 @@ fun MeetingTranscriberScreen(
     var summaryLanguage by remember { mutableStateOf("en") } // Default to "en" (English)
     
     val context = LocalContext.current
+    val primaryColor = MaterialTheme.colorScheme.primary
     val scope = rememberCoroutineScope()
     
     // Get Token (Simplified: Fetch from TokenManager directly for this scope)
     val token = remember { 
         com.example.whisper_android.data.di.NetworkModule.tokenManager.getAccessToken() ?: "" 
     }
+
+    // Animations for Pulse and Glow
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
 
     // Audio Recorder Setup
     val audioRecorder = remember { AudioRecorder(context) }
@@ -85,6 +116,14 @@ fun MeetingTranscriberScreen(
             }
         }
     }
+    // Audio Permission Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Updated hasPermission will activate UI
+        }
+    }
 
     // Permission Check
     val hasPermission = ContextCompat.checkSelfPermission(
@@ -101,10 +140,8 @@ fun MeetingTranscriberScreen(
         ) {
             // Header
             FeatureHeader(
-                title = "Meeting Transcriber & Summary",
-                onNavigateBack = onNavigateBack,
-                titleColor = MaterialTheme.colorScheme.primary,
-                iconColor = MaterialTheme.colorScheme.primary
+                title = "Meeting Insights",
+                onNavigateBack = onNavigateBack
             )
 
             // Main Transcription Card
@@ -127,7 +164,10 @@ fun MeetingTranscriberScreen(
                             val state = uiState as com.example.whisper_android.domain.usecase.MeetingProcessState.Success
                             if (state.pdfUrl != null) {
                                 Button(
-                                    onClick = { /* Open PDF URL: state.pdfUrl */ },
+                                    onClick = { 
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(state.pdfUrl))
+                                        context.startActivity(intent)
+                                    },
                                     modifier = Modifier.height(32.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                     colors = ButtonDefaults.buttonColors(
@@ -174,12 +214,44 @@ fun MeetingTranscriberScreen(
                     ) {
                         when (uiState) {
                             is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle -> {
-                                Text(
-                                    text = "Record audio to generate a summary...",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = Color.Gray,
-                                    textAlign = TextAlign.Center
-                                )
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    // Subtle Waveform Cue
+                                    Row(
+                                        modifier = Modifier.height(40.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        repeat(5) { index ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(4.dp)
+                                                    .height(if (index % 2 == 0) 24.dp else 16.dp)
+                                                    .background(
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                                        RoundedCornerShape(2.dp)
+                                                    )
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Text(
+                                        text = "Ready to capture your next breakthrough.",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Tap the mic to start recording your meeting.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                             is com.example.whisper_android.domain.usecase.MeetingProcessState.Recording -> {
                                 Box(modifier = Modifier.fillMaxWidth().padding(top = 100.dp), contentAlignment = Alignment.Center) {
@@ -229,25 +301,36 @@ fun MeetingTranscriberScreen(
                             }
                             else -> {
                                 // Loading States (Uploading, Transcribing, Translating, Summarizing)
-                                Box(modifier = Modifier.fillMaxWidth().padding(top = 100.dp), contentAlignment = Alignment.Center) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        CircularProgressIndicator(
-                                            color = Color(0xFFFF9800),
-                                            strokeWidth = 3.dp,
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Box(contentAlignment = Alignment.Center) {
+                                            // Glow effect (Primary themed)
+                                            Canvas(modifier = Modifier.size(100.dp)) {
+                                                drawCircle(
+                                                    color = primaryColor,
+                                                    alpha = glowAlpha * 0.15f,
+                                                    radius = size.minDimension / 2
+                                                )
+                                            }
+                                            CircularProgressIndicator(
+                                                color = primaryColor,
+                                                strokeWidth = 3.dp,
+                                                modifier = Modifier.size(56.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(24.dp))
                                         Text(
                                             text = when(uiState) {
-                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Uploading -> "Uploading audio..."
-                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Transcribing -> "Transcribing audio..."
-                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Translating -> "Translating text..."
-                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Summarizing -> "Generating summary..."
-                                                else -> "Processing..."
+                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Uploading -> "Securely Uploading..."
+                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Transcribing -> "AI Transcribing..."
+                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Translating -> "Translating Context..."
+                                                com.example.whisper_android.domain.usecase.MeetingProcessState.Summarizing -> "Generating Insights..."
+                                                else -> "Thinking..."
                                             },
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = Color(0xFFFF9800),
-                                            fontWeight = FontWeight.Medium
+                                            color = primaryColor,
+                                            fontWeight = FontWeight.Black,
+                                            letterSpacing = 0.5.sp
                                         )
                                     }
                                 }
@@ -288,19 +371,29 @@ fun MeetingTranscriberScreen(
                                            uiState !is com.example.whisper_android.domain.usecase.MeetingProcessState.Error &&
                                            uiState !is com.example.whisper_android.domain.usecase.MeetingProcessState.Recording,
                             onClick = { 
-                                if (!isRecording && uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle || 
+                                if (!isRecording && (uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle || 
                                     uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Success || 
-                                    uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Error) {
+                                    uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Error)) {
                                     
-                                    // Start Recording
-                                    val file = java.io.File(context.cacheDir, "meeting_audio.m4a")
-                                    audioRecorder.start(file)
-                                    audioFile = file
-                                    isRecording = true
-                                    viewModel.resetState() // Clear previous results
+                                    if (!hasPermission) {
+                                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    } else {
+                                        // Start Recording
+                                        val file = java.io.File(context.cacheDir, "meeting_audio.m4a")
+                                        audioRecorder.start(file)
+                                        audioFile = file
+                                        isRecording = true
+                                        viewModel.resetState() // Clear previous results
+                                    }
                                 }
                             },
-                            size = 38.dp
+                            size = 36.dp,
+                            modifier = Modifier.graphicsLayer {
+                                if (isRecording) {
+                                    scaleX = pulseScale
+                                    scaleY = pulseScale
+                                }
+                            }
                         )
 
                         // Upload Button
@@ -366,15 +459,16 @@ fun MeetingTranscriberScreen(
 
                         Text(
                             text = when {
-                                isRecording -> "Recording..."
+                                isRecording -> "Live"
                                 uiState !is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle && 
                                 uiState !is com.example.whisper_android.domain.usecase.MeetingProcessState.Success &&
-                                uiState !is com.example.whisper_android.domain.usecase.MeetingProcessState.Error -> "Thinking..."
+                                uiState !is com.example.whisper_android.domain.usecase.MeetingProcessState.Error -> "AI Active"
                                 else -> "Ready"
                             },
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp,
                             modifier = Modifier.padding(end = 4.dp)
                         )
                     }

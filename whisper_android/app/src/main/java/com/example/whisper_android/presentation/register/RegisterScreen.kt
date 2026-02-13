@@ -15,6 +15,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.whisper_android.data.di.NetworkModule
 import com.example.whisper_android.presentation.components.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 @Composable
 fun RegisterScreen(
@@ -30,6 +36,31 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsState()
     var name by remember { mutableStateOf("") }
     var roomId by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    // Permission Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val recordGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
+        val storageGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
+        // We just request them, the UI will update based on checkSelfPermission later
+    }
+
+    // Proactive Request on Launch
+    LaunchedEffect(Unit) {
+        val permissionsToRequest = mutableListOf<String>()
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+        
+        if (permissionsToRequest.isNotEmpty()) {
+            permissionLauncher.launch(permissionsToRequest.toTypedArray())
+        }
+    }
 
     // Reusable Toast Observer
     ToastObserver(
@@ -44,19 +75,25 @@ fun RegisterScreen(
         }
     }
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val containerColor = MaterialTheme.colorScheme.primaryContainer
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
+    val bgGradient = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+            MaterialTheme.colorScheme.background
+        ),
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(2000f, 2000f)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFFA5F3FC), // Cyan 200
-                        Color(0xFFCFFAFE)  // Cyan 100
-                    )
-                )
-            )
+            .background(bgGradient)
     ) {
-        // Layout for both Mobile and Tablet (using adaptive approach)
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -71,26 +108,37 @@ fun RegisterScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left Side: Logo & Text
+                    // Left Side: Branding & Microcopy
                     Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.Start
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .padding(end = 48.dp),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         WhisperLogo()
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(32.dp))
                         Text(
-                            text = "Welcome to\nWhisper Demo",
-                            fontSize = 64.sp,
-                            lineHeight = 72.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            text = "Secure Your\nConversation.",
+                            fontSize = 48.sp,
+                            lineHeight = 56.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onBackground,
                             style = androidx.compose.ui.text.TextStyle(
                                 shadow = androidx.compose.ui.graphics.Shadow(
                                     color = Color.Black.copy(alpha = 0.3f),
                                     offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                                    blurRadius = 4f
+                                    blurRadius = 8f
                                 )
                             )
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Experience private, high-fidelity transcription for your enterprise meetings.",
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            lineHeight = 26.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
@@ -110,28 +158,39 @@ fun RegisterScreen(
                 // Mobile Layout (Vertical Stack)
                 Column(
                     modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxSize(),
+                        .fillMaxSize()
+                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     WhisperLogo()
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = "Welcome to Whisper Demo",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.align(Alignment.Start),
-                        style = androidx.compose.ui.text.TextStyle(
-                            shadow = androidx.compose.ui.graphics.Shadow(
-                                color = Color.Black.copy(alpha = 0.3f),
-                                offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                                blurRadius = 4f
+                    Spacer(modifier = Modifier.height(40.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Secure Your Conversation",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            style = androidx.compose.ui.text.TextStyle(
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black.copy(alpha = 0.2f),
+                                    offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                                    blurRadius = 4f
+                                )
                             )
                         )
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Private meeting transcription",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(48.dp))
                     RegisterCard(
                         name = name,
                         onNameChange = { name = it; viewModel.clearError() },
@@ -158,16 +217,17 @@ fun RegisterCard(
     onRegisterClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ElevatedCard(
+    OutlinedCard(
         modifier = modifier
-            .padding(16.dp)
+            .padding(8.dp)
             .wrapContentHeight(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = Color.White
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
         ),
-        elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = 8.dp
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         )
     ) {
         Column(
@@ -189,7 +249,7 @@ fun RegisterCard(
             )
 
             if (isLoading) {
-                CircularProgressIndicator(color = Color(0xFF06B6D4))
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             } else {
                 WhisperButton(
                     text = "Register",

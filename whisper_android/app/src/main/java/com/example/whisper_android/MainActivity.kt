@@ -36,6 +36,7 @@ class MainActivity : ComponentActivity() {
         // Initialize dependency injection (Manual)
         com.example.whisper_android.data.di.NetworkModule.init(this)
         
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
         setContent {
             SmartMeetingRoomWhisperDemoTheme {

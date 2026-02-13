@@ -3,6 +3,7 @@ package com.example.whisper_android.presentation.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -53,15 +54,23 @@ fun DashboardScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.primary
+            .background(MaterialTheme.colorScheme.background) // Slate950 from theme
+    ) {
+        // Optional: Add a subtle overlay gradient for depth
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                            Color.Transparent
+                        ),
+                        center = androidx.compose.ui.geometry.Offset(0f, 0f),
+                        radius = 2000f
                     )
                 )
-            )
-    ) {
+        )
         if (uiState.isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
         } else if (uiState.isAuthenticated) {
@@ -98,8 +107,7 @@ fun DashboardContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding() // Add padding for transparent status bar
-            .padding(24.dp),
+            .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -110,18 +118,26 @@ fun DashboardContent(
         ) {
             Text(
                 text = "Select Workspace",
-                fontSize = 40.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
-                lineHeight = 44.sp,
-                style = androidx.compose.ui.text.TextStyle(
+                lineHeight = 40.sp,
+                letterSpacing = (-0.5).sp,
+                style = MaterialTheme.typography.headlineMedium.copy(
                     shadow = androidx.compose.ui.graphics.Shadow(
                         color = Color.Black.copy(alpha = 0.3f),
                         offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                        blurRadius = 6f
+                        blurRadius = 8f
                     )
                 )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Choose your AI-powered environment",
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Medium
             )
         }
 
@@ -207,11 +223,23 @@ fun DashboardContent(
         }
 
         // Footer
-        Text(
-            text = "Powered by Senso",
-            fontSize = 16.sp,
-            color = Color.White.copy(alpha = 0.8f),
-            fontWeight = FontWeight.Medium
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(4.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+            )
+            Text(
+                text = "Powered by Senso",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp
+            )
+        }
     }
 }

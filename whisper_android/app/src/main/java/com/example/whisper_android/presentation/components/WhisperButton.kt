@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -25,10 +26,10 @@ fun WhisperButton(
         enabled = enabled,
         shape = RoundedCornerShape(24.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF06B6D4),
-            contentColor = Color.White,
-            disabledContainerColor = Color(0xFF06B6D4).copy(alpha = 0.5f),
-            disabledContentColor = Color.White.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
         ),
         modifier = modifier
             .fillMaxWidth()
