@@ -24,14 +24,14 @@ Retrieves a paginated list of audio recordings stored in the system. Recordings 
       "id": "abc-123",
       "filename": "abc-123.wav",
       "original_name": "meeting.mp3",
-      "audio_url": "http://localhost:8081/api/static/recordings/abc-123.wav",
+      "audio_url": "http://localhost:8081/uploads/recordings/abc-123.wav",
       "created_at": "2026-02-11T10:00:00Z"
     },
     {
       "id": "def-456",
       "filename": "def-456.wav",
       "original_name": "voice_note.m4a",
-      "audio_url": "http://localhost:8081/api/static/recordings/def-456.wav",
+      "audio_url": "http://localhost:8081/uploads/recordings/def-456.wav",
       "created_at": "2026-02-11T11:00:00Z"
     }
   ],
@@ -71,7 +71,7 @@ Retrieves a paginated list of audio recordings stored in the system. Recordings 
 
 ### 4. Serving Static File
 - **Method**: `GET`
-- **URL**: `/api/static/recordings/abc-123.wav`
+- **URL**: `/uploads/recordings/abc-123.wav`
 - **Expected Response**: Binary audio stream.
   *(Status: 200 OK)*
 - **Header**: `Content-Type: audio/wav` (or appropriate format)

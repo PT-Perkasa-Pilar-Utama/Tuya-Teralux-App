@@ -98,7 +98,7 @@ func TestSaveRecordingUseCase_Execute(t *testing.T) {
 		assert.NotNil(t, recording)
 		assert.Contains(t, recording.Filename, ".mp3")
 		assert.Equal(t, "test.mp3", recording.OriginalName)
-		assert.Contains(t, recording.AudioUrl, "/api/static/audio/")
+		assert.Contains(t, recording.AudioUrl, "/uploads/audio/")
 		
 		mockFileService.AssertExpectations(t)
 		mockRepo.AssertExpectations(t)

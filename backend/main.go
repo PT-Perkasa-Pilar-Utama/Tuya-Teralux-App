@@ -152,8 +152,8 @@ func main() {
 	protected.Use(middlewares.TuyaErrorMiddleware())
 
 	// Static File Serving (for audio uploads)
-	// Access via: /api/static/audio/filename.ext
-	router.Static("/api/static", "./uploads")
+	// Access via: /uploads/audio/filename.ext
+	router.Static("/uploads", "./uploads")
 
 	// 1. Common Routes (Health, Cache)
 	commonModule.RegisterRoutes(router, protected)

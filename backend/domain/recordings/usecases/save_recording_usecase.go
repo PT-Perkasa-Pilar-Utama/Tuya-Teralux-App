@@ -56,8 +56,8 @@ func (uc *saveRecordingUseCase) Execute(fileHeader *multipart.FileHeader) (*enti
 
 	// 4. Construct Public URL
 	// Assuming the server domain/port is handled by frontend proxy or configuration
-	// But as per requirement: /api/static/audio/{filename}
-	publicUrl := fmt.Sprintf("/api/static/audio/%s", newFilename)
+	// But as per requirement: /uploads/audio/{filename}
+	publicUrl := fmt.Sprintf("/uploads/audio/%s", newFilename)
 
 	// 5. Create Entity
 	recording := &entities.Recording{

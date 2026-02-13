@@ -103,7 +103,23 @@ object NetworkModule {
         AuthenticateUseCase(tuyaRepository)
     }
 
+    val transcribeAudioUseCase: com.example.whisper_android.domain.usecase.TranscribeAudioUseCase by lazy {
+        com.example.whisper_android.domain.usecase.TranscribeAudioUseCase(speechRepository)
+    }
+
+    val translateTextUseCase: com.example.whisper_android.domain.usecase.TranslateTextUseCase by lazy {
+        com.example.whisper_android.domain.usecase.TranslateTextUseCase(ragRepository)
+    }
+
+    val summarizeTextUseCase: com.example.whisper_android.domain.usecase.SummarizeTextUseCase by lazy {
+        com.example.whisper_android.domain.usecase.SummarizeTextUseCase(ragRepository)
+    }
+
     val processMeetingUseCase: com.example.whisper_android.domain.usecase.ProcessMeetingUseCase by lazy {
-        com.example.whisper_android.domain.usecase.ProcessMeetingUseCase(speechRepository, ragRepository)
+        com.example.whisper_android.domain.usecase.ProcessMeetingUseCase(
+            transcribeAudioUseCase,
+            translateTextUseCase,
+            summarizeTextUseCase
+        )
     }
 }

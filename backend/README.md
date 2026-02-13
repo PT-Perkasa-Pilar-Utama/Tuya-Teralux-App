@@ -73,7 +73,7 @@ The application provides a robust speech-to-text pipeline with multiple processi
 A dedicated domain for managing audio recording files:
 
 - **Storage**: Files are stored as UUID-named `.wav` or original format in the local `uploads` directory.
-- **Serving**: Static files are served at `/api/static/recordings/`.
+- **Serving**: Static files are served at `/uploads/recordings/`.
 - **API**: `GET /api/recordings` provides a paginated list of all successfully processed recordings with metadata.
 
 ---

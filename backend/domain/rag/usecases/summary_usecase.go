@@ -108,7 +108,7 @@ Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
 		utils.LogWarn("Warning: Failed to generate PDF: %v", err)
 	}
 
-	pdfUrl := fmt.Sprintf("/api/static/reports/%s", pdfFilename)
+	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
 
 	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, model='%s', pdf='%s'", language, len(trimmedSummary), model, pdfUrl)
 	utils.LogDebug("RAG Summary Result: %q", trimmedSummary)
