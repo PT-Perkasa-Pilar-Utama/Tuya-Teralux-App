@@ -81,7 +81,7 @@ fun MeetingTranscriberScreen(
                     Icon(
                         imageVector = Icons.Default.ArrowBackIosNew,
                         contentDescription = "Back",
-                        tint = Color(0xFF0D9488),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp) // Smaller icon
                     )
                 }
@@ -90,7 +90,7 @@ fun MeetingTranscriberScreen(
                     text = "Meeting Transcriber & Summary",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F766E),
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center
                 )
             }
@@ -113,11 +113,40 @@ fun MeetingTranscriberScreen(
                         .padding(16.dp) // Reduced from 24
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Language selection at top right
+                    // Header Controls (Download + Language)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (displaySummary.isNotEmpty()) {
+                            Button(
+                                onClick = { /* Download PDF logic */ },
+                                modifier = Modifier.height(32.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "PDF",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(1.dp))
+                        }
+
                         LanguagePillToggle(
                             selectedLanguage = summaryLanguage,
                             onLanguageSelected = { summaryLanguage = it }
@@ -164,22 +193,6 @@ fun MeetingTranscriberScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                         
-                        if (pdfUrl != null) {
-                            Spacer(modifier = Modifier.height(4.dp)) // Tightened
-                            Button(
-                                onClick = { /* Handle PDF Download */ },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF0D9488),
-                                    contentColor = Color.White
-                                )
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Download Summary (PDF)")
-                            }
-                        }
                     }
                 }
             }
@@ -231,25 +244,25 @@ fun MeetingTranscriberScreen(
                                         scope.launch {
                                             delay(3000) // Thinking...
                                             displaySummary = if (summaryLanguage == "id") {
-                                                "# Ringkasan Pertemuan\n" +
-                                                "**Topik Utama:** Evaluasi Q3 dan Perencanaan Q4.\n" +
-                                                "### Poin Penting:\n" +
-                                                "- Pertumbuhan pasar mencapai 15% di kuartal ini.\n" +
-                                                "- Alokasi anggaran baru sudah disetujui.\n" +
-                                                "- Perlu fokus pada kemitraan strategis bulan depan.\n" +
-                                                "### Action Items:\n" +
-                                                "1. Kirim dokumen anggaran ke tim finance.\n" +
-                                                "2. Jadwalkan meeting dengan partner eksternal."
+                                                "**Ringkasan Pertemuan**  \n" +
+                                                "**Topik Utama:** Evaluasi Q3 dan Perencanaan Q4.  \n" +
+                                                "**Poin Penting:**  \n" +
+                                                "• Pertumbuhan pasar mencapai 15% di kuartal ini.  \n" +
+                                                "• Alokasi anggaran baru sudah disetujui.  \n" +
+                                                "• Perlu fokus pada kemitraan strategis bulan depan.  \n" +
+                                                "**Action Items:**  \n" +
+                                                "**1.** Kirim dokumen anggaran ke tim finance.  \n" +
+                                                "**2.** Jadwalkan meeting dengan partner eksternal."
                                             } else {
-                                                "# Meeting Summary\n" +
-                                                "**Main Topic:** Q3 Performance Review & Q4 Planning.\n" +
-                                                "### Key Highlights:\n" +
-                                                "- Market share growth reached 15% this quarter.\n" +
-                                                "- New budget allocation has been approved.\n" +
-                                                "- Strategic partnerships need focus next month.\n" +
-                                                "### Action Items:\n" +
-                                                "1. Send budget documents to the finance team.\n" +
-                                                "2. Schedule meeting with external partners."
+                                                "**Meeting Summary**  \n" +
+                                                "**Main Topic:** Q3 Performance Review & Q4 Planning.  \n" +
+                                                "**Key Highlights:**  \n" +
+                                                "• Market share growth reached 15% this quarter.  \n" +
+                                                "• New budget allocation has been approved.  \n" +
+                                                "• Strategic partnerships need focus next month.  \n" +
+                                                "**Action Items:**  \n" +
+                                                "**1.** Send budget documents to the finance team.  \n" +
+                                                "**2.** Schedule meeting with external partners."
                                             }
                                             pdfUrl = "/api/static/reports/summary.pdf"
                                             isProcessing = false
@@ -279,7 +292,7 @@ fun MeetingTranscriberScreen(
                             Icon(
                                 imageVector = Icons.Default.DeleteOutline,
                                 contentDescription = "Clear",
-                                tint = Color(0xFF0D9488),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -292,7 +305,7 @@ fun MeetingTranscriberScreen(
                                 else -> "Ready"
                             },
                             fontSize = 14.sp,
-                            color = Color(0xFF0D9488),
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(end = 4.dp)
                         )

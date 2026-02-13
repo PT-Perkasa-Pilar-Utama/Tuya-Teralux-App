@@ -61,7 +61,7 @@ fun DashboardFeatureCard(
                     text = title,
                     fontSize = 20.sp, // Reduced from 24.sp
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0D9488),
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     lineHeight = 24.sp
                 )
