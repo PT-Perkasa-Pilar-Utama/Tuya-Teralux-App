@@ -45,6 +45,7 @@ func NewTranscriptionController(
 // @Accept multipart/form-data
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
+// @Param language formData string false "Language code (e.g. id, en)"
 // @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
@@ -120,7 +121,14 @@ func (c *TranscriptionController) HandleProxyTranscribe(ctx *gin.Context) {
 	// 2. Submit async task using the file provided by SaveRecording (cleaner pathing)
 	// construction of path matches SaveRecordingUseCase behavior
 	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
-	taskID, err := c.transcribeUC.Execute(finalInputPath, file.Filename)
+
+	// Extract language (optional, default to "id")
+	language := ctx.PostForm("language")
+	if language == "" {
+		language = "id"
+	}
+
+	taskID, err := c.transcribeUC.Execute(finalInputPath, file.Filename, language)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,

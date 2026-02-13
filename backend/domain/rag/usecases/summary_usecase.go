@@ -43,7 +43,7 @@ You are a Senior Project Management Officer and Strategic Analyst. Your goal is 
 2. *Denoise & Professionalize*: Remove filler words, stuttering, and informal speech. Convert the text into formal business English.
 3. *PPP Framework*: Within organized Discussion Points, strictly follow the Progress/Issues/Plans structure.
 4. *Objectivity*: Do NOT invent facts, deadlines, or owners. If specific data is missing, use a dash (-) or omit the field.
-5. *Formatting*: Use strictly plain text. NO Markdown (no #, *, |, or bolding). Use double line breaks between sections.
+5. *Formatting*: Use Markdown formatting. Use bolding (#, ##, **bold**) for headers and key points. Use bullet points for lists.
 
 ### CONTENT CONTEXT
 - Context: %s
@@ -144,7 +144,7 @@ func (u *RAGUsecase) SummaryAsync(text string, language string, context string, 
 			// or just use ExecutionResult. For consistency with Control, let's use Result as string if possible,
 			// or just store the whole DTO as ExecutionResult.
 			u.taskStatus[taskID] = &dtos.RAGStatusDTO{
-				Status:          "done",
+				Status:          "completed",
 				ExecutionResult: result,
 				Result:          result.Summary, // Fallback for simple consumers
 			}

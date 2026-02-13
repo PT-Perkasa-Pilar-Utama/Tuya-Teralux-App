@@ -301,7 +301,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 
 		// Store structured result
 		statusDTO := &ragdtos.RAGStatusDTO{
-			Status:   "done",
+			Status:   "completed",
 			Endpoint: endpoint,
 			Method:   method,
 			Body:     bodyObj,

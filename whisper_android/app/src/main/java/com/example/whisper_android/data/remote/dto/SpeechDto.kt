@@ -69,10 +69,3 @@ data class RAGStatusDto(
     @SerializedName("execution_result") val executionResult: RAGSummaryResponseDto? = null
 )
 
-/**
- * Data for RAG status check response.
- */
-data class RAGStatusResponseData(
-    @SerializedName("task_id") val taskId: String,
-    @SerializedName("task_status") val taskStatus: RAGStatusDto? = null
-)

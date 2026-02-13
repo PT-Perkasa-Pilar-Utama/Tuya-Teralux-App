@@ -18,7 +18,7 @@ type WhisperRepositoryInterface interface {
 }
 
 type TranscribeUseCase interface {
-	Execute(inputPath string, fileName string) (string, error)
+	Execute(inputPath string, fileName string, language string) (string, error)
 }
 
 type transcribeUseCase struct {
@@ -45,7 +45,7 @@ func NewTranscribeUseCase(
 	}
 }
 
-func (uc *transcribeUseCase) Execute(inputPath string, fileName string) (string, error) {
+func (uc *transcribeUseCase) Execute(inputPath string, fileName string, language string) (string, error) {
 	if _, err := os.Stat(inputPath); err != nil {
 		utils.LogError("Transcribe: Failed to stat audio file: %v", err)
 		return "", fmt.Errorf("audio file not found")
@@ -63,12 +63,12 @@ func (uc *transcribeUseCase) Execute(inputPath string, fileName string) (string,
 
 	utils.LogInfo("Transcribe: Started task %s for file %s", taskID, fileName)
 
-	go uc.processAsync(taskID, inputPath)
+	go uc.processAsync(taskID, inputPath, language)
 
 	return taskID, nil
 }
 
-func (uc *transcribeUseCase) processAsync(taskID string, inputPath string) {
+func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLanguage string) {
 	defer func() {
 		if r := recover(); r != nil {
 			utils.LogError("Transcribe Task %s: Panic recovered: %v", taskID, r)
@@ -84,10 +84,13 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string) {
 	// Try PPU first
 	if uc.whisperProxyUsecase != nil {
 		if proxyErr := uc.whisperProxyUsecase.HealthCheck(); proxyErr == nil {
-			result, fetchErr := uc.whisperProxyUsecase.FetchToOutsystems(inputPath, filepath.Base(inputPath))
+			result, fetchErr := uc.whisperProxyUsecase.FetchToOutsystems(inputPath, filepath.Base(inputPath), reqLanguage)
 			if fetchErr == nil && result != nil {
 				text = result.Transcription
-				lang = "id"
+				lang = result.DetectedLanguage
+				if lang == "" {
+					lang = reqLanguage
+				}
 				usedPath = "PPU (Outsystems)"
 			}
 		}

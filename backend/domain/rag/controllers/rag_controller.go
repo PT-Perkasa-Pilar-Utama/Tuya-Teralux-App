@@ -219,7 +219,7 @@ func (c *RAGController) determineHTTPStatus(status *dtos.RAGStatusDTO) int {
 	}
 
 	// Also check individual execution result if task is done but failed internally
-	if status.Status == "done" && status.ExecutionResult != nil {
+	if status.Status == "completed" && status.ExecutionResult != nil {
 		// Logic to check if execution result indicates an error
 		if res, ok := status.ExecutionResult.(map[string]interface{}); ok {
 			if s, ok := res["status"].(bool); ok && !s {

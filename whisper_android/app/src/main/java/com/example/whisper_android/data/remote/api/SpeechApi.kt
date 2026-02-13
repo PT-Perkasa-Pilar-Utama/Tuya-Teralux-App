@@ -15,6 +15,7 @@ interface SpeechApi {
     @POST("/api/speech/transcribe")
     suspend fun transcribeAudio(
         @Part audio: MultipartBody.Part,
+        @Part language: MultipartBody.Part,
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String = "teralux-api-key"
     ): SpeechResponseDto<TranscriptionSubmissionData>

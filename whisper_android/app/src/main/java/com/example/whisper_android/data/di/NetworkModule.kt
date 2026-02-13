@@ -25,7 +25,7 @@ object NetworkModule {
                 return try {
                     // Hardcoded IP from `dig` command on host machine
                     // Cloudflare IPs: 172.67.136.115, 104.21.46.81
-                    listOf(InetAddress.getByName("104.21.46.81")) 
+                    listOf(InetAddress.getByName("104.21.46.81"), InetAddress.getByName("172.67.136.115")) 
                 } catch (e: Exception) {
                     Dns.SYSTEM.lookup(hostname)
                 }
@@ -79,12 +79,16 @@ object NetworkModule {
         com.example.whisper_android.data.repository.TuyaRepositoryImpl(tuyaApi, API_KEY, tokenManager)
     }
 
-    val speechRepository: com.example.whisper_android.data.repository.SpeechRepository by lazy {
-        com.example.whisper_android.data.repository.SpeechRepository(speechApi, ragApi)
-    }
-
     private val ragApi: com.example.whisper_android.data.remote.api.RAGApi by lazy {
         retrofit.create(com.example.whisper_android.data.remote.api.RAGApi::class.java)
+    }
+
+    val speechRepository: com.example.whisper_android.domain.repository.SpeechRepository by lazy {
+        com.example.whisper_android.data.repository.SpeechRepositoryImpl(speechApi)
+    }
+
+    val ragRepository: com.example.whisper_android.domain.repository.RagRepository by lazy {
+        com.example.whisper_android.data.repository.RagRepositoryImpl(ragApi)
     }
     
     val registerUseCase: RegisterTeraluxUseCase by lazy {
@@ -97,5 +101,9 @@ object NetworkModule {
 
     val authenticateUseCase: AuthenticateUseCase by lazy {
         AuthenticateUseCase(tuyaRepository)
+    }
+
+    val processMeetingUseCase: com.example.whisper_android.domain.usecase.ProcessMeetingUseCase by lazy {
+        com.example.whisper_android.domain.usecase.ProcessMeetingUseCase(speechRepository, ragRepository)
     }
 }

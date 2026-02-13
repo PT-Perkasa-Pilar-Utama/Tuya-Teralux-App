@@ -34,7 +34,7 @@ func TestWhisperProxyUsecase_ProxyTranscribe_WithoutBadger(t *testing.T) {
 	tempFile.Close()
 
 	// Test task submission without badger
-	taskID, err := uc.ProxyTranscribe(tempFile.Name(), "test.mp3")
+	taskID, err := uc.ProxyTranscribe(tempFile.Name(), "test.mp3", "id")
 	if err != nil {
 		t.Fatalf("expected no error from ProxyTranscribe, got %v", err)
 	}
@@ -98,7 +98,7 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 	tempFile.Close()
 
 	// Submit task
-	taskID, err := uc.ProxyTranscribe(tempFile.Name(), "test.mp3")
+	taskID, err := uc.ProxyTranscribe(tempFile.Name(), "test.mp3", "id")
 	if err != nil {
 		t.Fatalf("expected no error from ProxyTranscribe, got %v", err)
 	}
@@ -126,7 +126,7 @@ func TestWhisperProxyUsecase_ProxyTranscribe_InvalidFile(t *testing.T) {
 	uc := usecases.NewWhisperProxyUsecase(nil, cfg)
 
 	// Test with non-existent file
-	taskID, err := uc.ProxyTranscribe("/non/existent/file.mp3", "test.mp3")
+	taskID, err := uc.ProxyTranscribe("/non/existent/file.mp3", "test.mp3", "id")
 	if err != nil {
 		t.Fatalf("ProxyTranscribe should not error on submission, got %v", err)
 	}
