@@ -6,19 +6,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisper_android.data.di.NetworkModule
-import com.example.whisper_android.presentation.components.DashboardButton
+import com.example.whisper_android.presentation.components.DashboardFeatureCard
 
 @Composable
 fun DashboardScreen(
@@ -48,67 +50,40 @@ fun DashboardScreen(
         hasMicPermission = isGranted
     }
 
-    // Auto-redirect removed to prevent infinite loop
-    // If auth fails, we stay on Dashboard and show the error message.
-    // The user can choose to go back or retry.
-    
-    Scaffold { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                        )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF67E8F9), // Cyan 300
+                        Color(0xFF06B6D4)  // Cyan 500
                     )
                 )
-                .padding(paddingValues),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            if (uiState.isLoading) {
-                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.isAuthenticated) {
-                DashboardContent(
-                    hasMicPermission = hasMicPermission,
-                    onRequestPermission = {
-                        launcher.launch(android.Manifest.permission.RECORD_AUDIO)
-                    },
-                    onNavigateToUpload = onNavigateToUpload,
-                    onNavigateToStreaming = onNavigateToStreaming,
-                    onNavigateToEdge = onNavigateToEdge
+            )
+    ) {
+        if (uiState.isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
+        } else if (uiState.isAuthenticated) {
+            DashboardContent(
+                onNavigateToStreaming = onNavigateToStreaming,
+                onNavigateToEdge = onNavigateToEdge
+            )
+        } else {
+            // Error handling (keep existing UI for errors)
+            Column(
+                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = uiState.error ?: "Authentication Failed",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
                 )
-            } else {
-                Column(
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ErrorOutline,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Text(
-                        text = uiState.error ?: "Authentication Failed",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center
-                    )
-                    Button(
-                        onClick = { viewModel.authenticate() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Retry Login")
-                    }
-                    TextButton(
-                        onClick = onNavigateToRegister,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Back to Register / Setup")
-                    }
+                Button(onClick = { viewModel.authenticate() }) {
+                    Text("Retry Login")
                 }
             }
         }
@@ -117,116 +92,126 @@ fun DashboardScreen(
 
 @Composable
 fun DashboardContent(
-    hasMicPermission: Boolean,
-    onRequestPermission: () -> Unit,
-    onNavigateToUpload: () -> Unit,
     onNavigateToStreaming: () -> Unit,
     onNavigateToEdge: () -> Unit
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .fillMaxSize()
+            .statusBarsPadding() // Add padding for transparent status bar
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.SpaceEvenly
     ) {
-        // --- Header Section ---
+        // Header Section
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(top = 16.dp)
         ) {
             Text(
-                text = "Welcome to Whisper Demo",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-0.5).sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "Choose your transcription interface",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
+                text = "Select Workspace",
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                lineHeight = 44.sp,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black.copy(alpha = 0.3f),
+                        offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                        blurRadius = 6f
+                    )
+                )
             )
         }
 
-        // --- Permission Banner ---
-        if (!hasMicPermission) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-                ),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        // Cards Section
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp), // Reduced from 48.dp
+            contentAlignment = Alignment.Center
+        ) {
+            val isTablet = maxWidth > 600.dp
+            
+            if (isTablet) {
                 Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(0.95f),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MicOff,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(32.dp)
+                    DashboardFeatureCard(
+                        title = "Meeting Transcriber & Summary",
+                        description = "Record, transcribe, and generate summaries of your meetings.",
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Groups,
+                                contentDescription = null,
+                                tint = Color(0xFF06B6D4),
+                                modifier = Modifier.size(72.dp) // Reduced icon
+                            )
+                        },
+                        onClick = onNavigateToStreaming,
+                        modifier = Modifier.weight(1f).height(240.dp) // Height reduced
                     )
-                    Spacer(modifier = Modifier.size(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Microphone Required",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = "Enable permission to record audio.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                    TextButton(
-                        onClick = onRequestPermission,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Text("Grant", fontWeight = FontWeight.Bold)
-                    }
+                    DashboardFeatureCard(
+                        title = "AI Assistant",
+                        description = "Real-time conversational AI for assistance and tasks.",
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Outlined.SmartToy,
+                                contentDescription = null,
+                                tint = Color(0xFF06B6D4),
+                                modifier = Modifier.size(72.dp) // Reduced icon
+                            )
+                        },
+                        onClick = onNavigateToEdge,
+                        modifier = Modifier.weight(1f).height(240.dp) // Height reduced
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    DashboardFeatureCard(
+                        title = "Meeting Transcriber", // Shortened
+                        description = "Transcribe and summarize meetings.", // Shortened
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Groups,
+                                contentDescription = null,
+                                tint = Color(0xFF06B6D4),
+                                modifier = Modifier.size(56.dp)
+                            )
+                        },
+                        onClick = onNavigateToStreaming,
+                        modifier = Modifier.height(180.dp)
+                    )
+                    DashboardFeatureCard(
+                        title = "AI Assistant",
+                        description = "Conversational AI for tasks.", // Shortened
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Outlined.SmartToy,
+                                contentDescription = null,
+                                tint = Color(0xFF06B6D4),
+                                modifier = Modifier.size(56.dp)
+                            )
+                        },
+                        onClick = onNavigateToEdge,
+                        modifier = Modifier.height(180.dp)
+                    )
                 }
             }
         }
 
-        // --- Feature Selection ---
-        DashboardButton(
-            text = "Upload Files",
-            subtitle = "Long-form processing via Cloud",
-            icon = Icons.Default.Upload,
-            color = MaterialTheme.colorScheme.primary,
-            onClick = onNavigateToUpload
-        )
-
-        DashboardButton(
-            text = "Realtime Streaming",
-            subtitle = "Low-latency message streaming",
-            icon = Icons.Default.CloudUpload,
-            color = MaterialTheme.colorScheme.secondary,
-            onClick = onNavigateToStreaming
-        )
-
-        DashboardButton(
-            text = "Edge Computing",
-            subtitle = "Private on-device transcription",
-            icon = Icons.Default.Memory,
-            color = MaterialTheme.colorScheme.tertiary,
-            onClick = onNavigateToEdge
-        )
-        
-        
+        // Footer
         Text(
             text = "Powered by Senso",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline
+            fontSize = 16.sp,
+            color = Color.White.copy(alpha = 0.8f),
+            fontWeight = FontWeight.Medium
         )
     }
 }

@@ -46,17 +46,14 @@ class MainActivity : ComponentActivity() {
                     "register" -> RegisterScreen(onNavigateToDashboard = { currentScreen = "dashboard" })
                     "dashboard" -> DashboardScreen(
                         onNavigateToRegister = { currentScreen = "register" },
-                        onNavigateToUpload = { currentScreen = "upload" },
-                        onNavigateToStreaming = { currentScreen = "streaming" },
-                        onNavigateToEdge = { currentScreen = "edge" }
+                        onNavigateToUpload = { /* Deprecated */ },
+                        onNavigateToStreaming = { currentScreen = "meeting" },
+                        onNavigateToEdge = { currentScreen = "assistant" }
                     )
-                    "upload" -> com.example.whisper_android.presentation.upload.UploadScreen(
+                    "meeting" -> com.example.whisper_android.presentation.meeting.MeetingTranscriberScreen(
                         onNavigateBack = { currentScreen = "dashboard" }
                     )
-                    "streaming" -> com.example.whisper_android.presentation.streaming.StreamingScreen(
-                        onNavigateBack = { currentScreen = "dashboard" }
-                    )
-                    "edge" -> com.example.whisper_android.presentation.edge.EdgeComputingScreen(
+                    "assistant" -> com.example.whisper_android.presentation.assistant.AiAssistantScreen(
                         onNavigateBack = { currentScreen = "dashboard" }
                     )
                 }

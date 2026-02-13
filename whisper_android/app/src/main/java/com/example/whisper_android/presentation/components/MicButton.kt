@@ -58,7 +58,7 @@ fun MicButton(
             isProcessing -> Color(0xFFFF9800) // Orange: Thinking
             isPaused -> Color(0xFFFF9800)     // Orange: Paused
             isRecording -> Color(0xFFEF5350)  // Red: Recording
-            else -> Color(0xFF45B058)        // Green: Idle/Enabled
+            else -> Color(0xFF06B6D4)        // Teal/Cyan: Idle/Active
         }
     }
 
@@ -75,6 +75,20 @@ fun MicButton(
                     .alpha(pulseAlpha)
                     .background(buttonColor.copy(alpha = 0.3f), CircleShape)
             )
+            
+            // Static Glow Layer for High Focus (Red Glow)
+            if (isRecording && !isPaused) {
+                Box(
+                    modifier = Modifier
+                        .size(size * 1.2f)
+                        .background(Color(0xFFEF5350).copy(alpha = 0.2f), CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(size * 1.1f)
+                        .background(Color(0xFFEF5350).copy(alpha = 0.15f), CircleShape)
+                )
+            }
         }
 
         // Main Surface Logic (No gradients, just solid)
