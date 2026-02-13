@@ -1,6 +1,6 @@
 # Teralux App - Root Makefile for Project-Wide Automation
 
-.PHONY: help setup backend-setup dev clean kill test vet
+.PHONY: help setup backend-setup dev clean kill test vet push-local
 
 # Default target
 help:
@@ -50,3 +50,8 @@ test:
 vet:
 	@echo "🔍 Running backend go vet..."
 	@$(MAKE) -C backend vet
+
+# Push local
+push-local:
+	@echo "🚀 Pushing Docker image locally..."
+	@$(MAKE) -C backend push-local TAG=$(TAG)
