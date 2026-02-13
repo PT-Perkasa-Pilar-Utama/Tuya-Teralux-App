@@ -40,10 +40,6 @@ Text: "%s"
 }
 
 func (u *RAGUsecase) Translate(text, targetLang string) (string, error) {
-	return u.translateInternal(text, targetLang)
-}
-
-func (u *RAGUsecase) TranslateAsync(text, targetLang string) (string, error) {
 	taskID := uuid.New().String()
 	u.mu.Lock()
 	u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "pending"}
@@ -58,8 +54,10 @@ func (u *RAGUsecase) TranslateAsync(text, targetLang string) (string, error) {
 		translated, err := u.translateInternal(text, targetLang)
 		u.mu.Lock()
 		if err != nil {
-			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "error", Result: err.Error()}
+			utils.LogError("RAG Translate Task %s: Failed with error: %v", taskID, err)
+			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
 		} else {
+			utils.LogInfo("RAG Translate Task %s: Completed successfully", taskID)
 			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "completed", Result: translated}
 		}
 		status := u.taskStatus[taskID]

@@ -61,10 +61,10 @@ fun SummaryCard(
             }
 
             MarkdownText(
-                markdown = summary,
+                markdown = summary.replace("\n\n\n", "\n\n").replace(Regex("\n{3,}"), "\n\n"),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = Color.White.copy(alpha = 0.9f),
-                    lineHeight = 24.sp
+                    lineHeight = 20.sp
                 ),
                 modifier = Modifier.fillMaxWidth()
             )

@@ -13,7 +13,7 @@ class SummarizeTextUseCase(
         emit(Resource.Loading())
         
         var taskId: String? = null
-        ragRepository.generateSummaryAsync(text, style, null, token).collect { result ->
+        ragRepository.generateSummary(text, style, null, token).collect { result ->
             when (result) {
                 is Resource.Success -> taskId = result.data
                 is Resource.Error -> {

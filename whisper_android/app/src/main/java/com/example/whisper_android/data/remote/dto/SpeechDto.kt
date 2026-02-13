@@ -8,7 +8,8 @@ import com.google.gson.annotations.SerializedName
 data class SpeechResponseDto<T>(
     @SerializedName("status") val status: Boolean,
     @SerializedName("message") val message: String,
-    @SerializedName("data") val data: T? = null
+    @SerializedName("data") val data: T? = null,
+    @SerializedName("details") val details: String? = null
 )
 
 /**
@@ -23,10 +24,13 @@ data class TranscriptionSubmissionData(
  */
 data class TranscriptionStatusWrapper(
     @SerializedName("status") val status: String,
-    @SerializedName("result") val result: TranscriptionResultText? = null
+    @SerializedName("result") val result: TranscriptionResultText? = null,
+    @SerializedName("expires_at") val expiresAt: String? = null,
+    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null
 )
 
 data class TranscriptionResultText(
+    @SerializedName("filename") val filename: String? = null,
     @SerializedName("transcription") val transcription: String,
     @SerializedName("refined_text") val refinedText: String? = null,
     @SerializedName("detected_language") val detectedLanguage: String? = null
@@ -66,6 +70,8 @@ data class RAGSummaryResponseDto(
 data class RAGStatusDto(
     @SerializedName("status") val status: String,
     @SerializedName("result") val result: String? = null,
-    @SerializedName("execution_result") val executionResult: RAGSummaryResponseDto? = null
+    @SerializedName("execution_result") val executionResult: RAGSummaryResponseDto? = null,
+    @SerializedName("expires_at") val expiresAt: String? = null,
+    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null
 )
 

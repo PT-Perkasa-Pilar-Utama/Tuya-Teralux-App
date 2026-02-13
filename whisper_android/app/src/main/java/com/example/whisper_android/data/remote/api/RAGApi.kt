@@ -17,34 +17,20 @@ interface RAGApi {
     suspend fun translate(
         @Body request: RAGRequestDto,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
-    ): SpeechResponseDto<String>
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+    ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @POST("/api/rag/summary")
     suspend fun summary(
         @Body request: RAGSummaryRequestDto,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
-    ): SpeechResponseDto<RAGSummaryResponseDto>
-
-    @POST("/api/rag/translate/async")
-    suspend fun translateAsync(
-        @Body request: RAGRequestDto,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
-    ): SpeechResponseDto<TranscriptionSubmissionData>
-
-    @POST("/api/rag/summary/async")
-    suspend fun summaryAsync(
-        @Body request: RAGSummaryRequestDto,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/rag/{task_id}")
     suspend fun getStatus(
         @Path("task_id") taskId: String,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<RAGStatusDto>
 }

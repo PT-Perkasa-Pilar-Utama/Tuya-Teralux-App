@@ -102,7 +102,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, 
 
 		if err != nil {
 			utils.LogError("Whisper Task %s: Transcription failed: %v", taskID, err)
-			statusDTO.Status = "error"
+			statusDTO.Status = "failed"
 		} else {
 			utils.LogInfo("Whisper Task %s: Transcription completed successfully", taskID)
 		}

@@ -84,7 +84,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 			if r := recover(); r != nil {
 				utils.LogError("RAG Task %s: Panic recovered: %v", taskID, r)
 				u.mu.Lock()
-				u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: fmt.Sprintf("panic: %v", r)}
+					u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "failed", Result: fmt.Sprintf("panic: %v", r)}
 				u.mu.Unlock()
 			}
 		}()
@@ -113,7 +113,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 		if err != nil {
 			utils.LogError("RAG Task %s: Vector search failed: %v", taskID, err)
 			u.mu.Lock()
-			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: err.Error()}
+			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
 			u.mu.Unlock()
 			return
 		}
@@ -199,7 +199,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 		if err != nil {
 			utils.LogError("RAG Task %s: LLM call failed: %v", taskID, err)
 			u.mu.Lock()
-			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "error", Result: err.Error()}
+			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
 			u.mu.Unlock()
 			return
 		}
@@ -225,7 +225,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 			utils.LogError("RAG Task %s: LLM failed to return valid JSON. Raw Response: %s", taskID, resp)
 
 			u.mu.Lock()
-			statusDTO := &ragdtos.RAGStatusDTO{Status: "error", Result: "invalid llm response format"}
+			statusDTO := &ragdtos.RAGStatusDTO{Status: "failed", Result: "invalid llm response format"}
 			u.taskStatus[taskID] = statusDTO
 			u.mu.Unlock()
 			return
@@ -326,7 +326,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 			if strings.Contains(endpoint, "{id}") || strings.Contains(endpoint, "{hub_id}") || deviceID == "{id}" || deviceID == "" {
 				utils.LogError("RAG Task %s: Aborting execution - invalid device ID placeholder detected (Device not found in DB?)", taskID)
 
-				statusDTO.Status = "error"
+				statusDTO.Status = "failed"
 				statusDTO.Result = "Action blocked: Device not identified (Placeholder ID detected). Please sync your devices."
 				// Do not execute
 			} else {

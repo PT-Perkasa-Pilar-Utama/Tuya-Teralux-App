@@ -39,11 +39,13 @@ Transforms a raw transcription into professional meeting minutes using an LLM. I
 ```json
 {
   "status": true,
-  "message": "Summary generated successfully",
-  "data": "# Notulen Rapat: Deployment Plan\n\n## 1. Agenda\nDiskusi jadwal deployment.\n\n## 2. Key Discussion Points\n- Rencana deployment besok pagi.\n\n## 3. Decisions Made\n- Deployment ditetapkan besok jam 09:00.\n\n## 4. Action Items\n- [ ] **Andi/Budi**: Eksekusi deployment."
+  "message": "Summary task queued",
+  "data": {
+    "task_id": "8a5c1c04-2269-4043-b899-64acb1e595ec"
+  }
 }
 ```
-*(Status: 200 OK)*
+*(Status: 202 Accepted)*
 
 ### 2. Generate English Summary from Indonesian Input
 - **Request Body**:
@@ -57,10 +59,13 @@ Transforms a raw transcription into professional meeting minutes using an LLM. I
 ```json
 {
   "status": true,
-  "message": "Summary generated successfully",
-  "data": "# Meeting Minutes\n\n## 1. Agenda\nDiscussion about new features..."
+  "message": "Summary task queued",
+  "data": {
+    "task_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  }
 }
 ```
+*(Status: 202 Accepted)*
 
 ### 3. Validation: Whitespace Only
 - **Method**: `POST`

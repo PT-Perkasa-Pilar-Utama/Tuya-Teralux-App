@@ -119,11 +119,7 @@ Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
 	}, nil
 }
 
-func (u *RAGUsecase) Summary(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
-	return u.summaryInternal(text, language, context, style)
-}
-
-func (u *RAGUsecase) SummaryAsync(text string, language string, context string, style string) (string, error) {
+func (u *RAGUsecase) Summary(text string, language string, context string, style string) (string, error) {
 	taskID := uuid.New().String()
 	u.mu.Lock()
 	u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "pending"}
@@ -138,8 +134,10 @@ func (u *RAGUsecase) SummaryAsync(text string, language string, context string, 
 		result, err := u.summaryInternal(text, language, context, style)
 		u.mu.Lock()
 		if err != nil {
-			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "error", Result: err.Error()}
+			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
+			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
 		} else {
+			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
 			// For summary, we might want to store the structured result as JSON in StatusDTO.Result
 			// or just use ExecutionResult. For consistency with Control, let's use Result as string if possible,
 			// or just store the whole DTO as ExecutionResult.

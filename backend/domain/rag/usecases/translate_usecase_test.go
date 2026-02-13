@@ -1,7 +1,6 @@
 package usecases
 
 import (
-	"errors"
 	"teralux_app/domain/common/utils"
 	"testing"
 )
@@ -31,32 +30,13 @@ func TestRAGUsecase_Translate(t *testing.T) {
 		}
 		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
 
-		got, err := u.Translate("hallo welt", "en")
+		taskID, err := u.Translate("hallo welt", "en")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if got != "Hello World" {
-			t.Errorf("expected 'Hello World', got '%s'", got)
-		}
-
-		if mockLLM.CapturedModel != "test-model-v1" {
-			t.Errorf("expected model 'test-model-v1', got '%s'", mockLLM.CapturedModel)
-		}
-	})
-
-	t.Run("LLM Error", func(t *testing.T) {
-		mockLLM := &mockLLMForTranslate{
-			ReturnError: errors.New("llm failure"),
-		}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
-
-		_, err := u.Translate("fail me", "en")
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if err.Error() != "llm failure" {
-			t.Errorf("expected 'llm failure', got '%v'", err)
+		if taskID == "" {
+			t.Error("expected non-empty taskID")
 		}
 	})
 
@@ -65,9 +45,9 @@ func TestRAGUsecase_Translate(t *testing.T) {
 		mockLLM := &mockLLMForTranslate{}
 		u := NewRAGUsecase(nil, mockLLM, emptyCfg, nil, nil)
 
-		_, _ = u.Translate("test", "en")
-		if mockLLM.CapturedModel != "default" {
-			t.Errorf("expected model 'default', got '%s'", mockLLM.CapturedModel)
+		taskID, _ := u.Translate("test", "en")
+		if taskID == "" {
+			t.Error("expected non-empty taskID")
 		}
 	})
 }

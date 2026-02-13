@@ -33,13 +33,13 @@ Directly translates input text to English using the LLM. Best for short phrases 
 ```json
 {
   "status": true,
-  "message": "Translation successful",
+  "message": "Translation task queued",
   "data": {
-    "translated_text": "turn on the living room lamp"
+    "task_id": "18616e7f-d77e-4b9a-bc7a-8b2ec8cd341e"
   }
 }
 ```
-*(Status: 200 OK)*
+*(Status: 202 Accepted)*
 
 ### 2. Validation: Missing Text
 - **Method**: `POST`

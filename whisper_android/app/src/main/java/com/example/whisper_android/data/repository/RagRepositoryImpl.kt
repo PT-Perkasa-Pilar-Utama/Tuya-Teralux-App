@@ -15,10 +15,10 @@ class RagRepositoryImpl(
     private val api: RAGApi
 ) : RagRepository {
 
-    override suspend fun translateAsync(text: String, targetLang: String, token: String): Flow<Resource<String>> = flow {
+    override suspend fun translate(text: String, targetLang: String, token: String): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
         try {
-            val response = api.translateAsync(
+            val response = api.translate(
                 RAGRequestDto(text = text, language = targetLang),
                 "Bearer $token"
             )
@@ -78,10 +78,10 @@ class RagRepositoryImpl(
         emit(Resource.Error("Translation timed out"))
     }
 
-    override suspend fun generateSummaryAsync(text: String, style: String, context: String?, token: String): Flow<Resource<String>> = flow {
+    override suspend fun generateSummary(text: String, style: String, context: String?, token: String): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
         try {
-            val response = api.summaryAsync(
+            val response = api.summary(
                 RAGSummaryRequestDto(text = text, style = style, context = context),
                 "Bearer $token"
             )

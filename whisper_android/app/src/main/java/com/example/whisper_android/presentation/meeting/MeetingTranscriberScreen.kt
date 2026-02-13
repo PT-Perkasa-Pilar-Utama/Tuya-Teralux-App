@@ -276,11 +276,11 @@ fun MeetingTranscriberScreen(
                                     )
                                     
                                     MarkdownText(
-                                        markdown = state.summary,
+                                        markdown = state.summary.replace("\n\n\n", "\n\n").replace(Regex("\n{3,}"), "\n\n"),
                                         style = MaterialTheme.typography.bodyLarge.copy(
                                             color = Color.DarkGray,
                                             fontSize = 15.sp,
-                                            lineHeight = 22.sp
+                                            lineHeight = 20.sp
                                         ),
                                         modifier = Modifier.fillMaxWidth()
                                     )

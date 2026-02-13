@@ -12,7 +12,7 @@ class TranslateTextUseCase(
         emit(Resource.Loading())
         
         var taskId: String? = null
-        ragRepository.translateAsync(text, targetLang, token).collect { result ->
+        ragRepository.translate(text, targetLang, token).collect { result ->
             when (result) {
                 is Resource.Success -> taskId = result.data
                 is Resource.Error -> {

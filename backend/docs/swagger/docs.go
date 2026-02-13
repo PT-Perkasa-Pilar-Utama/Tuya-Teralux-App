@@ -131,69 +131,6 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Transform a long transcription into professional meeting minutes. Supports target language (id/en), context, and style selection.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. RAG"
-                ],
-                "summary": "Generate meeting minutes summary",
-                "parameters": [
-                    {
-                        "description": "Summary request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.RAGSummaryRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.RAGSummaryResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/rag/summary/async": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Generate meeting minutes summary asynchronously. Returns a Task ID for polling.",
                 "consumes": [
                     "application/json"
@@ -204,7 +141,7 @@ const docTemplate = `{
                 "tags": [
                     "05. RAG"
                 ],
-                "summary": "Generate meeting minutes summary (Async)",
+                "summary": "Generate meeting minutes summary",
                 "parameters": [
                     {
                         "description": "Summary request",
@@ -253,7 +190,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/translate/async": {
+        "/api/rag/translate": {
             "post": {
                 "security": [
                     {
@@ -270,7 +207,7 @@ const docTemplate = `{
                 "tags": [
                     "05. RAG"
                 ],
-                "summary": "Translate text to specified language (Async)",
+                "summary": "Translate text to specified language",
                 "parameters": [
                     {
                         "description": "Translation request",
@@ -1716,17 +1653,6 @@ const docTemplate = `{
                 "text": {
                     "type": "string",
                     "example": "This is a long transcript of a technical meeting..."
-                }
-            }
-        },
-        "dtos.RAGSummaryResponseDTO": {
-            "type": "object",
-            "properties": {
-                "pdf_url": {
-                    "type": "string"
-                },
-                "summary": {
-                    "type": "string"
                 }
             }
         },

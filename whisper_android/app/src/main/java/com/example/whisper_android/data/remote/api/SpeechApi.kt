@@ -17,13 +17,13 @@ interface SpeechApi {
         @Part audio: MultipartBody.Part,
         @Part language: MultipartBody.Part,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/speech/transcribe/{transcribe_id}")
     suspend fun getTranscriptionStatus(
         @Path("transcribe_id") taskId: String,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "teralux-api-key"
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionStatusData>
 }

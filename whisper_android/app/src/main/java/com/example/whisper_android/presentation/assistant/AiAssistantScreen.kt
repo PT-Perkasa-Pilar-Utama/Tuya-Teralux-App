@@ -20,6 +20,9 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import com.example.whisper_android.presentation.components.*
+import com.example.whisper_android.data.di.NetworkModule
+import com.example.whisper_android.domain.repository.Resource
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.sp
@@ -147,17 +150,53 @@ fun AiAssistantScreen(
                                     subtitle = subtitle,
                                     modifier = Modifier.weight(1f), // Equal distribution
                                     onClick = { 
-                                        userInput = title
+                                        val prompt = title
+                                        userInput = ""
+                                        isProcessing = true
+                                        transcriptionResults = transcriptionResults + 
+                                            TranscriptionMessage(prompt, MessageRole.USER)
+                                        
                                         scope.launch {
-                                            val p = title
-                                            userInput = ""
-                                            isProcessing = true
-                                            transcriptionResults = transcriptionResults + 
-                                                TranscriptionMessage(p, MessageRole.USER)
-                                            delay(1500)
-                                            transcriptionResults = transcriptionResults + 
-                                                TranscriptionMessage("Processing meeting intelligence for \"$p\"...", MessageRole.ASSISTANT)
-                                            isProcessing = false
+                                            val token = NetworkModule.tokenManager.getAccessToken() ?: ""
+                                            // For now, using a dummy or previous text if we had it.
+                                            // In a real app, this would use the meeting context.
+                                            val contextText = transcriptionResults.filter { it.role == MessageRole.USER }
+                                                .joinToString("\n") { it.text }
+
+                                            if (title == "Summarize Insight") {
+                                                NetworkModule.summarizeTextUseCase(contextText, "meeting_summary", token).collect { result ->
+                                                    when (result) {
+                                                        is Resource.Loading -> { /* already true */ }
+                                                        is Resource.Success -> {
+                                                            transcriptionResults = transcriptionResults + 
+                                                                TranscriptionMessage(result.data?.summary ?: "No summary generated.", MessageRole.ASSISTANT)
+                                                            isProcessing = false
+                                                        }
+                                                        is Resource.Error -> {
+                                                            transcriptionResults = transcriptionResults + 
+                                                                TranscriptionMessage("Error: ${result.message}", MessageRole.ASSISTANT)
+                                                            isProcessing = false
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                // List Actions might use a specific style
+                                                NetworkModule.summarizeTextUseCase(contextText, "action_items", token).collect { result ->
+                                                    when (result) {
+                                                        is Resource.Loading -> { }
+                                                        is Resource.Success -> {
+                                                            transcriptionResults = transcriptionResults + 
+                                                                TranscriptionMessage(result.data?.summary ?: "No actions identified.", MessageRole.ASSISTANT)
+                                                            isProcessing = false
+                                                        }
+                                                        is Resource.Error -> {
+                                                            transcriptionResults = transcriptionResults + 
+                                                                TranscriptionMessage("Error: ${result.message}", MessageRole.ASSISTANT)
+                                                            isProcessing = false
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 )
@@ -232,13 +271,28 @@ fun AiAssistantScreen(
                             val question = userInput
                             userInput = ""
                             isProcessing = true
+                            transcriptionResults = transcriptionResults + 
+                                TranscriptionMessage(question, MessageRole.USER)
+                                
                             scope.launch {
-                                transcriptionResults = transcriptionResults + 
-                                    TranscriptionMessage(question, MessageRole.USER)
-                                delay(1500)
-                                transcriptionResults = transcriptionResults + 
-                                    TranscriptionMessage("I'm looking into your data for: \"$question\". Here's the most relevant information...", MessageRole.ASSISTANT)
-                                isProcessing = false
+                                val token = NetworkModule.tokenManager.getAccessToken() ?: ""
+                                // Treating a general question as a summary request where the text is the question
+                                // Ideally this would be a 'QA' endpoint, but we'll use Summary for demonstration
+                                NetworkModule.summarizeTextUseCase(question, "qa", token).collect { result ->
+                                    when (result) {
+                                        is Resource.Success -> {
+                                            transcriptionResults = transcriptionResults + 
+                                                TranscriptionMessage(result.data?.summary ?: "I couldn't find an answer.", MessageRole.ASSISTANT)
+                                            isProcessing = false
+                                        }
+                                        is Resource.Error -> {
+                                            transcriptionResults = transcriptionResults + 
+                                                TranscriptionMessage("Error: ${result.message}", MessageRole.ASSISTANT)
+                                            isProcessing = false
+                                        }
+                                        else -> {}
+                                    }
+                                }
                             }
                         }
                     }

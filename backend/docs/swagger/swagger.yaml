@@ -117,13 +117,6 @@ definitions:
     required:
     - text
     type: object
-  dtos.RAGSummaryResponseDTO:
-    properties:
-      pdf_url:
-        type: string
-      summary:
-        type: string
-    type: object
   dtos.RecordingResponseDto:
     properties:
       audio_url:
@@ -442,44 +435,6 @@ paths:
     post:
       consumes:
       - application/json
-      description: Transform a long transcription into professional meeting minutes.
-        Supports target language (id/en), context, and style selection.
-      parameters:
-      - description: Summary request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.RAGSummaryRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.RAGSummaryResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Generate meeting minutes summary
-      tags:
-      - 05. RAG
-  /api/rag/summary/async:
-    post:
-      consumes:
-      - application/json
       description: Generate meeting minutes summary asynchronously. Returns a Task
         ID for polling.
       parameters:
@@ -513,10 +468,10 @@ paths:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Generate meeting minutes summary (Async)
+      summary: Generate meeting minutes summary
       tags:
       - 05. RAG
-  /api/rag/translate/async:
+  /api/rag/translate:
     post:
       consumes:
       - application/json
@@ -553,7 +508,7 @@ paths:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Translate text to specified language (Async)
+      summary: Translate text to specified language
       tags:
       - 05. RAG
   /api/recordings:
