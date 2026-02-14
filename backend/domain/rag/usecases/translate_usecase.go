@@ -56,7 +56,7 @@ Text: "%s"
 		return "", err
 	}
 
-	utils.LogDebug("RAG Translate: original='%s', translated='%s', model='%s', target='%s'", text, translated, model, langName)
+	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, translated, langName)
 	return strings.TrimSpace(translated), nil
 }
 

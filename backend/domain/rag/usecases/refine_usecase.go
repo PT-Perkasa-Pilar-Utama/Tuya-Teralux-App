@@ -61,6 +61,6 @@ Refined English:`, text)
 		return "", err
 	}
 
-	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s', model='%s'", lang, text, refined, model)
+	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, refined)
 	return strings.TrimSpace(refined), nil
 }

@@ -34,12 +34,10 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	translateUC := usecases.NewTranslateUseCase(llmClient, cfg, cache, store)
 	summaryUC := usecases.NewSummaryUseCase(llmClient, cfg, cache, store)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
-	controlUC := usecases.NewControlUseCase(vectorSvc, llmClient, cfg, cache, tuyaAuth, store)
 
 	// Setup Routes
 	routes.SetupRAGRoutes(
 		protected,
-		controllers.NewRAGControlController(controlUC, statusUC, cfg),
 		controllers.NewRAGTranslateController(translateUC),
 		controllers.NewRAGSummaryController(summaryUC),
 		controllers.NewRAGStatusController(statusUC),

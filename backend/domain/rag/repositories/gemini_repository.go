@@ -47,8 +47,8 @@ func (r *GeminiRepository) HealthCheck() bool {
 		return false
 	}
 
-	// Quick test with models endpoint
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s?key=%s", "gemini-pro", r.apiKey)
+	// Quick test with models list endpoint (doesn't require specific model)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", r.apiKey)
 	resp, err := http.Get(url)
 	if err != nil {
 		utils.LogWarn("Gemini HealthCheck failed: %v", err)

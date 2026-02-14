@@ -221,7 +221,7 @@ fun MeetingTranscriberScreen(
                                             downloadPdf(context, state.pdfUrl, "Meeting_Summary_${System.currentTimeMillis()}")
                                         }
                                     },
-                                    modifier = Modifier.height(32.dp),
+                                    modifier = Modifier.height(24.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary
@@ -261,7 +261,7 @@ fun MeetingTranscriberScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp, bottom = 40.dp),
+                            .padding(top = 4.dp, bottom = 16.dp),
                         contentAlignment = if (uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle) 
                                            Alignment.Center else Alignment.TopStart
                     ) {
@@ -325,20 +325,25 @@ fun MeetingTranscriberScreen(
                                         style = MaterialTheme.typography.titleLarge,
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(bottom = 12.dp)
+                                        modifier = Modifier.padding(bottom = 2.dp)
                                     )
                                     
                                     MarkdownText(
-                                        markdown = state.summary.replace("\n\n\n", "\n\n").replace(Regex("\n{3,}"), "\n\n"),
+                                        markdown = state.summary
+                                            .replace(Regex("^-+\\s*$", RegexOption.MULTILINE), "")  // Remove lines with only dashes
+                                            .replace(Regex("^.*–.*$", RegexOption.MULTILINE), "")  // Remove lines with en-dashes
+                                            .replace("\n\n\n", "\n\n")
+                                            .replace(Regex("\n{3,}"), "\n\n")
+                                            .trim(),
                                         style = MaterialTheme.typography.bodyLarge.copy(
                                             color = Color.DarkGray,
-                                            fontSize = 15.sp,
-                                            lineHeight = 20.sp
+                                            fontSize = 13.sp,
+                                            lineHeight = 16.sp
                                         ),
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     
-                                    Spacer(modifier = Modifier.height(32.dp))
+                                    Spacer(modifier = Modifier.height(2.dp))
                                 }
                             }
                             is com.example.whisper_android.domain.usecase.MeetingProcessState.Error -> {
@@ -371,7 +376,7 @@ fun MeetingTranscriberScreen(
                                                 modifier = Modifier.size(56.dp)
                                             )
                                         }
-                                        Spacer(modifier = Modifier.height(24.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             text = when(uiState) {
                                                 com.example.whisper_android.domain.usecase.MeetingProcessState.Uploading -> "Securely Uploading..."
@@ -432,7 +437,7 @@ fun MeetingTranscriberScreen(
                                         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     } else {
                                         // Start Recording
-                                        val file = java.io.File(context.cacheDir, "meeting_audio.m4a")
+                                        val file = java.io.File(context.cacheDir, "meeting_audio.wav")
                                         audioRecorder.start(file)
                                         audioFile = file
                                         isRecording = true
@@ -475,6 +480,9 @@ fun MeetingTranscriberScreen(
                             IconButton(
                                 onClick = { 
                                     audioRecorder.stop()
+                                    audioFile?.let { file ->
+                                        audioRecorder.finalizeWav(file)
+                                    }
                                     isRecording = false
                                     audioFile?.let { file ->
                                         if (token.isNotEmpty()) {
@@ -496,7 +504,12 @@ fun MeetingTranscriberScreen(
 
                         IconButton(
                             onClick = { 
-                                if (isRecording) audioRecorder.stop()
+                                if (isRecording) {
+                                    audioRecorder.stop()
+                                    audioFile?.let { file ->
+                                        audioRecorder.finalizeWav(file)
+                                    }
+                                }
                                 isRecording = false
                                 viewModel.resetState()
                             },

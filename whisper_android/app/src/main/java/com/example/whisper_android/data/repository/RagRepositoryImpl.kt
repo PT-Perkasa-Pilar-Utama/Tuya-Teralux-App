@@ -36,10 +36,7 @@ class RagRepositoryImpl(
 
     override suspend fun pollTranslation(taskId: String, token: String): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
-        var attempts = 0
-        val maxAttempts = 30 // 1 minute
-        
-        while (attempts < maxAttempts) {
+        while (true) {
             try {
                 val response = api.getStatus(taskId, "Bearer $token")
                 val statusData = response.data
@@ -66,16 +63,13 @@ class RagRepositoryImpl(
                     }
                     else -> {
                         delay(2000)
-                        attempts++
                     }
                 }
             } catch (e: Exception) {
-                Log.e("RagRepo", "Polling Translation error (attempt $attempts): ${e.message}")
+                Log.e("RagRepo", "Polling Translation error: ${e.message}")
                 delay(2000)
-                attempts++
             }
         }
-        emit(Resource.Error("Translation timed out"))
     }
 
     override suspend fun generateSummary(text: String, style: String, language: String?, context: String?, token: String): Flow<Resource<String>> = flow {
@@ -99,10 +93,7 @@ class RagRepositoryImpl(
 
     override suspend fun pollSummary(taskId: String, token: String): Flow<Resource<RAGSummaryResponseDto>> = flow {
         emit(Resource.Loading())
-        var attempts = 0
-        val maxAttempts = 60 // 2 minutes
-        
-        while (attempts < maxAttempts) {
+        while (true) {
             try {
                 val response = api.getStatus(taskId, "Bearer $token")
                 val statusData = response.data
@@ -127,15 +118,12 @@ class RagRepositoryImpl(
                     }
                     else -> {
                         delay(2000)
-                        attempts++
                     }
                 }
             } catch (e: Exception) {
-                Log.e("RagRepo", "Polling Summary error (attempt $attempts): ${e.message}")
+                Log.e("RagRepo", "Polling Summary error: ${e.message}")
                 delay(2000)
-                attempts++
             }
         }
-        emit(Resource.Error("Summary timed out"))
     }
 }

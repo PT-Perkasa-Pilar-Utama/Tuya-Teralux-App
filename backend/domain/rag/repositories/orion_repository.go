@@ -30,7 +30,13 @@ func (r *OrionRepository) HealthCheck() bool {
 		return false
 	}
 
-	url := fmt.Sprintf("%s/v1/models", r.baseURL)
+	// Remove trailing slash from baseURL if present
+	baseURL := r.baseURL
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+
+	url := fmt.Sprintf("%s/v1/models", baseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return false
@@ -52,17 +58,38 @@ func (r *OrionRepository) HealthCheck() bool {
 	return true
 }
 
+type orionResponse struct {
+	ID     string        `json:"id"`
+	Output []orionOutput `json:"output"`
+	Status string        `json:"status"`
+}
+
+type orionOutput struct {
+	Type    string         `json:"type"`
+	Content []orionContent `json:"content"`
+}
+
+type orionContent struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
 func (r *OrionRepository) CallModel(prompt string, model string) (string, error) {
 	if r.apiKey == "" {
 		return "", fmt.Errorf("ORION_API_KEY is not configured")
 	}
 
-	if model == "" || model == "default" {
-		model = r.model
+	// Always use Orion's configured model, ignore parameter
+	model = r.model
+
+	// Remove trailing slash from baseURL if present
+	baseURL := r.baseURL
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
 	}
 
-	url := fmt.Sprintf("%s/v1/responses", r.baseURL)
-	
+	url := fmt.Sprintf("%s/v1/responses", baseURL)
+
 	reqBody := map[string]interface{}{
 		"model": model,
 		"input": prompt,
@@ -97,10 +124,21 @@ func (r *OrionRepository) CallModel(prompt string, model string) (string, error)
 		return "", fmt.Errorf("orion api returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	var result string
-	if err := json.Unmarshal(body, &result); err == nil {
-		return result, nil
+	var orionResp orionResponse
+	if err := json.Unmarshal(body, &orionResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal orion response: %w", err)
 	}
 
-	return string(body), nil
+	// Extract text from message output (skip reasoning output)
+	for _, output := range orionResp.Output {
+		if output.Type == "message" {
+			for _, content := range output.Content {
+				if content.Type == "output_text" && content.Text != "" {
+					return content.Text, nil
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("orion api returned no text content")
 }

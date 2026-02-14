@@ -9,7 +9,6 @@ import (
 // SetupRAGRoutes registers RAG endpoints under the protected router group.
 func SetupRAGRoutes(
 	rg *gin.RouterGroup,
-	controlController *controllers.RAGControlController,
 	translateController *controllers.RAGTranslateController,
 	summaryController *controllers.RAGSummaryController,
 	statusController *controllers.RAGStatusController,
@@ -18,7 +17,6 @@ func SetupRAGRoutes(
 	{
 		api.POST("/translate", translateController.Translate)
 		api.POST("/summary", summaryController.Summary)
-		api.POST("/control", controlController.Control)
 		api.GET("/:task_id", statusController.GetStatus)
 	}
 }

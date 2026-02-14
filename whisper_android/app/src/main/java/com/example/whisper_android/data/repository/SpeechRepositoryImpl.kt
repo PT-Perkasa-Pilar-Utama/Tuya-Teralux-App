@@ -20,7 +20,7 @@ class SpeechRepositoryImpl(
     override suspend fun transcribeAudio(file: File, token: String, language: String): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
         try {
-            val requestFile = file.asRequestBody("audio/mp4".toMediaTypeOrNull())
+            val requestFile = file.asRequestBody(getAudioMimeType(file).toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("audio", file.name, requestFile)
             val languageBody = MultipartBody.Part.createFormData("language", language)
             
@@ -37,12 +37,21 @@ class SpeechRepositoryImpl(
         }
     }
 
+    private fun getAudioMimeType(file: File): String {
+        return when (file.extension.lowercase()) {
+            "wav" -> "audio/wav"
+            "mp3" -> "audio/mpeg"
+            "m4a" -> "audio/mp4"
+            "aac" -> "audio/aac"
+            "ogg" -> "audio/ogg"
+            "flac" -> "audio/flac"
+            else -> "application/octet-stream"
+        }
+    }
+
     override suspend fun pollTranscription(taskId: String, token: String): Flow<Resource<TranscriptionResultText>> = flow {
         emit(Resource.Loading())
-        var attempts = 0
-        val maxAttempts = 60 // 2 minutes (2s interval)
-        
-        while (attempts < maxAttempts) {
+        while (true) {
             try {
                 val response = api.getTranscriptionStatus(taskId, "Bearer $token")
                 val statusWrapper = response.data?.taskStatus
@@ -68,16 +77,13 @@ class SpeechRepositoryImpl(
                     else -> {
                         // Pending or Processing, continue polling
                         delay(2000)
-                        attempts++
                     }
                 }
             } catch (e: Exception) {
-                Log.e("SpeechRepo", "Polling error (attempt $attempts): ${e.message}")
+                Log.e("SpeechRepo", "Polling error: ${e.message}")
                 // Retry on error instead of failing immediately
                 delay(2000)
-                attempts++
             }
         }
-        emit(Resource.Error("Transcription timed out"))
     }
 }

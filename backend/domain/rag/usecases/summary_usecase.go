@@ -131,7 +131,7 @@ Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
 
 	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
 
-	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, model='%s', pdf='%s'", language, len(trimmedSummary), model, pdfUrl)
+	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
 	utils.LogDebug("RAG Summary Result: %q", trimmedSummary)
 
 	return &dtos.RAGSummaryResponseDTO{

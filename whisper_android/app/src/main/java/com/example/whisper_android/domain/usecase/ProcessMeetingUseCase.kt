@@ -30,7 +30,7 @@ class ProcessMeetingUseCase(
         
         // 1. Transcribe
         var transcriptionText: String? = null
-        transcribeAudioUseCase(audioFile, token, targetLang.lowercase()).collect { result ->
+        transcribeAudioUseCase(audioFile, token, "id").collect { result ->
             when (result) {
                 is Resource.Loading -> emit(MeetingProcessState.Transcribing)
                 is Resource.Success -> transcriptionText = result.data
