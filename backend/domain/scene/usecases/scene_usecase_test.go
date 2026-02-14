@@ -26,7 +26,7 @@ func TestSceneUsecases(t *testing.T) {
 
 	t.Run("AddScene", func(t *testing.T) {
 		usecase := NewAddSceneUseCase(repo)
-		id, err := usecase.Execute(teraluxID, sceneName, actions)
+		id, err := usecase.AddScene(teraluxID, sceneName, actions)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, id)
 
@@ -38,7 +38,7 @@ func TestSceneUsecases(t *testing.T) {
 
 	t.Run("GetAllScenes", func(t *testing.T) {
 		usecase := NewGetAllScenesUseCase(repo)
-		scenes, err := usecase.Execute(teraluxID)
+		scenes, err := usecase.ListScenes(teraluxID)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, scenes)
 		assert.Equal(t, sceneName, scenes[0].Name)
@@ -51,7 +51,7 @@ func TestSceneUsecases(t *testing.T) {
 
 		usecase := NewUpdateSceneUseCase(repo)
 		newName := "Updated Scene"
-		err := usecase.Execute(teraluxID, id, newName, nil)
+		err := usecase.UpdateScene(teraluxID, id, newName, nil)
 		assert.NoError(t, err)
 
 		// Verify
@@ -64,7 +64,7 @@ func TestSceneUsecases(t *testing.T) {
 		id := scenes[0].ID
 
 		usecase := NewDeleteSceneUseCase(repo)
-		err := usecase.Execute(teraluxID, id)
+		err := usecase.DeleteScene(teraluxID, id)
 		assert.NoError(t, err)
 
 		// Verify

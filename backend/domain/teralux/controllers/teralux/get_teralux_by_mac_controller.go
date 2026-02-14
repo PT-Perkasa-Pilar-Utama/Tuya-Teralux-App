@@ -38,7 +38,7 @@ func (c *GetTeraluxByMACController) GetTeraluxByMAC(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	teralux, err := c.useCase.Execute(mac)
+	teralux, err := c.useCase.GetTeraluxByMAC(mac)
 	if err != nil {
 		// Check if it's a "not found" error
 		if err.Error() == "record not found" || strings.Contains(err.Error(), "not found") {

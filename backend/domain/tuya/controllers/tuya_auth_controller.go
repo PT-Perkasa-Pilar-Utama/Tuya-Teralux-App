@@ -12,11 +12,11 @@ import (
 
 // TuyaAuthController handles authentication requests for Tuya
 type TuyaAuthController struct {
-	useCase *usecases.TuyaAuthUseCase
+	useCase usecases.TuyaAuthUseCase
 }
 
 // NewTuyaAuthController creates a new TuyaAuthController instance
-func NewTuyaAuthController(useCase *usecases.TuyaAuthUseCase) *TuyaAuthController {
+func NewTuyaAuthController(useCase usecases.TuyaAuthUseCase) *TuyaAuthController {
 	return &TuyaAuthController{
 		useCase: useCase,
 	}

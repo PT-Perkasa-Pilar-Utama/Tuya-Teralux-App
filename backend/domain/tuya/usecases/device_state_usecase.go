@@ -11,17 +11,19 @@ import (
 )
 
 // DeviceStateUseCase handles business logic for device state persistence.
-// It manages saving, retrieving, and cleaning up device control states in BadgerDB.
-type DeviceStateUseCase struct {
+type DeviceStateUseCase interface {
+	SaveDeviceState(deviceID string, commands []dtos.DeviceStateCommandDTO) error
+	GetDeviceState(deviceID string) (*dtos.DeviceStateDTO, error)
+	CleanupOrphanedStates(validDeviceIDs []string) error
+}
+
+type deviceStateUseCase struct {
 	cache *infrastructure.BadgerService
 }
 
-// NewDeviceStateUseCase initializes a new DeviceStateUseCase.
-//
-// param cache The BadgerService used for persistent state storage.
-// return *DeviceStateUseCase A pointer to the initialized usecase.
-func NewDeviceStateUseCase(cache *infrastructure.BadgerService) *DeviceStateUseCase {
-	return &DeviceStateUseCase{
+// NewDeviceStateUseCase initializes a new deviceStateUseCase.
+func NewDeviceStateUseCase(cache *infrastructure.BadgerService) DeviceStateUseCase {
+	return &deviceStateUseCase{
 		cache: cache,
 	}
 }
@@ -33,7 +35,7 @@ func NewDeviceStateUseCase(cache *infrastructure.BadgerService) *DeviceStateUseC
 // param deviceID The unique ID of the device.
 // param commands A list of commands representing the device's current state.
 // return error An error if the save operation fails.
-func (uc *DeviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.DeviceStateCommandDTO) error {
+func (uc *deviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.DeviceStateCommandDTO) error {
 	// Retrieve existing state first
 	existingState, err := uc.GetDeviceState(deviceID)
 	if err != nil {
@@ -103,7 +105,7 @@ func (uc *DeviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.D
 // param deviceID The unique ID of the device.
 // return *dtos.DeviceStateDTO The device state, or nil if not found.
 // return error An error if the retrieval operation fails.
-func (uc *DeviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceStateDTO, error) {
+func (uc *deviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceStateDTO, error) {
 	key := fmt.Sprintf("device_state:%s", deviceID)
 
 	// Retrieve from BadgerDB
@@ -154,7 +156,7 @@ func (uc *DeviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceState
 //
 // param validDeviceIDs A list of all currently valid device IDs from Tuya.
 // return error An error if the cleanup operation fails.
-func (uc *DeviceStateUseCase) CleanupOrphanedStates(validDeviceIDs []string) error {
+func (uc *deviceStateUseCase) CleanupOrphanedStates(validDeviceIDs []string) error {
 	// Get all device state keys
 	allStateKeys, err := uc.cache.GetAllKeysWithPrefix("device_state:")
 	if err != nil {

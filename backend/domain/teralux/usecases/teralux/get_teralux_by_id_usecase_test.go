@@ -20,7 +20,7 @@ func TestGetTeraluxByID_UserBehavior(t *testing.T) {
 	// SCENARIO: Device exists.
 	// RES: 200 OK
 	t.Run("Get Teralux By ID (Success)", func(t *testing.T) {
-		res, err := useCase.Execute("t1")
+		res, err := useCase.GetTeraluxByID("t1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -37,7 +37,7 @@ func TestGetTeraluxByID_UserBehavior(t *testing.T) {
 	// SCENARIO: Device does not exist.
 	// RES: 404 Not Found
 	t.Run("Get Teralux By ID (Not Found)", func(t *testing.T) {
-		_, err := useCase.Execute("unknown-id")
+		_, err := useCase.GetTeraluxByID("unknown-id")
 		if err == nil {
 			t.Fatal("Expected error for unknown ID, got nil")
 		}
@@ -51,7 +51,7 @@ func TestGetTeraluxByID_UserBehavior(t *testing.T) {
 	// SCENARIO: ID is not a valid UUID format.
 	// RES: 400 Bad Request
 	t.Run("Validation: Invalid ID Format", func(t *testing.T) {
-		_, err := useCase.Execute("INVALID-FORMAT")
+		_, err := useCase.GetTeraluxByID("INVALID-FORMAT")
 		if err == nil {
 			t.Fatal("Expected error for invalid ID format, got nil")
 		}

@@ -6,8 +6,24 @@ import (
 	"teralux_app/domain/common/utils"
 )
 
-// Refine improves the grammar and clarity of the transcribed text based on the detected language.
-func (u *RAGUsecase) Refine(text string, lang string) (string, error) {
+type RefineUseCase interface {
+	RefineText(text string, lang string) (string, error)
+}
+
+type refineUseCase struct {
+	llm    LLMClient
+	config *utils.Config
+}
+
+func NewRefineUseCase(llm LLMClient, cfg *utils.Config) RefineUseCase {
+	return &refineUseCase{
+		llm:    llm,
+		config: cfg,
+	}
+}
+
+// RefineText improves the grammar and clarity of the transcribed text based on the detected language.
+func (u *refineUseCase) RefineText(text string, lang string) (string, error) {
 	if strings.TrimSpace(text) == "" {
 		return "", nil
 	}

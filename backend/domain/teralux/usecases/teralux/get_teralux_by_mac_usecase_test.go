@@ -18,7 +18,7 @@ func TestGetTeraluxByMAC_UserBehavior(t *testing.T) {
 	// SCENARIO: Device valid mac.
 	// RES: 200 OK
 	t.Run("Get Teralux By MAC (Success)", func(t *testing.T) {
-		res, err := useCase.Execute("AA:BB:CC:11:22:33")
+		res, err := useCase.GetTeraluxByMAC("AA:BB:CC:11:22:33")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -32,7 +32,7 @@ func TestGetTeraluxByMAC_UserBehavior(t *testing.T) {
 	// SCENARIO: MAC does not exist.
 	// RES: 404 Not Found
 	t.Run("Get Teralux By MAC (Not Found)", func(t *testing.T) {
-		_, err := useCase.Execute("XX:YY:ZZ:00:00:00")
+		_, err := useCase.GetTeraluxByMAC("XX:YY:ZZ:00:00:00")
 		if err == nil {
 			t.Fatal("Expected error for unknown MAC, got nil")
 		}
@@ -46,7 +46,7 @@ func TestGetTeraluxByMAC_UserBehavior(t *testing.T) {
 	// SCENARIO: MAC string is invalid.
 	// RES: 400 Bad Request
 	t.Run("Validation: Invalid MAC Format", func(t *testing.T) {
-		_, err := useCase.Execute("INVALID-MAC")
+		_, err := useCase.GetTeraluxByMAC("INVALID-MAC")
 		if err == nil {
 			t.Fatal("Expected error for invalid mac, got nil")
 		}

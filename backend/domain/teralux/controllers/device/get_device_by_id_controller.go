@@ -37,7 +37,7 @@ func (c *GetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 		return
 	}
 
-	device, err := c.useCase.Execute(id)
+	device, err := c.useCase.GetDeviceByID(id)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,

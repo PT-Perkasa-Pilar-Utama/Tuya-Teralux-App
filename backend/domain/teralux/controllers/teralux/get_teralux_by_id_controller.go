@@ -29,7 +29,7 @@ func (c *GetTeraluxByIDController) GetTeraluxByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	// Execute use case (validation happens in use case)
-	teralux, err := c.useCase.Execute(id)
+	teralux, err := c.useCase.GetTeraluxByID(id)
 	if err != nil {
 		// Check if it's a validation error
 		if err.Error() == "Invalid ID format" {

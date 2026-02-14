@@ -24,7 +24,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 			Name: &newName,
 		}
 
-		err := useCase.Execute("t1", req)
+		err := useCase.UpdateTeralux("t1", req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -45,7 +45,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 			RoomID: &newRoom,
 		}
 
-		err := useCase.Execute("t1", req)
+		err := useCase.UpdateTeralux("t1", req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -63,7 +63,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 	t.Run("Update Teralux (Not Found)", func(t *testing.T) {
 		name := "Hack"
 		req := &dtos.UpdateTeraluxRequestDTO{Name: &name}
-		err := useCase.Execute("unknown", req)
+		err := useCase.UpdateTeralux("unknown", req)
 		if err == nil {
 			t.Fatal("Expected error for unknown ID, got nil")
 		}
@@ -79,7 +79,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 	t.Run("Validation: Invalid Room ID", func(t *testing.T) {
 		invalidRoom := "room-999"
 		req := &dtos.UpdateTeraluxRequestDTO{RoomID: &invalidRoom}
-		err := useCase.Execute("t1", req)
+		err := useCase.UpdateTeralux("t1", req)
 		if err == nil {
 			t.Fatal("Expected error for invalid room, got nil")
 		}
@@ -95,7 +95,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 	t.Run("Validation: Empty Name (If Present)", func(t *testing.T) {
 		emptyName := ""
 		req := &dtos.UpdateTeraluxRequestDTO{Name: &emptyName}
-		err := useCase.Execute("t1", req)
+		err := useCase.UpdateTeralux("t1", req)
 		if err == nil {
 			t.Fatal("Expected error for empty name, got nil")
 		}
@@ -115,7 +115,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 		duplicateMac := "MAC-2"
 		req := &dtos.UpdateTeraluxRequestDTO{MacAddress: &duplicateMac}
 
-		err := useCase.Execute("t1", req)
+		err := useCase.UpdateTeralux("t1", req)
 		if err == nil {
 			t.Fatal("Expected error for duplicate MAC, got nil")
 		}

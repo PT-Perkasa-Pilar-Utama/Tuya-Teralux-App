@@ -4,48 +4,56 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	ragUsecases "teralux_app/domain/rag/usecases"
 	speechdtos "teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/repositories"
 	"time"
 )
 
-// WhisperRepositoryInterface defines the methods required from the Whisper repository
-type WhisperRepositoryInterface interface {
+// WhisperCppRepositoryInterface defines the methods for local transcription
+type WhisperCppRepositoryInterface interface {
 	Transcribe(wavPath string, modelPath string, lang string) (string, error)
 	TranscribeFull(wavPath string, modelPath string, lang string) (string, error)
 }
 
+// WhisperOrionRepositoryInterface defines the methods for remote Orion transcription
+type WhisperOrionRepositoryInterface interface {
+	Transcribe(audioPath string, lang string) (string, error)
+}
+
 type TranscribeUseCase interface {
-	Execute(inputPath string, fileName string, language string) (string, error)
+	TranscribeAudio(inputPath string, fileName string, language string) (string, error)
 }
 
 type transcribeUseCase struct {
-	whisperRepo         WhisperRepositoryInterface
-	whisperProxyUsecase *WhisperProxyUsecase
-	ragUsecase          *ragUsecases.RAGUsecase
-	taskRepo            repositories.TranscriptionTaskRepository
+	whisperCpp          WhisperCppRepositoryInterface
+	whisperOrion        WhisperOrionRepositoryInterface
+	whisperProxyUsecase WhisperProxyUsecase
+	refineUC            ragUsecases.RefineUseCase
+	cache               *tasks.BadgerTaskCache
 	config              *utils.Config
 }
 
 func NewTranscribeUseCase(
-	whisperRepo WhisperRepositoryInterface,
-	whisperProxyUsecase *WhisperProxyUsecase,
-	ragUsecase *ragUsecases.RAGUsecase,
-	taskRepo repositories.TranscriptionTaskRepository,
+	whisperCpp WhisperCppRepositoryInterface,
+	whisperOrion WhisperOrionRepositoryInterface,
+	whisperProxyUsecase WhisperProxyUsecase,
+	refineUC ragUsecases.RefineUseCase,
+	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
-		whisperRepo:         whisperRepo,
+		whisperCpp:          whisperCpp,
+		whisperOrion:        whisperOrion,
 		whisperProxyUsecase: whisperProxyUsecase,
-		ragUsecase:          ragUsecase,
-		taskRepo:            taskRepo,
+		refineUC:            refineUC,
+		cache:               cache,
 		config:              config,
 	}
 }
 
-func (uc *transcribeUseCase) Execute(inputPath string, fileName string, language string) (string, error) {
+func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, language string) (string, error) {
 	if _, err := os.Stat(inputPath); err != nil {
 		utils.LogError("Transcribe: Failed to stat audio file: %v", err)
 		return "", fmt.Errorf("audio file not found")
@@ -57,9 +65,8 @@ func (uc *transcribeUseCase) Execute(inputPath string, fileName string, language
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
 
-	if err := uc.taskRepo.SaveShortTask(taskID, status); err != nil {
-		return "", err
-	}
+	// Mark as pending
+	_ = uc.cache.Set(taskID, status)
 
 	utils.LogInfo("Transcribe: Started task %s for file %s", taskID, fileName)
 
@@ -96,7 +103,17 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 		}
 	}
 
-	// Fallback to local
+	// Try Orion Whisper
+	if text == "" && uc.whisperOrion != nil && uc.config.WhisperServerURL != "" {
+		res, err := uc.whisperOrion.Transcribe(inputPath, reqLanguage)
+		if err == nil {
+			text = res
+			lang = reqLanguage
+			usedPath = "Orion Whisper"
+		}
+	}
+
+	// Fallback to local Cpp
 	if text == "" {
 		text, lang, err = uc.transcribeLocal(inputPath)
 		usedPath = "Local Whisper (whisper.cpp)"
@@ -110,7 +127,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	utils.LogInfo("Transcribe Task %s: Finished using %s", taskID, usedPath)
 
 	// Refine (Grammar/Spelling)
-	refined, _ := uc.ragUsecase.Refine(text, lang)
+	refined, _ := uc.refineUC.RefineText(text, lang)
 
 	result := &speechdtos.AsyncTranscriptionResultDTO{
 		Transcription:    text,
@@ -133,7 +150,7 @@ func (uc *transcribeUseCase) transcribeLocal(inputPath string) (string, string, 
 
 	modelPath := uc.config.WhisperModelPath
 
-	text, err := uc.whisperRepo.TranscribeFull(wavPath, modelPath, "id")
+	text, err := uc.whisperCpp.TranscribeFull(wavPath, modelPath, "id")
 	if err != nil {
 		return "", "", fmt.Errorf("transcription failed: %w", err)
 	}
@@ -147,5 +164,5 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 		Result:    result,
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
-	_ = uc.taskRepo.SaveShortTask(taskID, status)
+	_ = uc.cache.SetPreserveTTL(taskID, status)
 }

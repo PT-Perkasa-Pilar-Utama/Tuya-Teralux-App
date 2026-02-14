@@ -4,39 +4,39 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	ragUsecases "teralux_app/domain/rag/usecases"
 	speechdtos "teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/repositories"
 	"time"
 )
 
 type TranscribeWhisperCppUseCase interface {
-	Execute(inputPath string, fileName string, lang string) (string, error)
+	TranscribeWhisperCpp(inputPath string, fileName string, lang string) (string, error)
 }
 
 type transcribeWhisperCppUseCase struct {
-	whisperRepo WhisperRepositoryInterface
-	ragUsecase  *ragUsecases.RAGUsecase
-	taskRepo    repositories.TranscriptionTaskRepository
+	whisperRepo WhisperCppRepositoryInterface
+	refineUC    ragUsecases.RefineUseCase
+	cache       *tasks.BadgerTaskCache
 	config      *utils.Config
 }
 
 func NewTranscribeWhisperCppUseCase(
-	whisperRepo WhisperRepositoryInterface,
-	ragUsecase *ragUsecases.RAGUsecase,
-	taskRepo repositories.TranscriptionTaskRepository,
+	whisperRepo WhisperCppRepositoryInterface,
+	refineUC ragUsecases.RefineUseCase,
+	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
 ) TranscribeWhisperCppUseCase {
 	return &transcribeWhisperCppUseCase{
 		whisperRepo: whisperRepo,
-		ragUsecase:  ragUsecase,
-		taskRepo:    taskRepo,
+		refineUC:    refineUC,
+		cache:       cache,
 		config:      config,
 	}
 }
 
-func (uc *transcribeWhisperCppUseCase) Execute(inputPath string, fileName string, lang string) (string, error) {
+func (uc *transcribeWhisperCppUseCase) TranscribeWhisperCpp(inputPath string, fileName string, lang string) (string, error) {
 	if _, err := os.Stat(inputPath); err != nil {
 		utils.LogError("TranscribeWhisperCpp: Failed to stat audio file: %v", err)
 		return "", fmt.Errorf("audio file not found")
@@ -48,9 +48,7 @@ func (uc *transcribeWhisperCppUseCase) Execute(inputPath string, fileName string
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
 
-	if err := uc.taskRepo.SaveLongTask(taskID, status); err != nil {
-		return "", err
-	}
+	_ = uc.cache.Set(taskID, status)
 
 	utils.LogInfo("TranscribeWhisperCpp: Started task %s for file %s", taskID, fileName)
 
@@ -77,7 +75,7 @@ func (uc *transcribeWhisperCppUseCase) processAsync(taskID string, inputPath str
 	utils.LogInfo("TranscribeWhisperCpp Task %s: Transcription finished", taskID)
 
 	// Refine
-	refined, _ := uc.ragUsecase.Refine(text, lang)
+	refined, _ := uc.refineUC.RefineText(text, lang)
 
 	result := &speechdtos.AsyncTranscriptionLongResultDTO{
 		Transcription:    text,
@@ -114,5 +112,5 @@ func (uc *transcribeWhisperCppUseCase) updateStatus(taskID string, statusStr str
 		Result:    result,
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
-	_ = uc.taskRepo.SaveLongTask(taskID, status)
+	_ = uc.cache.SetPreserveTTL(taskID, status)
 }

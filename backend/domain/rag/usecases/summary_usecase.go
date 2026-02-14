@@ -1,11 +1,11 @@
 package usecases
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"time"
@@ -21,7 +21,27 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
-func (u *RAGUsecase) summaryInternal(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+type SummaryUseCase interface {
+	SummarizeText(text string, language string, context string, style string) (string, error)
+}
+
+type summaryUseCase struct {
+	llm    LLMClient
+	config *utils.Config
+	cache  *tasks.BadgerTaskCache
+	store  *tasks.StatusStore[dtos.RAGStatusDTO]
+}
+
+func NewSummaryUseCase(llm LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) SummaryUseCase {
+	return &summaryUseCase{
+		llm:    llm,
+		config: cfg,
+		cache:  cache,
+		store:  store,
+	}
+}
+
+func (u *summaryUseCase) summaryInternal(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -119,47 +139,36 @@ Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
 	}, nil
 }
 
-func (u *RAGUsecase) Summary(text string, language string, context string, style string) (string, error) {
+func (u *summaryUseCase) SummarizeText(text string, language string, context string, style string) (string, error) {
 	taskID := uuid.New().String()
-	u.mu.Lock()
-	u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "pending"}
-	u.mu.Unlock()
+	status := &dtos.RAGStatusDTO{Status: "pending"}
+	u.store.Set(taskID, status)
 
-	if u.badger != nil {
-		b, _ := json.Marshal(u.taskStatus[taskID])
-		_ = u.badger.Set("rag:task:"+taskID, b)
-	}
+	_ = u.cache.Set(taskID, status)
 
 	go func() {
 		result, err := u.summaryInternal(text, language, context, style)
-		u.mu.Lock()
+		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
-			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
 		} else {
 			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
-			// For summary, we might want to store the structured result as JSON in StatusDTO.Result
-			// or just use ExecutionResult. For consistency with Control, let's use Result as string if possible,
-			// or just store the whole DTO as ExecutionResult.
-			u.taskStatus[taskID] = &dtos.RAGStatusDTO{
+			finalStatus = &dtos.RAGStatusDTO{
 				Status:          "completed",
 				ExecutionResult: result,
-				Result:          result.Summary, // Fallback for simple consumers
+				Result:          result.Summary,
 			}
 		}
-		status := u.taskStatus[taskID]
-		u.mu.Unlock()
-
-		if u.badger != nil {
-			b, _ := json.Marshal(status)
-			_ = u.badger.SetPreserveTTL("rag:task:"+taskID, b)
-		}
+		
+		u.store.Set(taskID, finalStatus)
+		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil
 }
 
-func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error {
+func (u *summaryUseCase) generateProfessionalPDF(summary string, path string) error {
 	cfg := config.NewBuilder().
 		WithPageNumber().
 		WithLeftMargin(15).

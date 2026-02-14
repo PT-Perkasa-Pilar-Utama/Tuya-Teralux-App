@@ -22,7 +22,7 @@ func NewGetTeraluxByIDUseCase(repository *repositories.TeraluxRepository, devRep
 }
 
 // Execute retrieves a teralux by ID with its associated devices
-func (uc *GetTeraluxByIDUseCase) Execute(id string) (*dtos.TeraluxSingleResponseDTO, error) {
+func (uc *GetTeraluxByIDUseCase) GetTeraluxByID(id string) (*dtos.TeraluxSingleResponseDTO, error) {
 	validID := regexp.MustCompile(`^[a-z0-9-]+$`)
 	if !validID.MatchString(id) {
 		return nil, errors.New("Invalid ID format")

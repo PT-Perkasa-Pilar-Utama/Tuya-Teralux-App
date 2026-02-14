@@ -19,7 +19,7 @@ func NewGetTeraluxByMACUseCase(repository *repositories.TeraluxRepository) *GetT
 	}
 }
 
-func (uc *GetTeraluxByMACUseCase) Execute(macAddress string) (*dtos.TeraluxSingleResponseDTO, error) {
+func (uc *GetTeraluxByMACUseCase) GetTeraluxByMAC(macAddress string) (*dtos.TeraluxSingleResponseDTO, error) {
 	validMAC := regexp.MustCompile(`^([0-9a-zA-Z]{2}:){5}[0-9a-zA-Z]{2}$`)
 	if !validMAC.MatchString(macAddress) {
 		return nil, errors.New("Invalid MAC address format")

@@ -6,18 +6,18 @@ import (
 
 // SyncDeviceStatusUseCase synchronizes device status from Tuya to Teralux DB
 type SyncDeviceStatusUseCase struct {
-	getAllDevicesUC *TuyaGetAllDevicesUseCase
+	getAllDevicesUC TuyaGetAllDevicesUseCase
 }
 
 // NewSyncDeviceStatusUseCase creates a new instance of SyncDeviceStatusUseCase
-func NewSyncDeviceStatusUseCase(getAllDevicesUC *TuyaGetAllDevicesUseCase) *SyncDeviceStatusUseCase {
+func NewSyncDeviceStatusUseCase(getAllDevicesUC TuyaGetAllDevicesUseCase) *SyncDeviceStatusUseCase {
 	return &SyncDeviceStatusUseCase{
 		getAllDevicesUC: getAllDevicesUC,
 	}
 }
 
-// Execute synchronizes devices for the given user (Tuya logic) and returns simplified status
-func (uc *SyncDeviceStatusUseCase) Execute(accessToken, userID string) ([]dtos.TuyaSyncDeviceDTO, error) {
+// SyncDeviceStatuses synchronizes devices for the given user (Tuya logic) and returns simplified status
+func (uc *SyncDeviceStatusUseCase) SyncDeviceStatuses(accessToken, userID string) ([]dtos.TuyaSyncDeviceDTO, error) {
 	// 1. Fetch real-time data from Tuya
 	tuyaResp, err := uc.getAllDevicesUC.GetAllDevices(accessToken, userID, 1, 100, "")
 	if err != nil {

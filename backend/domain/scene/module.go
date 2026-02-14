@@ -5,16 +5,21 @@ import (
 	"teralux_app/domain/scene/controllers"
 	"teralux_app/domain/scene/repositories"
 	"teralux_app/domain/scene/usecases"
+	tuyaUsecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type SceneModule struct {
-	Controller *controllers.SceneController
+	AddController     *controllers.SceneAddController
+	ListController    *controllers.SceneListController
+	UpdateController  *controllers.SceneUpdateController
+	DeleteController  *controllers.SceneDeleteController
+	ControlController *controllers.SceneControlController
 }
 
-func NewSceneModule(db *gorm.DB, tuyaCmd controllers.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) *SceneModule {
+func NewSceneModule(db *gorm.DB, tuyaCmd tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) *SceneModule {
 	repo := repositories.NewSceneRepository(db)
 
 	addUC := usecases.NewAddSceneUseCase(repo)
@@ -23,20 +28,22 @@ func NewSceneModule(db *gorm.DB, tuyaCmd controllers.TuyaDeviceControlExecutor, 
 	getAllUC := usecases.NewGetAllScenesUseCase(repo)
 	controlUC := usecases.NewControlSceneUseCase(repo, tuyaCmd, mqttSvc)
 
-	controller := controllers.NewSceneController(addUC, updateUC, deleteUC, getAllUC, controlUC)
-
 	return &SceneModule{
-		Controller: controller,
+		AddController:     controllers.NewSceneAddController(addUC),
+		ListController:    controllers.NewSceneListController(getAllUC),
+		UpdateController:  controllers.NewSceneUpdateController(updateUC),
+		DeleteController:  controllers.NewSceneDeleteController(deleteUC),
+		ControlController: controllers.NewSceneControlController(controlUC),
 	}
 }
 
 func (m *SceneModule) RegisterRoutes(protected *gin.RouterGroup) {
 	group := protected.Group("/api/teralux/:id/scenes")
 	{
-		group.POST("", m.Controller.AddScene)
-		group.GET("", m.Controller.GetAllScenes)
-		group.PUT("/:scene_id", m.Controller.UpdateScene)
-		group.DELETE("/:scene_id", m.Controller.DeleteScene)
-		group.GET("/:scene_id/control", m.Controller.ControlScene)
+		group.POST("", m.AddController.AddScene)
+		group.GET("", m.ListController.ListScenes)
+		group.PUT("/:scene_id", m.UpdateController.UpdateScene)
+		group.DELETE("/:scene_id", m.DeleteController.DeleteScene)
+		group.GET("/:scene_id/control", m.ControlController.ControlScene)
 	}
 }

@@ -18,7 +18,7 @@ func NewGetAllDeviceStatusesUseCase(repository *repositories.DeviceStatusReposit
 }
 
 // Execute retrieves all device statuses
-func (uc *GetAllDeviceStatusesUseCase) Execute(page, limit int) (*dtos.DeviceStatusListResponseDTO, error) {
+func (uc *GetAllDeviceStatusesUseCase) ListDeviceStatuses(page, limit int) (*dtos.DeviceStatusListResponseDTO, error) {
 	// Prepare Pagination
 	if page <= 0 {
 		page = 1

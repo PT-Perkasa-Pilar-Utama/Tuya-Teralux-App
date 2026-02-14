@@ -39,7 +39,7 @@ func (c *UpdateTeraluxController) UpdateTeralux(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	err := c.useCase.Execute(id, &req)
+	err := c.useCase.UpdateTeralux(id, &req)
 	if err != nil {
 		if valErr, ok := err.(*utils.ValidationError); ok {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{

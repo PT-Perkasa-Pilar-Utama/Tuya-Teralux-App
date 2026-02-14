@@ -18,7 +18,7 @@ func NewGetAllTeraluxUseCase(repository *repositories.TeraluxRepository) *GetAll
 }
 
 // Execute retrieves all teralux records
-func (uc *GetAllTeraluxUseCase) Execute(filter *dtos.TeraluxFilterDTO) (*dtos.TeraluxListResponseDTO, error) {
+func (uc *GetAllTeraluxUseCase) ListTeralux(filter *dtos.TeraluxFilterDTO) (*dtos.TeraluxListResponseDTO, error) {
 	// Prepare Pagination & Filter
 	page := 1
 	limit := 0

@@ -6,7 +6,7 @@ import (
 )
 
 type GetRecordingByIDUseCase interface {
-	Execute(id string) (*dtos.RecordingResponseDto, error)
+	GetRecordingByID(id string) (*dtos.RecordingResponseDto, error)
 }
 
 type getRecordingByIDUseCase struct {
@@ -17,7 +17,7 @@ func NewGetRecordingByIDUseCase(repo repositories.RecordingRepository) GetRecord
 	return &getRecordingByIDUseCase{repo: repo}
 }
 
-func (uc *getRecordingByIDUseCase) Execute(id string) (*dtos.RecordingResponseDto, error) {
+func (uc *getRecordingByIDUseCase) GetRecordingByID(id string) (*dtos.RecordingResponseDto, error) {
 	recording, err := uc.repo.GetByID(id)
 	if err != nil {
 		return nil, err

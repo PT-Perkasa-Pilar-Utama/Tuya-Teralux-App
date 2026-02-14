@@ -11,7 +11,7 @@ import (
 
 // TuyaDeviceControlExecutor defines the interface for Tuya device control operations
 type TuyaDeviceControlExecutor interface {
-	SendCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error)
+	SendSwitchCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error)
 	SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error)
 }
 
@@ -32,7 +32,7 @@ func NewUpdateDeviceStatusUseCase(repo *repositories.DeviceStatusRepository, dev
 }
 
 // Execute updates a device status
-func (uc *UpdateDeviceStatusUseCase) Execute(deviceID string, req *dtos.UpdateDeviceStatusRequestDTO, accessToken string) error {
+func (uc *UpdateDeviceStatusUseCase) UpdateDeviceStatus(deviceID string, req *dtos.UpdateDeviceStatusRequestDTO, accessToken string) error {
 	// Check device existence
 	_, err := uc.devRepo.GetByID(deviceID)
 	if err != nil {
@@ -84,7 +84,7 @@ func (uc *UpdateDeviceStatusUseCase) Execute(deviceID string, req *dtos.UpdateDe
 			Code:  req.Code,
 			Value: req.Value,
 		}
-		success, err := uc.tuyaCmd.SendCommand(accessToken, deviceID, []tuya_dtos.TuyaCommandDTO{cmd})
+		success, err := uc.tuyaCmd.SendSwitchCommand(accessToken, deviceID, []tuya_dtos.TuyaCommandDTO{cmd})
 		if err != nil {
 			return fmt.Errorf("failed to send command: %w", err)
 		}

@@ -2,67 +2,70 @@ package usecases_test
 
 import (
 	"teralux_app/domain/common/utils"
-	ragUsecases "teralux_app/domain/rag/usecases"
-	speechdtos "teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/repositories"
 	"teralux_app/domain/speech/usecases"
 	"testing"
 )
 
-// MockWhisperRepository is a mock implementation of WhisperRepositoryInterface
-type MockWhisperRepository struct {
+// MockWhisperCppRepository is a mock implementation of WhisperCppRepositoryInterface
+type MockWhisperCppRepository struct {
 	TranscribeFunc     func(wavPath string, modelPath string, lang string) (string, error)
 	TranscribeFullFunc func(wavPath string, modelPath string, lang string) (string, error)
 }
 
-func (m *MockWhisperRepository) Transcribe(wavPath string, modelPath string, lang string) (string, error) {
+func (m *MockWhisperCppRepository) Transcribe(wavPath string, modelPath string, lang string) (string, error) {
 	if m.TranscribeFunc != nil {
 		return m.TranscribeFunc(wavPath, modelPath, lang)
 	}
 	return "", nil
 }
 
-func (m *MockWhisperRepository) TranscribeFull(wavPath string, modelPath string, lang string) (string, error) {
+func (m *MockWhisperCppRepository) TranscribeFull(wavPath string, modelPath string, lang string) (string, error) {
 	if m.TranscribeFullFunc != nil {
 		return m.TranscribeFullFunc(wavPath, modelPath, lang)
 	}
 	return "", nil
 }
 
-// MockTranscriptionTaskRepository is a mock
-type MockTranscriptionTaskRepository struct {
-	repositories.TranscriptionTaskRepository
-	SaveShortTaskFunc func(taskID string, status *speechdtos.AsyncTranscriptionStatusDTO) error
-	SaveLongTaskFunc  func(taskID string, status *speechdtos.AsyncTranscriptionLongStatusDTO) error
+// MockWhisperOrionRepository is a mock implementation of WhisperOrionRepositoryInterface
+type MockWhisperOrionRepository struct {
+	TranscribeFunc func(audioPath string, lang string) (string, error)
 }
 
-func (m *MockTranscriptionTaskRepository) SaveShortTask(taskID string, status *speechdtos.AsyncTranscriptionStatusDTO) error {
-	if m.SaveShortTaskFunc != nil {
-		return m.SaveShortTaskFunc(taskID, status)
+func (m *MockWhisperOrionRepository) Transcribe(audioPath string, lang string) (string, error) {
+	if m.TranscribeFunc != nil {
+		return m.TranscribeFunc(audioPath, lang)
 	}
-	return nil
+	return "", nil
 }
 
-func (m *MockTranscriptionTaskRepository) SaveLongTask(taskID string, status *speechdtos.AsyncTranscriptionLongStatusDTO) error {
-	if m.SaveLongTaskFunc != nil {
-		return m.SaveLongTaskFunc(taskID, status)
+// TranscriptionTaskRepository mocks removed as it's deprecated.
+
+
+// MockRefineUseCase is a mock implementation of RefineUseCase interface
+type MockRefineUseCase struct {
+	RefineTextFunc func(text string, lang string) (string, error)
+}
+
+func (m *MockRefineUseCase) RefineText(text string, lang string) (string, error) {
+	if m.RefineTextFunc != nil {
+		return m.RefineTextFunc(text, lang)
 	}
-	return nil
+	return text, nil
 }
-
 
 func TestNewTranscribeUseCase(t *testing.T) {
 	cfg := &utils.Config{
 		WhisperModelPath: "test_model",
 	}
-	whisperRepo := repositories.NewWhisperRepository(cfg)
-	taskRepo := &MockTranscriptionTaskRepository{}
+	cppRepo := &MockWhisperCppRepository{}
+	orionRepo := &MockWhisperOrionRepository{}
 
 	uc := usecases.NewTranscribeUseCase(
-		whisperRepo, 
+		cppRepo,
+		orionRepo,
 		nil,
-		&ragUsecases.RAGUsecase{},
-		taskRepo,
+		&MockRefineUseCase{},
+		nil,
 		cfg,
 	)
 	if uc == nil {
@@ -74,13 +77,12 @@ func TestNewTranscribeWhisperCppUseCase(t *testing.T) {
 	cfg := &utils.Config{
 		WhisperModelPath: "test_model",
 	}
-	whisperRepo := repositories.NewWhisperRepository(cfg)
-	taskRepo := &MockTranscriptionTaskRepository{}
+	cppRepo := &MockWhisperCppRepository{}
 
 	uc := usecases.NewTranscribeWhisperCppUseCase(
-		whisperRepo, 
-		&ragUsecases.RAGUsecase{},
-		taskRepo,
+		cppRepo, 
+		&MockRefineUseCase{},
+		nil,
 		cfg,
 	)
 	if uc == nil {
@@ -94,11 +96,10 @@ func TestTranscribeWhisperCppUseCase_Execute(t *testing.T) {
 	}
 
 	t.Run("File Not Found", func(t *testing.T) {
-		mockRepo := &MockWhisperRepository{}
-		taskRepo := &MockTranscriptionTaskRepository{}
-		uc := usecases.NewTranscribeWhisperCppUseCase(mockRepo, nil, taskRepo, cfg)
+		mockRepo := &MockWhisperCppRepository{}
+		uc := usecases.NewTranscribeWhisperCppUseCase(mockRepo, nil, nil, cfg)
 
-		_, err := uc.Execute("non_existent.mp3", "id", "en") // fileName, lang
+		_, err := uc.TranscribeWhisperCpp("non_existent.mp3", "id", "en") // fileName, lang
 		if err == nil {
 			t.Error("Expected error for non-existent file, got nil")
 		}

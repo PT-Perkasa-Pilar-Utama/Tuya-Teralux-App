@@ -76,7 +76,7 @@ func createTestFileHeader() (*multipart.FileHeader, error) {
 	return header, err
 }
 
-func TestSaveRecordingUseCase_Execute(t *testing.T) {
+func TestSaveRecordingUseCase_SaveRecording(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockRepo := new(MockRecordingRepository)
 		mockFileService := new(MockFileService)
@@ -92,7 +92,7 @@ func TestSaveRecordingUseCase_Execute(t *testing.T) {
 		// Mock Repository expectations
 		mockRepo.On("Save", mock.AnythingOfType("*entities.Recording")).Return(nil)
 
-		recording, err := uc.Execute(fileHeader)
+		recording, err := uc.SaveRecording(fileHeader)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, recording)
@@ -113,7 +113,7 @@ func TestSaveRecordingUseCase_Execute(t *testing.T) {
 
 		mockFileService.On("SaveUploadedFile", fileHeader, mock.AnythingOfType("string")).Return(errors.New("disk full"))
 
-		recording, err := uc.Execute(fileHeader)
+		recording, err := uc.SaveRecording(fileHeader)
 
 		assert.Error(t, err)
 		assert.Nil(t, recording)
@@ -133,7 +133,7 @@ func TestSaveRecordingUseCase_Execute(t *testing.T) {
 		mockFileService.On("SaveUploadedFile", fileHeader, mock.AnythingOfType("string")).Return(nil)
 		mockRepo.On("Save", mock.AnythingOfType("*entities.Recording")).Return(errors.New("db error"))
 
-		recording, err := uc.Execute(fileHeader)
+		recording, err := uc.SaveRecording(fileHeader)
 
 		assert.Error(t, err)
 		assert.Nil(t, recording)

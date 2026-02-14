@@ -60,7 +60,7 @@ func (ctrl *SyncDeviceStatusController) SyncStatus(c *gin.Context) {
 	}
 
 	// 3. Execute Sync
-	resp, err := ctrl.useCase.Execute(accessToken, uid)
+	resp, err := ctrl.useCase.SyncDeviceStatuses(accessToken, uid)
 	if err != nil {
 		utils.LogError("Failed to sync device status: %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{

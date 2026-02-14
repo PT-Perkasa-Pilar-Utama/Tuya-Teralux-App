@@ -20,7 +20,7 @@ func NewUpdateDeviceUseCase(repository *repositories.DeviceRepository) *UpdateDe
 }
 
 // Execute updates a device
-func (uc *UpdateDeviceUseCase) Execute(id string, req *dtos.UpdateDeviceRequestDTO) error {
+func (uc *UpdateDeviceUseCase) UpdateDevice(id string, req *dtos.UpdateDeviceRequestDTO) error {
 	// First check if device exists
 	device, err := uc.repository.GetByID(id)
 	if err != nil {

@@ -60,7 +60,7 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 			RoomID:     "room-101",
 		}
 
-		res, _, err := useCase.Execute(req)
+		res, _, err := useCase.CreateTeralux(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -80,7 +80,7 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 			RoomID:     "",
 		}
 
-		_, _, err := useCase.Execute(req)
+		_, _, err := useCase.CreateTeralux(req)
 		if err == nil {
 			t.Fatal("Expected error for empty fields, got nil")
 		}
@@ -109,7 +109,7 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 			RoomID:     "room-1",
 		}
 
-		_, _, err := useCase.Execute(req)
+		_, _, err := useCase.CreateTeralux(req)
 		if err == nil {
 			t.Fatal("Expected error for invalid mac, got nil")
 		}
@@ -141,7 +141,7 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 			RoomID:     "room-101",
 		}
 
-		_, _, err := useCase.Execute(req)
+		_, _, err := useCase.CreateTeralux(req)
 		if err == nil {
 			t.Fatal("Expected error for long name, got nil")
 		}
@@ -174,7 +174,7 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 			RoomID:     "room-102",
 		}
 
-		res, _, err := useCase.Execute(req)
+		res, _, err := useCase.CreateTeralux(req)
 		if err != nil {
 			t.Fatalf("Expected no error for duplicate MAC (idempotent), got: %v", err)
 		}

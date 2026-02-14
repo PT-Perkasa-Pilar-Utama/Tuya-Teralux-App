@@ -49,7 +49,7 @@ func NewCreateDeviceUseCase(
 }
 
 // Execute creates a new device record with automated status fetching from Tuya
-func (uc *CreateDeviceUseCase) Execute(req *dtos.CreateDeviceRequestDTO) (*dtos.CreateDeviceResponseDTO, bool, error) {
+func (uc *CreateDeviceUseCase) CreateDevice(req *dtos.CreateDeviceRequestDTO) (*dtos.CreateDeviceResponseDTO, bool, error) {
 	// Validation
 	var details []utils.ValidationErrorDetail
 	if req.Name == "" {

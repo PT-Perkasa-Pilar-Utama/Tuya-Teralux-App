@@ -21,9 +21,13 @@ type Config struct {
 
 	// Speech / RAG
 	LLMProvider             string // "ollama", "gemini"
-	LLMBaseURL              string
 	LLMApiKey               string
 	LLMModel                string
+	
+	OrionBaseURL            string
+	OrionApiKey             string
+	OrionModel              string
+
 	WhisperServerURL        string
 	WhisperModelPath        string
 	OutsystemsTranscribeURL string
@@ -93,9 +97,13 @@ func LoadConfig() {
 		CacheTTL:                  os.Getenv("CACHE_TTL"),
 
 		LLMProvider:             os.Getenv("LLM_PROVIDER"),
-		LLMBaseURL:              os.Getenv("LLM_BASE_URL"),
 		LLMApiKey:               os.Getenv("LLM_API_KEY"),
 		LLMModel:                os.Getenv("LLM_MODEL"),
+		
+		OrionBaseURL:            os.Getenv("ORION_BASE_URL"),
+		OrionApiKey:             os.Getenv("ORION_API_KEY"),
+		OrionModel:              os.Getenv("ORION_MODEL"),
+
 		WhisperServerURL:        os.Getenv("WHISPER_SERVER_URL"),
 		WhisperModelPath:        os.Getenv("WHISPER_MODEL_PATH"),
 		OutsystemsTranscribeURL: os.Getenv("OUTSYSTEMS_TRANSCRIBE_URL"),

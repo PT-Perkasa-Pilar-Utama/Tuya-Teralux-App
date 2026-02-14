@@ -17,7 +17,7 @@ func TestGetDeviceByIDUseCase_UserBehavior(t *testing.T) {
 	// SCENARIO: Device exists.
 	// RES: 200 OK
 	t.Run("Get Device By ID (Success)", func(t *testing.T) {
-		res, err := useCase.Execute("dev-1")
+		res, err := useCase.GetDeviceByID("dev-1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -34,7 +34,7 @@ func TestGetDeviceByIDUseCase_UserBehavior(t *testing.T) {
 	// SCENARIO: Device does not exist.
 	// RES: 404 Not Found
 	t.Run("Get Device By ID (Not Found)", func(t *testing.T) {
-		_, err := useCase.Execute("dev-unknown")
+		_, err := useCase.GetDeviceByID("dev-unknown")
 		if err == nil {
 			t.Fatal("Expected error for unknown ID, got nil")
 		}

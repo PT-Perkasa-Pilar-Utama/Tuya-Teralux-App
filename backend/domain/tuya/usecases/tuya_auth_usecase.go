@@ -13,9 +13,14 @@ import (
 	"time"
 )
 
-// TuyaAuthUseCase handles the core business logic for Tuya API authentication.
+type TuyaAuthUseCase interface {
+	Authenticate() (*dtos.TuyaAuthResponseDTO, error)
+	GetTuyaAccessToken() (string, error)
+}
+
+// tuyaAuthUseCase handles the core business logic for Tuya API authentication.
 // It orchestrates signature generation, timestamp creation, and service interaction.
-type TuyaAuthUseCase struct {
+type tuyaAuthUseCase struct {
 	service         *services.TuyaAuthService
 	tokenCache      string
 	tokenExpiry     time.Time
@@ -25,9 +30,9 @@ type TuyaAuthUseCase struct {
 // NewTuyaAuthUseCase creates a new instance of TuyaAuthUseCase.
 //
 // param service The TuyaAuthService used to perform the actual HTTP requests.
-// return *TuyaAuthUseCase A pointer to the initialized usecase.
-func NewTuyaAuthUseCase(service *services.TuyaAuthService) *TuyaAuthUseCase {
-	return &TuyaAuthUseCase{
+// return TuyaAuthUseCase The initialized usecase interface.
+func NewTuyaAuthUseCase(service *services.TuyaAuthService) TuyaAuthUseCase {
+	return &tuyaAuthUseCase{
 		service: service,
 	}
 }
@@ -47,7 +52,7 @@ func NewTuyaAuthUseCase(service *services.TuyaAuthService) *TuyaAuthUseCase {
 // return *dtos.TuyaAuthResponseDTO The data transfer object containing the access token, refresh token, and expiration time.
 // return error An error if configuration is missing, signature generation fails, or the API call returns an error.
 // @throws error if the API returns a non-success status code (e.g., invalid client ID).
-func (uc *TuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
+func (uc *tuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
 	// Get config
 	config := utils.GetConfig()
 
@@ -123,7 +128,7 @@ func (uc *TuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
 }
 
 // GetTuyaAccessToken returns a valid Tuya access token, using cache or fetching a new one if needed.
-func (uc *TuyaAuthUseCase) GetTuyaAccessToken() (string, error) {
+func (uc *tuyaAuthUseCase) GetTuyaAccessToken() (string, error) {
 	uc.tokenCacheMutex.RLock()
 	if uc.tokenCache != "" && time.Now().Before(uc.tokenExpiry) {
 		token := uc.tokenCache

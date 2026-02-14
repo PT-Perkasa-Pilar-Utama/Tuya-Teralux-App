@@ -17,7 +17,7 @@ func TestGetAllTeralux_UserBehavior(t *testing.T) {
 	// RES: 200 OK
 	t.Run("Get All Teralux (Success - Empty List)", func(t *testing.T) {
 		filter := &dtos.TeraluxFilterDTO{Page: 1, Limit: 10}
-		res, err := useCase.Execute(filter)
+		res, err := useCase.ListTeralux(filter)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -43,7 +43,7 @@ func TestGetAllTeralux_UserBehavior(t *testing.T) {
 	// RES: 200 OK
 	t.Run("Get All Teralux (Success - With Data)", func(t *testing.T) {
 		filter := &dtos.TeraluxFilterDTO{Page: 1, Limit: 10}
-		res, err := useCase.Execute(filter)
+		res, err := useCase.ListTeralux(filter)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -63,7 +63,7 @@ func TestGetAllTeralux_UserBehavior(t *testing.T) {
 	// RES: 200 OK
 	t.Run("Pagination: Limit and Page", func(t *testing.T) {
 		filter := &dtos.TeraluxFilterDTO{Page: 2, Limit: 5}
-		res, err := useCase.Execute(filter)
+		res, err := useCase.ListTeralux(filter)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -89,7 +89,7 @@ func TestGetAllTeralux_UserBehavior(t *testing.T) {
 		// Only t1 has room r1.
 		roomID := "r1"
 		filter := &dtos.TeraluxFilterDTO{Page: 1, Limit: 10, RoomID: &roomID}
-		res, err := useCase.Execute(filter)
+		res, err := useCase.ListTeralux(filter)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}

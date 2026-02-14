@@ -18,7 +18,7 @@ func NewGetDeviceByIDUseCase(repository *repositories.DeviceRepository) *GetDevi
 }
 
 // Execute retrieves a device by ID
-func (uc *GetDeviceByIDUseCase) Execute(id string) (*dtos.DeviceSingleResponseDTO, error) {
+func (uc *GetDeviceByIDUseCase) GetDeviceByID(id string) (*dtos.DeviceSingleResponseDTO, error) {
 	device, err := uc.repository.GetByID(id)
 	if err != nil {
 		return nil, err

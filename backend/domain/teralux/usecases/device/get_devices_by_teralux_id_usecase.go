@@ -21,7 +21,7 @@ func NewGetDevicesByTeraluxIDUseCase(repository *repositories.DeviceRepository, 
 }
 
 // Execute retrieves device records by teralux ID
-func (uc *GetDevicesByTeraluxIDUseCase) Execute(teraluxID string, page, limit int) (*dtos.DeviceListResponseDTO, error) {
+func (uc *GetDevicesByTeraluxIDUseCase) ListDevicesByTeraluxID(teraluxID string, page, limit int) (*dtos.DeviceListResponseDTO, error) {
 	// 1. Check if Teralux ID exists
 	_, err := uc.teraluxRepo.GetByID(teraluxID)
 	if err != nil {

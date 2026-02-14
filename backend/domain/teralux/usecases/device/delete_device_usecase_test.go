@@ -51,7 +51,7 @@ func TestDeleteDeviceUseCase_UserBehavior(t *testing.T) {
 	// SCENARIO: Device exists.
 	// RES: 200 OK
 	t.Run("Delete Device (Success)", func(t *testing.T) {
-		err := useCase.Execute("dev-1")
+		err := useCase.DeleteDevice("dev-1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -68,7 +68,7 @@ func TestDeleteDeviceUseCase_UserBehavior(t *testing.T) {
 	// SCENARIO: Device does not exist.
 	// RES: 404 Not Found
 	t.Run("Delete Device (Not Found)", func(t *testing.T) {
-		err := useCase.Execute("dev-999")
+		err := useCase.DeleteDevice("dev-999")
 		if err == nil {
 			t.Fatal("Expected error for unknown ID, got nil")
 		}
@@ -82,7 +82,7 @@ func TestDeleteDeviceUseCase_UserBehavior(t *testing.T) {
 	// SCENARIO: Invalid UUID/ID format.
 	// RES: 400 Bad Request
 	t.Run("Validation: Invalid ID Format", func(t *testing.T) {
-		err := useCase.Execute("INVALID")
+		err := useCase.DeleteDevice("INVALID")
 		if err == nil {
 			t.Fatal("Expected error for invalid ID, got nil")
 		}

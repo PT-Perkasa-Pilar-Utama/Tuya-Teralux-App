@@ -47,7 +47,7 @@ type TeraluxModule struct {
 func NewTeraluxModule(
 	badger *infrastructure.BadgerService,
 	deviceRepository *repositories.DeviceRepository,
-	tuyaAuthUC *tuya_usecases.TuyaAuthUseCase,
+	tuyaAuthUC tuya_usecases.TuyaAuthUseCase,
 	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
 	tuyaDeviceControlUC device_status_usecases.TuyaDeviceControlExecutor,
 ) *TeraluxModule {

@@ -13,6 +13,6 @@ func NewGetAllScenesUseCase(repo *repositories.SceneRepository) *GetAllScenesUse
 	return &GetAllScenesUseCase{repo: repo}
 }
 
-func (u *GetAllScenesUseCase) Execute(teraluxID string) ([]entities.Scene, error) {
+func (u *GetAllScenesUseCase) ListScenes(teraluxID string) ([]entities.Scene, error) {
 	return u.repo.GetAll(teraluxID)
 }

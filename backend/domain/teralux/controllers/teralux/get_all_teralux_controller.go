@@ -33,7 +33,7 @@ func (c *GetAllTeraluxController) GetAllTeralux(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	teraluxList, err := c.useCase.Execute(&filter)
+	teraluxList, err := c.useCase.ListTeralux(&filter)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,

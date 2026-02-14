@@ -29,7 +29,7 @@ func NewDeleteDeviceUseCase(
 }
 
 // Execute deletes a device by ID and its associated statuses
-func (uc *DeleteDeviceUseCase) Execute(id string) error {
+func (uc *DeleteDeviceUseCase) DeleteDevice(id string) error {
 	// Validation: Invalid ID Format
 	validID := regexp.MustCompile(`^[a-z0-9-]+$`)
 	if !validID.MatchString(id) {

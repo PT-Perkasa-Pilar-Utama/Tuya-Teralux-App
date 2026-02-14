@@ -10,7 +10,7 @@ import (
 
 // TuyaDeviceControlExecutor defines the interface for controlling Tuya devices
 type TuyaDeviceControlExecutor interface {
-	SendCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error)
+	SendSwitchCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error)
 	SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error)
 }
 
@@ -32,7 +32,7 @@ func NewControlSceneUseCase(
 	}
 }
 
-func (u *ControlSceneUseCase) Execute(teraluxID, id, accessToken string) error {
+func (u *ControlSceneUseCase) ControlScene(teraluxID, id, accessToken string) error {
 	scene, err := u.repo.GetByID(teraluxID, id)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (u *ControlSceneUseCase) Execute(teraluxID, id, accessToken string) error {
 					Code:  action.Code,
 					Value: action.Value,
 				}
-				_, err := u.tuyaCmd.SendCommand(accessToken, action.DeviceID, []tuya_dtos.TuyaCommandDTO{cmd})
+				_, err := u.tuyaCmd.SendSwitchCommand(accessToken, action.DeviceID, []tuya_dtos.TuyaCommandDTO{cmd})
 				if err != nil {
 					utils.LogError("Scene %s: Failed to send command to %s: %v", id, action.DeviceID, err)
 					errs = append(errs, err)

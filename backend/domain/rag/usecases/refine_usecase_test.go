@@ -21,16 +21,16 @@ func (m *mockLLMForRefine) CallModel(prompt string, model string) (string, error
 	return m.ReturnString, m.ReturnError
 }
 
-func TestRAGUsecase_Refine(t *testing.T) {
+func TestRefineUseCase_Execute(t *testing.T) {
 	cfg := &utils.Config{LLMModel: "test-model-refine"}
 
 	t.Run("Refine Indonesian (KBBI)", func(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "Saya sedang makan nasi.",
 		}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewRefineUseCase(mockLLM, cfg)
 
-		got, err := u.Refine("aku lagi mamam nasi", "id")
+		got, err := u.RefineText("aku lagi mamam nasi", "id")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -48,9 +48,9 @@ func TestRAGUsecase_Refine(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "I am eating rice.",
 		}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewRefineUseCase(mockLLM, cfg)
 
-		got, err := u.Refine("i is eating rice", "en")
+		got, err := u.RefineText("i is eating rice", "en")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -68,9 +68,9 @@ func TestRAGUsecase_Refine(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnError: errors.New("llm failure"),
 		}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewRefineUseCase(mockLLM, cfg)
 
-		_, err := u.Refine("test", "id")
+		_, err := u.RefineText("test", "id")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -81,9 +81,9 @@ func TestRAGUsecase_Refine(t *testing.T) {
 
 	t.Run("Empty or Whitespace Input (Silent Audio)", func(t *testing.T) {
 		mockLLM := &mockLLMForRefine{}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewRefineUseCase(mockLLM, cfg)
 
-		got, err := u.Refine("   ", "id")
+		got, err := u.RefineText("   ", "id")
 		if err != nil {
 			t.Fatalf("expected no error for silent audio, got %v", err)
 		}
@@ -96,9 +96,9 @@ func TestRAGUsecase_Refine(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "Refined English",
 		}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewRefineUseCase(mockLLM, cfg)
 
-		_, err := u.Refine("some text", "xyz")
+		_, err := u.RefineText("some text", "xyz")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}

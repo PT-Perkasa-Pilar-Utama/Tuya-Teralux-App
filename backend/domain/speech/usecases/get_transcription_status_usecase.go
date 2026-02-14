@@ -2,44 +2,55 @@ package usecases
 
 import (
 	"fmt"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/repositories"
 )
 
 type GetTranscriptionStatusUseCase interface {
-	Execute(taskID string) (interface{}, error)
+	GetTranscriptionStatus(taskID string) (interface{}, error)
 }
 
 type getTranscriptionStatusUseCase struct {
-	taskRepo           repositories.TranscriptionTaskRepository
-	whisperProxyUsecase *WhisperProxyUsecase
+	shortCache          *tasks.BadgerTaskCache
+	longCache           *tasks.BadgerTaskCache
+	whisperProxyUsecase WhisperProxyUsecase
 }
 
 func NewGetTranscriptionStatusUseCase(
-	taskRepo repositories.TranscriptionTaskRepository,
-	whisperProxyUsecase *WhisperProxyUsecase,
+	shortCache *tasks.BadgerTaskCache,
+	longCache *tasks.BadgerTaskCache,
+	whisperProxyUsecase WhisperProxyUsecase,
 ) GetTranscriptionStatusUseCase {
 	return &getTranscriptionStatusUseCase{
-		taskRepo:           taskRepo,
+		shortCache:          shortCache,
+		longCache:           longCache,
 		whisperProxyUsecase: whisperProxyUsecase,
 	}
 }
 
-func (uc *getTranscriptionStatusUseCase) Execute(taskID string) (interface{}, error) {
-	// 1. Try Short Task Repository
-	if status, err := uc.taskRepo.GetShortTask(taskID); err == nil {
-		return dtos.AsyncTranscriptionProcessStatusResponseDTO{
-			TaskID:     taskID,
-			TaskStatus: status,
-		}, nil
+func (uc *getTranscriptionStatusUseCase) GetTranscriptionStatus(taskID string) (interface{}, error) {
+	// 1. Try Short Task
+	if uc.shortCache != nil {
+		var st dtos.AsyncTranscriptionStatusDTO
+		if ttl, found, err := uc.shortCache.GetWithTTL(taskID, &st); err == nil && found {
+			st.ExpiresInSecond = int64(ttl.Seconds())
+			return dtos.AsyncTranscriptionProcessStatusResponseDTO{
+				TaskID:     taskID,
+				TaskStatus: &st,
+			}, nil
+		}
 	}
 
-	// 2. Try Long Task Repository
-	if status, err := uc.taskRepo.GetLongTask(taskID); err == nil {
-		return dtos.AsyncTranscriptionProcessStatusResponseDTO{
-			TaskID:     taskID,
-			TaskStatus: status,
-		}, nil
+	// 2. Try Long Task
+	if uc.longCache != nil {
+		var st dtos.AsyncTranscriptionLongStatusDTO
+		if ttl, found, err := uc.longCache.GetWithTTL(taskID, &st); err == nil && found {
+			st.ExpiresInSecond = int64(ttl.Seconds())
+			return dtos.AsyncTranscriptionProcessStatusResponseDTO{
+				TaskID:     taskID,
+				TaskStatus: &st,
+			}, nil
+		}
 	}
 
 	// 3. Try PPU Direct Status (if available)

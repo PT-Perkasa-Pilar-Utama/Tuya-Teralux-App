@@ -10,7 +10,10 @@ import (
 )
 
 type RecordingsModule struct {
-	Controller           *controllers.RecordingsController
+	ListController       *controllers.RecordingsListController
+	GetByIDController    *controllers.RecordingsGetByIDController
+	CreateController     *controllers.RecordingsCreateController
+	DeleteController     *controllers.RecordingsDeleteController
 	SaveRecordingUseCase usecases.SaveRecordingUseCase
 	GetAllUseCase        usecases.GetAllRecordingsUseCase
 	GetByIDUseCase       usecases.GetRecordingByIDUseCase
@@ -27,10 +30,16 @@ func NewRecordingsModule(badger *infrastructure.BadgerService) *RecordingsModule
 	getAllUseCase := usecases.NewGetAllRecordingsUseCase(repo)
 	getByIDUseCase := usecases.NewGetRecordingByIDUseCase(repo)
 	deleteUseCase := usecases.NewDeleteRecordingUseCase(repo)
-	controller := controllers.NewRecordingsController(getAllUseCase, getByIDUseCase, deleteUseCase, saveUseCase)
+	listController := controllers.NewRecordingsListController(getAllUseCase)
+	getByIDController := controllers.NewRecordingsGetByIDController(getByIDUseCase)
+	createController := controllers.NewRecordingsCreateController(saveUseCase)
+	deleteController := controllers.NewRecordingsDeleteController(deleteUseCase)
 
 	return &RecordingsModule{
-		Controller:           controller,
+		ListController:       listController,
+		GetByIDController:    getByIDController,
+		CreateController:     createController,
+		DeleteController:     deleteController,
 		SaveRecordingUseCase: saveUseCase,
 		GetAllUseCase:        getAllUseCase,
 		GetByIDUseCase:       getByIDUseCase,
@@ -41,9 +50,9 @@ func NewRecordingsModule(badger *infrastructure.BadgerService) *RecordingsModule
 func (m *RecordingsModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
 	api := router.Group("/api")
 	{
-		api.GET("/recordings", m.Controller.GetAllRecordings)
-		api.GET("/recordings/:id", m.Controller.GetRecordingByID)
-		api.POST("/recordings", m.Controller.UploadRecording)
-		api.DELETE("/recordings/:id", m.Controller.DeleteRecording)
+		api.GET("/recordings", m.ListController.ListRecordings)
+		api.GET("/recordings/:id", m.GetByIDController.GetRecordingByID)
+		api.POST("/recordings", m.CreateController.CreateRecording)
+		api.DELETE("/recordings/:id", m.DeleteController.DeleteRecording)
 	}
 }

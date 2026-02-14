@@ -18,7 +18,7 @@ func NewDeleteTeraluxUseCase(repository *repositories.TeraluxRepository) *Delete
 	}
 }
 
-func (uc *DeleteTeraluxUseCase) Execute(id string) error {
+func (uc *DeleteTeraluxUseCase) DeleteTeralux(id string) error {
 	validID := regexp.MustCompile(`^[a-z0-9-]+$`)
 	if !validID.MatchString(id) {
 		return errors.New("Invalid ID format")

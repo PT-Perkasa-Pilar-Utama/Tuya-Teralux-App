@@ -1,7 +1,9 @@
 package usecases
 
 import (
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
+	ragdtos "teralux_app/domain/rag/dtos"
 	"testing"
 )
 
@@ -19,16 +21,17 @@ func (m *mockLLMForSummary) CallModel(prompt string, model string) (string, erro
 	return m.ReturnString, m.ReturnError
 }
 
-func TestRAGUsecase_Summary(t *testing.T) {
+func TestSummaryUseCase_Execute(t *testing.T) {
 	cfg := &utils.Config{LLMModel: "test-model-summary"}
+	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	t.Run("Success Indonesian", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{
 			ReturnString: "# Notulen Rapat\n\n## 1. Agenda\nDiskusi fitur RAG.",
 		}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewSummaryUseCase(mockLLM, cfg, nil, store)
 
-		taskID, err := u.Summary("Ini adalah transkripsi rapat", "id", "Rapat Teknis", "Professional")
+		taskID, err := u.SummarizeText("Ini adalah transkripsi rapat", "id", "Rapat Teknis", "Professional")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -40,9 +43,9 @@ func TestRAGUsecase_Summary(t *testing.T) {
 
 	t.Run("Empty or Whitespace Input", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewSummaryUseCase(mockLLM, cfg, nil, store)
 
-		taskID, err := u.Summary("   ", "id", "", "")
+		taskID, err := u.SummarizeText("   ", "id", "", "")
 		if err != nil {
 			t.Fatalf("expected no error from async call start, got %v", err)
 		}

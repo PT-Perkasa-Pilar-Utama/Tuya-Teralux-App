@@ -1,17 +1,37 @@
 package usecases
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 
 	"github.com/google/uuid"
 )
 
-// TranslateSync (private internal for use by Async)
-func (u *RAGUsecase) translateInternal(text, targetLang string) (string, error) {
+type TranslateUseCase interface {
+	TranslateText(text, targetLang string) (string, error)
+}
+
+type translateUseCase struct {
+	llm    LLMClient
+	config *utils.Config
+	cache  *tasks.BadgerTaskCache
+	store  *tasks.StatusStore[dtos.RAGStatusDTO]
+}
+
+func NewTranslateUseCase(llm LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
+	return &translateUseCase{
+		llm:    llm,
+		config: cfg,
+		cache:  cache,
+		store:  store,
+	}
+}
+
+// translateInternal (private internal for use by Execute)
+func (u *translateUseCase) translateInternal(text, targetLang string) (string, error) {
 	langName := "English"
 	if strings.ToLower(targetLang) == "id" {
 		langName = "Indonesian"
@@ -39,34 +59,26 @@ Text: "%s"
 	return strings.TrimSpace(translated), nil
 }
 
-func (u *RAGUsecase) Translate(text, targetLang string) (string, error) {
+func (u *translateUseCase) TranslateText(text, targetLang string) (string, error) {
 	taskID := uuid.New().String()
-	u.mu.Lock()
-	u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "pending"}
-	u.mu.Unlock()
+	status := &dtos.RAGStatusDTO{Status: "pending"}
+	u.store.Set(taskID, status)
 
-	if u.badger != nil {
-		b, _ := json.Marshal(u.taskStatus[taskID])
-		_ = u.badger.Set("rag:task:"+taskID, b)
-	}
+	_ = u.cache.Set(taskID, status)
 
 	go func() {
 		translated, err := u.translateInternal(text, targetLang)
-		u.mu.Lock()
+		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Translate Task %s: Failed with error: %v", taskID, err)
-			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
 		} else {
 			utils.LogInfo("RAG Translate Task %s: Completed successfully", taskID)
-			u.taskStatus[taskID] = &dtos.RAGStatusDTO{Status: "completed", Result: translated}
+			finalStatus = &dtos.RAGStatusDTO{Status: "completed", Result: translated}
 		}
-		status := u.taskStatus[taskID]
-		u.mu.Unlock()
-
-		if u.badger != nil {
-			b, _ := json.Marshal(status)
-			_ = u.badger.SetPreserveTTL("rag:task:"+taskID, b)
-		}
+		
+		u.store.Set(taskID, finalStatus)
+		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil

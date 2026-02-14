@@ -6,7 +6,7 @@ import (
 )
 
 type GetAllRecordingsUseCase interface {
-	Execute(page, limit int) (*dtos.GetAllRecordingsResponseDto, error)
+	ListRecordings(page, limit int) (*dtos.GetAllRecordingsResponseDto, error)
 }
 
 type getAllRecordingsUseCase struct {
@@ -17,7 +17,7 @@ func NewGetAllRecordingsUseCase(repo repositories.RecordingRepository) GetAllRec
 	return &getAllRecordingsUseCase{repo: repo}
 }
 
-func (uc *getAllRecordingsUseCase) Execute(page, limit int) (*dtos.GetAllRecordingsResponseDto, error) {
+func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*dtos.GetAllRecordingsResponseDto, error) {
 	recordings, total, err := uc.repo.GetAll(page, limit)
 	if err != nil {
 		return nil, err

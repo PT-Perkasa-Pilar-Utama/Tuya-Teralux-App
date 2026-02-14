@@ -52,7 +52,7 @@ func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx 
 		limit = val
 	}
 
-	statuses, err := c.useCase.Execute(id, page, limit)
+	statuses, err := c.useCase.ListDeviceStatusesByDeviceID(id, page, limit)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,

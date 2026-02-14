@@ -32,7 +32,7 @@ func (c *GetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 		utils.LogWarn("GetAllDevices: Failed to bind query filter: %v", err)
 	}
 
-	devices, err := c.useCase.Execute(&filter)
+	devices, err := c.useCase.ListDevices(&filter)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,

@@ -42,7 +42,7 @@ func (c *GetAllDeviceStatusesController) GetAllDeviceStatuses(ctx *gin.Context) 
 		limit = val
 	}
 
-	statuses, err := c.useCase.Execute(page, limit)
+	statuses, err := c.useCase.ListDeviceStatuses(page, limit)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,

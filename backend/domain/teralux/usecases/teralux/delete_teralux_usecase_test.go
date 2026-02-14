@@ -19,7 +19,7 @@ func TestDeleteTeralux_UserBehavior(t *testing.T) {
 	// SCENARIO: Device exists.
 	// RES: 200 OK
 	t.Run("Delete Teralux (Success Condition)", func(t *testing.T) {
-		err := useCase.Execute("tx-1")
+		err := useCase.DeleteTeralux("tx-1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -36,7 +36,7 @@ func TestDeleteTeralux_UserBehavior(t *testing.T) {
 	// SCENARIO: Device does not exist.
 	// RES: 404 Not Found
 	t.Run("Delete Teralux (Not Found)", func(t *testing.T) {
-		err := useCase.Execute("tx-999")
+		err := useCase.DeleteTeralux("tx-999")
 		if err == nil {
 			t.Fatal("Expected error for unknown ID, got nil")
 		}
@@ -50,7 +50,7 @@ func TestDeleteTeralux_UserBehavior(t *testing.T) {
 	// SCENARIO: ID is not a valid UUID format.
 	// RES: 400 Bad Request
 	t.Run("Validation: Invalid ID Format", func(t *testing.T) {
-		err := useCase.Execute("INVALID-UUID")
+		err := useCase.DeleteTeralux("INVALID-UUID")
 		if err == nil {
 			t.Fatal("Expected error for invalid ID format, got nil")
 		}

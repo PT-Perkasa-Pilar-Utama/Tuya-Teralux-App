@@ -38,7 +38,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 			TeraluxID: "tx-1",
 		}
 
-		res, _, err := useCaseWithMocks.Execute(req)
+		res, _, err := useCaseWithMocks.CreateDevice(req)
 		if err != nil {
 			t.Fatalf("Expected no error, got: %v", err)
 		}
@@ -56,7 +56,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 			Name:      "",
 			TeraluxID: "",
 		}
-		_, _, err := useCase.Execute(req)
+		_, _, err := useCase.CreateDevice(req)
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
@@ -78,7 +78,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 			Name:      "Ghost Device",
 			TeraluxID: "tx-999", // Non-existent
 		}
-		_, _, err := useCase.Execute(req)
+		_, _, err := useCase.CreateDevice(req)
 		if err == nil {
 			t.Fatal("Expected error, got nil")
 		}
@@ -101,7 +101,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 			Name:      "First Device",
 			TeraluxID: "tx-3",
 		}
-		_, _, err := useCaseWithMocks.Execute(req)
+		_, _, err := useCaseWithMocks.CreateDevice(req)
 		if err != nil {
 			t.Fatalf("Expected no error on first create, got: %v", err)
 		}
@@ -113,7 +113,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 			Name:      "Second Device",       // Name changed
 			TeraluxID: "tx-3",
 		}
-		_, _, err = useCaseWithMocks.Execute(req2)
+		_, _, err = useCaseWithMocks.CreateDevice(req2)
 		if err != nil {
 			t.Fatalf("Expected no error for existing device ID (Upsert), got: %v", err)
 		}

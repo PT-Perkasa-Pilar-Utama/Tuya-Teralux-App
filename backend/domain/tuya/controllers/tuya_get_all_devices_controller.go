@@ -14,13 +14,12 @@ import (
 // Force import for Swagger
 var _ = tuya_dtos.TuyaDevicesResponseDTO{}
 
-// TuyaGetAllDevicesController handles get all devices requests for Tuya
 type TuyaGetAllDevicesController struct {
-	useCase *usecases.TuyaGetAllDevicesUseCase
+	useCase usecases.TuyaGetAllDevicesUseCase
 }
 
 // NewTuyaGetAllDevicesController creates a new TuyaGetAllDevicesController instance
-func NewTuyaGetAllDevicesController(useCase *usecases.TuyaGetAllDevicesUseCase) *TuyaGetAllDevicesController {
+func NewTuyaGetAllDevicesController(useCase usecases.TuyaGetAllDevicesUseCase) *TuyaGetAllDevicesController {
 	return &TuyaGetAllDevicesController{
 		useCase: useCase,
 	}

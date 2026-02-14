@@ -11,31 +11,38 @@ import (
 	"sync"
 	"time"
 
-	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	speechdtos "teralux_app/domain/speech/dtos"
 
 	"github.com/google/uuid"
 )
 
-type WhisperProxyUsecase struct {
-	badger     *infrastructure.BadgerService
+type WhisperProxyUsecase interface {
+	ProxyTranscribe(filePath string, fileName string, language string) (string, error)
+	GetStatus(taskID string) (*speechdtos.WhisperProxyStatusDTO, error)
+	HealthCheck() error
+	FetchToOutsystems(filePath string, fileName string, language string) (*speechdtos.OutsystemsTranscriptionResultDTO, error)
+}
+
+type whisperProxyUsecase struct {
+	cache      *tasks.BadgerTaskCache
 	config     *utils.Config
 	mu         sync.RWMutex
 	taskStatus map[string]*speechdtos.WhisperProxyStatusDTO
 }
 
 // NewWhisperProxyUsecase creates a new whisper proxy usecase instance
-func NewWhisperProxyUsecase(badgerSvc *infrastructure.BadgerService, cfg *utils.Config) *WhisperProxyUsecase {
-	return &WhisperProxyUsecase{
-		badger:     badgerSvc,
+func NewWhisperProxyUsecase(cache *tasks.BadgerTaskCache, cfg *utils.Config) WhisperProxyUsecase {
+	return &whisperProxyUsecase{
+		cache:      cache,
 		config:     cfg,
 		taskStatus: make(map[string]*speechdtos.WhisperProxyStatusDTO),
 	}
 }
 
 // ProxyTranscribe accepts audio file and queues async transcription to external Outsystems server
-func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, language string) (string, error) {
+func (u *whisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, language string) (string, error) {
 	utils.LogDebug("Whisper Proxy: Starting external transcription via Outsystems (PPU)...")
 	// Generate UUID task id
 	taskID := uuid.New().String()
@@ -49,13 +56,10 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, 
 	u.mu.Unlock()
 
 	// Persist pending to cache (with TTL) if available
-	if u.badger != nil {
-		b, _ := json.Marshal(pending)
-		if err := u.badger.Set("whisper:task:"+taskID, b); err != nil {
-			utils.LogError("Whisper Task %s: failed to cache pending task: %v", taskID, err)
-		} else {
-			utils.LogDebug("Whisper Task %s: pending cached with TTL", taskID)
-		}
+	if err := u.cache.Set(taskID, pending); err != nil {
+		utils.LogError("Whisper Task %s: failed to cache pending task: %v", taskID, err)
+	} else {
+		utils.LogDebug("Whisper Task %s: pending cached with TTL", taskID)
 	}
 
 	// Run processing asynchronously
@@ -83,11 +87,8 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, 
 			u.mu.Lock()
 			u.taskStatus[taskID] = statusDTO
 			u.mu.Unlock()
-			if u.badger != nil {
-				b, _ := json.Marshal(statusDTO)
-				if err := u.badger.SetPreserveTTL("whisper:task:"+taskID, b); err != nil {
-					utils.LogWarn("Whisper Task %s: failed to update persistent cache: %v", taskID, err)
-				}
+			if err := u.cache.SetPreserveTTL(taskID, statusDTO); err != nil {
+				utils.LogWarn("Whisper Task %s: failed to update persistent cache: %v", taskID, err)
 			}
 			return
 		}
@@ -112,13 +113,10 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, 
 		u.mu.Unlock()
 
 		// Persist final result by updating existing cache entry while preserving TTL
-		if u.badger != nil {
-			b, _ := json.Marshal(statusDTO)
-			if err := u.badger.SetPreserveTTL("whisper:task:"+taskID, b); err != nil {
-				utils.LogError("Whisper Task %s: failed to update cached final result: %v", taskID, err)
-			} else {
-				utils.LogDebug("Whisper Task %s: final result cached (TTL preserved)", taskID)
-			}
+		if err := u.cache.SetPreserveTTL(taskID, statusDTO); err != nil {
+			utils.LogError("Whisper Task %s: failed to update cached final result: %v", taskID, err)
+		} else {
+			utils.LogDebug("Whisper Task %s: final result cached (TTL preserved)", taskID)
 		}
 
 		// Broadcast removed
@@ -128,7 +126,7 @@ func (u *WhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, 
 }
 
 // HealthCheck performs a health check to verify the Outsystems server is online
-func (u *WhisperProxyUsecase) HealthCheck() error {
+func (u *whisperProxyUsecase) HealthCheck() error {
 	outsystemsURL := u.config.OutsystemsTranscribeURL
 	if outsystemsURL == "" {
 		utils.LogError("Whisper: OUTSYSTEMS_TRANSCRIBE_URL not configured")
@@ -170,7 +168,7 @@ func (u *WhisperProxyUsecase) HealthCheck() error {
 }
 
 // FetchToOutsystems sends the audio file to the external Outsystems server and returns parsed result
-func (u *WhisperProxyUsecase) FetchToOutsystems(filePath string, fileName string, language string) (*speechdtos.OutsystemsTranscriptionResultDTO, error) {
+func (u *whisperProxyUsecase) FetchToOutsystems(filePath string, fileName string, language string) (*speechdtos.OutsystemsTranscriptionResultDTO, error) {
 	outsystemsURL := u.config.OutsystemsTranscribeURL
 	if outsystemsURL == "" {
 		utils.LogError("Whisper: OUTSYSTEMS_TRANSCRIBE_URL not configured")
@@ -257,16 +255,15 @@ func (u *WhisperProxyUsecase) FetchToOutsystems(filePath string, fileName string
 }
 
 // GetStatus retrieves the status of a whisper transcription task
-func (u *WhisperProxyUsecase) GetStatus(taskID string) (*speechdtos.WhisperProxyStatusDTO, error) {
+func (u *whisperProxyUsecase) GetStatus(taskID string) (*speechdtos.WhisperProxyStatusDTO, error) {
 	// First try in-memory map with read lock
 	u.mu.RLock()
 	if s, ok := u.taskStatus[taskID]; ok {
 		u.mu.RUnlock()
 		// Augment with TTL info if available
-		if u.badger != nil {
-			key := "whisper:task:" + taskID
-			_, ttl, err := u.badger.GetWithTTL(key)
-			if err == nil && ttl > 0 {
+		if u.cache != nil {
+			var cached speechdtos.WhisperProxyStatusDTO
+			if ttl, found, err := u.cache.GetWithTTL(taskID, &cached); err == nil && found && ttl > 0 {
 				s.ExpiresInSecond = int64(ttl.Seconds())
 				s.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
 			}
@@ -276,27 +273,24 @@ func (u *WhisperProxyUsecase) GetStatus(taskID string) (*speechdtos.WhisperProxy
 	u.mu.RUnlock()
 
 	// If not found in-memory, try persistent store (Badger) if configured
-	if u.badger != nil {
-		key := "whisper:task:" + taskID
-		b, ttl, err := u.badger.GetWithTTL(key)
+	if u.cache != nil {
+		var status speechdtos.WhisperProxyStatusDTO
+		ttl, found, err := u.cache.GetWithTTL(taskID, &status)
 		if err != nil {
 			utils.LogError("Whisper: Failed to read task %s from persistent cache: %v", taskID, err)
 			return nil, fmt.Errorf("persistent cache read failed")
 		}
-		if b != nil {
-			var status speechdtos.WhisperProxyStatusDTO
-			if err := json.Unmarshal(b, &status); err == nil {
-				// Cache into memory for faster subsequent reads
-				u.mu.Lock()
-				u.taskStatus[taskID] = &status
-				u.mu.Unlock()
-				if ttl > 0 {
-					status.ExpiresInSecond = int64(ttl.Seconds())
-					status.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
-				}
-				utils.LogDebug("Whisper Task %s: retrieved from badger, ttl=%v", taskID, ttl)
-				return &status, nil
+		if found {
+			// Cache into memory for faster subsequent reads
+			u.mu.Lock()
+			u.taskStatus[taskID] = &status
+			u.mu.Unlock()
+			if ttl > 0 {
+				status.ExpiresInSecond = int64(ttl.Seconds())
+				status.ExpiresAt = time.Now().Add(ttl).UTC().Format(time.RFC3339)
 			}
+			utils.LogDebug("Whisper Task %s: retrieved from badger, ttl=%v", taskID, ttl)
+			return &status, nil
 		}
 		// Not found in badger either
 		utils.LogDebug("Whisper Task %s: not found in cache", taskID)

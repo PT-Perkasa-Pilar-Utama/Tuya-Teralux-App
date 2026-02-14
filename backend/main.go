@@ -176,10 +176,6 @@ func main() {
 	if scfg.LLMProvider == "" {
 		missing = append(missing, "LLM_PROVIDER")
 	}
-	// LLM_BASE_URL is required for Ollama, but not for direct Gemini (uses Google SDK/API default)
-	if scfg.LLMProvider != "gemini" && scfg.LLMBaseURL == "" {
-		missing = append(missing, "LLM_BASE_URL")
-	}
 	if scfg.LLMModel == "" {
 		missing = append(missing, "LLM_MODEL")
 	}

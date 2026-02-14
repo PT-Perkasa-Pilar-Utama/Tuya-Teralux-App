@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
+	ragdtos "teralux_app/domain/rag/dtos"
 )
 
 // fake Ollama client for testing
@@ -19,7 +21,7 @@ func (f *fakeOllama) CallModel(prompt string, model string) (string, error) {
 	return f.resp, nil
 }
 
-func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
+func TestControlUseCase_Execute(t *testing.T) {
 	utils.LoadConfig()
 	vectorSvc := infrastructure.NewVectorService("")
 	// seed a device doc containing 'lamp'
@@ -36,26 +38,28 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 	}
 	rb, _ := json.Marshal(llmResp)
 	fake := &fakeOllama{resp: string(rb)}
+	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
-	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), nil, nil)
+	u := NewControlUseCase(vectorSvc, fake, utils.GetConfig(), nil, nil, store)
+	statusUC := NewRAGStatusUseCase(nil, store)
 
-	task, err := u.Control("turn on the lamp", "mock-token", nil)
+	task, err := u.ControlFromText("turn on the lamp", "mock-token", nil)
 	if err != nil {
-		t.Fatalf("expected no error from Control, got %v", err)
+		t.Fatalf("expected no error from Execute, got %v", err)
 	}
 	if task == "" {
 		t.Fatalf("expected non-empty task id")
 	}
 
-	status, err := u.GetStatus(task)
+	status, err := statusUC.GetTaskStatus(task)
 	if err != nil {
-		t.Fatalf("expected no error from GetStatus, got %v", err)
+		t.Fatalf("expected no error from StatusUseCase.Execute, got %v", err)
 	}
 	if status == nil || status.Status == "" {
 		t.Fatalf("expected valid status result, got %+v", status)
 	}
 	if status.Status != "pending" {
-		t.Fatalf("expected pending status right after Process, got %s", status.Status)
+		t.Fatalf("expected pending status right after Execute, got %s", status.Status)
 	}
 
 	// wait for completion
@@ -67,14 +71,14 @@ func TestRAGUsecase_ProcessAndGetStatus(t *testing.T) {
 		case <-timeout:
 			t.Fatalf("timed out waiting for task to complete, last status: %+v", status)
 		case <-tick:
-			status, err = u.GetStatus(task)
+			status, err = statusUC.GetTaskStatus(task)
 			if err != nil {
-				t.Fatalf("expected no error from GetStatus during polling, got %v", err)
+				t.Fatalf("expected no error from StatusUseCase.Execute during polling, got %v", err)
 			}
-			if status.Status == "done" {
+			if status.Status == "completed" {
 				done = true
-			} else if status.Status == "error" {
-				t.Fatalf("task failed: %s", status.Result)
+			} else if status.Status == "failed" {
+				t.Fatalf("task failed: %v", status.Result)
 			}
 		}
 	}
@@ -113,6 +117,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 	}
 	rb, _ := json.Marshal(llmResp)
 	fake := &fakeOllama{resp: string(rb)}
+	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	// Prepare a temporary badger DB dir
 	dbDir := "./tmp/badger-test-rag"
@@ -125,12 +130,14 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 		badgerSvc.Close()
 		_ = os.RemoveAll(dbDir)
 	}()
+	cache := tasks.NewBadgerTaskCache(badgerSvc, "rag:task:")
 
-	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
+	u := NewControlUseCase(vectorSvc, fake, utils.GetConfig(), cache, nil, store)
+	statusUC := NewRAGStatusUseCase(cache, store)
 
-	task, err := u.Control("turn on the lamp", "mock-token", nil)
+	task, err := u.ControlFromText("turn on the lamp", "mock-token", nil)
 	if err != nil {
-		t.Fatalf("expected no error from Control, got %v", err)
+		t.Fatalf("expected no error from Execute, got %v", err)
 	}
 
 	// verify pending cached in badger immediately
@@ -145,28 +152,23 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 	// wait for completion
 	time.Sleep(200 * time.Millisecond)
 
-	status, err := u.GetStatus(task)
+	status, err := statusUC.GetTaskStatus(task)
 	if err != nil {
-		t.Fatalf("expected no error from GetStatus after completion, got %v", err)
+		t.Fatalf("expected no error from StatusUseCase.Execute after completion, got %v", err)
 	}
-	if status.Status != "done" {
-		t.Fatalf("expected status done after completion, got %s", status.Status)
+	if status.Status != "completed" {
+		t.Fatalf("expected status completed after completion, got %s", status.Status)
 	}
 
-	// Remove in-memory entry to simulate restart/eviction
-	u.mu.Lock()
-	delete(u.taskStatus, task)
-	u.mu.Unlock()
-
-	// Now GetStatus should retrieve the persisted copy from Badger
-	// Simulate a restart by creating a new usecase instance without in-memory cache
-	u2 := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
-	status2, err := u2.GetStatus(task)
+	// Now GetStatus should retrieve the persisted copy from Badger even if memory is empty
+	newStore := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
+	statusUC2 := NewRAGStatusUseCase(cache, newStore)
+	status2, err := statusUC2.GetTaskStatus(task)
 	if err != nil {
 		t.Fatalf("expected persisted task to be found after restart, got error: %v", err)
 	}
-	if status2.Status != "done" {
-		t.Fatalf("expected persisted status done, got %s", status2.Status)
+	if status2.Status != "completed" {
+		t.Fatalf("expected persisted status completed, got %s", status2.Status)
 	}
 }
 
@@ -187,6 +189,7 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	}
 	rb, _ := json.Marshal(llmResp)
 	fake := &fakeOllama{resp: string(rb)}
+	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	// Prepare a temporary badger DB dir and short TTL
 	dbDir := "./tmp/badger-test-rag-ttl"
@@ -204,11 +207,14 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 		badgerSvc.Close()
 		_ = os.RemoveAll(dbDir)
 	}()
+	cache := tasks.NewBadgerTaskCache(badgerSvc, "rag:task:")
 
-	u := NewRAGUsecase(vectorSvc, fake, utils.GetConfig(), badgerSvc, nil)
-	task, err := u.Control("turn on the lamp", "mock-token", nil)
+	u := NewControlUseCase(vectorSvc, fake, utils.GetConfig(), cache, nil, store)
+	statusUC := NewRAGStatusUseCase(cache, store)
+
+	task, err := u.ControlFromText("turn on the lamp", "mock-token", nil)
 	if err != nil {
-		t.Fatalf("expected no error from Control, got %v", err)
+		t.Fatalf("expected no error from Execute, got %v", err)
 	}
 
 	// verify pending cached in Badger immediately and TTL exists
@@ -226,12 +232,12 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	// wait for completion
 	time.Sleep(400 * time.Millisecond)
 
-	status, err := u.GetStatus(task)
+	status, err := statusUC.GetTaskStatus(task)
 	if err != nil {
-		t.Fatalf("expected no error from GetStatus after completion, got %v", err)
+		t.Fatalf("expected no error from StatusUseCase.Execute after completion, got %v", err)
 	}
-	if status.Status != "done" {
-		t.Fatalf("expected status done after completion, got %s", status.Status)
+	if status.Status != "completed" {
+		t.Fatalf("expected status completed after completion, got %s", status.Status)
 	}
 
 	// Check TTL after finalize

@@ -15,24 +15,22 @@ import (
 	"time"
 )
 
-// TuyaGetAllDevicesUseCase orchestrates the retrieval and aggregation of device data.
+type TuyaGetAllDevicesUseCase interface {
+	GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error)
+}
+
+// tuyaGetAllDevicesUseCase orchestrates the retrieval and aggregation of device data.
 // It combines the user's device list, individual device specifications, and real-time status.
-type TuyaGetAllDevicesUseCase struct {
+type tuyaGetAllDevicesUseCase struct {
 	service       *services.TuyaDeviceService
-	deviceStateUC *DeviceStateUseCase
+	deviceStateUC DeviceStateUseCase
 	cache         *infrastructure.BadgerService
 	vectorSvc     *infrastructure.VectorService
 }
 
 // NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
-//
-// param service The TuyaDeviceService used for API interactions.
-// param deviceStateUC The DeviceStateUseCase for cleaning up orphaned states.
-// param cache The BadgerService used for caching device lists.
-// param vectorSvc The VectorService used to upsert device docs for LLM retrieval.
-// return *TuyaGetAllDevicesUseCase A pointer to the initialized usecase.
-func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC *DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) *TuyaGetAllDevicesUseCase {
-	return &TuyaGetAllDevicesUseCase{
+func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) TuyaGetAllDevicesUseCase {
+	return &tuyaGetAllDevicesUseCase{
 		service:       service,
 		deviceStateUC: deviceStateUC,
 		cache:         cache,
@@ -57,7 +55,7 @@ func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStat
 // return *dtos.TuyaDevicesResponseDTO The aggregated list of devices.
 // return error An error if fetching the device list fails.
 // @throws error If the API returns a failure (e.g., invalid token).
-func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error) {
+func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error) {
 	// Get config
 	config := utils.GetConfig()
 
@@ -433,7 +431,7 @@ func (uc *TuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 }
 
 // populateVectorDB handles the background task of updating the vector store with device information.
-func (uc *TuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.TuyaDevicesResponseDTO) {
+func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.TuyaDevicesResponseDTO) {
 	if uc.vectorSvc == nil {
 		return
 	}

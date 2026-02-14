@@ -18,7 +18,7 @@ func TestGetRecordingByIDUseCase_Execute(t *testing.T) {
 		recording := &entities.Recording{ID: "1", Filename: "rec1.mp3"}
 		mockRepo.On("GetByID", "1").Return(recording, nil)
 
-		result, err := uc.Execute("1")
+		result, err := uc.GetRecordingByID("1")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -34,7 +34,7 @@ func TestGetRecordingByIDUseCase_Execute(t *testing.T) {
 
 		mockRepo.On("GetByID", "non-existent").Return(nil, errors.New("not found"))
 
-		result, err := uc.Execute("non-existent")
+		result, err := uc.GetRecordingByID("non-existent")
 
 		assert.Error(t, err)
 		assert.Nil(t, result)

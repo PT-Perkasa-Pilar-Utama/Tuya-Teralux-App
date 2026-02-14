@@ -13,7 +13,7 @@ func NewUpdateSceneUseCase(repo *repositories.SceneRepository) *UpdateSceneUseCa
 	return &UpdateSceneUseCase{repo: repo}
 }
 
-func (u *UpdateSceneUseCase) Execute(teraluxID, id string, name string, actions entities.Actions) error {
+func (u *UpdateSceneUseCase) UpdateScene(teraluxID, id string, name string, actions entities.Actions) error {
 	scene, err := u.repo.GetByID(teraluxID, id)
 	if err != nil {
 		return err

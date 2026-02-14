@@ -24,7 +24,7 @@ func TestGetAllRecordingsUseCase_Execute(t *testing.T) {
 
 		mockRepo.On("GetAll", 1, 10).Return(recordings, total, nil)
 
-		result, err := uc.Execute(1, 10)
+		result, err := uc.ListRecordings(1, 10)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -43,7 +43,7 @@ func TestGetAllRecordingsUseCase_Execute(t *testing.T) {
 
 		mockRepo.On("GetAll", 1, 10).Return([]entities.Recording{}, int64(0), errors.New("db error"))
 
-		result, err := uc.Execute(1, 10)
+		result, err := uc.ListRecordings(1, 10)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)

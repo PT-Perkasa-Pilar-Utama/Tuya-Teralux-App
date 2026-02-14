@@ -14,7 +14,7 @@ import (
 )
 
 type SaveRecordingUseCase interface {
-	Execute(file *multipart.FileHeader) (*entities.Recording, error)
+	SaveRecording(file *multipart.FileHeader) (*entities.Recording, error)
 }
 
 type saveRecordingUseCase struct {
@@ -29,7 +29,7 @@ func NewSaveRecordingUseCase(repo repositories.RecordingRepository, fileService 
 	}
 }
 
-func (uc *saveRecordingUseCase) Execute(fileHeader *multipart.FileHeader) (*entities.Recording, error) {
+func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) (*entities.Recording, error) {
 	// 1. Generate UUIDv4 for filename
 	fileExt := filepath.Ext(fileHeader.Filename)
 	newFilename := uuid.New().String() + fileExt

@@ -1,7 +1,9 @@
 package usecases
 
 import (
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
+	ragdtos "teralux_app/domain/rag/dtos"
 	"testing"
 )
 
@@ -19,18 +21,19 @@ func (m *mockLLMForTranslate) CallModel(prompt string, model string) (string, er
 	return m.ReturnString, m.ReturnError
 }
 
-func TestRAGUsecase_Translate(t *testing.T) {
+func TestTranslateUseCase_Execute(t *testing.T) {
 	utils.LoadConfig()
 	cfg := utils.GetConfig()
 	cfg.LLMModel = "test-model-v1"
+	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	t.Run("Success", func(t *testing.T) {
 		mockLLM := &mockLLMForTranslate{
 			ReturnString: "  Hello World  ", // Intentionally padded to test trim
 		}
-		u := NewRAGUsecase(nil, mockLLM, cfg, nil, nil)
+		u := NewTranslateUseCase(mockLLM, cfg, nil, store)
 
-		taskID, err := u.Translate("hallo welt", "en")
+		taskID, err := u.TranslateText("hallo welt", "en")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -43,9 +46,9 @@ func TestRAGUsecase_Translate(t *testing.T) {
 	t.Run("Empty Config Model fallback", func(t *testing.T) {
 		emptyCfg := &utils.Config{LLMModel: ""}
 		mockLLM := &mockLLMForTranslate{}
-		u := NewRAGUsecase(nil, mockLLM, emptyCfg, nil, nil)
+		u := NewTranslateUseCase(mockLLM, emptyCfg, nil, store)
 
-		taskID, _ := u.Translate("test", "en")
+		taskID, _ := u.TranslateText("test", "en")
 		if taskID == "" {
 			t.Error("expected non-empty taskID")
 		}

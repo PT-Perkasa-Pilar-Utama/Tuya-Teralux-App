@@ -15,7 +15,7 @@ func NewAddSceneUseCase(repo *repositories.SceneRepository) *AddSceneUseCase {
 	return &AddSceneUseCase{repo: repo}
 }
 
-func (u *AddSceneUseCase) Execute(teraluxID string, name string, actions entities.Actions) (string, error) {
+func (u *AddSceneUseCase) AddScene(teraluxID string, name string, actions entities.Actions) (string, error) {
 	scene := &entities.Scene{
 		ID:        uuid.New().String(),
 		TeraluxID: teraluxID,

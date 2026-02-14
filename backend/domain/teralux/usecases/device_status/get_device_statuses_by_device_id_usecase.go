@@ -21,7 +21,7 @@ func NewGetDeviceStatusesByDeviceIDUseCase(repo *repositories.DeviceStatusReposi
 }
 
 // Execute retrieves all statuses for a device
-func (uc *GetDeviceStatusesByDeviceIDUseCase) Execute(deviceID string, page, limit int) (*dtos.DeviceStatusListResponseDTO, error) {
+func (uc *GetDeviceStatusesByDeviceIDUseCase) ListDeviceStatusesByDeviceID(deviceID string, page, limit int) (*dtos.DeviceStatusListResponseDTO, error) {
 	_, err := uc.devRepo.GetByID(deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("Device not found: %w", err)

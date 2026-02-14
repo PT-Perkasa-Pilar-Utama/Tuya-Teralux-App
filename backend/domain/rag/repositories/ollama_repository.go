@@ -28,11 +28,8 @@ func tryDial(host, port string) error {
 }
 
 func NewOllamaRepository() *OllamaRepository {
-	cfg := utils.GetConfig()
-	base := cfg.LLMBaseURL
-	if base == "" {
-		base = "http://localhost:11434"
-	}
+	// Default to local Ollama if no specific base URL is provided in the future
+	base := "http://localhost:11434"
 
 	// If configured host is localhost/127.0.0.1 but not reachable from container,
 	// try host.docker.internal:PORT as fallback (useful when running inside Docker).

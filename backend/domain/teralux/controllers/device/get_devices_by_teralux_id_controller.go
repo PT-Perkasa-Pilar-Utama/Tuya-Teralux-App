@@ -54,7 +54,7 @@ func (c *GetDevicesByTeraluxIDController) GetDevicesByTeraluxID(ctx *gin.Context
 	}
 
 	// Execute dedicated use case
-	devices, err := c.useCase.Execute(teraluxID, page, limit)
+	devices, err := c.useCase.ListDevicesByTeraluxID(teraluxID, page, limit)
 	if err != nil {
 		if strings.Contains(err.Error(), "Teralux hub not found") {
 			ctx.JSON(http.StatusNotFound, dtos.StandardResponse{

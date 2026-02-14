@@ -9,7 +9,7 @@ import (
 )
 
 type DeleteRecordingUseCase interface {
-	Execute(id string) error
+	DeleteRecording(id string) error
 }
 
 type deleteRecordingUseCase struct {
@@ -20,7 +20,7 @@ func NewDeleteRecordingUseCase(repo repositories.RecordingRepository) DeleteReco
 	return &deleteRecordingUseCase{repo: repo}
 }
 
-func (uc *deleteRecordingUseCase) Execute(id string) error {
+func (uc *deleteRecordingUseCase) DeleteRecording(id string) error {
 	// 1. Get recording to find filename
 	recording, err := uc.repo.GetByID(id)
 	if err != nil {

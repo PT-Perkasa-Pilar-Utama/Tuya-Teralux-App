@@ -37,7 +37,7 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	response, _, err := c.useCase.Execute(&req)
+	response, _, err := c.useCase.CreateDevice(&req)
 	if err != nil {
 		if valErr, ok := err.(*utils.ValidationError); ok {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{

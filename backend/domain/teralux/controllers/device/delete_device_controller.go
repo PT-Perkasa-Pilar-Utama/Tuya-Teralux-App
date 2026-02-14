@@ -32,7 +32,7 @@ func (c *DeleteDeviceController) DeleteDevice(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.useCase.Execute(id); err != nil {
+	if err := c.useCase.DeleteDevice(id); err != nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
 			Message: "Device not found",

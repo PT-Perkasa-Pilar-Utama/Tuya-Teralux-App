@@ -21,7 +21,7 @@ func NewUpdateTeraluxUseCase(repository *repositories.TeraluxRepository) *Update
 }
 
 // Execute updates a teralux
-func (uc *UpdateTeraluxUseCase) Execute(id string, req *dtos.UpdateTeraluxRequestDTO) error {
+func (uc *UpdateTeraluxUseCase) UpdateTeralux(id string, req *dtos.UpdateTeraluxRequestDTO) error {
 	// First check if exists
 	item, err := uc.repository.GetByID(id)
 	if err != nil {

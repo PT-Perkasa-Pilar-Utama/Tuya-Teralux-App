@@ -35,7 +35,7 @@ func (c *DeleteTeraluxController) DeleteTeralux(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	if err := c.useCase.Execute(id); err != nil {
+	if err := c.useCase.DeleteTeralux(id); err != nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
 			Message: "Teralux not found",

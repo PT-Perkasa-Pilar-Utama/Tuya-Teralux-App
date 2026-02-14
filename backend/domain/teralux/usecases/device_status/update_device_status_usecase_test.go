@@ -16,7 +16,7 @@ type MockTuyaDeviceControlExecutor struct {
 	ShouldFail bool
 }
 
-func (m *MockTuyaDeviceControlExecutor) SendCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error) {
+func (m *MockTuyaDeviceControlExecutor) SendSwitchCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error) {
 	if accessToken == "invalid_token_123" {
 		return false, fmt.Errorf("mock error: invalid token")
 	}
@@ -57,7 +57,7 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 	t.Run("Update Status (Success - Command)", func(t *testing.T) {
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
 		// Use valid token to pass "command" success check in mock service
-		err := useCase.Execute("d1", req, "valid_token")
+		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -71,7 +71,7 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 	// 2. Update Status (Not Found - Device)
 	t.Run("Update Status (Not Found - Device)", func(t *testing.T) {
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
-		err := useCase.Execute("unknown", req, "valid_token")
+		err := useCase.UpdateDeviceStatus("unknown", req, "valid_token")
 		if err == nil {
 			t.Fatal("Expected error for unknown device, got nil")
 		}
@@ -83,7 +83,7 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 	// 3. Update Status (Not Found - Invalid Code)
 	t.Run("Update Status (Not Found - Invalid Code)", func(t *testing.T) {
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "nuclear_launch", Value: true}
-		err := useCase.Execute("d1", req, "valid_token")
+		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
 		if err == nil {
 			t.Fatal("Expected error for invalid code, got nil")
 		}
@@ -95,7 +95,7 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 	// 4. Validation: Invalid Value Type
 	t.Run("Validation: Invalid Value Type", func(t *testing.T) {
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "dimmer", Value: "full_power"}
-		err := useCase.Execute("d1", req, "valid_token")
+		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
 		if err == nil {
 			t.Fatal("Expected error for invalid value type, got nil")
 		}
@@ -107,7 +107,7 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 	// 5. Command Failure (Invalid Token)
 	t.Run("Command Failure (Invalid Token)", func(t *testing.T) {
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
-		err := useCase.Execute("d1", req, "invalid_token_123")
+		err := useCase.UpdateDeviceStatus("d1", req, "invalid_token_123")
 		if err == nil {
 			t.Fatal("Expected error for command failure, got nil")
 		}
@@ -127,7 +127,7 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 		// Reuse d1 or creates new one if needed, but d1 exists.
 		// IR logic calls SendIRACCommand.
 		// "valid_token" triggers mock success.
-		err := useCase.Execute("d1", req, "valid_token")
+		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
 		if err != nil {
 			t.Fatalf("Unexpected error for IR command: %v", err)
 		}

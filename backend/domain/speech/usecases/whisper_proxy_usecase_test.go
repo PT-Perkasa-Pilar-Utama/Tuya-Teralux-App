@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/usecases"
@@ -86,7 +87,8 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 	defer badgerSvc.Close()
 
 	cfg := &utils.Config{}
-	uc := usecases.NewWhisperProxyUsecase(badgerSvc, cfg)
+	cache := tasks.NewBadgerTaskCache(badgerSvc, "whisper:task:")
+	uc := usecases.NewWhisperProxyUsecase(cache, cfg)
 
 	// Create temporary audio file
 	tempFile, err := os.CreateTemp("", "test_audio_*.mp3")

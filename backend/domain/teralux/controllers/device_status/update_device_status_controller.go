@@ -52,7 +52,7 @@ func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 	accessToken := ctx.MustGet("access_token").(string)
 
 	// Execute use case
-	if err := c.useCase.Execute(id, &req, accessToken); err != nil {
+	if err := c.useCase.UpdateDeviceStatus(id, &req, accessToken); err != nil {
 		if valErr, ok := err.(*utils.ValidationError); ok {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 				Status:  false,

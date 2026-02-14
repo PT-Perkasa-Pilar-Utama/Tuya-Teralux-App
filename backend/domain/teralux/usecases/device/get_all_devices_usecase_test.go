@@ -22,7 +22,7 @@ func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
 	t.Run("Get All Devices (Success - Filter by Teralux)", func(t *testing.T) {
 		teraID := "tx-1"
 		filter := &dtos.DeviceFilterDTO{TeraluxID: &teraID}
-		res, err := useCase.Execute(filter)
+		res, err := useCase.ListDevices(filter)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -43,7 +43,7 @@ func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
 	t.Run("Get All Devices (Success - Empty)", func(t *testing.T) {
 		teraID := "tx-999"
 		filter := &dtos.DeviceFilterDTO{TeraluxID: &teraID}
-		res, err := useCase.Execute(filter)
+		res, err := useCase.ListDevices(filter)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}

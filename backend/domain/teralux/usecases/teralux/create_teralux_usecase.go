@@ -23,8 +23,8 @@ func NewCreateTeraluxUseCase(repository *repositories.TeraluxRepository) *Create
 	}
 }
 
-// Execute creates a new teralux record
-func (uc *CreateTeraluxUseCase) Execute(req *dtos.CreateTeraluxRequestDTO) (*dtos.CreateTeraluxResponseDTO, bool, error) {
+// CreateTeralux creates a new teralux record
+func (uc *CreateTeraluxUseCase) CreateTeralux(req *dtos.CreateTeraluxRequestDTO) (*dtos.CreateTeraluxResponseDTO, bool, error) {
 	// Validation
 	var details []utils.ValidationErrorDetail
 

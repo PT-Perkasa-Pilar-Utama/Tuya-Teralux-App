@@ -21,7 +21,7 @@ func NewGetDeviceStatusByCodeUseCase(repo *repositories.DeviceStatusRepository, 
 }
 
 // Execute retrieves a device status by device ID and code
-func (uc *GetDeviceStatusByCodeUseCase) Execute(deviceID string, code string) (*dtos.DeviceStatusSingleResponseDTO, error) {
+func (uc *GetDeviceStatusByCodeUseCase) GetDeviceStatusByCode(deviceID string, code string) (*dtos.DeviceStatusSingleResponseDTO, error) {
 	if deviceID == "" {
 		return nil, fmt.Errorf("device_id is required")
 	}

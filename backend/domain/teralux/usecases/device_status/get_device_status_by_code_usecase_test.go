@@ -18,7 +18,7 @@ func TestGetDeviceStatusByCode_UserBehavior(t *testing.T) {
 	// URL: GET /api/device-statuses/code/switch_1?device_id=dev-1
 	// RES: 200 OK
 	t.Run("Get Status By Code (Success)", func(t *testing.T) {
-		res, err := useCase.Execute("dev-1", "switch_1")
+		res, err := useCase.GetDeviceStatusByCode("dev-1", "switch_1")
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -31,7 +31,7 @@ func TestGetDeviceStatusByCode_UserBehavior(t *testing.T) {
 	// URL: GET /api/device-statuses/code/unknown_code?device_id=dev-1
 	// RES: 404 Not Found
 	t.Run("Get Status By Code (Not Found - Code)", func(t *testing.T) {
-		_, err := useCase.Execute("dev-1", "unknown_code")
+		_, err := useCase.GetDeviceStatusByCode("dev-1", "unknown_code")
 		if err == nil {
 			t.Fatal("Expected error for unknown code, got nil")
 		}
@@ -44,7 +44,7 @@ func TestGetDeviceStatusByCode_UserBehavior(t *testing.T) {
 	// URL: GET /api/device-statuses/code/switch_1?device_id=unknown
 	// RES: 404 Not Found
 	t.Run("Get Status By Code (Not Found - Device)", func(t *testing.T) {
-		_, err := useCase.Execute("unknown", "switch_1")
+		_, err := useCase.GetDeviceStatusByCode("unknown", "switch_1")
 		if err == nil {
 			t.Fatal("Expected error for unknown device, got nil")
 		}
@@ -57,7 +57,7 @@ func TestGetDeviceStatusByCode_UserBehavior(t *testing.T) {
 	// URL: GET /api/device-statuses/code/switch_1
 	// RES: 400 Bad Request
 	t.Run("Validation: Missing Device ID", func(t *testing.T) {
-		_, err := useCase.Execute("", "switch_1")
+		_, err := useCase.GetDeviceStatusByCode("", "switch_1")
 		if err == nil {
 			t.Fatal("Expected error for missing device ID, got nil")
 		}

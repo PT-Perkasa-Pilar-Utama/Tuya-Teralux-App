@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	ragdtos "teralux_app/domain/rag/dtos"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
@@ -25,38 +25,94 @@ type LLMClient interface {
 	CallModel(prompt string, model string) (string, error)
 }
 
-type RAGUsecase struct {
+// Healtcheckable is an internal interface for LLM clients that support a health check.
+type Healtcheckable interface {
+	HealthCheck() bool
+}
+
+type LLMClientFallback struct {
+	primary   LLMClient
+	secondary LLMClient
+}
+
+func NewLLMClientFallback(primary LLMClient, secondary LLMClient) LLMClient {
+	return &LLMClientFallback{
+		primary:   primary,
+		secondary: secondary,
+	}
+}
+
+func (c *LLMClientFallback) CallModel(prompt string, model string) (string, error) {
+	// Check if primary supports health checking
+	if hp, ok := c.primary.(Healtcheckable); ok {
+		utils.LogDebug("LLMClientFallback: Checking primary health...")
+		if hp.HealthCheck() {
+			utils.LogDebug("LLMClientFallback: Primary is healthy, proceeding.")
+			res, err := c.primary.CallModel(prompt, model)
+			if err == nil {
+				return res, nil
+			}
+			utils.LogWarn("LLMClientFallback: Primary call failed: %v. Falling back to secondary.", err)
+		} else {
+			utils.LogWarn("LLMClientFallback: Primary is UNHEALTHY. Falling back to secondary.")
+		}
+	} else {
+		// If no healthcheck, try primary anyway and catch error
+		res, err := c.primary.CallModel(prompt, model)
+		if err == nil {
+			return res, nil
+		}
+		utils.LogWarn("LLMClientFallback: Primary call failed: %v. Falling back to secondary.", err)
+	}
+
+	// Secondary call
+	if c.secondary != nil {
+		utils.LogInfo("LLMClientFallback: Using secondary LLM client.")
+		return c.secondary.CallModel(prompt, model)
+	}
+
+	return "", fmt.Errorf("both primary and secondary LLM clients failed/unavailable")
+}
+
+// ControlUseCase handles the orchestration of device control through vector search and LLM analysis.
+type ControlUseCase interface {
+	ControlFromText(text string, authToken string, onComplete func(string, *ragdtos.RAGStatusDTO)) (string, error)
+}
+
+type controlUseCase struct {
 	vectorSvc   *infrastructure.VectorService
 	llm         LLMClient
 	config      *utils.Config
-	badger      *infrastructure.BadgerService
-	authUseCase *tuyaUsecases.TuyaAuthUseCase
-	mu          sync.RWMutex
-	taskStatus  map[string]*ragdtos.RAGStatusDTO
+	cache       *tasks.BadgerTaskCache
+	authUseCase tuyaUsecases.TuyaAuthUseCase
+	store       *tasks.StatusStore[ragdtos.RAGStatusDTO]
 }
 
-func NewRAGUsecase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, authUseCase *tuyaUsecases.TuyaAuthUseCase) *RAGUsecase {
-	return &RAGUsecase{vectorSvc: vectorSvc, llm: llm, config: cfg, badger: badgerSvc, authUseCase: authUseCase, taskStatus: make(map[string]*ragdtos.RAGStatusDTO)}
+func NewControlUseCase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, authUseCase tuyaUsecases.TuyaAuthUseCase, store *tasks.StatusStore[ragdtos.RAGStatusDTO]) ControlUseCase {
+	return &controlUseCase{
+		vectorSvc:   vectorSvc,
+		llm:         llm,
+		config:      cfg,
+		cache:       cache,
+		authUseCase: authUseCase,
+		store:       store,
+	}
 }
 
-// Control accepts user text, queues work to query the vector store and LLM, and stores the result under a task ID
+// Execute accepts user text, queues work to query the vector store and LLM, and stores the result under a task ID
 // which can later be fetched via GetStatus. Processing is done asynchronously and this method returns immediately.
-func (u *RAGUsecase) Control(text string, authToken string, onComplete func(string, *ragdtos.RAGStatusDTO)) (string, error) {
+func (u *controlUseCase) ControlFromText(text string, authToken string, onComplete func(string, *ragdtos.RAGStatusDTO)) (string, error) {
 	// Generate UUID task id
 	taskID := uuid.New().String()
 	// Initially mark pending
-	u.mu.Lock()
-	u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "pending", Result: ""}
-	pending := u.taskStatus[taskID]
-	u.mu.Unlock()
+	status := &ragdtos.RAGStatusDTO{Status: "pending", Result: ""}
+	u.store.Set(taskID, status)
+
 	// persist pending to cache (with TTL) if available
-	if u.badger != nil {
-		b, _ := json.Marshal(pending)
-		if err := u.badger.Set("rag:task:"+taskID, b); err != nil {
-			utils.LogError("RAG Task %s: failed to cache pending task: %v", taskID, err)
-		} else {
-			utils.LogDebug("RAG Task %s: pending cached with TTL", taskID)
-		}
+	if err := u.cache.Set(taskID, status); err != nil {
+		utils.LogError("RAG Task %s: failed to cache pending task: %v", taskID, err)
+	} else {
+		utils.LogDebug("RAG Task %s: pending cached with TTL", taskID)
 	}
 
 	// Run processing asynchronously
@@ -83,9 +139,8 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 		defer func() {
 			if r := recover(); r != nil {
 				utils.LogError("RAG Task %s: Panic recovered: %v", taskID, r)
-				u.mu.Lock()
-					u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "failed", Result: fmt.Sprintf("panic: %v", r)}
-				u.mu.Unlock()
+				finalStatus := &ragdtos.RAGStatusDTO{Status: "failed", Result: fmt.Sprintf("panic: %v", r)}
+				u.store.Set(taskID, finalStatus)
 			}
 		}()
 
@@ -112,9 +167,8 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 		candidates, err := u.vectorSvc.Search(correctedText)
 		if err != nil {
 			utils.LogError("RAG Task %s: Vector search failed: %v", taskID, err)
-			u.mu.Lock()
-			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
-			u.mu.Unlock()
+			finalStatus := &ragdtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.store.Set(taskID, finalStatus)
 			return
 		}
 
@@ -198,9 +252,8 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 		resp, err := u.llm.CallModel(prompt, model)
 		if err != nil {
 			utils.LogError("RAG Task %s: LLM call failed: %v", taskID, err)
-			u.mu.Lock()
-			u.taskStatus[taskID] = &ragdtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
-			u.mu.Unlock()
+			finalStatus := &ragdtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.store.Set(taskID, finalStatus)
 			return
 		}
 
@@ -224,10 +277,8 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 			// If still not JSON, log the raw response to see what's wrong
 			utils.LogError("RAG Task %s: LLM failed to return valid JSON. Raw Response: %s", taskID, resp)
 
-			u.mu.Lock()
 			statusDTO := &ragdtos.RAGStatusDTO{Status: "failed", Result: "invalid llm response format"}
-			u.taskStatus[taskID] = statusDTO
-			u.mu.Unlock()
+			u.store.Set(taskID, statusDTO)
 			return
 		}
 
@@ -353,9 +404,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 			}
 		}
 
-		u.mu.Lock()
-		u.taskStatus[taskID] = statusDTO
-		u.mu.Unlock()
+		u.store.Set(taskID, statusDTO)
 
 		// Invoke completion callback if provided
 		if onComplete != nil {
@@ -363,13 +412,10 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 		}
 
 		// persist final result by updating existing cache entry while preserving TTL
-		if u.badger != nil {
-			b, _ := json.Marshal(statusDTO)
-			if err := u.badger.SetPreserveTTL("rag:task:"+taskID, b); err != nil {
-				utils.LogError("RAG Task %s: failed to update cached final result: %v", taskID, err)
-			} else {
-				utils.LogDebug("RAG Task %s: final result cached (TTL preserved)", taskID)
-			}
+		if err := u.cache.SetPreserveTTL(taskID, statusDTO); err != nil {
+			utils.LogError("RAG Task %s: failed to update cached final result: %v", taskID, err)
+		} else {
+			utils.LogDebug("RAG Task %s: final result cached (TTL preserved)", taskID)
 		}
 	}(taskID, text, authToken)
 
@@ -377,7 +423,7 @@ func (u *RAGUsecase) Control(text string, authToken string, onComplete func(stri
 }
 
 // executeAction performs the actual HTTP request to the internal API
-func (u *RAGUsecase) executeAction(method, path string, body interface{}, token string) interface{} {
+func (u *controlUseCase) executeAction(method, path string, body interface{}, token string) interface{} {
 	// Base URL for internal calls (use loopback)
 	baseURL := "http://localhost:" + u.config.Port
 	fullURL := baseURL + path

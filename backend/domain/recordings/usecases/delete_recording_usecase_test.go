@@ -19,7 +19,7 @@ func TestDeleteRecordingUseCase_Execute(t *testing.T) {
 		mockRepo.On("GetByID", "1").Return(recording, nil)
 		mockRepo.On("Delete", "1").Return(nil)
 
-		err := uc.Execute("1")
+		err := uc.DeleteRecording("1")
 
 		assert.NoError(t, err)
 		mockRepo.AssertExpectations(t)
@@ -31,7 +31,7 @@ func TestDeleteRecordingUseCase_Execute(t *testing.T) {
 
 		mockRepo.On("GetByID", "1").Return(nil, errors.New("not found"))
 
-		err := uc.Execute("1")
+		err := uc.DeleteRecording("1")
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "recording not found")
@@ -46,7 +46,7 @@ func TestDeleteRecordingUseCase_Execute(t *testing.T) {
 		mockRepo.On("GetByID", "1").Return(recording, nil)
 		mockRepo.On("Delete", "1").Return(errors.New("db error"))
 
-		err := uc.Execute("1")
+		err := uc.DeleteRecording("1")
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete metadata")

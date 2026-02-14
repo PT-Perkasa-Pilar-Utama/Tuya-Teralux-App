@@ -43,7 +43,7 @@ func (c *UpdateDeviceController) UpdateDevice(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.useCase.Execute(id, &req); err != nil {
+	if err := c.useCase.UpdateDevice(id, &req); err != nil {
 		if valErr, ok := err.(*utils.ValidationError); ok {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 				Status:  false,

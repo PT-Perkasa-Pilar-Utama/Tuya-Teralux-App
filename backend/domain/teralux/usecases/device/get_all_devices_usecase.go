@@ -19,7 +19,7 @@ func NewGetAllDevicesUseCase(repository *repositories.DeviceRepository) *GetAllD
 }
 
 // Execute retrieves all device records
-func (uc *GetAllDevicesUseCase) Execute(filter *dtos.DeviceFilterDTO) (*dtos.DeviceListResponseDTO, error) {
+func (uc *GetAllDevicesUseCase) ListDevices(filter *dtos.DeviceFilterDTO) (*dtos.DeviceListResponseDTO, error) {
 	// 1. Prepare Pagination
 	page := 1
 	limit := 0

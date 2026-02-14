@@ -20,7 +20,7 @@ func TestUpdateDeviceUseCase_UserBehavior(t *testing.T) {
 	t.Run("Update Device (Success)", func(t *testing.T) {
 		newName := "Kitchen Sink Light"
 		req := &dtos.UpdateDeviceRequestDTO{Name: &newName}
-		err := useCase.Execute("dev-1", req)
+		err := useCase.UpdateDevice("dev-1", req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -38,7 +38,7 @@ func TestUpdateDeviceUseCase_UserBehavior(t *testing.T) {
 	t.Run("Update Device (Not Found)", func(t *testing.T) {
 		name := "New Name"
 		req := &dtos.UpdateDeviceRequestDTO{Name: &name}
-		err := useCase.Execute("dev-unknown", req)
+		err := useCase.UpdateDevice("dev-unknown", req)
 		if err == nil {
 			t.Fatal("Expected error for unknown ID, got nil")
 		}
@@ -54,7 +54,7 @@ func TestUpdateDeviceUseCase_UserBehavior(t *testing.T) {
 	t.Run("Validation: Empty Name", func(t *testing.T) {
 		emptyName := ""
 		req := &dtos.UpdateDeviceRequestDTO{Name: &emptyName}
-		err := useCase.Execute("dev-1", req)
+		err := useCase.UpdateDevice("dev-1", req)
 		if err == nil {
 			t.Fatal("Expected error for empty name, got nil")
 		}

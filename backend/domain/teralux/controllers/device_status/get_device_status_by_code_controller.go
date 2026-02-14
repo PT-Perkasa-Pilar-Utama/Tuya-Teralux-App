@@ -45,7 +45,7 @@ func (c *GetDeviceStatusByCodeController) GetDeviceStatusByCode(ctx *gin.Context
 		return
 	}
 
-	status, err := c.useCase.Execute(deviceID, code)
+	status, err := c.useCase.GetDeviceStatusByCode(deviceID, code)
 	if err != nil {
 		errorMsg := "Status code not found for this device"
 		if err.Error() == "Device not found" {

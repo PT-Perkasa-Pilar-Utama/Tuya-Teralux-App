@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,49 +13,43 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// WhisperProxyProcessor is an abstraction for Whisper proxy operations implemented by the usecase.
-// This allows unit tests to provide a fake implementation.
-type WhisperProxyProcessor interface {
-	ProxyTranscribe(filePath string, fileName string) (string, error)
-	GetStatus(taskID string) (*dtos.WhisperProxyStatusDTO, error)
-}
-
-type WhisperProxyController struct {
-	usecase         *usecases.WhisperProxyUsecase
+// SpeechTranscribeWhisperCppController handles POST /api/speech/transcribe/whisper/cpp.
+type SpeechTranscribeWhisperCppController struct {
+	transcribeUC    usecases.TranscribeWhisperCppUseCase
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase
 	config          *utils.Config
 }
 
-func NewWhisperProxyController(usecase *usecases.WhisperProxyUsecase, saveRecordingUC recordingUsecases.SaveRecordingUseCase, cfg *utils.Config) *WhisperProxyController {
-	return &WhisperProxyController{
-		usecase:         usecase,
+func NewSpeechTranscribeWhisperCppController(
+	transcribeUC usecases.TranscribeWhisperCppUseCase,
+	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
+	cfg *utils.Config,
+) *SpeechTranscribeWhisperCppController {
+	return &SpeechTranscribeWhisperCppController{
+		transcribeUC:    transcribeUC,
 		saveRecordingUC: saveRecordingUC,
 		config:          cfg,
 	}
 }
 
-// ProxyTranscribeAudio godoc
-// @Summary Transcribe audio file (Proxy to Outsystems)
-// @Description Submit audio file for transcription via Outsystems proxy. Processing is asynchronous.
+// TranscribeWhisperCpp handles POST /api/speech/transcribe/whisper/cpp
+// @Summary Transcribe audio file (Whisper.cpp)
+// @Description Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no PPU. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
-// @Param language formData string false "Language code (e.g. id, en)"
+// @Param language formData string true "Language code (e.g. id, en)"
 // @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
-// @Router /api/speech/transcribe/ppu [post]
-func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
-	log.Println("[DEBUG] HandleProxyTranscribe: Request received")
-	log.Printf("[DEBUG] HandleProxyTranscribe: Content-Type: %s", ctx.GetHeader("Content-Type"))
-
+// @Router /api/speech/transcribe/whisper/cpp [post]
+func (c *SpeechTranscribeWhisperCppController) TranscribeWhisperCpp(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
-		log.Printf("[DEBUG] HandleProxyTranscribe: FormFile error: %v", err)
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
 			Message: "Failed to get audio file",
@@ -64,7 +57,16 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 		})
 		return
 	}
-	log.Printf("[DEBUG] HandleProxyTranscribe: File received: %s, Size: %d", file.Filename, file.Size)
+
+	lang := ctx.PostForm("language")
+	if lang == "" {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "Language is required",
+			Details: "Please provide a language code (e.g. 'id', 'en')",
+		})
+		return
+	}
 
 	if file.Size > c.config.MaxFileSize {
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
@@ -96,11 +98,11 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 	tempDir := "./tmp"
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
 		if err := os.Mkdir(tempDir, 0755); err != nil {
-			utils.LogError("HandleProxyTranscribe: Failed to create temp directory: %v", err)
+			utils.LogError("TranscribeWhisperCpp: Failed to create temp directory: %v", err)
 		}
 	}
 
-	inputPath := filepath.Join(tempDir, file.Filename)
+	inputPath := filepath.Join(tempDir, "whisper_cpp_"+file.Filename)
 	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
@@ -110,8 +112,7 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 		return
 	}
 
-	// 1. Save as recording first
-	recording, err := c.saveRecordingUC.Execute(file)
+	recording, err := c.saveRecordingUC.SaveRecording(file)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
@@ -121,20 +122,12 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 		return
 	}
 
-	// 2. Submit async task
-	finalPath := filepath.Join("uploads", "audio", recording.Filename)
-
-    // Extract language (optional, default to "id")
-    language := ctx.PostForm("language")
-    if language == "" {
-        language = "id"
-    }
-
-	taskID, err := c.usecase.ProxyTranscribe(finalPath, file.Filename, language)
+	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
+	taskID, err := c.transcribeUC.TranscribeWhisperCpp(finalInputPath, file.Filename, lang)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to submit transcription task",
+			Message: "Failed to start transcription task",
 			Details: err.Error(),
 		})
 		return
@@ -142,7 +135,7 @@ func (c *WhisperProxyController) HandleProxyTranscribe(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
 		Status:  true,
-		Message: "Task submitted",
+		Message: "Transcription task submitted successfully",
 		Data: dtos.TranscriptionTaskResponseDTO{
 			TaskID:      taskID,
 			TaskStatus:  "pending",

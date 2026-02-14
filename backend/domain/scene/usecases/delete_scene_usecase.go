@@ -12,6 +12,6 @@ func NewDeleteSceneUseCase(repo *repositories.SceneRepository) *DeleteSceneUseCa
 	return &DeleteSceneUseCase{repo: repo}
 }
 
-func (u *DeleteSceneUseCase) Execute(teraluxID, id string) error {
+func (u *DeleteSceneUseCase) DeleteScene(teraluxID, id string) error {
 	return u.repo.Delete(teraluxID, id)
 }
