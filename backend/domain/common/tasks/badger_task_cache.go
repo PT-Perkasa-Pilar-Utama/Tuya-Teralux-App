@@ -7,13 +7,28 @@ import (
 	"teralux_app/domain/common/infrastructure"
 )
 
+// BadgerStore defines the interface for badger database operations
+type BadgerStore interface {
+	Set(key string, value []byte) error
+	SetPreserveTTL(key string, value []byte) error
+	GetWithTTL(key string) ([]byte, time.Duration, error)
+}
+
 // BadgerTaskCache provides namespaced cache helpers for async task statuses.
 type BadgerTaskCache struct {
-	badger    *infrastructure.BadgerService
+	badger    BadgerStore
 	keyPrefix string
 }
 
-func NewBadgerTaskCache(badger *infrastructure.BadgerService, keyPrefix string) *BadgerTaskCache {
+func NewBadgerTaskCache(badger BadgerStore, keyPrefix string) *BadgerTaskCache {
+	return &BadgerTaskCache{
+		badger:    badger,
+		keyPrefix: keyPrefix,
+	}
+}
+
+// NewBadgerTaskCacheFromService creates a BadgerTaskCache from a concrete BadgerService
+func NewBadgerTaskCacheFromService(badger *infrastructure.BadgerService, keyPrefix string) *BadgerTaskCache {
 	return &BadgerTaskCache{
 		badger:    badger,
 		keyPrefix: keyPrefix,

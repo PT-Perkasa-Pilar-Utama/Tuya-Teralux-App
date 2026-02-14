@@ -24,6 +24,13 @@ type RAGStatusDTO struct {
 	ExpiresInSecond int64             `json:"expires_in_seconds,omitempty"`
 }
 
+// SetExpiry implements tasks.StatusWithExpiry interface.
+// This allows the generic status usecase to automatically populate TTL info.
+func (s *RAGStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
+	s.ExpiresAt = expiresAt
+	s.ExpiresInSecond = expiresInSeconds
+}
+
 // RAGProcessResponseDTO is the payload returned by POST /api/rag
 // It contains the generated task id and optionally a `status` DTO when available.
 type RAGProcessResponseDTO struct {

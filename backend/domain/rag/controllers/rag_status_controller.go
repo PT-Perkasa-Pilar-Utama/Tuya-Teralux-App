@@ -2,18 +2,18 @@ package controllers
 
 import (
 	"net/http"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/usecases"
 
 	"github.com/gin-gonic/gin"
 )
 
 // RAGStatusController handles task status requests.
 type RAGStatusController struct {
-	statusUC usecases.RAGStatusUseCase
+	statusUC tasks.GenericStatusUseCase[dtos.RAGStatusDTO]
 }
 
-func NewRAGStatusController(statusUC usecases.RAGStatusUseCase) *RAGStatusController {
+func NewRAGStatusController(statusUC tasks.GenericStatusUseCase[dtos.RAGStatusDTO]) *RAGStatusController {
 	return &RAGStatusController{
 		statusUC: statusUC,
 	}

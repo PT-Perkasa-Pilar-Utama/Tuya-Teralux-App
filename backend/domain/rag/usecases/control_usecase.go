@@ -14,65 +14,11 @@ import (
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	ragdtos "teralux_app/domain/rag/dtos"
+	"teralux_app/domain/rag/utilities"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/google/uuid"
 )
-
-// LLMClient represents the external LLM client used by RAG.
-// This is an interface to allow testing with fakes.
-type LLMClient interface {
-	CallModel(prompt string, model string) (string, error)
-}
-
-// Healtcheckable is an internal interface for LLM clients that support a health check.
-type Healtcheckable interface {
-	HealthCheck() bool
-}
-
-type LLMClientFallback struct {
-	primary   LLMClient
-	secondary LLMClient
-}
-
-func NewLLMClientFallback(primary LLMClient, secondary LLMClient) LLMClient {
-	return &LLMClientFallback{
-		primary:   primary,
-		secondary: secondary,
-	}
-}
-
-func (c *LLMClientFallback) CallModel(prompt string, model string) (string, error) {
-	// Check if primary supports health checking
-	if hp, ok := c.primary.(Healtcheckable); ok {
-		utils.LogDebug("LLMClientFallback: Checking primary health...")
-		if hp.HealthCheck() {
-			utils.LogDebug("LLMClientFallback: Primary is healthy, proceeding.")
-			res, err := c.primary.CallModel(prompt, model)
-			if err == nil {
-				return res, nil
-			}
-			utils.LogWarn("LLMClientFallback: Primary call failed: %v. Falling back to secondary.", err)
-		} else {
-			utils.LogWarn("LLMClientFallback: Primary is UNHEALTHY. Falling back to secondary.")
-		}
-	} else {
-		// If no healthcheck, try primary anyway and catch error
-		res, err := c.primary.CallModel(prompt, model)
-		if err == nil {
-			return res, nil
-		}
-		utils.LogWarn("LLMClientFallback: Primary call failed: %v. Falling back to secondary.", err)
-	}
-
-	// Secondary call
-	if c.secondary != nil {
-		utils.LogInfo("LLMClientFallback: Using secondary LLM client.")
-		return c.secondary.CallModel(prompt, model)
-	}
-
-	return "", fmt.Errorf("both primary and secondary LLM clients failed/unavailable")
-}
 
 // ControlUseCase handles the orchestration of device control through vector search and LLM analysis.
 type ControlUseCase interface {
@@ -81,14 +27,14 @@ type ControlUseCase interface {
 
 type controlUseCase struct {
 	vectorSvc   *infrastructure.VectorService
-	llm         LLMClient
+	llm         utilities.LLMClient
 	config      *utils.Config
 	cache       *tasks.BadgerTaskCache
 	authUseCase tuyaUsecases.TuyaAuthUseCase
 	store       *tasks.StatusStore[ragdtos.RAGStatusDTO]
 }
 
-func NewControlUseCase(vectorSvc *infrastructure.VectorService, llm LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, authUseCase tuyaUsecases.TuyaAuthUseCase, store *tasks.StatusStore[ragdtos.RAGStatusDTO]) ControlUseCase {
+func NewControlUseCase(vectorSvc *infrastructure.VectorService, llm utilities.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, authUseCase tuyaUsecases.TuyaAuthUseCase, store *tasks.StatusStore[ragdtos.RAGStatusDTO]) ControlUseCase {
 	return &controlUseCase{
 		vectorSvc:   vectorSvc,
 		llm:         llm,

@@ -56,6 +56,22 @@ func NewOllamaRepository() *OllamaRepository {
 	return &OllamaRepository{baseURL: base}
 }
 
+func (r *OllamaRepository) HealthCheck() bool {
+	// Try to hit /api/tags endpoint to check if Ollama is running
+	resp, err := http.Get(r.baseURL + "/api/tags")
+	if err != nil {
+		utils.LogWarn("Ollama HealthCheck failed: %v", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		utils.LogWarn("Ollama HealthCheck failed: status %d", resp.StatusCode)
+		return false
+	}
+	return true
+}
+
 func (r *OllamaRepository) CallModel(prompt string, model string) (string, error) {
 	reqBody := map[string]interface{}{
 		"model":  model,

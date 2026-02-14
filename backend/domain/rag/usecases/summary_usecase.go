@@ -8,6 +8,7 @@ import (
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
+	"teralux_app/domain/rag/utilities"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,13 +27,13 @@ type SummaryUseCase interface {
 }
 
 type summaryUseCase struct {
-	llm    LLMClient
+	llm    utilities.LLMClient
 	config *utils.Config
 	cache  *tasks.BadgerTaskCache
 	store  *tasks.StatusStore[dtos.RAGStatusDTO]
 }
 
-func NewSummaryUseCase(llm LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) SummaryUseCase {
+func NewSummaryUseCase(llm utilities.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) SummaryUseCase {
 	return &summaryUseCase{
 		llm:    llm,
 		config: cfg,
@@ -160,7 +161,7 @@ func (u *summaryUseCase) SummarizeText(text string, language string, context str
 				Result:          result.Summary,
 			}
 		}
-		
+
 		u.store.Set(taskID, finalStatus)
 		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
@@ -271,7 +272,7 @@ func (u *summaryUseCase) generateProfessionalPDF(summary string, path string) er
 			} else if strings.HasPrefix(line, "* ") {
 				content = "• " + strings.TrimPrefix(line, "* ")
 			}
-			
+
 			// Clean up bold indicators in list content if any
 			content = strings.ReplaceAll(content, "**", "")
 

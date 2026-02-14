@@ -6,6 +6,7 @@ import (
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
+	"teralux_app/domain/rag/utilities"
 
 	"github.com/google/uuid"
 )
@@ -15,13 +16,13 @@ type TranslateUseCase interface {
 }
 
 type translateUseCase struct {
-	llm    LLMClient
+	llm    utilities.LLMClient
 	config *utils.Config
 	cache  *tasks.BadgerTaskCache
 	store  *tasks.StatusStore[dtos.RAGStatusDTO]
 }
 
-func NewTranslateUseCase(llm LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
+func NewTranslateUseCase(llm utilities.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
 	return &translateUseCase{
 		llm:    llm,
 		config: cfg,
@@ -76,7 +77,7 @@ func (u *translateUseCase) TranslateText(text, targetLang string) (string, error
 			utils.LogInfo("RAG Translate Task %s: Completed successfully", taskID)
 			finalStatus = &dtos.RAGStatusDTO{Status: "completed", Result: translated}
 		}
-		
+
 		u.store.Set(taskID, finalStatus)
 		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()

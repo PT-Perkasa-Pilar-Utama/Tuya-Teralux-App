@@ -1,7 +1,7 @@
 # ENDPOINT: POST /api/rag/translate
 
 ## Description
-Directly translates input text to English using the LLM. Best for short phrases or command normalization. For meetings, use the Summary endpoint instead.
+Directly translates input text to the target language using LLM with automatic provider fallback (Orion → Gemini → Ollama). Best for short phrases or command normalization. For meetings, use the Summary endpoint instead.
 
 ## Authentication
 - **Type**: BearerAuth

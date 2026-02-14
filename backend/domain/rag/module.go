@@ -9,6 +9,7 @@ import (
 	ragRepos "teralux_app/domain/rag/repositories"
 	"teralux_app/domain/rag/routes"
 	"teralux_app/domain/rag/usecases"
+	"teralux_app/domain/rag/utilities"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -17,21 +18,22 @@ import (
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
 func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase) usecases.RefineUseCase {
 	// Initialize Dependencies
-	geminiRepo := ragRepos.NewGeminiRepository()
 	orionRepo := ragRepos.NewOrionRepository()
+	geminiRepo := ragRepos.NewGeminiRepository()
+	ollamaRepo := ragRepos.NewOllamaRepository()
 
-	// Use Fallback client: Orion (Primary) -> Gemini (Fallback)
-	llmClient := usecases.NewLLMClientFallback(orionRepo, geminiRepo)
+	// Use 3-level Fallback client: Orion (Primary) -> Gemini (Secondary) -> Ollama (Tertiary)
+	llmClient := utilities.NewLLMClientWithFallback(orionRepo, geminiRepo, ollamaRepo)
 
 	// Initialize Shared Store
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
-	cache := tasks.NewBadgerTaskCache(badger, "rag:task:")
+	cache := tasks.NewBadgerTaskCacheFromService(badger, "rag:task:")
 
 	// Initialize Usecases
 	refineUC := usecases.NewRefineUseCase(llmClient, cfg)
 	translateUC := usecases.NewTranslateUseCase(llmClient, cfg, cache, store)
 	summaryUC := usecases.NewSummaryUseCase(llmClient, cfg, cache, store)
-	statusUC := usecases.NewRAGStatusUseCase(cache, store)
+	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(vectorSvc, llmClient, cfg, cache, tuyaAuth, store)
 
 	// Setup Routes

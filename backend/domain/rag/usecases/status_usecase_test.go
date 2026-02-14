@@ -24,7 +24,7 @@ func TestStatusUseCase_Execute(t *testing.T) {
 
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 	cache := tasks.NewBadgerTaskCache(badgerSvc, "rag:task:")
-	u := NewRAGStatusUseCase(cache, store)
+	u := tasks.NewGenericStatusUseCase(cache, store)
 
 	t.Run("NotFound", func(t *testing.T) {
 		got, err := u.GetTaskStatus("non-existent-id")
@@ -95,7 +95,7 @@ func TestStatusUseCase_Execute(t *testing.T) {
 		}
 
 		if got.ExpiresAt == "" {
-			 t.Log("ExpiresAt not set, maybe TTL is 0 or expired?")
+			t.Log("ExpiresAt not set, maybe TTL is 0 or expired?")
 		}
 	})
 }

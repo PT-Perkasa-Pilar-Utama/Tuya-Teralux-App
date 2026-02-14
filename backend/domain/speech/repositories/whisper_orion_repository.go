@@ -28,6 +28,27 @@ type WhisperServerResponse struct {
 	Text string `json:"text"`
 }
 
+// HealthCheck verifies if the Orion Whisper server is reachable
+func (r *WhisperOrionRepository) HealthCheck() bool {
+	if r.config.WhisperServerURL == "" {
+		return false
+	}
+
+	url := fmt.Sprintf("%s/health", r.config.WhisperServerURL)
+	resp, err := http.Get(url)
+	if err != nil {
+		utils.LogWarn("Orion Whisper HealthCheck failed: %v", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		utils.LogWarn("Orion Whisper HealthCheck failed: status %d", resp.StatusCode)
+		return false
+	}
+	return true
+}
+
 func (r *WhisperOrionRepository) Transcribe(audioPath string, lang string) (string, error) {
 	url := fmt.Sprintf("%s/inference", r.config.WhisperServerURL)
 

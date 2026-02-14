@@ -16,23 +16,27 @@ type TranscribeWhisperCppUseCase interface {
 }
 
 type transcribeWhisperCppUseCase struct {
-	whisperRepo WhisperCppRepositoryInterface
-	refineUC    ragUsecases.RefineUseCase
-	cache       *tasks.BadgerTaskCache
-	config      *utils.Config
+	whisperCppRepo WhisperCppRepository
+	refineUC       ragUsecases.RefineUseCase
+	cache          *tasks.BadgerTaskCache
+	config         *utils.Config
+}
+
+type WhisperCppRepository interface {
+	TranscribeFull(wavPath string, modelPath string, lang string) (string, error)
 }
 
 func NewTranscribeWhisperCppUseCase(
-	whisperRepo WhisperCppRepositoryInterface,
+	whisperCppRepo WhisperCppRepository,
 	refineUC ragUsecases.RefineUseCase,
 	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
 ) TranscribeWhisperCppUseCase {
 	return &transcribeWhisperCppUseCase{
-		whisperRepo: whisperRepo,
-		refineUC:    refineUC,
-		cache:       cache,
-		config:      config,
+		whisperCppRepo: whisperCppRepo,
+		refineUC:       refineUC,
+		cache:          cache,
+		config:         config,
 	}
 }
 
@@ -65,7 +69,19 @@ func (uc *transcribeWhisperCppUseCase) processAsync(taskID string, inputPath str
 		}
 	}()
 
-	text, err := uc.transcribeLongLocal(inputPath, lang)
+	// Convert to WAV
+	tempDir := filepath.Dir(inputPath)
+	wavPath := filepath.Join(tempDir, "processed.wav")
+
+	if err := utils.ConvertToWav(inputPath, wavPath); err != nil {
+		utils.LogError("TranscribeWhisperCpp Task %s: Failed to convert audio: %v", taskID, err)
+		uc.updateStatus(taskID, "failed", nil)
+		return
+	}
+	defer os.Remove(wavPath)
+
+	// Transcribe with local whisper.cpp
+	text, err := uc.whisperCppRepo.TranscribeFull(wavPath, uc.config.WhisperModelPath, lang)
 	if err != nil {
 		utils.LogError("TranscribeWhisperCpp Task %s: Transcription failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil)
@@ -77,33 +93,13 @@ func (uc *transcribeWhisperCppUseCase) processAsync(taskID string, inputPath str
 	// Refine
 	refined, _ := uc.refineUC.RefineText(text, lang)
 
-	result := &speechdtos.AsyncTranscriptionLongResultDTO{
+	finalResult := &speechdtos.AsyncTranscriptionLongResultDTO{
 		Transcription:    text,
 		RefinedText:      refined,
 		DetectedLanguage: lang,
 	}
 
-	uc.updateStatus(taskID, "completed", result)
-}
-
-func (uc *transcribeWhisperCppUseCase) transcribeLongLocal(inputPath string, lang string) (string, error) {
-	utils.LogDebug("Speech: Starting local LONG transcription via whisper.cpp...")
-	tempDir := filepath.Dir(inputPath)
-
-	wavPath := filepath.Join(tempDir, "processed_long.wav")
-	if err := utils.ConvertToWav(inputPath, wavPath); err != nil {
-		return "", fmt.Errorf("failed to convert audio: %w", err)
-	}
-	defer os.Remove(wavPath)
-
-	modelPath := uc.config.WhisperModelPath
-
-	text, err := uc.whisperRepo.TranscribeFull(wavPath, modelPath, lang)
-	if err != nil {
-		return "", fmt.Errorf("transcription failed: %w", err)
-	}
-
-	return text, nil
+	uc.updateStatus(taskID, "completed", finalResult)
 }
 
 func (uc *transcribeWhisperCppUseCase) updateStatus(taskID string, statusStr string, result *speechdtos.AsyncTranscriptionLongResultDTO) {

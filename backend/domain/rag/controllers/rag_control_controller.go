@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strings"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/usecases"
@@ -13,11 +14,11 @@ import (
 // RAGControlController handles control requests for RAG.
 type RAGControlController struct {
 	controlUC usecases.ControlUseCase
-	statusUC  usecases.RAGStatusUseCase
+	statusUC  tasks.GenericStatusUseCase[dtos.RAGStatusDTO]
 	config    *utils.Config
 }
 
-func NewRAGControlController(controlUC usecases.ControlUseCase, statusUC usecases.RAGStatusUseCase, cfg *utils.Config) *RAGControlController {
+func NewRAGControlController(controlUC usecases.ControlUseCase, statusUC tasks.GenericStatusUseCase[dtos.RAGStatusDTO], cfg *utils.Config) *RAGControlController {
 	return &RAGControlController{
 		controlUC: controlUC,
 		statusUC:  statusUC,

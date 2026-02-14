@@ -1,7 +1,7 @@
 # ENDPOINT: POST /api/rag/summary
 
 ## Description
-Transforms a raw transcription into professional meeting minutes using an LLM. It supports multi-language output, context steering, and style selection.
+Transforms a raw transcription into professional meeting minutes using an LLM with automatic provider fallback (Orion → Gemini → Ollama). It supports multi-language output, context steering, and style selection.
 
 ## Authentication
 - **Type**: BearerAuth

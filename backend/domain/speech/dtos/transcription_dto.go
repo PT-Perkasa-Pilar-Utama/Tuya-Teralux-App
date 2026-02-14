@@ -1,8 +1,8 @@
 package dtos
 
 type TranscriptionResponseDTO struct {
-	Transcription  string `json:"transcription" example:"Halo dunia"`
-	RefinedText    string `json:"refined_text,omitempty" example:"Hello world"`
+	Transcription string `json:"transcription" example:"Halo dunia"`
+	RefinedText   string `json:"refined_text,omitempty" example:"Hello world"`
 }
 
 type TranscriptionLongResponseDTO struct {
@@ -22,6 +22,12 @@ type WhisperProxyStatusDTO struct {
 	Result          *OutsystemsTranscriptionResultDTO `json:"result,omitempty"`
 	ExpiresAt       string                            `json:"expires_at,omitempty"`
 	ExpiresInSecond int64                             `json:"expires_in_seconds,omitempty"`
+}
+
+// SetExpiry implements tasks.StatusWithExpiry interface
+func (s *WhisperProxyStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
+	s.ExpiresAt = expiresAt
+	s.ExpiresInSecond = expiresInSeconds
 }
 
 type TranscriptionTaskResponseDTO struct {
@@ -55,6 +61,12 @@ type AsyncTranscriptionStatusDTO struct {
 	Result          *AsyncTranscriptionResultDTO `json:"result,omitempty"`
 	ExpiresAt       string                       `json:"expires_at,omitempty"`
 	ExpiresInSecond int64                        `json:"expires_in_seconds,omitempty"`
+}
+
+// SetExpiry implements tasks.StatusWithExpiry interface
+func (s *AsyncTranscriptionStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
+	s.ExpiresAt = expiresAt
+	s.ExpiresInSecond = expiresInSeconds
 }
 
 type AsyncTranscriptionProcessStatusResponseDTO struct {

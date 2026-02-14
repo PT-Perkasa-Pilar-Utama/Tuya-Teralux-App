@@ -41,7 +41,7 @@ func TestControlUseCase_Execute(t *testing.T) {
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	u := NewControlUseCase(vectorSvc, fake, utils.GetConfig(), nil, nil, store)
-	statusUC := NewRAGStatusUseCase(nil, store)
+	statusUC := tasks.NewGenericStatusUseCase[ragdtos.RAGStatusDTO](nil, store)
 
 	task, err := u.ControlFromText("turn on the lamp", "mock-token", nil)
 	if err != nil {
@@ -133,7 +133,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 	cache := tasks.NewBadgerTaskCache(badgerSvc, "rag:task:")
 
 	u := NewControlUseCase(vectorSvc, fake, utils.GetConfig(), cache, nil, store)
-	statusUC := NewRAGStatusUseCase(cache, store)
+	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 
 	task, err := u.ControlFromText("turn on the lamp", "mock-token", nil)
 	if err != nil {
@@ -162,7 +162,7 @@ func TestPersistentStorageAfterCompletion(t *testing.T) {
 
 	// Now GetStatus should retrieve the persisted copy from Badger even if memory is empty
 	newStore := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
-	statusUC2 := NewRAGStatusUseCase(cache, newStore)
+	statusUC2 := tasks.NewGenericStatusUseCase(cache, newStore)
 	status2, err := statusUC2.GetTaskStatus(task)
 	if err != nil {
 		t.Fatalf("expected persisted task to be found after restart, got error: %v", err)
@@ -210,7 +210,7 @@ func TestPendingCachedWithTTLAndPreservedOnFinalize(t *testing.T) {
 	cache := tasks.NewBadgerTaskCache(badgerSvc, "rag:task:")
 
 	u := NewControlUseCase(vectorSvc, fake, utils.GetConfig(), cache, nil, store)
-	statusUC := NewRAGStatusUseCase(cache, store)
+	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 
 	task, err := u.ControlFromText("turn on the lamp", "mock-token", nil)
 	if err != nil {

@@ -1,11 +1,14 @@
 # ENDPOINT: POST /api/speech/transcribe
 
 ## Description
-Starts transcription of an audio file. This endpoint automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
+Starts transcription of an audio file with automatic provider fallback. This endpoint automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
+
 ### Processing Flow
-1. **PPU First**: System attempts to send audio to the Outsystems PPU proxy.
-2. **Local Fallback**: If PPU is unreachable or returns an error, the system automatically falls back to the **Local Whisper (Whisper.cpp)** engine.
-Processing is **asynchronous**.
+1. **PPU First**: System attempts to send audio to the Outsystems PPU proxy with health check.
+2. **Orion Fallback**: If PPU is unavailable or fails, automatically falls back to **Orion Whisper API**.
+3. **Local Fallback**: If Orion is unavailable or fails, finally falls back to **Local Whisper.cpp** engine.
+
+Processing is **asynchronous** with automatic failover between providers.
 
 ## Authentication
 - **Type**: BearerAuth

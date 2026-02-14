@@ -42,6 +42,27 @@ type geminiResponse struct {
 	} `json:"candidates"`
 }
 
+func (r *GeminiRepository) HealthCheck() bool {
+	if r.apiKey == "" {
+		return false
+	}
+
+	// Quick test with models endpoint
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s?key=%s", "gemini-pro", r.apiKey)
+	resp, err := http.Get(url)
+	if err != nil {
+		utils.LogWarn("Gemini HealthCheck failed: %v", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		utils.LogWarn("Gemini HealthCheck failed: status %d", resp.StatusCode)
+		return false
+	}
+	return true
+}
+
 func (r *GeminiRepository) CallModel(prompt string, model string) (string, error) {
 	if r.apiKey == "" {
 		return "", fmt.Errorf("LLM_API_KEY is not configured")

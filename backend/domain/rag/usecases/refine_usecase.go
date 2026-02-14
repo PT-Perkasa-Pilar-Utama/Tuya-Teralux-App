@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/rag/utilities"
 )
 
 type RefineUseCase interface {
@@ -11,11 +12,11 @@ type RefineUseCase interface {
 }
 
 type refineUseCase struct {
-	llm    LLMClient
+	llm    utilities.LLMClient
 	config *utils.Config
 }
 
-func NewRefineUseCase(llm LLMClient, cfg *utils.Config) RefineUseCase {
+func NewRefineUseCase(llm utilities.LLMClient, cfg *utils.Config) RefineUseCase {
 	return &refineUseCase{
 		llm:    llm,
 		config: cfg,

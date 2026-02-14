@@ -1,7 +1,14 @@
 # ENDPOINT: POST /api/rag/control
 
 ## Description
-Submits text for **RAG Device Control** processing. This endpoint interprets natural language commands to control devices via Tuya or other integrations. The execution is **asynchronous** and returns a task ID.
+Submits text for **RAG Device Control** processing with automatic LLM provider fallback. This endpoint interprets natural language commands to control devices via Tuya or other integrations.
+
+### Processing Flow
+1. **Orion First**: System attempts to use Orion LLM API with health check.
+2. **Gemini Fallback**: If Orion is unavailable or fails, automatically falls back to **Google Gemini API**.
+3. **Ollama Fallback**: If Gemini is unavailable or fails, finally falls back to **Local Ollama** service.
+
+The execution is **asynchronous** with automatic failover between LLM providers and returns a task ID.
 
 ## Authentication
 - **Type**: BearerAuth
