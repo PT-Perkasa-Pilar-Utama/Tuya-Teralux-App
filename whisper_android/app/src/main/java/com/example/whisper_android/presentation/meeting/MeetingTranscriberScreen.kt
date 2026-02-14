@@ -65,6 +65,10 @@ fun downloadPdf(context: android.content.Context, url: String, title: String) {
         val downloadManager = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
         downloadManager.enqueue(request)
         Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
+
+        // Auto-open PDF in browser/viewer
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(absoluteUrl))
+        context.startActivity(intent)
     } catch (e: Exception) {
         Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
     }
