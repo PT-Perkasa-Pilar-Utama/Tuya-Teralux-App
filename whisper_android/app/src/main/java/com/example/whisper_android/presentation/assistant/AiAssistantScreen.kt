@@ -164,7 +164,7 @@ fun AiAssistantScreen(
                                                 .joinToString("\n") { it.text }
 
                                             if (title == "Summarize Insight") {
-                                                NetworkModule.summarizeTextUseCase(contextText, "meeting_summary", token).collect { result ->
+                                                NetworkModule.summarizeTextUseCase(contextText, null, "meeting_summary", token).collect { result ->
                                                     when (result) {
                                                         is Resource.Loading -> { /* already true */ }
                                                         is Resource.Success -> {
@@ -181,7 +181,7 @@ fun AiAssistantScreen(
                                                 }
                                             } else {
                                                 // List Actions might use a specific style
-                                                NetworkModule.summarizeTextUseCase(contextText, "action_items", token).collect { result ->
+                                                NetworkModule.summarizeTextUseCase(contextText, null, "action_items", token).collect { result ->
                                                     when (result) {
                                                         is Resource.Loading -> { }
                                                         is Resource.Success -> {
@@ -278,7 +278,7 @@ fun AiAssistantScreen(
                                 val token = NetworkModule.tokenManager.getAccessToken() ?: ""
                                 // Treating a general question as a summary request where the text is the question
                                 // Ideally this would be a 'QA' endpoint, but we'll use Summary for demonstration
-                                NetworkModule.summarizeTextUseCase(question, "qa", token).collect { result ->
+                                NetworkModule.summarizeTextUseCase(question, null, "qa", token).collect { result ->
                                     when (result) {
                                         is Resource.Success -> {
                                             transcriptionResults = transcriptionResults + 

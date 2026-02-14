@@ -162,111 +162,138 @@ func (u *RAGUsecase) Summary(text string, language string, context string, style
 func (u *RAGUsecase) generateProfessionalPDF(summary string, path string) error {
 	cfg := config.NewBuilder().
 		WithPageNumber().
+		WithLeftMargin(15).
+		WithRightMargin(15).
+		WithTopMargin(15).
+		WithBottomMargin(15).
 		Build()
 
 	m := maroto.New(cfg)
 
+	// Colors matching the app theme
+	headerColor := &props.Color{Red: 8, Green: 145, Blue: 178} // Cyan 600
+	accentColor := &props.Color{Red: 21, Green: 94, Blue: 117} // Cyan 800
+	grayColor := &props.Color{Red: 100, Green: 100, Blue: 100}
+
 	// Header
 	m.AddRows(
-		row.New(20).Add(
+		row.New(15).Add(
 			col.New(12).Add(
-				text.New("MEETING SUMMARY REPORT", props.Text{
-					Top:    5,
-					Size:   20,
-					Style:  fontstyle.Bold,
-					Align:  align.Center,
-					Color:  &props.Color{Red: 10, Green: 20, Blue: 100},
+				text.New("MEETING INTELLIGENCE", props.Text{
+					Size:  18,
+					Style: fontstyle.Bold,
+					Align: align.Left,
+					Color: headerColor,
 				}),
 			),
 		),
 		row.New(10).Add(
 			col.New(12).Add(
-				text.New(fmt.Sprintf("Generated on: %s", time.Now().Format("02 Jan 2006 15:04")), props.Text{
+				text.New(fmt.Sprintf("Summary Report | %s", time.Now().Format("Jan 02, 2006")), props.Text{
 					Size:  10,
-					Align: align.Right,
-					Style: fontstyle.Italic,
+					Align: align.Left,
+					Style: fontstyle.BoldItalic,
+					Color: grayColor,
 				}),
 			),
 		),
 	)
 
-	// Content
-	lines := strings.Split(summary, "\n")
-	
-	// Define known section headers (Focus on English-only as per strategy)
-	headers := map[string]bool{
-		"Executive Summary":     true,
-		"Key Discussion Points": true,
-		"Decisions Made":        true,
-		"Action Items":          true,
-		"Open Questions":        true,
-		"AI Strategic Analysis": true,
-		// Indonesian headers
-		"Ringkasan Eksekutif":   true,
-		"Poin Diskusi Utama":    true,
-		"Keputusan Utama":       true,
-		"Tindakan Lanjut":       true,
-		"Pertanyaan Terbuka":    true,
-		"Analisis Strategis AI": true,
-	}
+	// Add a separator after header
+	m.AddRows(row.New(2))
+	m.AddRows(row.New(1).Add(col.New(12).Add(text.New(" ", props.Text{}))).WithStyle(&props.Cell{BackgroundColor: headerColor}))
+	m.AddRows(row.New(8))
 
+	// Content Parsing
+	lines := strings.Split(summary, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
-			m.AddRows(row.New(5))
+			m.AddRows(row.New(4))
 			continue
 		}
 
-		// Check if line is a section header (bold and larger font)
-		isHeader := false
-		for h := range headers {
-			if strings.EqualFold(line, h) {
-				isHeader = true
-				break
-			}
-		}
-
-		if isHeader {
-			m.AddRows(row.New(10).Add(
+		// Handle Headers
+		if strings.HasPrefix(line, "# ") {
+			// Title/Main Header
+			title := strings.TrimPrefix(line, "# ")
+			m.AddRows(row.New(12).Add(
 				col.New(12).Add(
-					text.New(strings.ToUpper(line), props.Text{
+					text.New(strings.ToUpper(title), props.Text{
 						Size:  14,
 						Style: fontstyle.Bold,
-						Top:   2,
-						Color: &props.Color{Red: 50, Green: 50, Blue: 50},
+						Color: accentColor,
 					}),
 				),
 			))
-		} else if strings.HasPrefix(line, "• ") || strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
+			m.AddRows(row.New(1).Add(col.New(4).Add(text.New(" ", props.Text{}))).WithStyle(&props.Cell{BackgroundColor: headerColor}))
+			m.AddRows(row.New(4))
+		} else if strings.HasPrefix(line, "## ") {
+			// Section Header
+			section := strings.TrimPrefix(line, "## ")
+			m.AddRows(row.New(10).Add(
+				col.New(12).Add(
+					text.New(section, props.Text{
+						Size:  12,
+						Style: fontstyle.Bold,
+						Color: accentColor,
+						Top:   2,
+					}),
+				),
+			))
+			m.AddRows(row.New(4))
+		} else if strings.HasPrefix(line, "### ") {
+			// Sub Section
+			subSection := strings.TrimPrefix(line, "### ")
+			m.AddRows(row.New(8).Add(
+				col.New(12).Add(
+					text.New(subSection, props.Text{
+						Size:  11,
+						Style: fontstyle.Bold,
+						Color: grayColor,
+					}),
+				),
+			))
+		} else if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") || strings.HasPrefix(line, "* ") {
+			// List Item
 			content := line
 			if strings.HasPrefix(line, "- ") {
 				content = "• " + strings.TrimPrefix(line, "- ")
 			} else if strings.HasPrefix(line, "* ") {
 				content = "• " + strings.TrimPrefix(line, "* ")
 			}
-			m.AddRows(row.New(8).Add(
-				col.New(12).Add(
+			
+			// Clean up bold indicators in list content if any
+			content = strings.ReplaceAll(content, "**", "")
+
+			m.AddRows(row.New(7).Add(
+				col.New(1).Add(
+					text.New(" ", props.Text{}), // Left padding
+				),
+				col.New(11).Add(
 					text.New(content, props.Text{
-						Size: 11,
-						Left: 5,
+						Size: 10,
 					}),
 				),
 			))
-		} else if (len(line) > 0 && line[0] >= '0' && line[0] <= '9') {
-			// Lines starting with numbers (Task/Topic numbering) - also bolded or slightly emphasized
+		} else if len(line) > 0 && line[0] >= '0' && line[0] <= '9' && strings.Contains(line, ".") {
+			// Enumerated list or numbered header
 			m.AddRows(row.New(8).Add(
 				col.New(12).Add(
 					text.New(line, props.Text{
-						Size:  11,
+						Size:  10,
 						Style: fontstyle.Bold,
 					}),
 				),
 			))
 		} else {
-			m.AddRows(row.New(8).Add(
+			// Regular text
+			// Clean up inline bold indicators
+			cleanLine := strings.ReplaceAll(line, "**", "")
+			m.AddRows(row.New(7).Add(
 				col.New(12).Add(
-					text.New(line, props.Text{
-						Size: 11,
+					text.New(cleanLine, props.Text{
+						Size: 10,
 					}),
 				),
 			))

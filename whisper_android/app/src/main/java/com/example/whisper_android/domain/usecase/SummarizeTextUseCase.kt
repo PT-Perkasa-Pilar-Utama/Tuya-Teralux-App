@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.flow
 class SummarizeTextUseCase(
     private val ragRepository: RagRepository
 ) {
-    suspend operator fun invoke(text: String, style: String, token: String): Flow<Resource<RAGSummaryResponseDto>> = flow {
+    suspend operator fun invoke(text: String, language: String?, style: String, token: String): Flow<Resource<RAGSummaryResponseDto>> = flow {
         emit(Resource.Loading())
         
         var taskId: String? = null
-        ragRepository.generateSummary(text, style, null, token).collect { result ->
+        ragRepository.generateSummary(text, style, language, null, token).collect { result ->
             when (result) {
                 is Resource.Success -> taskId = result.data
                 is Resource.Error -> {

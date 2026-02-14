@@ -78,11 +78,11 @@ class RagRepositoryImpl(
         emit(Resource.Error("Translation timed out"))
     }
 
-    override suspend fun generateSummary(text: String, style: String, context: String?, token: String): Flow<Resource<String>> = flow {
+    override suspend fun generateSummary(text: String, style: String, language: String?, context: String?, token: String): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
         try {
             val response = api.summary(
-                RAGSummaryRequestDto(text = text, style = style, context = context),
+                RAGSummaryRequestDto(text = text, style = style, language = language, context = context),
                 "Bearer $token"
             )
             val taskId = response.data?.taskId

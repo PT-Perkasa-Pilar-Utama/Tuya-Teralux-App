@@ -40,6 +40,35 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
+import android.app.DownloadManager
+import android.os.Environment
+import android.widget.Toast
+
+fun downloadPdf(context: android.content.Context, url: String, title: String) {
+    try {
+        // Ensure standard HTTP/HTTPS URL for DownloadManager
+        val absoluteUrl = if (url.startsWith("/")) {
+            val base = com.example.whisper_android.data.di.NetworkModule.BASE_URL.removeSuffix("/")
+            "$base$url"
+        } else {
+            url
+        }
+
+        val request = DownloadManager.Request(Uri.parse(absoluteUrl))
+            .setTitle(title)
+            .setDescription("Downloading meeting summary PDF...")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "${title.replace(" ", "_")}.pdf")
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
+
+        val downloadManager = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.enqueue(request)
+        Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
+    }
+}
 
 @Composable
 fun MeetingTranscriberScreen(
@@ -125,6 +154,17 @@ fun MeetingTranscriberScreen(
         }
     }
 
+    // Storage Permission Launcher for PDF Download (Android < 13)
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Toast.makeText(context, "Permission granted. Tap PDF again to download.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Storage permission required to save PDF.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     // Permission Check
     val hasPermission = ContextCompat.checkSelfPermission(
         context,
@@ -165,8 +205,17 @@ fun MeetingTranscriberScreen(
                             if (state.pdfUrl != null) {
                                 Button(
                                     onClick = { 
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(state.pdfUrl))
-                                        context.startActivity(intent)
+                                        // Check for permission if SDK < 33 (Android 13)
+                                        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                                                downloadPdf(context, state.pdfUrl, "Meeting_Summary_${System.currentTimeMillis()}")
+                                            } else {
+                                                storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                            }
+                                        } else {
+                                            // Android 13+ doesn't need WRITE_EXTERNAL_STORAGE for public downloads
+                                            downloadPdf(context, state.pdfUrl, "Meeting_Summary_${System.currentTimeMillis()}")
+                                        }
                                     },
                                     modifier = Modifier.height(32.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
