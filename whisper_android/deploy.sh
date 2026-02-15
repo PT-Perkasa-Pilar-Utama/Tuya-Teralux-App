@@ -71,4 +71,5 @@ else
 fi
 
 echo ""
-echo "=== Deploy Complete ==="
+echo "📝 Showing logs (Ctrl+C to stop)..."
+adb -s "$DEVICE_ID" logcat -v daily -s "SensioWakeWord:D" "MainActivity:D" "*:E"

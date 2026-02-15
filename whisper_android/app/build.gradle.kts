@@ -64,6 +64,9 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
     implementation(libs.compose.markdown)
+    
+    // Offline Speech Recognition (Vosk)
+    implementation("com.alphacephei:vosk-android:0.3.75")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

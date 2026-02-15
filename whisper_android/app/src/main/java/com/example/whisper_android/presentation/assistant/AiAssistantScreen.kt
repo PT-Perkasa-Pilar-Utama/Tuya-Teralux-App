@@ -63,6 +63,30 @@ fun AiAssistantScreen(
         }
     }
 
+    // Wake Word Manager
+    val wakeWordManager = remember {
+        SensioWakeWordManager(context) {
+            // Wake word detected! Trigger recording.
+            if (!isRecording && !isProcessing) {
+                isRecording = true
+            }
+        }
+    }
+
+    // Handle Wake Word Lifecycle
+    DisposableEffect(hasPermission, isRecording, isProcessing) {
+        if (hasPermission && !isRecording && !isProcessing) {
+            wakeWordManager.startListening()
+        } else {
+            wakeWordManager.stopListening()
+        }
+        
+        onDispose {
+            wakeWordManager.stopListening()
+            wakeWordManager.destroy()
+        }
+    }
+
     FeatureBackground {
         Column(
             modifier = Modifier
