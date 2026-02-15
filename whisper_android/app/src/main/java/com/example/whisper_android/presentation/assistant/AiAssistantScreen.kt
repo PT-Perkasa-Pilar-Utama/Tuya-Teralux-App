@@ -87,13 +87,34 @@ fun AiAssistantScreen(
         }
     }
 
-    FeatureBackground {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 0.dp), // Zero vertical padding on root for tighter control
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    // Smart Mic: Auto-stop if no command detected (Simulated Inactivity)
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            // Wait 6 seconds of silence/inactivity
+            delay(6000)
+            if (isRecording) {
+                isRecording = false
+                snackbarHostState.showSnackbar(
+                    message = "No command detected. Mic stopped.",
+                    duration = SnackbarDuration.Short
+                )
+            }
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent
+    ) { padding ->
+        FeatureBackground {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 4.dp, vertical = 0.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             // Header with Accent
             Box(modifier = Modifier.fillMaxWidth()) {
                 FeatureHeader(
@@ -282,6 +303,7 @@ fun AiAssistantScreen(
                         }
                     }
                 )
+            }
             }
         }
     }
