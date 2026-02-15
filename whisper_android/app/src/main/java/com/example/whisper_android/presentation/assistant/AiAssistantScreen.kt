@@ -87,6 +87,24 @@ fun AiAssistantScreen(
         }
     }
 
+    // Unified function to handle stopping recording and processing
+    val handleStopRecording = {
+        if (isRecording) {
+            isRecording = false
+            isProcessing = true
+            // Simulate processing and answer (Dummy for Demo)
+            scope.launch {
+                delay(2000)
+                transcriptionResults = transcriptionResults + 
+                    TranscriptionMessage("What's the summary of the Q3 report?", MessageRole.USER)
+                delay(800)
+                transcriptionResults = transcriptionResults + 
+                    TranscriptionMessage("The Q3 report highlights significant market share growth and assigned several follow-up action items. A preliminary budget agreement was also reached.", MessageRole.ASSISTANT)
+                isProcessing = false
+            }
+        }
+    }
+
     // Smart Mic: Auto-stop if no command detected (Simulated Inactivity)
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(isRecording) {
@@ -94,9 +112,10 @@ fun AiAssistantScreen(
             // Wait 6 seconds of silence/inactivity
             delay(6000)
             if (isRecording) {
-                isRecording = false
+                // Same interaction as manual stop
+                handleStopRecording()
                 snackbarHostState.showSnackbar(
-                    message = "No command detected. Mic stopped.",
+                    message = "Mic auto-stopped (No command).",
                     duration = SnackbarDuration.Short
                 )
             }
@@ -265,20 +284,7 @@ fun AiAssistantScreen(
                         }
                     },
                     onStopClick = {
-                        if (isRecording) {
-                            isRecording = false
-                            isProcessing = true
-                            // Simulate processing and answer
-                            scope.launch {
-                                delay(2000)
-                                transcriptionResults = transcriptionResults + 
-                                    TranscriptionMessage("What's the summary of the Q3 report?", MessageRole.USER)
-                                delay(800)
-                                transcriptionResults = transcriptionResults + 
-                                    TranscriptionMessage("The Q3 report highlights significant market share growth and assigned several follow-up action items. A preliminary budget agreement was also reached.", MessageRole.ASSISTANT)
-                                isProcessing = false
-                            }
-                        }
+                        handleStopRecording()
                     },
                     onSendClick = {
                         if (userInput.isNotBlank()) {

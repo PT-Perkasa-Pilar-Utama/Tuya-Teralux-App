@@ -19,8 +19,8 @@ class SensioWakeWordManager(
     private var speechService: SpeechService? = null
     private val handler = Handler(Looper.getMainLooper())
     
-    // Key phrases to listen for
-    private val keywords = "[\"hey sensio\", \"sensio\", \"essence\", \"sensus\", \"[unk]\"]"
+    // Key phrases to listen for + noise absorbers
+    private val keywords = "[\"hey sensio\", \"sensio\", \"sensyo\", \"sensus\", \"essence\", \"hello\", \"hi\", \"yes\", \"no\", \"computer\", \"assistant\", \"[unk]\"]"
 
     init {
         initModel()
@@ -77,9 +77,14 @@ class SensioWakeWordManager(
 
     private fun containsWakeWord(hypothesis: String): Boolean {
         val lower = hypothesis.lowercase()
+        // If it's just "sensus" without "hey" or other context, 
+        // it's more likely to be noise (like ssttttt).
+        // But if the user says "Hey Sensio", Vosk often hears "hey sensus" or "sensyo"
         return lower.contains("sensio") || 
-               lower.contains("essence") || 
-               lower.contains("sensus")
+               lower.contains("sensyo") || 
+               lower.contains("hey sensus") || 
+               lower.contains("hey essence") ||
+               (lower.contains("sensus") && lower.contains("hey"))
     }
 
     private fun triggerWakeWord() {
