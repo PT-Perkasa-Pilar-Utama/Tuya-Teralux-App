@@ -131,16 +131,16 @@ fun AiAssistantScreen(
                         
                         Spacer(modifier = Modifier.height(32.dp)) // Subtitle -> Intelligence Layer
                         
-                        // 3. Suggested Action Cards (Horizontal Grid)
+                        // 3. Suggested Action Cards (Horizontal Grid) - RESTORED AS DUMMY
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 24.dp), // Tighter horizontal padding
+                                .padding(horizontal = 24.dp), 
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val promptActions = listOf(
-                                "Summarize Insight" to "Extract core discussion intent.", // Tighter copy
+                                "Summarize Insight" to "Extract core discussion intent.",
                                 "List Actions" to "Identify tasks and assignments."
                             )
                             
@@ -148,55 +148,24 @@ fun AiAssistantScreen(
                                 SuggestedActionCard(
                                     title = title,
                                     subtitle = subtitle,
-                                    modifier = Modifier.weight(1f), // Equal distribution
+                                    modifier = Modifier.weight(1f),
                                     onClick = { 
+                                        // TRIGGER DUMMY CHAT SEQUENCE
                                         val prompt = title
-                                        userInput = ""
                                         isProcessing = true
                                         transcriptionResults = transcriptionResults + 
                                             TranscriptionMessage(prompt, MessageRole.USER)
                                         
                                         scope.launch {
-                                            val token = NetworkModule.tokenManager.getAccessToken() ?: ""
-                                            // For now, using a dummy or previous text if we had it.
-                                            // In a real app, this would use the meeting context.
-                                            val contextText = transcriptionResults.filter { it.role == MessageRole.USER }
-                                                .joinToString("\n") { it.text }
-
-                                            if (title == "Summarize Insight") {
-                                                NetworkModule.summarizeTextUseCase(contextText, null, "meeting_summary", token).collect { result ->
-                                                    when (result) {
-                                                        is Resource.Loading -> { /* already true */ }
-                                                        is Resource.Success -> {
-                                                            transcriptionResults = transcriptionResults + 
-                                                                TranscriptionMessage(result.data?.summary ?: "No summary generated.", MessageRole.ASSISTANT)
-                                                            isProcessing = false
-                                                        }
-                                                        is Resource.Error -> {
-                                                            transcriptionResults = transcriptionResults + 
-                                                                TranscriptionMessage("Error: ${result.message}", MessageRole.ASSISTANT)
-                                                            isProcessing = false
-                                                        }
-                                                    }
-                                                }
-                                            } else {
-                                                // List Actions might use a specific style
-                                                NetworkModule.summarizeTextUseCase(contextText, null, "action_items", token).collect { result ->
-                                                    when (result) {
-                                                        is Resource.Loading -> { }
-                                                        is Resource.Success -> {
-                                                            transcriptionResults = transcriptionResults + 
-                                                                TranscriptionMessage(result.data?.summary ?: "No actions identified.", MessageRole.ASSISTANT)
-                                                            isProcessing = false
-                                                        }
-                                                        is Resource.Error -> {
-                                                            transcriptionResults = transcriptionResults + 
-                                                                TranscriptionMessage("Error: ${result.message}", MessageRole.ASSISTANT)
-                                                            isProcessing = false
-                                                        }
-                                                    }
-                                                }
+                                            delay(1500) // Simulated brain lag
+                                            val response = when(title) {
+                                                "Summarize Insight" -> "Based on the recent discussion, the core intent is to streamline the deployment pipeline and reduce technical debt."
+                                                "List Actions" -> "Identified tasks: 1. Refactor API layer, 2. Update documentation, 3. Sync with stakeholders."
+                                                else -> "I've processed your request. How else can I assist with this context?"
                                             }
+                                            transcriptionResults = transcriptionResults + 
+                                                TranscriptionMessage(response, MessageRole.ASSISTANT)
+                                            isProcessing = false
                                         }
                                     }
                                 )
@@ -275,24 +244,16 @@ fun AiAssistantScreen(
                                 TranscriptionMessage(question, MessageRole.USER)
                                 
                             scope.launch {
-                                val token = NetworkModule.tokenManager.getAccessToken() ?: ""
-                                // Treating a general question as a summary request where the text is the question
-                                // Ideally this would be a 'QA' endpoint, but we'll use Summary for demonstration
-                                NetworkModule.summarizeTextUseCase(question, null, "qa", token).collect { result ->
-                                    when (result) {
-                                        is Resource.Success -> {
-                                            transcriptionResults = transcriptionResults + 
-                                                TranscriptionMessage(result.data?.summary ?: "I couldn't find an answer.", MessageRole.ASSISTANT)
-                                            isProcessing = false
-                                        }
-                                        is Resource.Error -> {
-                                            transcriptionResults = transcriptionResults + 
-                                                TranscriptionMessage("Error: ${result.message}", MessageRole.ASSISTANT)
-                                            isProcessing = false
-                                        }
-                                        else -> {}
-                                    }
+                                // DECOUPLED FROM BACKEND (DUMMY MODE)
+                                delay(1000)
+                                val response = if (question.contains("summary", ignoreCase = true)) {
+                                    "I've analyzed the current context. The discussion primarily centers on strategic growth and operational efficiency."
+                                } else {
+                                    "I've processed your request. Based on the available meeting data, I recommend focusing on the identified action items."
                                 }
+                                transcriptionResults = transcriptionResults + 
+                                    TranscriptionMessage(response, MessageRole.ASSISTANT)
+                                isProcessing = false
                             }
                         }
                     }
