@@ -93,3 +93,13 @@ ehthumbs.db
 Thumbs.db
 
 test_audio/
+
+# Binary executable and model assets
+**/app
+**/app_arm64
+app/src/main/assets/vosk-model/
+*.mdl
+*.fst
+*.dubm
+*.mat
+*.stats
