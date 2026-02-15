@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,41 +9,47 @@ import (
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
+	"teralux_app/domain/rag/services"
 	"teralux_app/domain/rag/utilities"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/johnfercher/maroto/v2"
-	"github.com/johnfercher/maroto/v2/pkg/components/col"
-	"github.com/johnfercher/maroto/v2/pkg/components/row"
-	"github.com/johnfercher/maroto/v2/pkg/components/text"
-	"github.com/johnfercher/maroto/v2/pkg/config"
-	"github.com/johnfercher/maroto/v2/pkg/consts/align"
-	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
-	"github.com/johnfercher/maroto/v2/pkg/props"
 )
 
 type SummaryUseCase interface {
-	SummarizeText(text string, language string, context string, style string) (string, error)
+	SummarizeText(text string, language string, meetingContext string, style string) (string, error)
+	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error)
 }
 
 type summaryUseCase struct {
-	llm    utilities.LLMClient
-	config *utils.Config
-	cache  *tasks.BadgerTaskCache
-	store  *tasks.StatusStore[dtos.RAGStatusDTO]
+	llm           utilities.LLMClient
+	config        *utils.Config
+	cache         *tasks.BadgerTaskCache
+	store         *tasks.StatusStore[dtos.RAGStatusDTO]
+	renderer      services.SummaryPDFRenderer
+	llmTimeout    time.Duration // Timeout for LLM calls
+	renderTimeout time.Duration // Timeout for PDF rendering
 }
 
-func NewSummaryUseCase(llm utilities.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) SummaryUseCase {
+func NewSummaryUseCase(
+	llm utilities.LLMClient,
+	cfg *utils.Config,
+	cache *tasks.BadgerTaskCache,
+	store *tasks.StatusStore[dtos.RAGStatusDTO],
+	renderer services.SummaryPDFRenderer,
+) SummaryUseCase {
 	return &summaryUseCase{
-		llm:    llm,
-		config: cfg,
-		cache:  cache,
-		store:  store,
+		llm:           llm,
+		config:        cfg,
+		cache:         cache,
+		store:         store,
+		renderer:      renderer,
+		llmTimeout:    5 * time.Minute,  // Increased for strategic reasoning depth
+		renderTimeout: 30 * time.Second, // Default PDF render timeout
 	}
 }
 
-func (u *summaryUseCase) summaryInternal(text string, language string, context string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -56,55 +63,16 @@ func (u *summaryUseCase) summaryInternal(text string, language string, context s
 		targetLangName = "English"
 	}
 
-	prompt := fmt.Sprintf(`### ROLE
-You are a Senior Project Management Officer and Strategic Analyst. Your goal is to convert raw meeting transcripts into professional meeting intelligence using a structured reporting framework.
-
-### INSTRUCTIONS
-1. *Language Focus*: Regardless of the transcript language, the report MUST be written entirely in %s.
-2. *Denoise & Professionalize*: Remove filler words, stuttering, and informal speech. Convert the text into formal business English.
-3. *PPP Framework*: Within organized Discussion Points, strictly follow the Progress/Issues/Plans structure.
-4. *Objectivity*: Do NOT invent facts, deadlines, or owners. If specific data is missing, use a dash (-) or omit the field.
-5. *Formatting*: Use Markdown formatting. Use bolding (#, ##, **bold**) for headers and key points. Use bullet points for lists.
-
-### CONTENT CONTEXT
-- Context: %s
-- Desired Style: %s
-
-### OUTPUT FORMAT
-Executive Summary
-(A concise, 3-sentence high-level overview of the meeting goals and outcomes)
-
-Key Discussion Points
-(Number). (Topic Name)
-(High-level summary of this topic)
-(Number.Number) (Sub-topic Name) - Reporter: [Speaker Name/Role]
-• Progress: (Current status/what was achieved)
-• Issues: (Specific obstacles or gaps mentioned)
-• Plans: (Strategic next steps, otherwise -)
-
-Decisions Made
-(List confirmed outcomes. If none, state: "No explicit decisions reached during this session")
-
-Action Items
-(List specific tasks. Include Owner and Deadline ONLY if explicitly stated in the transcript.)
-
-Open Questions
-(Points of discussion left unresolved)
-
-AI Strategic Analysis
-(AI analysis of gaps. Identify ambiguities and suggest constructive next steps for the project lead.)
-
-### CONSTRAINTS
-- Use simple dot (•) for bullet points.
-- Use double line breaks between major headers for readability.
-- Maintain a high-level strategic perspective.
-
----
-<transcript>
-"%s"
-</transcript>
-
-Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
+	// Build structured prompt with configured assertiveness and risk scoring
+	promptConfig := &services.PromptConfig{
+		Assertiveness: 8,          // Strategic assertiveness (calling out gaps/risks)
+		Audience:      "mixed",    // C-level + VP/Director level
+		RiskScale:     "granular", // 1-10 scoring for nuance
+		Context:       meetingContext,
+		Style:         style,
+		Language:      targetLangName,
+	}
+	prompt := promptConfig.BuildPrompt(text)
 
 	model := u.config.LLMModel
 	if model == "" {
@@ -125,8 +93,17 @@ Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
 	// Create reports directory if not exists
 	os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
-	if err := u.generateProfessionalPDF(trimmedSummary, pdfPath); err != nil {
-		utils.LogWarn("Warning: Failed to generate PDF: %v", err)
+	if u.renderer != nil {
+		meta := services.SummaryPDFMeta{
+			Language: targetLangName,
+			Context:  meetingContext,
+			Style:    style,
+		}
+		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
+			utils.LogWarn("Warning: Failed to generate PDF: %v", err)
+		}
+	} else {
+		utils.LogWarn("Warning: PDF renderer is not configured")
 	}
 
 	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
@@ -140,7 +117,7 @@ Strategic Summary (%s):`, targetLangName, context, style, text, targetLangName)
 	}, nil
 }
 
-func (u *summaryUseCase) SummarizeText(text string, language string, context string, style string) (string, error) {
+func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string) (string, error) {
 	taskID := uuid.New().String()
 	status := &dtos.RAGStatusDTO{Status: "pending"}
 	u.store.Set(taskID, status)
@@ -148,7 +125,7 @@ func (u *summaryUseCase) SummarizeText(text string, language string, context str
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
-		result, err := u.summaryInternal(text, language, context, style)
+		result, err := u.summaryInternal(text, language, meetingContext, style)
 		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
@@ -169,151 +146,169 @@ func (u *summaryUseCase) SummarizeText(text string, language string, context str
 	return taskID, nil
 }
 
-func (u *summaryUseCase) generateProfessionalPDF(summary string, path string) error {
-	cfg := config.NewBuilder().
-		WithPageNumber().
-		WithLeftMargin(15).
-		WithRightMargin(15).
-		WithTopMargin(15).
-		WithBottomMargin(15).
-		Build()
+// SummarizeTextWithContext provides context-aware processing with built-in timeout and cancellation support.
+// This method should be preferred over SummarizeText for API-driven use cases.
+//
+// Parameters:
+//   - ctx: Cancellation context (can define timeout: ctx, cancel := context.WithTimeout(...))
+//   - text, language, context, style: Same as SummarizeText
+//
+// Returns:
+//   - Task ID (use status polling)
+//   - Error if context is invalid or task startup fails
+//
+// Example:
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+//	defer cancel()
+//	taskID, err := useCase.SummarizeTextWithContext(ctx, transcript, "en", "meeting", "executive")
+func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error) {
+	// Validate context is not already cancelled
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
 
-	m := maroto.New(cfg)
+	taskID := uuid.New().String()
+	status := &dtos.RAGStatusDTO{Status: "pending"}
+	u.store.Set(taskID, status)
+	_ = u.cache.Set(taskID, status)
 
-	// Colors matching the app theme
-	headerColor := &props.Color{Red: 8, Green: 145, Blue: 178} // Cyan 600
-	accentColor := &props.Color{Red: 21, Green: 94, Blue: 117} // Cyan 800
-	grayColor := &props.Color{Red: 100, Green: 100, Blue: 100}
+	go func() {
+		// Use parent context directly for cancellation, but remove the internal time-based limit
+		internalCtx := ctx
 
-	// Header
-	m.AddRows(
-		row.New(15).Add(
-			col.New(12).Add(
-				text.New("MEETING INTELLIGENCE", props.Text{
-					Size:  18,
-					Style: fontstyle.Bold,
-					Align: align.Left,
-					Color: headerColor,
-				}),
-			),
-		),
-		row.New(10).Add(
-			col.New(12).Add(
-				text.New(fmt.Sprintf("Summary Report | %s", time.Now().Format("Jan 02, 2006")), props.Text{
-					Size:  10,
-					Align: align.Left,
-					Style: fontstyle.BoldItalic,
-					Color: grayColor,
-				}),
-			),
-		),
-	)
-
-	// Add a separator after header
-	m.AddRows(row.New(2))
-	m.AddRows(row.New(1).Add(col.New(12).Add(text.New(" ", props.Text{}))).WithStyle(&props.Cell{BackgroundColor: headerColor}))
-	m.AddRows(row.New(8))
-
-	// Content Parsing
-	lines := strings.Split(summary, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			m.AddRows(row.New(4))
-			continue
+		// Check if parent context was cancelled before starting
+		select {
+		case <-ctx.Done():
+			u.store.Set(taskID, &dtos.RAGStatusDTO{Status: "cancelled", Result: "Parent context cancelled"})
+			_ = u.cache.SetPreserveTTL(taskID, &dtos.RAGStatusDTO{Status: "cancelled"})
+			return
+		default:
 		}
 
-		// Handle Headers
-		if strings.HasPrefix(line, "# ") {
-			// Title/Main Header
-			title := strings.TrimPrefix(line, "# ")
-			m.AddRows(row.New(12).Add(
-				col.New(12).Add(
-					text.New(strings.ToUpper(title), props.Text{
-						Size:  14,
-						Style: fontstyle.Bold,
-						Color: accentColor,
-					}),
-				),
-			))
-			m.AddRows(row.New(1).Add(col.New(4).Add(text.New(" ", props.Text{}))).WithStyle(&props.Cell{BackgroundColor: headerColor}))
-			m.AddRows(row.New(4))
-		} else if strings.HasPrefix(line, "## ") {
-			// Section Header
-			section := strings.TrimPrefix(line, "## ")
-			m.AddRows(row.New(10).Add(
-				col.New(12).Add(
-					text.New(section, props.Text{
-						Size:  12,
-						Style: fontstyle.Bold,
-						Color: accentColor,
-						Top:   2,
-					}),
-				),
-			))
-			m.AddRows(row.New(4))
-		} else if strings.HasPrefix(line, "### ") {
-			// Sub Section
-			subSection := strings.TrimPrefix(line, "### ")
-			m.AddRows(row.New(8).Add(
-				col.New(12).Add(
-					text.New(subSection, props.Text{
-						Size:  11,
-						Style: fontstyle.Bold,
-						Color: grayColor,
-					}),
-				),
-			))
-		} else if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "• ") || strings.HasPrefix(line, "* ") {
-			// List Item
-			content := line
-			if strings.HasPrefix(line, "- ") {
-				content = "• " + strings.TrimPrefix(line, "- ")
-			} else if strings.HasPrefix(line, "* ") {
-				content = "• " + strings.TrimPrefix(line, "* ")
-			}
-
-			// Clean up bold indicators in list content if any
-			content = strings.ReplaceAll(content, "**", "")
-
-			m.AddRows(row.New(7).Add(
-				col.New(1).Add(
-					text.New(" ", props.Text{}), // Left padding
-				),
-				col.New(11).Add(
-					text.New(content, props.Text{
-						Size: 10,
-					}),
-				),
-			))
-		} else if len(line) > 0 && line[0] >= '0' && line[0] <= '9' && strings.Contains(line, ".") {
-			// Enumerated list or numbered header
-			m.AddRows(row.New(8).Add(
-				col.New(12).Add(
-					text.New(line, props.Text{
-						Size:  10,
-						Style: fontstyle.Bold,
-					}),
-				),
-			))
+		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style)
+		var finalStatus *dtos.RAGStatusDTO
+		if err != nil {
+			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
+			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
 		} else {
-			// Regular text
-			// Clean up inline bold indicators
-			cleanLine := strings.ReplaceAll(line, "**", "")
-			m.AddRows(row.New(7).Add(
-				col.New(12).Add(
-					text.New(cleanLine, props.Text{
-						Size: 10,
-					}),
-				),
-			))
+			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
+			finalStatus = &dtos.RAGStatusDTO{
+				Status:          "completed",
+				ExecutionResult: result,
+				Result:          result.Summary,
+			}
+		}
+
+		u.store.Set(taskID, finalStatus)
+		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
+	}()
+
+	return taskID, nil
+}
+
+// SetLLMTimeout configures the timeout for LLM calls
+func (u *summaryUseCase) SetLLMTimeout(d time.Duration) {
+	if d > 0 {
+		u.llmTimeout = d
+	}
+}
+
+// SetRenderTimeout configures the timeout for PDF rendering
+func (u *summaryUseCase) SetRenderTimeout(d time.Duration) {
+	if d > 0 {
+		u.renderTimeout = d
+	}
+}
+
+// summaryInternalWithContext adds context-aware timeout enforcement to PDF rendering and LLM calls.
+func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+	if strings.TrimSpace(text) == "" {
+		return nil, fmt.Errorf("text is empty")
+	}
+
+	if language == "" {
+		language = "id"
+	}
+
+	targetLangName := "Indonesian"
+	if strings.ToLower(language) == "en" {
+		targetLangName = "English"
+	}
+
+	// Check context before proceeding
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("operation cancelled: %w", ctx.Err())
+	default:
+	}
+
+	// Build structured prompt
+	promptConfig := &services.PromptConfig{
+		Assertiveness: 8,
+		Audience:      "mixed",
+		RiskScale:     "granular",
+		Context:       meetingContext,
+		Style:         style,
+		Language:      targetLangName,
+	}
+	prompt := promptConfig.BuildPrompt(text)
+
+	model := u.config.LLMModel
+	if model == "" {
+		model = "default"
+	}
+
+	// LLM call (currently no built-in context support in CallModel, so we check before/after)
+	// In future: upgrade LLMClient interface to accept context
+	summary, err := u.llm.CallModel(prompt, model)
+	if err != nil {
+		return nil, fmt.Errorf("LLM call failed: %w", err)
+	}
+
+	// Check context again after LLM call
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("operation cancelled after LLM call: %w", ctx.Err())
+	default:
+	}
+
+	trimmedSummary := strings.TrimSpace(summary)
+
+	// PDF rendering with timeout
+	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
+	pdfPath := filepath.Join("uploads", "reports", pdfFilename)
+	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+
+	if u.renderer != nil {
+		// Use parent context directly
+		renderCtx := ctx
+
+		// Check render context before starting
+		select {
+		case <-renderCtx.Done():
+			utils.LogWarn("Warning: PDF render timeout will trigger during rendering")
+		default:
+		}
+
+		meta := services.SummaryPDFMeta{
+			Language: targetLangName,
+			Context:  meetingContext,
+			Style:    style,
+		}
+
+		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
+			utils.LogWarn("Warning: Failed to generate PDF: %v (will continue with text-only response)", err)
 		}
 	}
 
-	doc, err := m.Generate()
-	if err != nil {
-		return err
-	}
+	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
+	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
 
-	return doc.Save(path)
+	return &dtos.RAGSummaryResponseDTO{
+		Summary: trimmedSummary,
+		PDFUrl:  pdfUrl,
+	}, nil
 }

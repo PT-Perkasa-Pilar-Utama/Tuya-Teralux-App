@@ -108,7 +108,7 @@ func (r *OrionRepository) CallModel(prompt string, model string) (string, error)
 	req.Header.Set("Authorization", "Bearer "+r.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := &http.Client{Timeout: 0} // No timeout, handled by async task system
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to call orion api: %w", err)

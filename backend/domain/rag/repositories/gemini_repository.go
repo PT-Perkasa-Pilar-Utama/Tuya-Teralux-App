@@ -86,7 +86,8 @@ func (r *GeminiRepository) CallModel(prompt string, model string) (string, error
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+	client := &http.Client{Timeout: 0}
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(b))
 	if err != nil {
 		return "", fmt.Errorf("failed to call gemini api: %w", err)
 	}
