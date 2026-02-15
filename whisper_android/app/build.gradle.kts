@@ -53,6 +53,7 @@ android {
         buildConfigField("String", "MQTT_BROKER_URL", "\"${localProperties.getProperty("mqtt.broker_url") ?: ""}\"")
         buildConfigField("String", "MQTT_USERNAME", "\"${localProperties.getProperty("mqtt.username") ?: ""}\"")
         buildConfigField("String", "MQTT_PASSWORD", "\"${localProperties.getProperty("mqtt.password") ?: ""}\"")
+        buildConfigField("String", "TERALUX_API_KEY", "\"${localProperties.getProperty("teralux.api_key") ?: ""}\"")
     }
 }
 
