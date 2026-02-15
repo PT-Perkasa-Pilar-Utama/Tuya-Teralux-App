@@ -22,6 +22,7 @@ class AudioRecorder(private val context: Context) {
     private val channelConfig = AudioFormat.CHANNEL_IN_MONO
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
 
+    @android.annotation.SuppressLint("MissingPermission")
     fun start(outputFile: File) {
         if (isRecording.get()) return
 

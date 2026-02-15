@@ -16,3 +16,7 @@ local.properties
 *_log.txt
 debug_*.txt
 *output*.txt
+
+.kotlin/
+ksp_error.log
+ksp_info.log

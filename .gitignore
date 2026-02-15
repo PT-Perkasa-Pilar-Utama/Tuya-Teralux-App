@@ -29,3 +29,7 @@
 # Environment files (do not commit secrets)
 /.env
 /backend/.env
+
+.kotlin/
+.vscode/
+*.log

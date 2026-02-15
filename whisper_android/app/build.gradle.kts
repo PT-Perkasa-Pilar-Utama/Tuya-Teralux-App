@@ -1,3 +1,4 @@
+import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -39,6 +40,19 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
+
+    defaultConfig {
+        buildConfigField("String", "MQTT_BROKER_URL", "\"${localProperties.getProperty("mqtt.broker_url") ?: ""}\"")
+        buildConfigField("String", "MQTT_USERNAME", "\"${localProperties.getProperty("mqtt.username") ?: ""}\"")
+        buildConfigField("String", "MQTT_PASSWORD", "\"${localProperties.getProperty("mqtt.password") ?: ""}\"")
     }
 }
 
@@ -67,6 +81,12 @@ dependencies {
     
     // Offline Speech Recognition (Vosk)
     implementation("com.alphacephei:vosk-android:0.3.75")
+
+    // MQTT
+    implementation(libs.paho.mqtt)
+    implementation(libs.paho.android)
+    implementation(libs.localbroadcastmanager)
+    implementation("androidx.legacy:legacy-support-v4:1.0.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
