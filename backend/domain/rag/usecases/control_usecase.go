@@ -3,11 +3,11 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
+	"teralux_app/domain/rag/sensors"
 	"teralux_app/domain/rag/utilities"
 	tuyaDtos "teralux_app/domain/tuya/dtos"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
@@ -94,7 +94,7 @@ func (u *controlUseCase) ProcessControl(uid, teraluxID, prompt string) (*dtos.Co
 	// 4. Single match found - Execute command
 	target := validMatches[0]
 	utils.LogDebug("ControlUseCase: Single match selected - ID: %s, Name: %s, RemoteID: %s", target.ID, target.Name, target.RemoteID)
-	
+
 	// Get access token
 	token, err := u.tuyaAuth.GetTuyaAccessToken()
 	if err != nil {
@@ -104,99 +104,57 @@ func (u *controlUseCase) ProcessControl(uid, teraluxID, prompt string) (*dtos.Co
 		}, nil
 	}
 
-	// Determine command type from prompt
-	promptLower := strings.ToLower(prompt)
-	isOff := strings.Contains(promptLower, "off") || strings.Contains(promptLower, "turn off") || strings.Contains(promptLower, "matikan")
-	
-	// Check if this is an IR device (has remote_id)
-	if target.RemoteID != "" {
-		// IR AC device - use IR command API
-		
-		var history []string
-		if u.badger != nil {
-			historyKey := fmt.Sprintf("chat_history:%s", teraluxID)
-			data, _ := u.badger.Get(historyKey)
-			if data != nil {
-				_ = json.Unmarshal(data, &history)
-			}
-		}
-
-
-		// Prepare command map
-		params, action := u.prepareACParams(isOff, promptLower, history)
-		utils.LogDebug("ControlUseCase: Executing IR command - Params: %+v, Action: %s", params, action)
-		
-		success, err := u.tuyaExecutor.SendIRACCommand(token, target.ID, target.RemoteID, params)
-		if err != nil {
-			return &dtos.ControlResultDTO{
-				Message:        fmt.Sprintf("Failed to execute IR command for **%s**: %v", target.Name, err),
-				DeviceID:       target.ID,
-				HTTPStatusCode: 500,
-			}, nil
-		} else if success {
-			return &dtos.ControlResultDTO{
-				Message:        fmt.Sprintf("Successfully %s **%s**.", action, target.Name),
-				DeviceID:       target.ID,
-				HTTPStatusCode: 200,
-			}, nil
-		}
-		
-		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Command sent but execution status unclear for **%s**.", target.Name),
-			DeviceID:       target.ID,
-			HTTPStatusCode: 500,
-		}, nil
-	}
-	
-	// Regular switch device - detect switch code
-	var commands []tuyaDtos.TuyaCommandDTO
-	
-	// Check if device has switch codes (switch_1, switch_2, etc.)
-	for _, status := range target.Status {
-		if strings.HasPrefix(status.Code, "switch_") || status.Code == "switch_led" {
-			// Use the first available switch code
-			commands = append(commands, tuyaDtos.TuyaCommandDTO{
-				Code:  status.Code,
-				Value: !isOff,
-			})
-			utils.LogDebug("ControlUseCase: Selected switch code '%s' for device '%s'", status.Code, target.Name)
-			break
+	// Load chat history
+	var history []string
+	if u.badger != nil {
+		historyKey := fmt.Sprintf("chat_history:%s", teraluxID)
+		data, _ := u.badger.Get(historyKey)
+		if data != nil {
+			_ = json.Unmarshal(data, &history)
 		}
 	}
-	
-	// If still no command found, return error
-	if len(commands) == 0 {
-		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Device **%s** does not support on/off control.", target.Name),
-			DeviceID:       target.ID,
-			HTTPStatusCode: 400,
-		}, nil
+
+	// Select appropriate sensor based on device type
+	deviceSensor := u.selectDeviceSensor(&target)
+
+	return deviceSensor.ExecuteControl(token, &target, prompt, history, u.tuyaExecutor)
+}
+
+// selectDeviceSensor selects the appropriate sensor handler for the device
+func (u *controlUseCase) selectDeviceSensor(device *tuyaDtos.TuyaDeviceDTO) sensors.DeviceSensor {
+	// Priority order: check specialized sensors first, then fallback to generic
+
+	// 1. Temperature/Humidity sensors (wsdcg)
+	tempSensor := sensors.NewTemperatureSensor()
+	if tempSensor.CanHandle(device) {
+		return tempSensor
 	}
 
-	success, err := u.tuyaExecutor.SendSwitchCommand(token, target.ID, commands)
-	if err != nil {
-		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Failed to execute command for **%s**: %v", target.Name, err),
-			DeviceID:       target.ID,
-			HTTPStatusCode: 500,
-		}, nil
-	} else if success {
-		action := "turned on"
-		if isOff {
-			action = "turned off"
-		}
-		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Successfully %s **%s**.", action, target.Name),
-			DeviceID:       target.ID,
-			HTTPStatusCode: 200,
-		}, nil
+	// 2. Power monitoring devices (MCB switches - dlq)
+	powerSensor := sensors.NewPowerMonitorSensor()
+	if powerSensor.CanHandle(device) {
+		return powerSensor
 	}
 
-	return &dtos.ControlResultDTO{
-		Message:        fmt.Sprintf("Command sent but execution status unclear for **%s**.", target.Name),
-		DeviceID:       target.ID,
-		HTTPStatusCode: 500,
-	}, nil
+	// 3. IR AC devices (with RemoteID)
+	if device.RemoteID != "" {
+		return sensors.NewIRACsensor()
+	}
+
+	// 4. LED Light devices (dj category)
+	lightSensor := sensors.NewLightSensor()
+	if lightSensor.CanHandle(device) {
+		return lightSensor
+	}
+
+	// 5. Multi-switch devices (kg category)
+	switchSensor := sensors.NewSwitchSensor()
+	if switchSensor.CanHandle(device) {
+		return switchSensor
+	}
+
+	// 6. Teralux voice/media controls (dgnzk category)
+	return sensors.NewTeraluxSensor()
 }
 
 func (u *controlUseCase) handleNoInitialMatches(uid, teraluxID, prompt string, devices []tuyaDtos.TuyaDeviceDTO) (*dtos.ControlResultDTO, error) {
@@ -286,123 +244,10 @@ Response:`, prompt, historyContext, strings.Join(deviceList, "\n"))
 			}, nil
 		}
 
-		// Determine command type from prompt
-		promptLower := strings.ToLower(prompt)
-		isOff := strings.Contains(promptLower, "off") || strings.Contains(promptLower, "turn off") || strings.Contains(promptLower, "matikan")
-		
-		// Check if this is an IR device (has remote_id)
-		if targetDevice.RemoteID != "" {
-			// IR AC device - use IR command API
-			
-			// 3. Handle AC parameters (mode, temp, wind)
-			temp, tempFound := u.parseTemperature(promptLower)
-			mode, modeFound := u.parseMode(promptLower)
-			wind, windFound := u.parseFanSpeed(promptLower)
-			
-			// Inherit missing fields from history
-			if !tempFound || !modeFound || !windFound {
-				for i := len(history) - 1; i >= 0 && i >= len(history)-3; i-- {
-					hLower := strings.ToLower(history[i])
-					
-					if !tempFound {
-						if hTemp, found := u.parseTemperature(hLower); found {
-							temp = hTemp
-							tempFound = true
-							utils.LogDebug("ControlUseCase: (Selection) Inherited temperature %d from history", temp)
-						}
-					}
-					
-					if !modeFound {
-						if hMode, found := u.parseMode(hLower); found {
-							mode = hMode
-							modeFound = true
-							utils.LogDebug("ControlUseCase: (Selection) Inherited mode %d from history", mode)
-						}
-					}
+		// Select appropriate sensor based on device type
+		deviceSensor := u.selectDeviceSensor(targetDevice)
 
-					if !windFound {
-						if hWind, found := u.parseFanSpeed(hLower); found {
-							wind = hWind
-							windFound = true
-							utils.LogDebug("ControlUseCase: (Selection) Inherited wind %d from history", wind)
-						}
-					}
-				}
-			}
-
-			// Prepare command map
-			params, action := u.prepareACParams(isOff, promptLower, history)
-			utils.LogDebug("ControlUseCase: (Selection) Executing IR command - Params: %+v, Action: %s", params, action)
-			
-			success, err := u.tuyaExecutor.SendIRACCommand(token, targetDevice.ID, targetDevice.RemoteID, params)
-			if err != nil {
-				return &dtos.ControlResultDTO{
-					Message:        fmt.Sprintf("Failed to execute IR command for **%s**: %v", targetDevice.Name, err),
-					DeviceID:       targetDevice.ID,
-					HTTPStatusCode: 500,
-				}, nil
-			} else if success {
-				return &dtos.ControlResultDTO{
-					Message:        fmt.Sprintf("Successfully %s **%s**.", action, targetDevice.Name),
-					DeviceID:       targetDevice.ID,
-					HTTPStatusCode: 200,
-				}, nil
-			}
-			
-			return &dtos.ControlResultDTO{
-				Message:        fmt.Sprintf("Command sent but execution status unclear for **%s**.", targetDevice.Name),
-				DeviceID:       targetDevice.ID,
-				HTTPStatusCode: 500,
-			}, nil
-		}
-		
-		// Regular switch device - detect switch code
-		var commands []tuyaDtos.TuyaCommandDTO
-		
-		// Check if device has switch codes
-		for _, status := range targetDevice.Status {
-			if strings.HasPrefix(status.Code, "switch_") || status.Code == "switch_led" {
-				commands = append(commands, tuyaDtos.TuyaCommandDTO{
-					Code:  status.Code,
-					Value: !isOff,
-				})
-				break
-			}
-		}
-		
-		// If still no command found, return error
-		if len(commands) == 0 {
-			return &dtos.ControlResultDTO{
-				Message:        fmt.Sprintf("Device **%s** does not support on/off control.", targetDevice.Name),
-				DeviceID:       targetDevice.ID,
-				HTTPStatusCode: 400,
-			}, nil
-		}
-
-		success, err := u.tuyaExecutor.SendSwitchCommand(token, targetDevice.ID, commands)
-		if err != nil {
-			return &dtos.ControlResultDTO{
-				Message:        fmt.Sprintf("Failed to execute command for **%s**: %v", targetDevice.Name, err),
-				DeviceID:       targetDevice.ID,
-				HTTPStatusCode: 500,
-			}, nil
-		} else if success {
-			action := "turned on"
-			if isOff {
-				action = "turned off"
-			}
-			return &dtos.ControlResultDTO{
-				Message:        fmt.Sprintf("Successfully %s **%s**.", action, targetDevice.Name),
-				DeviceID:       targetDevice.ID,
-				HTTPStatusCode: 200,
-			}, nil
-		}
-
-		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Command sent but execution status unclear for **%s**.", targetDevice.Name),
-			DeviceID:       targetDevice.ID,
-			HTTPStatusCode: 500,
-		}, nil
+		return deviceSensor.ExecuteControl(token, targetDevice, prompt, history, u.tuyaExecutor)
 	}
 
 	if cleanRes == "NOT_FOUND" {
@@ -420,152 +265,4 @@ Response:`, prompt, historyContext, strings.Join(deviceList, "\n"))
 	return &dtos.ControlResultDTO{
 		Message: cleanRes,
 	}, nil
-}
-
-// prepareACParams builds the parameters for an AC IR command, inheriting from history or using defaults (18°C) if needed.
-func (u *controlUseCase) prepareACParams(isOff bool, promptLower string, history []string) (map[string]int, string) {
-	params := make(map[string]int)
-	var actions []string
-
-	if isOff {
-		params["power"] = 0
-		return params, "turned off"
-	}
-
-	params["power"] = 1
-
-	// 1. Search in current prompt
-	temp, tempFound := u.parseTemperature(promptLower)
-	mode, modeFound := u.parseMode(promptLower)
-	wind, windFound := u.parseFanSpeed(promptLower)
-
-	// 2. Search in history for missing values
-	if !tempFound || !modeFound || !windFound {
-		for i := len(history) - 1; i >= 0 && i >= len(history)-3; i-- {
-			hLower := strings.ToLower(history[i])
-			if !tempFound {
-				if hTemp, found := u.parseTemperature(hLower); found {
-					temp = hTemp
-					tempFound = true
-					utils.LogDebug("ControlUseCase: Inherited temperature %d from history", temp)
-				}
-			}
-			if !modeFound {
-				if hMode, found := u.parseMode(hLower); found {
-					mode = hMode
-					modeFound = true
-					utils.LogDebug("ControlUseCase: Inherited mode %d from history", mode)
-				}
-			}
-			if !windFound {
-				if hWind, found := u.parseFanSpeed(hLower); found {
-					wind = hWind
-					windFound = true
-					utils.LogDebug("ControlUseCase: Inherited wind %d from history", wind)
-				}
-			}
-		}
-	}
-
-	// 3. Apply Defaults if still missing
-	if !tempFound {
-		temp = 18 // Default lowest typical safe temp
-		tempFound = true
-		utils.LogDebug("ControlUseCase: Using default temperature %d", temp)
-	}
-	if !modeFound {
-		mode = 0 // Cool
-		modeFound = true
-		utils.LogDebug("ControlUseCase: Using default mode %d (Cool)", mode)
-	}
-	if !windFound {
-		wind = 0 // Auto
-		windFound = true
-		utils.LogDebug("ControlUseCase: Using default fan speed %d (Auto)", wind)
-	}
-
-	// 4. Build response actions
-	if modeFound {
-		params["mode"] = mode
-		modeNames := map[int]string{0: "Cool", 1: "Heat", 2: "Auto", 3: "Wind", 4: "Humidity"}
-		actions = append(actions, fmt.Sprintf("set mode to %s", modeNames[mode]))
-	}
-	if tempFound {
-		params["temp"] = temp
-		actions = append(actions, fmt.Sprintf("set temperature to %d°C", temp))
-	}
-	if windFound {
-		params["wind"] = wind
-		windNames := map[int]string{0: "Auto", 1: "Low", 2: "Medium", 3: "High"}
-		actions = append(actions, fmt.Sprintf("set fan speed to %s", windNames[wind]))
-	}
-
-	if len(actions) == 0 {
-		return params, "turned on"
-	}
-
-	return params, strings.Join(actions, ", ")
-}
-
-// parseTemperature extracts a temperature value (16-30) from a prompt.
-func (u *controlUseCase) parseTemperature(promptLower string) (int, bool) {
-	words := strings.Fields(promptLower)
-	for i, word := range words {
-		// Check for numeric literals
-		if num, err := strconv.Atoi(word); err == nil && num >= 16 && num <= 30 {
-			utils.LogDebug("ControlUseCase: Found temperature value '%d' in prompt", num)
-			return num, true
-		}
-		// Check for patterns like "ke 20" or "to 24"
-		if (word == "ke" || word == "to") && i+1 < len(words) {
-			if num, err := strconv.Atoi(words[i+1]); err == nil && num >= 16 && num <= 30 {
-				utils.LogDebug("ControlUseCase: Found temperature pattern '%s %d' in prompt", word, num)
-				return num, true
-			}
-		}
-	}
-	return 0, false
-}
-
-// parseMode extracts an AC mode value from a prompt.
-func (u *controlUseCase) parseMode(promptLower string) (int, bool) {
-	// 0: Cool, 1: Heat, 2: Auto, 3: Fan/Wind, 4: Dry/Humidity
-	
-	if strings.Contains(promptLower, "cool") || strings.Contains(promptLower, "dingin") {
-		return 0, true
-	}
-	if strings.Contains(promptLower, "heat") || strings.Contains(promptLower, "panas") {
-		return 1, true
-	}
-	if strings.Contains(promptLower, "auto") || strings.Contains(promptLower, "otomatis") {
-		return 2, true
-	}
-	if strings.Contains(promptLower, "fan") || strings.Contains(promptLower, "wind") || strings.Contains(promptLower, "kipas") || strings.Contains(promptLower, "angin") {
-		return 3, true
-	}
-	if strings.Contains(promptLower, "dry") || strings.Contains(promptLower, "humidity") || strings.Contains(promptLower, "lembab") || strings.Contains(promptLower, "kelembaban") {
-		return 4, true
-	}
-	
-	return 0, false
-}
-
-// parseFanSpeed extracts an AC fan speed value from a prompt.
-func (u *controlUseCase) parseFanSpeed(promptLower string) (int, bool) {
-	// 0: Auto, 1: Low, 2: Med, 3: High
-	
-	if strings.Contains(promptLower, "low") || strings.Contains(promptLower, "pelan") || strings.Contains(promptLower, "kecil") {
-		return 1, true
-	}
-	if strings.Contains(promptLower, "medium") || strings.Contains(promptLower, "sedang") {
-		return 2, true
-	}
-	if strings.Contains(promptLower, "high") || strings.Contains(promptLower, "kencang") || strings.Contains(promptLower, "cepat") || strings.Contains(promptLower, "besar") {
-		return 3, true
-	}
-	if strings.Contains(promptLower, "auto") || strings.Contains(promptLower, "otomatis") {
-		return 0, true
-	}
-	
-	return 0, false
 }
