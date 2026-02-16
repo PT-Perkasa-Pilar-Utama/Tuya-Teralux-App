@@ -53,8 +53,9 @@ class MqttHelper(context: Context) {
                     mqttAndroidClient.setBufferOpts(disconnectedBufferOptions)
                     Log.d(TAG, "Success Connected to $serverUri")
                     
-                    // Subscribe to chat topic
+                    // Subscribe to chat and answer topics
                     subscribe("users/teralux/chat/answer")
+                    subscribe("users/teralux/chat")
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken, exception: Throwable) {

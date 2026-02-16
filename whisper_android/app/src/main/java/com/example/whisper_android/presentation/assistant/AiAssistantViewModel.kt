@@ -27,12 +27,27 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
 
     init {
         mqttHelper.onMessageReceived = { topic, message ->
-            if (topic == "users/teralux/chat/answer") {
-                val cleanMessage = parseMarkdownToText(message)
-                transcriptionResults = transcriptionResults + TranscriptionMessage(
-                    text = cleanMessage,
-                    role = MessageRole.ASSISTANT
-                )
+            android.util.Log.d("AiAssistantViewModel", "MQTT Message: topic=$topic, message=$message")
+            when {
+                topic.endsWith("chat/answer") -> {
+                    val cleanMessage = parseMarkdownToText(message)
+                    transcriptionResults = transcriptionResults + TranscriptionMessage(
+                        text = cleanMessage,
+                        role = MessageRole.ASSISTANT
+                    )
+                }
+                topic.endsWith("chat") -> {
+                    // Avoid duplicate if we just sent this message
+                    val alreadyExists = transcriptionResults.any { 
+                        it.role == MessageRole.USER && it.text == message 
+                    }
+                    if (!alreadyExists) {
+                        transcriptionResults = transcriptionResults + TranscriptionMessage(
+                            text = message,
+                            role = MessageRole.USER
+                        )
+                    }
+                }
             }
         }
         mqttHelper.connect()
