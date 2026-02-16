@@ -9,6 +9,7 @@ type WhisperMqttRequestDTO struct {
 	Audio     string `json:"audio" binding:"required"` // Base64 encoded audio
 	Language  string `json:"language,omitempty"`
 	TeraluxID string `json:"teralux_id" binding:"required"`
+	UID       string `json:"uid,omitempty"`
 }
 
 type TranscriptionLongResponseDTO struct {

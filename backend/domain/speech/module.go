@@ -37,7 +37,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	whisperClientWithFallback := utilities.NewWhisperClientWithFallback(ppuClient, orionClient, localClient)
 
 	// Feature Usecases (1 Route 1 Usecase)
-	transcribeUC := speechUsecases.NewTranscribeUseCase(whisperClientWithFallback, ragRefineUC, shortCache, cfg)
+	transcribeUC := speechUsecases.NewTranscribeUseCase(whisperClientWithFallback, ragRefineUC, shortCache, cfg, mqttSvc)
 	transcribeWhisperCppUC := speechUsecases.NewTranscribeWhisperCppUseCase(whisperCppRepo, ragRefineUC, longCache, cfg)
 	getStatusUC := speechUsecases.NewGetTranscriptionStatusUseCase(shortCache, longCache, whisperProxyUsecase)
 

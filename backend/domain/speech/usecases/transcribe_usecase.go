@@ -1,8 +1,10 @@
 package usecases
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	ragUsecases "teralux_app/domain/rag/usecases"
@@ -11,8 +13,14 @@ import (
 	"time"
 )
 
+type TranscriptionMetadata struct {
+	UID       string
+	TeraluxID string
+	Source    string // "mqtt", "rest", etc.
+}
+
 type TranscribeUseCase interface {
-	TranscribeAudio(inputPath string, fileName string, language string) (string, error)
+	TranscribeAudio(inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error)
 }
 
 type transcribeUseCase struct {
@@ -20,6 +28,7 @@ type transcribeUseCase struct {
 	refineUC      ragUsecases.RefineUseCase
 	cache         *tasks.BadgerTaskCache
 	config        *utils.Config
+	mqttSvc       *infrastructure.MqttService
 }
 
 func NewTranscribeUseCase(
@@ -27,16 +36,18 @@ func NewTranscribeUseCase(
 	refineUC ragUsecases.RefineUseCase,
 	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
+	mqttSvc *infrastructure.MqttService,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
 		whisperClient: whisperClient,
 		refineUC:      refineUC,
 		cache:         cache,
 		config:        config,
+		mqttSvc:       mqttSvc,
 	}
 }
 
-func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, language string) (string, error) {
+func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error) {
 	if _, err := os.Stat(inputPath); err != nil {
 		utils.LogError("Transcribe: Failed to stat audio file: %v", err)
 		return "", fmt.Errorf("audio file not found")
@@ -53,12 +64,17 @@ func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, 
 
 	utils.LogInfo("Transcribe: Started task %s for file %s", taskID, fileName)
 
-	go uc.processAsync(taskID, inputPath, language)
+	var meta *TranscriptionMetadata
+	if len(metadata) > 0 {
+		meta = &metadata[0]
+	}
+
+	go uc.processAsync(taskID, inputPath, language, meta)
 
 	return taskID, nil
 }
 
-func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLanguage string) {
+func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLanguage string, metadata *TranscriptionMetadata) {
 	defer func() {
 		if r := recover(); r != nil {
 			utils.LogError("Transcribe Task %s: Panic recovered: %v", taskID, r)
@@ -86,6 +102,25 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	}
 
 	uc.updateStatus(taskID, "completed", finalResult)
+
+	// Chaining to /chat ONLY if initiated via MQTT
+	if metadata != nil && metadata.Source == "mqtt" && metadata.TeraluxID != "" && uc.mqttSvc != nil {
+		chatTopic := "users/teralux/chat"
+		prompt := finalResult.RefinedText
+		if prompt == "" {
+			prompt = finalResult.Transcription
+		}
+
+		chatReq := map[string]string{
+			"prompt":     prompt,
+			"teralux_id": metadata.TeraluxID,
+			"language":   result.DetectedLanguage,
+			"uid":        metadata.UID,
+		}
+		payload, _ := json.Marshal(chatReq)
+		uc.mqttSvc.Publish(chatTopic, 0, false, payload)
+		utils.LogInfo("Transcribe Task %s: Chained result to %s", taskID, chatTopic)
+	}
 }
 
 func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, result *speechdtos.AsyncTranscriptionResultDTO) {

@@ -98,7 +98,11 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		}
 
 		// Start transcription task (bypass recording save)
-		taskID, err := c.transcribeUC.TranscribeAudio(inputPath, filename, language)
+		taskID, err := c.transcribeUC.TranscribeAudio(inputPath, filename, language, usecases.TranscriptionMetadata{
+			UID:       req.UID,
+			TeraluxID: req.TeraluxID,
+			Source:    "mqtt",
+		})
 		if err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to start transcription: %v", err)
 			c.publishMqttError("Failed to start transcription task: " + err.Error())
