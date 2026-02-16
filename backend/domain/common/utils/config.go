@@ -61,7 +61,7 @@ var AppConfig *Config
 // It also triggers an update of the log level based on the loaded configuration.
 func LoadConfig() {
 	// Load .env (if present)
-	envPath := findEnvFile()
+	envPath := FindEnvFile()
 	if envPath == "" {
 		log.Println("Warning: .env file not found")
 	} else {
@@ -136,15 +136,15 @@ func LoadConfig() {
 	UpdateLogLevel()
 }
 
-// findEnvFile searches for the .env file in the current directory and up to three parent levels.
+// FindEnvFile searches for the .env file in the current directory and up to three parent levels.
 //
 // return string The path to the .env file if found, otherwise an empty string.
-func findEnvFile() string {
-	return findFileInParents(".env")
+func FindEnvFile() string {
+	return FindFileInParents(".env")
 }
 
-// findFileInParents searches for filename in current directory and up to three parent directories.
-func findFileInParents(filename string) string {
+// FindFileInParents searches for filename in current directory and up to three parent directories.
+func FindFileInParents(filename string) string {
 	path := filename
 	if _, err := os.Stat(path); err == nil {
 		return path

@@ -20,6 +20,17 @@ func NewRecordingsListController(useCase usecases.GetAllRecordingsUseCase) *Reco
 }
 
 // ListRecordings handles GET /api/recordings endpoint
+// @Summary List all recordings
+// @Description Get a paginated list of all recordings.
+// @Tags 06. Recordings
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "Page number (default 1)"
+// @Param limit query int false "Items per page (default 10)"
+// @Success 200 {object} dtos.RecordingStandardResponse{data=dtos.GetAllRecordingsResponseDto}
+// @Failure 401 {object} dtos.RecordingStandardResponse
+// @Failure 500 {object} dtos.RecordingStandardResponse
+// @Router /api/recordings [get]
 func (c *RecordingsListController) ListRecordings(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "10"))

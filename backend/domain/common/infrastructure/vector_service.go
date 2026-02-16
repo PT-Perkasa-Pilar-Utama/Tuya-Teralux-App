@@ -85,8 +85,8 @@ func (s *VectorService) Search(query string) ([]string, error) {
 
 		// If any keyword matches the content, consider it a candidate
 		for _, word := range words {
-			// Ignore very short words like "on", "the", "a" to avoid noise
-			if len(word) <= 2 {
+			// Ignore noise and common smart home terms that match internal JSON structure
+			if len(word) <= 1 || word == "on" || word == "to" || word == "in" || word == "is" {
 				continue
 			}
 			if strings.Contains(contentLower, word) {

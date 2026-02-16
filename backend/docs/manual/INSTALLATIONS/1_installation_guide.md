@@ -1,6 +1,6 @@
 # Installation & User Manual
 
-Welcome to the **Teralux Smart Home System** installation guide. This document provides step-by-step instructions to set up, build, and run both the Backend and Android applications.
+Welcome to the **Sensio Smart Home System** installation guide.
 
 ## 📋 Prerequisites
 

@@ -19,6 +19,16 @@ func NewRecordingsDeleteController(useCase usecases.DeleteRecordingUseCase) *Rec
 }
 
 // DeleteRecording handles DELETE /api/recordings/:id endpoint
+// @Summary Delete a recording
+// @Description Remove a recording and its associated file from the system.
+// @Tags 06. Recordings
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Recording ID"
+// @Success 200 {object} dtos.RecordingStandardResponse
+// @Failure 401 {object} dtos.RecordingStandardResponse
+// @Failure 500 {object} dtos.RecordingStandardResponse
+// @Router /api/recordings/{id} [delete]
 func (c *RecordingsDeleteController) DeleteRecording(ctx *gin.Context) {
 	id := ctx.Param("id")
 	err := c.useCase.DeleteRecording(id)

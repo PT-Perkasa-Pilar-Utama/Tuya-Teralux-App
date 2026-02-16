@@ -1,6 +1,6 @@
-# Teralux App Backend
+# Sensio App Backend
 
-Backend service for the Teralux application, built with Go.
+Backend service for the Sensio application, built with Go.
 
 ## 🚀 Getting Started
 
@@ -42,7 +42,7 @@ DB_SQLITE_PATH=./tmp/teralux.db
 Current migrations and entity definitions are handled automatically by GORM auto-migration.
 
 **Tables Created:**
-1. **teralux** - Main teralux devices table with soft delete support
+1. **teralux** - Main system devices table with soft delete support
 2. **devices** - Device information table
 3. **device_statuses** - Device status tracking table
 4. **recordings** - Audio recording metadata and file tracking

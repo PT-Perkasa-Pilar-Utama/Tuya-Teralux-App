@@ -67,6 +67,33 @@ definitions:
       total:
         type: integer
     type: object
+  dtos.RAGChatRequestDTO:
+    properties:
+      language:
+        example: id
+        type: string
+      prompt:
+        example: Nyalakan AC
+        type: string
+      teralux_id:
+        example: tx-1
+        type: string
+    required:
+    - prompt
+    - teralux_id
+    type: object
+  dtos.RAGControlRequestDTO:
+    properties:
+      prompt:
+        example: Nyalakan AC
+        type: string
+      teralux_id:
+        example: tx-1
+        type: string
+    required:
+    - prompt
+    - teralux_id
+    type: object
   dtos.RAGRequestDTO:
     properties:
       language:
@@ -184,15 +211,6 @@ definitions:
       uid:
         type: string
     type: object
-  dtos.TuyaCommandDTO:
-    properties:
-      code:
-        type: string
-      value: {}
-    required:
-    - code
-    - value
-    type: object
   dtos.TuyaDeviceDTO:
     properties:
       category:
@@ -264,18 +282,6 @@ definitions:
       total_devices:
         type: integer
     type: object
-  dtos.TuyaIRACCommandDTO:
-    properties:
-      code:
-        type: string
-      remote_id:
-        type: string
-      value:
-        type: integer
-    required:
-    - code
-    - remote_id
-    type: object
   dtos.TuyaSyncDeviceDTO:
     properties:
       create_time:
@@ -333,13 +339,13 @@ info:
     email: support@swagger.io
     name: API Support
     url: http://www.swagger.io/support
-  description: This is the API server for Teralux App. <br> For full documentation,
+  description: This is the API server for Sensio App. <br> For full documentation,
     visit <a href="/docs">/docs</a>.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: Teralux API
+  title: Sensio API
   version: "1.0"
 paths:
   /api/cache/flush:
@@ -392,32 +398,26 @@ paths:
       summary: Get RAG task status
       tags:
       - 05. RAG
-  /api/rag/control:
+  /api/rag/chat:
     post:
       consumes:
       - application/json
-      description: Queue a RAG task to process natural language command
+      description: Classifies user prompt into Chat or Control and returns appropriate
+        response or redirection.
       parameters:
-      - description: RAG Request
+      - description: Chat Request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dtos.RAGRequestDTO'
+          $ref: '#/definitions/dtos.RAGChatRequestDTO'
       produces:
       - application/json
       responses:
-        "202":
-          description: Accepted
+        "200":
+          description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
-            - properties:
-                data:
-                  additionalProperties:
-                    type: string
-                  type: object
-              type: object
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
         "400":
           description: Bad Request
           schema:
@@ -428,7 +428,39 @@ paths:
             $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Control devices via natural language
+      summary: AI Assistant Chat
+      tags:
+      - 05. RAG
+  /api/rag/control:
+    post:
+      consumes:
+      - application/json
+      description: Processes natural language device control commands.
+      parameters:
+      - description: Control Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGControlRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: AI Assistant Control
       tags:
       - 05. RAG
   /api/rag/summary:
@@ -513,17 +545,13 @@ paths:
       - 05. RAG
   /api/recordings:
     get:
-      consumes:
-      - application/json
-      description: Get a paginated list of recordings
+      description: Get a paginated list of all recordings.
       parameters:
-      - default: 1
-        description: Page number
+      - description: Page number (default 1)
         in: query
         name: page
         type: integer
-      - default: 10
-        description: Items per page
+      - description: Items per page (default 10)
         in: query
         name: limit
         type: integer
@@ -533,9 +561,14 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.GetAllRecordingsResponseDto'
-        "400":
-          description: Bad Request
+            allOf:
+            - $ref: '#/definitions/dtos.RecordingStandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.GetAllRecordingsResponseDto'
+              type: object
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/dtos.RecordingStandardResponse'
         "500":
@@ -544,13 +577,13 @@ paths:
             $ref: '#/definitions/dtos.RecordingStandardResponse'
       security:
       - BearerAuth: []
-      summary: Get all recordings
+      summary: List all recordings
       tags:
       - 06. Recordings
     post:
       consumes:
       - multipart/form-data
-      description: Upload an audio file and save its metadata
+      description: Upload an audio file and save its metadata.
       parameters:
       - description: Audio file
         in: formData
@@ -563,9 +596,18 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dtos.RecordingResponseDto'
+            allOf:
+            - $ref: '#/definitions/dtos.RecordingStandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RecordingResponseDto'
+              type: object
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/dtos.RecordingStandardResponse'
         "500":
@@ -574,14 +616,12 @@ paths:
             $ref: '#/definitions/dtos.RecordingStandardResponse'
       security:
       - BearerAuth: []
-      summary: Upload a recording
+      summary: Save a new recording
       tags:
       - 06. Recordings
   /api/recordings/{id}:
     delete:
-      consumes:
-      - application/json
-      description: Hard delete a recording's metadata and its physical file
+      description: Remove a recording and its associated file from the system.
       parameters:
       - description: Recording ID
         in: path
@@ -593,6 +633,10 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/dtos.RecordingStandardResponse'
         "500":
@@ -605,9 +649,7 @@ paths:
       tags:
       - 06. Recordings
     get:
-      consumes:
-      - application/json
-      description: Get a single recording's metadata by its ID
+      description: Retrieve metadata for a specific recording.
       parameters:
       - description: Recording ID
         in: path
@@ -620,7 +662,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.RecordingResponseDto'
+            allOf:
+            - $ref: '#/definitions/dtos.RecordingStandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RecordingResponseDto'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.RecordingStandardResponse'
         "404":
           description: Not Found
           schema:
@@ -631,7 +682,7 @@ paths:
             $ref: '#/definitions/dtos.RecordingStandardResponse'
       security:
       - BearerAuth: []
-      summary: Get a recording by ID
+      summary: Get recording by ID
       tags:
       - 06. Recordings
   /api/speech/transcribe:
@@ -1078,80 +1129,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Device by ID
-      tags:
-      - 02. Tuya
-  /api/tuya/devices/{id}/commands/ir:
-    post:
-      consumes:
-      - application/json
-      description: Sends an infrared command to an AC via a specific IR device
-      parameters:
-      - description: Infrared Device ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: IR AC Command Payload
-        in: body
-        name: command
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.TuyaIRACCommandDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Send IR AC Command
-      tags:
-      - 02. Tuya
-  /api/tuya/devices/{id}/commands/switch:
-    post:
-      consumes:
-      - application/json
-      description: Sends a command to a specific Tuya device
-      parameters:
-      - description: Device ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Command Payload
-        in: body
-        name: command
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.TuyaCommandDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Send Command to Device
       tags:
       - 02. Tuya
   /api/tuya/devices/{id}/sensor:

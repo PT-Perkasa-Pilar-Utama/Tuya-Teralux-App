@@ -88,7 +88,13 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 
 	// Generate PDF
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
-	pdfPath := filepath.Join("uploads", "reports", pdfFilename)
+	
+	// Determine backend root to ensure uploads are correctly placed
+	basePath := "."
+	if envPath := utils.FindEnvFile(); envPath != "" {
+		basePath = filepath.Dir(envPath)
+	}
+	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
 
 	// Create reports directory if not exists
 	os.MkdirAll(filepath.Dir(pdfPath), 0755)
@@ -279,7 +285,13 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 
 	// PDF rendering with timeout
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
-	pdfPath := filepath.Join("uploads", "reports", pdfFilename)
+	
+	// Determine backend root
+	basePath := "."
+	if envPath := utils.FindEnvFile(); envPath != "" {
+		basePath = filepath.Dir(envPath)
+	}
+	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
 	os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {

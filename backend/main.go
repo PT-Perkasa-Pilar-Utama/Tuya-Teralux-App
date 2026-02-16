@@ -26,9 +26,9 @@ import (
 	"teralux_app/domain/tuya"
 )
 
-// @title           Teralux API
+// @title           Sensio API
 // @version         1.0
-// @description     This is the API server for Teralux App. <br> For full documentation, visit <a href="/docs">/docs</a>.
+// @description     This is the API server for Sensio App. <br> For full documentation, visit <a href="/docs">/docs</a>.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name    API Support

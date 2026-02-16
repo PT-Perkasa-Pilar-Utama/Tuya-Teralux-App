@@ -6,6 +6,7 @@ import (
 
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/tasks"
+	"teralux_app/domain/common/utils"
 	ragdtos "teralux_app/domain/rag/dtos"
 )
 
@@ -13,6 +14,11 @@ func TestStatusUseCase_Execute(t *testing.T) {
 	// Setup Badger
 	dbDir := "./tmp/badger-test-status"
 	_ = os.RemoveAll(dbDir)
+
+	// Initialize config to avoid panic in NewBadgerService
+	utils.AppConfig = nil
+	_ = utils.GetConfig()
+
 	badgerSvc, err := infrastructure.NewBadgerService(dbDir)
 	if err != nil {
 		t.Fatalf("failed to create badger service: %v", err)

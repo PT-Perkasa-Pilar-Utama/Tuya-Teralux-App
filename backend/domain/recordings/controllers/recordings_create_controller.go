@@ -19,6 +19,18 @@ func NewRecordingsCreateController(useCase usecases.SaveRecordingUseCase) *Recor
 }
 
 // CreateRecording handles POST /api/recordings endpoint
+// @Summary Save a new recording
+// @Description Upload an audio file and save its metadata.
+// @Tags 06. Recordings
+// @Security BearerAuth
+// @Accept mpfd
+// @Produce json
+// @Param file formData file true "Audio file"
+// @Success 201 {object} dtos.RecordingStandardResponse{data=dtos.RecordingResponseDto}
+// @Failure 400 {object} dtos.RecordingStandardResponse
+// @Failure 401 {object} dtos.RecordingStandardResponse
+// @Failure 500 {object} dtos.RecordingStandardResponse
+// @Router /api/recordings [post]
 func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 	file, err := ctx.FormFile("file")
 	if err != nil {

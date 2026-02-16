@@ -19,6 +19,17 @@ func NewRecordingsGetByIDController(useCase usecases.GetRecordingByIDUseCase) *R
 }
 
 // GetRecordingByID handles GET /api/recordings/:id endpoint
+// @Summary Get recording by ID
+// @Description Retrieve metadata for a specific recording.
+// @Tags 06. Recordings
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Recording ID"
+// @Success 200 {object} dtos.RecordingStandardResponse{data=dtos.RecordingResponseDto}
+// @Failure 401 {object} dtos.RecordingStandardResponse
+// @Failure 404 {object} dtos.RecordingStandardResponse
+// @Failure 500 {object} dtos.RecordingStandardResponse
+// @Router /api/recordings/{id} [get]
 func (c *RecordingsGetByIDController) GetRecordingByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	result, err := c.useCase.GetRecordingByID(id)

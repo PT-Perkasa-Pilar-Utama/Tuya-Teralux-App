@@ -36,6 +36,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	pdfRenderer := services.NewMarotoSummaryPDFRenderer()
 	summaryUC := usecases.NewSummaryUseCase(llmClient, cfg, cache, store, pdfRenderer)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
+	chatUC := usecases.NewChatUseCase(llmClient, cfg, badger)
+	controlUC := usecases.NewControlUseCase(llmClient, cfg, vectorSvc, badger)
 
 	// Setup Routes
 	routes.SetupRAGRoutes(
@@ -43,6 +45,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 		controllers.NewRAGTranslateController(translateUC),
 		controllers.NewRAGSummaryController(summaryUC),
 		controllers.NewRAGStatusController(statusUC),
+		controllers.NewRAGChatController(chatUC),
+		controllers.NewRAGControlController(controlUC),
 	)
 
 	return refineUC

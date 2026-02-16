@@ -58,14 +58,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/control": {
+        "/api/rag/chat": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Queue a RAG task to process natural language command",
+                "description": "Classifies user prompt into Chat or Control and returns appropriate response or redirection.",
                 "consumes": [
                     "application/json"
                 ],
@@ -75,38 +75,74 @@ const docTemplate = `{
                 "tags": [
                     "05. RAG"
                 ],
-                "summary": "Control devices via natural language",
+                "summary": "AI Assistant Chat",
                 "parameters": [
                     {
-                        "description": "RAG Request",
+                        "description": "Chat Request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtos.RAGRequestDTO"
+                            "$ref": "#/definitions/dtos.RAGChatRequestDTO"
                         }
                     }
                 ],
                 "responses": {
-                    "202": {
-                        "description": "Accepted",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "additionalProperties": {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/rag/control": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Processes natural language device control commands.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. RAG"
+                ],
+                "summary": "AI Assistant Control",
+                "parameters": [
+                    {
+                        "description": "Control Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGControlRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "400": {
@@ -314,29 +350,24 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a paginated list of recordings",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Get a paginated list of all recordings.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "06. Recordings"
                 ],
-                "summary": "Get all recordings",
+                "summary": "List all recordings",
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 1,
-                        "description": "Page number",
+                        "description": "Page number (default 1)",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "default": 10,
-                        "description": "Items per page",
+                        "description": "Items per page (default 10)",
                         "name": "limit",
                         "in": "query"
                     }
@@ -345,11 +376,23 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.GetAllRecordingsResponseDto"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.GetAllRecordingsResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dtos.RecordingStandardResponse"
                         }
@@ -368,7 +411,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Upload an audio file and save its metadata",
+                "description": "Upload an audio file and save its metadata.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -378,7 +421,7 @@ const docTemplate = `{
                 "tags": [
                     "06. Recordings"
                 ],
-                "summary": "Upload a recording",
+                "summary": "Save a new recording",
                 "parameters": [
                     {
                         "type": "file",
@@ -392,11 +435,29 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dtos.RecordingStandardResponse"
                         }
@@ -417,17 +478,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a single recording's metadata by its ID",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Retrieve metadata for a specific recording.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "06. Recordings"
                 ],
-                "summary": "Get a recording by ID",
+                "summary": "Get recording by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -441,7 +499,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
                         }
                     },
                     "404": {
@@ -464,10 +540,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Hard delete a recording's metadata and its physical file",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Remove a recording and its associated file from the system.",
                 "produces": [
                     "application/json"
                 ],
@@ -487,6 +560,12 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/dtos.RecordingStandardResponse"
                         }
@@ -1277,122 +1356,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/tuya/devices/{id}/commands/ir": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sends an infrared command to an AC via a specific IR device",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Tuya"
-                ],
-                "summary": "Send IR AC Command",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Infrared Device ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "IR AC Command Payload",
-                        "name": "command",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.TuyaIRACCommandDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/tuya/devices/{id}/commands/switch": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sends a command to a specific Tuya device",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Tuya"
-                ],
-                "summary": "Send Command to Device",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Command Payload",
-                        "name": "command",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.TuyaCommandDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/tuya/devices/{id}/sensor": {
             "get": {
                 "security": [
@@ -1583,6 +1546,44 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.RAGChatRequestDTO": {
+            "type": "object",
+            "required": [
+                "prompt",
+                "teralux_id"
+            ],
+            "properties": {
+                "language": {
+                    "type": "string",
+                    "example": "id"
+                },
+                "prompt": {
+                    "type": "string",
+                    "example": "Nyalakan AC"
+                },
+                "teralux_id": {
+                    "type": "string",
+                    "example": "tx-1"
+                }
+            }
+        },
+        "dtos.RAGControlRequestDTO": {
+            "type": "object",
+            "required": [
+                "prompt",
+                "teralux_id"
+            ],
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "example": "Nyalakan AC"
+                },
+                "teralux_id": {
+                    "type": "string",
+                    "example": "tx-1"
+                }
+            }
+        },
         "dtos.RAGRequestDTO": {
             "type": "object",
             "required": [
@@ -1757,19 +1758,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.TuyaCommandDTO": {
-            "type": "object",
-            "required": [
-                "code",
-                "value"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "value": {}
-            }
-        },
         "dtos.TuyaDeviceDTO": {
             "type": "object",
             "properties": {
@@ -1874,24 +1862,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "total_devices": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dtos.TuyaIRACCommandDTO": {
-            "type": "object",
-            "required": [
-                "code",
-                "remote_id"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "remote_id": {
-                    "type": "string"
-                },
-                "value": {
                     "type": "integer"
                 }
             }
@@ -2030,8 +2000,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{"http", "https"},
-	Title:            "Teralux API",
-	Description:      "This is the API server for Teralux App. <br> For full documentation, visit <a href=\"/docs\">/docs</a>.",
+	Title:            "Sensio API",
+	Description:      "This is the API server for Sensio App. <br> For full documentation, visit <a href=\"/docs\">/docs</a>.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

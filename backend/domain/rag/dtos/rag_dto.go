@@ -49,3 +49,26 @@ type RAGSummaryResponseDTO struct {
 	Summary string `json:"summary"`
 	PDFUrl  string `json:"pdf_url,omitempty"`
 }
+
+type RAGChatRequestDTO struct {
+	Prompt    string `json:"prompt" binding:"required" example:"Nyalakan AC"`
+	Language  string `json:"language,omitempty" example:"id"`
+	TeraluxID string `json:"teralux_id" binding:"required" example:"tx-1"`
+}
+
+type RAGChatResponseDTO struct {
+	Response string      `json:"response"`
+	IsControl bool        `json:"is_control"`
+	Redirect  *RedirectDTO `json:"redirect,omitempty"`
+}
+
+type RedirectDTO struct {
+	Endpoint string      `json:"endpoint"`
+	Method   string      `json:"method"`
+	Body     interface{} `json:"body,omitempty"`
+}
+
+type RAGControlRequestDTO struct {
+	Prompt    string `json:"prompt" binding:"required" example:"Nyalakan AC"`
+	TeraluxID string `json:"teralux_id" binding:"required" example:"tx-1"`
+}
