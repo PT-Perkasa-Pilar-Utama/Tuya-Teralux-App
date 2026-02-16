@@ -73,7 +73,7 @@ fun AiAssistantScreen(
     val wakeWordManager = remember {
         SensioWakeWordManager(context) {
             if (!isRecording && !isProcessing) {
-                viewModel.startRecording()
+                viewModel.startRecording(File(context.cacheDir, "recording.wav"))
             }
         }
     }
@@ -98,7 +98,7 @@ fun AiAssistantScreen(
         if (isRecording) {
             delay(6000)
             if (isRecording) {
-                viewModel.stopRecording(File(context.cacheDir, "recording.wav"))
+                viewModel.stopRecording()
                 snackbarHostState.showSnackbar(
                     message = "Mic auto-stopped (No command).",
                     duration = SnackbarDuration.Short
@@ -173,11 +173,11 @@ fun AiAssistantScreen(
                         if (!hasPermission) {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         } else if (!isRecording && !isProcessing) {
-                            viewModel.startRecording()
+                            viewModel.startRecording(File(context.cacheDir, "recording.wav"))
                         }
                     },
                     onStopClick = {
-                        viewModel.stopRecording(File(context.cacheDir, "recording.wav"))
+                        viewModel.stopRecording()
                     },
                     onSendClick = {
                         if (userInput.isNotBlank()) {

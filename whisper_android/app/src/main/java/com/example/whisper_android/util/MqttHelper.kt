@@ -100,7 +100,7 @@ class MqttHelper(context: Context) {
         val json = """
             {
                 "audio": "$base64Audio",
-                "teralux_id": "teralux",
+                "teralux_id": "tx-1",
                 "language": "id"
             }
         """.trimIndent()
@@ -111,7 +111,7 @@ class MqttHelper(context: Context) {
         val json = """
             {
                 "prompt": "$text",
-                "teralux_id": "teralux",
+                "teralux_id": "tx-1",
                 "language": "id"
             }
         """.trimIndent()
