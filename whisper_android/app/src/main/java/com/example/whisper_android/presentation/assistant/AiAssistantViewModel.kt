@@ -80,7 +80,7 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
         mqttHelper.connect()
     }
 
-    fun sendChat(text: String) {
+    fun sendChat(text: String, language: String = "id") {
         if (text.isNotBlank()) {
             // Avoid duplicate if we just sent this
             val alreadyExists = transcriptionResults.any { 
@@ -90,7 +90,7 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                 transcriptionResults = transcriptionResults + TranscriptionMessage(text, MessageRole.USER)
             }
             viewModelScope.launch {
-                mqttHelper.publishChat(text)
+                mqttHelper.publishChat(text, language)
             }
         }
     }

@@ -145,7 +145,7 @@ fun AiAssistantScreen(
                     EmptyAssistantState(
                         isProcessing = isProcessing,
                         onSuggestedAction = { prompt ->
-                            viewModel.sendChat(prompt)
+                            viewModel.sendChat(prompt, "en")
                         }
                     )
                 } else {

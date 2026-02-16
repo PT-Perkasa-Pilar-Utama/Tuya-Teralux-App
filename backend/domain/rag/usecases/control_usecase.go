@@ -112,79 +112,18 @@ func (u *controlUseCase) ProcessControl(uid, teraluxID, prompt string) (*dtos.Co
 	if target.RemoteID != "" {
 		// IR AC device - use IR command API
 		
-		// Parse all parameters from current prompt
-		temp, tempFound := u.parseTemperature(promptLower)
-		mode, modeFound := u.parseMode(promptLower)
-		wind, windFound := u.parseFanSpeed(promptLower)
-		
-		// Conditional Inheritance: Only check history for missing values
-		if (!tempFound || !modeFound || !windFound) && u.badger != nil {
+		var history []string
+		if u.badger != nil {
 			historyKey := fmt.Sprintf("chat_history:%s", teraluxID)
 			data, _ := u.badger.Get(historyKey)
 			if data != nil {
-				var history []string
-				if err := json.Unmarshal(data, &history); err == nil && len(history) > 0 {
-					// Check last few messages for missing commands
-					for i := len(history) - 1; i >= 0 && i >= len(history)-3; i-- {
-						hLower := strings.ToLower(history[i])
-						
-						if !tempFound {
-							if hTemp, found := u.parseTemperature(hLower); found {
-								temp = hTemp
-								tempFound = true
-								utils.LogDebug("ControlUseCase: Inherited temperature %d from history", temp)
-							}
-						}
-						
-						if !modeFound {
-							if hMode, found := u.parseMode(hLower); found {
-								mode = hMode
-								modeFound = true
-								utils.LogDebug("ControlUseCase: Inherited mode %d from history", mode)
-							}
-						}
-
-						if !windFound {
-							if hWind, found := u.parseFanSpeed(hLower); found {
-								wind = hWind
-								windFound = true
-								utils.LogDebug("ControlUseCase: Inherited wind %d from history", wind)
-							}
-						}
-					}
-				}
+				_ = json.Unmarshal(data, &history)
 			}
 		}
+
 
 		// Prepare command map
-		params := make(map[string]int)
-		var actions []string
-
-		if isOff {
-			params["power"] = 0
-			actions = append(actions, "turned off")
-		} else {
-			params["power"] = 1
-			if modeFound {
-				params["mode"] = mode
-				modeNames := map[int]string{0: "Cool", 1: "Heat", 2: "Auto", 3: "Wind", 4: "Humidity"}
-				actions = append(actions, fmt.Sprintf("set mode to %s", modeNames[mode]))
-			}
-			if tempFound {
-				params["temp"] = temp
-				actions = append(actions, fmt.Sprintf("set temperature to %d°C", temp))
-			}
-			if windFound {
-				params["wind"] = wind
-				windNames := map[int]string{0: "Auto", 1: "Low", 2: "Medium", 3: "High"}
-				actions = append(actions, fmt.Sprintf("set fan speed to %s", windNames[wind]))
-			}
-			if len(actions) == 0 {
-				actions = append(actions, "turned on")
-			}
-		}
-
-		action := strings.Join(actions, ", ")
+		params, action := u.prepareACParams(isOff, promptLower, history)
 		utils.LogDebug("ControlUseCase: Executing IR command - Params: %+v, Action: %s", params, action)
 		
 		success, err := u.tuyaExecutor.SendIRACCommand(token, target.ID, target.RemoteID, params)
@@ -392,34 +331,7 @@ Response:`, prompt, historyContext, strings.Join(deviceList, "\n"))
 			}
 
 			// Prepare command map
-			params := make(map[string]int)
-			var actions []string
-
-			if isOff {
-				params["power"] = 0
-				actions = append(actions, "turned off")
-			} else {
-				params["power"] = 1
-				if modeFound {
-					params["mode"] = mode
-					modeNames := map[int]string{0: "Cool", 1: "Heat", 2: "Auto", 3: "Wind", 4: "Humidity"}
-					actions = append(actions, fmt.Sprintf("set mode to %s", modeNames[mode]))
-				}
-				if tempFound {
-					params["temp"] = temp
-					actions = append(actions, fmt.Sprintf("set temperature to %d°C", temp))
-				}
-				if windFound {
-					params["wind"] = wind
-					windNames := map[int]string{0: "Auto", 1: "Low", 2: "Medium", 3: "High"}
-					actions = append(actions, fmt.Sprintf("set fan speed to %s", windNames[wind]))
-				}
-				if len(actions) == 0 {
-					actions = append(actions, "turned on")
-				}
-			}
-
-			action := strings.Join(actions, ", ")
+			params, action := u.prepareACParams(isOff, promptLower, history)
 			utils.LogDebug("ControlUseCase: (Selection) Executing IR command - Params: %+v, Action: %s", params, action)
 			
 			success, err := u.tuyaExecutor.SendIRACCommand(token, targetDevice.ID, targetDevice.RemoteID, params)
@@ -508,6 +420,91 @@ Response:`, prompt, historyContext, strings.Join(deviceList, "\n"))
 	return &dtos.ControlResultDTO{
 		Message: cleanRes,
 	}, nil
+}
+
+// prepareACParams builds the parameters for an AC IR command, inheriting from history or using defaults (18°C) if needed.
+func (u *controlUseCase) prepareACParams(isOff bool, promptLower string, history []string) (map[string]int, string) {
+	params := make(map[string]int)
+	var actions []string
+
+	if isOff {
+		params["power"] = 0
+		return params, "turned off"
+	}
+
+	params["power"] = 1
+
+	// 1. Search in current prompt
+	temp, tempFound := u.parseTemperature(promptLower)
+	mode, modeFound := u.parseMode(promptLower)
+	wind, windFound := u.parseFanSpeed(promptLower)
+
+	// 2. Search in history for missing values
+	if !tempFound || !modeFound || !windFound {
+		for i := len(history) - 1; i >= 0 && i >= len(history)-3; i-- {
+			hLower := strings.ToLower(history[i])
+			if !tempFound {
+				if hTemp, found := u.parseTemperature(hLower); found {
+					temp = hTemp
+					tempFound = true
+					utils.LogDebug("ControlUseCase: Inherited temperature %d from history", temp)
+				}
+			}
+			if !modeFound {
+				if hMode, found := u.parseMode(hLower); found {
+					mode = hMode
+					modeFound = true
+					utils.LogDebug("ControlUseCase: Inherited mode %d from history", mode)
+				}
+			}
+			if !windFound {
+				if hWind, found := u.parseFanSpeed(hLower); found {
+					wind = hWind
+					windFound = true
+					utils.LogDebug("ControlUseCase: Inherited wind %d from history", wind)
+				}
+			}
+		}
+	}
+
+	// 3. Apply Defaults if still missing
+	if !tempFound {
+		temp = 18 // Default lowest typical safe temp
+		tempFound = true
+		utils.LogDebug("ControlUseCase: Using default temperature %d", temp)
+	}
+	if !modeFound {
+		mode = 0 // Cool
+		modeFound = true
+		utils.LogDebug("ControlUseCase: Using default mode %d (Cool)", mode)
+	}
+	if !windFound {
+		wind = 0 // Auto
+		windFound = true
+		utils.LogDebug("ControlUseCase: Using default fan speed %d (Auto)", wind)
+	}
+
+	// 4. Build response actions
+	if modeFound {
+		params["mode"] = mode
+		modeNames := map[int]string{0: "Cool", 1: "Heat", 2: "Auto", 3: "Wind", 4: "Humidity"}
+		actions = append(actions, fmt.Sprintf("set mode to %s", modeNames[mode]))
+	}
+	if tempFound {
+		params["temp"] = temp
+		actions = append(actions, fmt.Sprintf("set temperature to %d°C", temp))
+	}
+	if windFound {
+		params["wind"] = wind
+		windNames := map[int]string{0: "Auto", 1: "Low", 2: "Medium", 3: "High"}
+		actions = append(actions, fmt.Sprintf("set fan speed to %s", windNames[wind]))
+	}
+
+	if len(actions) == 0 {
+		return params, "turned on"
+	}
+
+	return params, strings.Join(actions, ", ")
 }
 
 // parseTemperature extracts a temperature value (16-30) from a prompt.

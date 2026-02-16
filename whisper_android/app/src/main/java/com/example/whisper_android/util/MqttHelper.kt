@@ -107,12 +107,12 @@ class MqttHelper(context: Context) {
         publish("users/teralux/whisper", json.toByteArray())
     }
 
-    fun publishChat(text: String) {
+    fun publishChat(text: String, language: String = "id") {
         val json = """
             {
                 "prompt": "$text",
                 "teralux_id": "tx-1",
-                "language": "id"
+                "language": "$language"
             }
         """.trimIndent()
         publish("users/teralux/chat", json.toByteArray())
