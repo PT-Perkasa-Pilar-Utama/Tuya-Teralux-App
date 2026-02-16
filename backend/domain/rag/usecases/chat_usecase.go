@@ -132,12 +132,21 @@ Classification (Only return "CONTROL" or "CHAT"):`, historyContext, prompt)
 		historyContext = "Previous conversation:\n" + strings.Join(history, "\n") + "\n"
 	}
 
+	// Map ISO codes to full names for LLM clarity
+	langName := language
+	switch strings.ToLower(language) {
+	case "id":
+		langName = "Indonesian"
+	case "en":
+		langName = "English"
+	}
+
 	chatPrompt := fmt.Sprintf(`You are Sensio AI Assistant, a helpful smart home companion.
 Your tone is friendly, professional, and concise.
 The user's preferred language is %s.
 
 %sUser: %s
-Assistant:`, language, historyContext, prompt)
+Assistant:`, langName, historyContext, prompt)
 
 	response, err := u.llm.CallModel(chatPrompt, model)
 	if err != nil {

@@ -76,7 +76,7 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 	// Call service
 	utils.LogDebug("SendCommand: Sending Switch command")
 	utils.LogDebug("SendCommand: DeviceID=%s, URL=%s", deviceID, fullURL)
-	utils.LogDebug("SendCommand: Headers: client_id=%s, t=%s, sign_method=%s, access_token=%s...", 
+	utils.LogDebug("SendCommand: Headers: client_id=%s, t=%s, sign_method=%s, access_token=%s...",
 		headers["client_id"], headers["t"], headers["sign_method"], headers["access_token"][:10])
 	utils.LogDebug("SendCommand: Body: %s", string(jsonBody))
 
@@ -86,7 +86,7 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 		return false, err
 	}
 
-	utils.LogDebug("SendCommand: Tuya response received: success=%v, code=%d, msg=%s, result=%v", 
+	utils.LogDebug("SendCommand: Tuya response received: success=%v, code=%d, msg=%s, result=%v",
 		resp.Success, resp.Code, resp.Msg, resp.Result)
 
 	if !resp.Success {

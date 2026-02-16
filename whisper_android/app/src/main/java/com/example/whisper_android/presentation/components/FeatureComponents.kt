@@ -56,7 +56,6 @@ fun FeatureHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp) // Subtle margin to avoid system icons but stay high
             .height(56.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -74,8 +73,8 @@ fun FeatureHeader(
         
         Text(
             text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Black,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
             letterSpacing = (-0.5).sp,

@@ -70,7 +70,7 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 
 	// Tuya IR AC API expects direct parameters
 	irBody := make(map[string]interface{})
-	
+
 	// Map parameters
 	for k, v := range params {
 		switch k {
@@ -96,7 +96,7 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 			irBody[k] = v
 		}
 	}
-	
+
 	irJsonBody, _ := json.Marshal(irBody)
 
 	hIR := sha256.New()
@@ -117,7 +117,7 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 
 	utils.LogDebug("SendIRACCommand: Sending IR command")
 	utils.LogDebug("SendIRACCommand: URL: %s", irFullURL)
-	utils.LogDebug("SendIRACCommand: Headers: client_id=%s, t=%s, sign_method=%s, access_token=%s...", 
+	utils.LogDebug("SendIRACCommand: Headers: client_id=%s, t=%s, sign_method=%s, access_token=%s...",
 		irHeaders["client_id"], irHeaders["t"], irHeaders["sign_method"], irHeaders["access_token"][:10])
 	utils.LogDebug("SendIRACCommand: Body: %s", string(irJsonBody))
 
@@ -127,7 +127,7 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 		return false, err
 	}
 
-	utils.LogDebug("SendIRACCommand: Tuya response received: success=%v, code=%d, msg=%s, result=%v", 
+	utils.LogDebug("SendIRACCommand: Tuya response received: success=%v, code=%d, msg=%s, result=%v",
 		resp.Success, resp.Code, resp.Msg, resp.Result)
 
 	if !resp.Success {

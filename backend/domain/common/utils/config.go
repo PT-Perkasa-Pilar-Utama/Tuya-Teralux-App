@@ -12,21 +12,21 @@ import (
 // These are loaded from environment variables or a .env file.
 type Config struct {
 	// Tuya / general
-	TuyaClientID              string
-	TuyaClientSecret          string
-	TuyaBaseURL               string
-	TuyaUserID                string
-	ApiKey                    string
-	CacheTTL                  string
+	TuyaClientID     string
+	TuyaClientSecret string
+	TuyaBaseURL      string
+	TuyaUserID       string
+	ApiKey           string
+	CacheTTL         string
 
 	// Speech / RAG
-	LLMProvider             string // "ollama", "gemini"
-	LLMApiKey               string
-	LLMModel                string
-	
-	OrionBaseURL            string
-	OrionApiKey             string
-	OrionModel              string
+	LLMProvider string // "ollama", "gemini"
+	LLMApiKey   string
+	LLMModel    string
+
+	OrionBaseURL string
+	OrionApiKey  string
+	OrionModel   string
 
 	WhisperServerURL        string
 	WhisperModelPath        string
@@ -89,20 +89,20 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		TuyaClientID:              os.Getenv("TUYA_CLIENT_ID"),
-		TuyaClientSecret:          os.Getenv("TUYA_ACCESS_SECRET"),
-		TuyaBaseURL:               os.Getenv("TUYA_BASE_URL"),
-		TuyaUserID:                os.Getenv("TUYA_USER_ID"),
-		ApiKey:                    os.Getenv("API_KEY"),
-		CacheTTL:                  os.Getenv("CACHE_TTL"),
+		TuyaClientID:     os.Getenv("TUYA_CLIENT_ID"),
+		TuyaClientSecret: os.Getenv("TUYA_ACCESS_SECRET"),
+		TuyaBaseURL:      os.Getenv("TUYA_BASE_URL"),
+		TuyaUserID:       os.Getenv("TUYA_USER_ID"),
+		ApiKey:           os.Getenv("API_KEY"),
+		CacheTTL:         os.Getenv("CACHE_TTL"),
 
-		LLMProvider:             os.Getenv("LLM_PROVIDER"),
-		LLMApiKey:               os.Getenv("LLM_API_KEY"),
-		LLMModel:                os.Getenv("LLM_MODEL"),
-		
-		OrionBaseURL:            os.Getenv("ORION_BASE_URL"),
-		OrionApiKey:             os.Getenv("ORION_API_KEY"),
-		OrionModel:              os.Getenv("ORION_MODEL"),
+		LLMProvider: os.Getenv("LLM_PROVIDER"),
+		LLMApiKey:   os.Getenv("LLM_API_KEY"),
+		LLMModel:    os.Getenv("LLM_MODEL"),
+
+		OrionBaseURL: os.Getenv("ORION_BASE_URL"),
+		OrionApiKey:  os.Getenv("ORION_API_KEY"),
+		OrionModel:   os.Getenv("ORION_MODEL"),
 
 		WhisperServerURL:        os.Getenv("WHISPER_SERVER_URL"),
 		WhisperModelPath:        os.Getenv("WHISPER_MODEL_PATH"),

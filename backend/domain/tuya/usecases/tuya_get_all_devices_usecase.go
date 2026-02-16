@@ -453,7 +453,7 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 	for _, d := range resp.Devices {
 		// Construct Search-Optimized String
 		// Format: "Device: [Name] | Category: [Human-Readable Category] | Room: [RoomID] | Product: [ProductName] | Hub: [HubName] | ID: [ID]"
-		
+
 		friendlyCategory := tuya_utils.MapCategoryToName(d.Category)
 		roomID := "Unknown Room"
 		hubName := "Unknown Hub"
@@ -468,7 +468,7 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 			}
 		}
 
-		searchDoc := fmt.Sprintf("Device: %s | Category: %s | Room: %s | Product: %s | Hub: %s | ID: %s", 
+		searchDoc := fmt.Sprintf("Device: %s | Category: %s | Room: %s | Product: %s | Hub: %s | ID: %s",
 			d.Name, friendlyCategory, roomID, d.ProductName, hubName, d.ID)
 
 		dID := fmt.Sprintf("tuya:device:%s", d.ID)

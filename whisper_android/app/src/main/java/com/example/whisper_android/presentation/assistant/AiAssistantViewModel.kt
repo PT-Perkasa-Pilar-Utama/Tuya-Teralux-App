@@ -10,6 +10,7 @@ import com.example.whisper_android.presentation.components.MessageRole
 import com.example.whisper_android.presentation.components.TranscriptionMessage
 import com.example.whisper_android.util.MqttHelper
 import com.example.whisper_android.util.parseMarkdownToText
+import com.example.whisper_android.presentation.meeting.AudioRecorder
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -24,57 +25,99 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
         private set
 
     private val mqttHelper = MqttHelper(application)
+    private val audioRecorder = AudioRecorder(application)
+    private var currentRecordingFile: File? = null
 
     init {
         mqttHelper.onMessageReceived = { topic, message ->
             android.util.Log.d("AiAssistantViewModel", "MQTT Message: topic=$topic, message=$message")
-            when {
-                topic.endsWith("chat/answer") -> {
-                    val cleanMessage = parseMarkdownToText(message)
-                    transcriptionResults = transcriptionResults + TranscriptionMessage(
-                        text = cleanMessage,
-                        role = MessageRole.ASSISTANT
-                    )
-                }
-                topic.endsWith("chat") -> {
-                    // Avoid duplicate if we just sent this message
-                    val alreadyExists = transcriptionResults.any { 
-                        it.role == MessageRole.USER && it.text == message 
-                    }
-                    if (!alreadyExists) {
+            try {
+                when {
+                    topic.endsWith("chat/answer") -> {
+                        val json = org.json.JSONObject(message)
+                        val data = json.optJSONObject("data")
+                        val responseText = data?.optString("response") ?: json.optString("message", message)
+                        
+                        val cleanMessage = parseMarkdownToText(responseText)
                         transcriptionResults = transcriptionResults + TranscriptionMessage(
-                            text = message,
-                            role = MessageRole.USER
+                            text = cleanMessage,
+                            role = MessageRole.ASSISTANT
                         )
                     }
+                    topic.endsWith("chat") -> {
+                        // Extract prompt if it's JSON, otherwise use raw message
+                        val prompt = try {
+                            val jsonObj = org.json.JSONObject(message)
+                            if (jsonObj.has("prompt")) {
+                                jsonObj.getString("prompt")
+                            } else {
+                                message
+                            }
+                        } catch (e: Exception) {
+                            message
+                        }
+
+                        // Avoid duplicate if we just sent this message
+                        val alreadyExists = transcriptionResults.any { 
+                            it.role == MessageRole.USER && it.text == prompt 
+                        }
+                        if (!alreadyExists) {
+                            transcriptionResults = transcriptionResults + TranscriptionMessage(
+                                text = prompt,
+                                role = MessageRole.USER
+                            )
+                        }
+                    }
+                    topic.endsWith("whisper/answer") -> {
+                        // Handle whisper answer (e.g. task ID)
+                        android.util.Log.d("AiAssistantViewModel", "Whisper Task: $message")
+                    }
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("AiAssistantViewModel", "Error parsing MQTT message", e)
             }
         }
         mqttHelper.connect()
     }
 
-    fun sendChat(text: String) {
+    fun sendChat(text: String, language: String = "id") {
         if (text.isNotBlank()) {
-            transcriptionResults = transcriptionResults + TranscriptionMessage(text, MessageRole.USER)
+            // Avoid duplicate if we just sent this
+            val alreadyExists = transcriptionResults.any { 
+                it.role == MessageRole.USER && it.text == text 
+            }
+            if (!alreadyExists) {
+                transcriptionResults = transcriptionResults + TranscriptionMessage(text, MessageRole.USER)
+            }
             viewModelScope.launch {
-                mqttHelper.publishChat(text)
+                mqttHelper.publishChat(text, language)
             }
         }
     }
 
-    fun startRecording() {
+    fun startRecording(file: File) {
         isRecording = true
+        currentRecordingFile = file
+        audioRecorder.start(file)
     }
 
-    fun stopRecording(audioFile: File) {
-        isRecording = false
-        isProcessing = true
-        viewModelScope.launch {
-            if (audioFile.exists()) {
-                val bytes = audioFile.readBytes()
-                mqttHelper.publishAudio(bytes)
+    fun stopRecording() {
+        if (isRecording) {
+            isRecording = false
+            isProcessing = true
+            audioRecorder.stop()
+            
+            val file = currentRecordingFile
+            if (file != null && file.exists()) {
+                audioRecorder.finalizeWav(file)
+                viewModelScope.launch {
+                    val bytes = file.readBytes()
+                    mqttHelper.publishAudio(bytes)
+                    isProcessing = false
+                }
+            } else {
+                isProcessing = false
             }
-            isProcessing = false
         }
     }
 

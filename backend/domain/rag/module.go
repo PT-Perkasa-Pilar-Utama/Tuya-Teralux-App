@@ -17,7 +17,7 @@ import (
 )
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor) usecases.RefineUseCase {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) usecases.RefineUseCase {
 	// Initialize Dependencies
 	orionRepo := ragRepos.NewOrionRepository()
 	geminiRepo := ragRepos.NewGeminiRepository()
@@ -39,13 +39,16 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	controlUC := usecases.NewControlUseCase(llmClient, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
 	chatUC := usecases.NewChatUseCase(llmClient, cfg, badger, controlUC, translateUC)
 
+	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)
+	chatController.StartMqttSubscription()
+
 	// Setup Routes
 	routes.SetupRAGRoutes(
 		protected,
 		controllers.NewRAGTranslateController(translateUC),
 		controllers.NewRAGSummaryController(summaryUC),
 		controllers.NewRAGStatusController(statusUC),
-		controllers.NewRAGChatController(chatUC),
+		chatController,
 		controllers.NewRAGControlController(controlUC),
 	)
 

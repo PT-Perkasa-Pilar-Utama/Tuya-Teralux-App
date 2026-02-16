@@ -88,7 +88,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 		mockLLM.On("CallModel", mock.MatchedBy(func(p string) bool {
 			return strings.Contains(p, "CONTROL") || strings.Contains(p, "CHAT")
 		}), "test-model").Return("CHAT", nil).Once()
-		
+
 		mockLLM.On("CallModel", mock.MatchedBy(func(p string) bool {
 			return strings.Contains(p, "Sensio AI Assistant")
 		}), "test-model").Return("Saya adalah asisten AI Sensio.", nil).Once()

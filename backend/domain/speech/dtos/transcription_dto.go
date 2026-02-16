@@ -5,6 +5,13 @@ type TranscriptionResponseDTO struct {
 	RefinedText   string `json:"refined_text,omitempty" example:"Hello world"`
 }
 
+type WhisperMqttRequestDTO struct {
+	Audio     string `json:"audio" binding:"required"` // Base64 encoded audio
+	Language  string `json:"language,omitempty"`
+	TeraluxID string `json:"teralux_id" binding:"required"`
+	UID       string `json:"uid,omitempty"`
+}
+
 type TranscriptionLongResponseDTO struct {
 	Transcription    string `json:"transcription" example:"Ini adalah transkripsi yang sangat panjang..."`
 	DetectedLanguage string `json:"detected_language,omitempty" example:"id"`

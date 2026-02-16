@@ -118,8 +118,21 @@ interface ApiService {
     ): Response<BaseResponse<List<TuyaSyncDeviceDTO>>>
 }
 
+// Type-safe command value
+sealed class CommandValue {
+    data class BoolValue(val value: Boolean) : CommandValue()
+    data class IntValue(val value: Int) : CommandValue()
+    data class StringValue(val value: String) : CommandValue()
+    
+    fun toJsonValue(): kotlin.Any = when (this) {
+        is BoolValue -> value
+        is IntValue -> value
+        is StringValue -> value
+    }
+}
 
-data class Command(val code: String, val value: Any)
+@com.google.gson.annotations.JsonAdapter(CommandValueAdapter::class)
+data class Command(val code: String, val value: CommandValue)
 data class CommandResponse(val success: Boolean)
 
 // IR AC Command (for Smart IR Hub)
@@ -131,10 +144,44 @@ data class IRACCommandRequest(
 
 // Device State
 data class SaveDeviceStateRequest(val commands: List<StateCommand>)
-data class StateCommand(val code: String, val value: Any)
+@com.google.gson.annotations.JsonAdapter(StateCommandValueAdapter::class)
+data class StateCommand(val code: String, val value: CommandValue)
 data class DeviceStateResponse(
     @com.google.gson.annotations.SerializedName("device_id") val deviceId: String,
     @com.google.gson.annotations.SerializedName("last_commands") val lastCommands: List<StateCommand>,
     @com.google.gson.annotations.SerializedName("updated_at") val updatedAt: Long
 )
+
+// Gson adapters for CommandValue serialization
+class CommandValueAdapter : com.google.gson.TypeAdapter<CommandValue>() {
+    override fun write(out: com.google.gson.stream.JsonWriter, value: CommandValue?) {
+        if (value == null) {
+            out.nullValue()
+            return
+        }
+        when (value) {
+            is CommandValue.BoolValue -> out.value(value.value)
+            is CommandValue.IntValue -> out.value(value.value)
+            is CommandValue.StringValue -> out.value(value.value)
+        }
+    }
+
+    override fun read(`in`: com.google.gson.stream.JsonReader): CommandValue {
+        return when (`in`.peek()) {
+            com.google.gson.stream.JsonToken.BOOLEAN -> CommandValue.BoolValue(`in`.nextBoolean())
+            com.google.gson.stream.JsonToken.NUMBER -> {
+                val str = `in`.nextString()
+                CommandValue.IntValue(str.toDoubleOrNull()?.toInt() ?: str.toInt())
+            }
+            com.google.gson.stream.JsonToken.STRING -> CommandValue.StringValue(`in`.nextString())
+            else -> throw com.google.gson.JsonParseException("Unexpected token for CommandValue")
+        }
+    }
+}
+
+class StateCommandValueAdapter : com.google.gson.TypeAdapter<CommandValue>() {
+    private val delegate = CommandValueAdapter()
+    override fun write(out: com.google.gson.stream.JsonWriter, value: CommandValue?) = delegate.write(out, value)
+    override fun read(`in`: com.google.gson.stream.JsonReader): CommandValue = delegate.read(`in`)
+}
 

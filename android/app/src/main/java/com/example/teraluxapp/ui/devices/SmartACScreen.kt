@@ -114,7 +114,7 @@ fun SmartACScreen(
     }
 
     // Send Command (IR endpoint with client-side mapping)
-    val sendIRCommand = { code: String, value: Any ->
+    val sendIRCommand = { code: String, value: Int ->
         if (!isDeviceOnline) {
             scope.launch {
                 snackbarHostState.showSnackbar("Device is offline")
@@ -123,19 +123,12 @@ fun SmartACScreen(
             scope.launch {
                 isProcessing = true
                 try {
-                    // Convert value to Int for IR API
-                    val intValue = when (value) {
-                        is Boolean -> if (value) 1 else 0
-                        is Int -> value
-                        else -> 0
-                    }
-
-                    android.util.Log.d("SmartACScreen", "Sending IR Command: $code = $intValue to remote $deviceId via hub $infraredId")
+                    android.util.Log.d("SmartACScreen", "Sending IR Command: $code = $value to remote $deviceId via hub $infraredId")
                     
                     val request = IRACCommandRequest(
                         remote_id = remoteId,
                         code = code,
-                        value = intValue
+                        value = value
                     )
                     val response = RetrofitClient.instance.sendIRACCommand("Bearer $token", deviceId, request)
                     

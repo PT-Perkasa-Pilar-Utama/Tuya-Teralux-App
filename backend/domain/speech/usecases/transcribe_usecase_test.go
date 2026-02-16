@@ -66,6 +66,7 @@ func TestNewTranscribeUseCase(t *testing.T) {
 		&MockRefineUseCase{},
 		nil,
 		cfg,
+		nil,
 	)
 	if uc == nil {
 		t.Error("NewTranscribeUseCase returned nil")
