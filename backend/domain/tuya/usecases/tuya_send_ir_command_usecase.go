@@ -14,7 +14,7 @@ import (
 
 // TuyaSendIRCommandUseCase defines the interface for sending IR commands to Tuya devices.
 type TuyaSendIRCommandUseCase interface {
-	SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error)
+	SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error)
 }
 
 type tuyaSendIRCommandUseCase struct {
@@ -28,8 +28,8 @@ func NewTuyaSendIRCommandUseCase(service *services.TuyaDeviceService) TuyaSendIR
 	}
 }
 
-// SendIRACCommand sends a specific command to an Infrared (IR) controlled Air Conditioner.
-func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error) {
+// SendIRACCommand sends specific commands to an Infrared (IR) controlled Air Conditioner.
+func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error) {
 	config := utils.GetConfig()
 	var gatewayID string
 
@@ -68,10 +68,35 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 	irFullURL := config.TuyaBaseURL + irUrlPath
 	irTimestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 
-	irBody := map[string]interface{}{
-		"code":  code,
-		"value": value,
+	// Tuya IR AC API expects direct parameters
+	irBody := make(map[string]interface{})
+	
+	// Map parameters
+	for k, v := range params {
+		switch k {
+		case "power":
+			irBody["power"] = v // 0 = off, 1 = on
+		case "temp", "temperature":
+			irBody["temp"] = v // 16-30 degrees
+			if _, exists := irBody["power"]; !exists {
+				irBody["power"] = 1 // Ensure ON
+			}
+		case "mode":
+			irBody["mode"] = v // 0=cool, 1=heat, 2=auto, 3=wind, 4=dry
+			if _, exists := irBody["power"]; !exists {
+				irBody["power"] = 1
+			}
+		case "wind", "fan":
+			irBody["wind"] = v // 0=auto, 1=low, 2=med, 3=high
+			if _, exists := irBody["power"]; !exists {
+				irBody["power"] = 1
+			}
+		default:
+			// For unknown codes, try sending as-is
+			irBody[k] = v
+		}
 	}
+	
 	irJsonBody, _ := json.Marshal(irBody)
 
 	hIR := sha256.New()
@@ -90,11 +115,20 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 		"Content-Type": "application/json",
 	}
 
-	utils.LogDebug("SendIRACCommand: sending IR command to %s, body: %s", irFullURL, string(irJsonBody))
+	utils.LogDebug("SendIRACCommand: Sending IR command")
+	utils.LogDebug("SendIRACCommand: URL: %s", irFullURL)
+	utils.LogDebug("SendIRACCommand: Headers: client_id=%s, t=%s, sign_method=%s, access_token=%s...", 
+		irHeaders["client_id"], irHeaders["t"], irHeaders["sign_method"], irHeaders["access_token"][:10])
+	utils.LogDebug("SendIRACCommand: Body: %s", string(irJsonBody))
+
 	resp, err := uc.service.SendIRCommand(irFullURL, irHeaders, irJsonBody)
 	if err != nil {
+		utils.LogError("SendIRACCommand: Network error calling Tuya: %v", err)
 		return false, err
 	}
+
+	utils.LogDebug("SendIRACCommand: Tuya response received: success=%v, code=%d, msg=%s, result=%v", 
+		resp.Success, resp.Code, resp.Msg, resp.Result)
 
 	if !resp.Success {
 		return false, fmt.Errorf("tuya IR API failed: %s (code: %d)", resp.Msg, resp.Code)

@@ -17,7 +17,7 @@ import (
 )
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase) usecases.RefineUseCase {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor) usecases.RefineUseCase {
 	// Initialize Dependencies
 	orionRepo := ragRepos.NewOrionRepository()
 	geminiRepo := ragRepos.NewGeminiRepository()
@@ -36,8 +36,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	pdfRenderer := services.NewMarotoSummaryPDFRenderer()
 	summaryUC := usecases.NewSummaryUseCase(llmClient, cfg, cache, store, pdfRenderer)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
-	chatUC := usecases.NewChatUseCase(llmClient, cfg, badger)
-	controlUC := usecases.NewControlUseCase(llmClient, cfg, vectorSvc, badger)
+	controlUC := usecases.NewControlUseCase(llmClient, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
+	chatUC := usecases.NewChatUseCase(llmClient, cfg, badger, controlUC, translateUC)
 
 	// Setup Routes
 	routes.SetupRAGRoutes(

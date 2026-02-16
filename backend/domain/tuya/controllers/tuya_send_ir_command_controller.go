@@ -40,7 +40,11 @@ func (ctrl *TuyaSendIRCommandController) SendIRACCommand(c *gin.Context) {
 	infraredID := c.Param("id")
 	utils.LogDebug("TuyaSendIRCommandController.SendIRACCommand: sending to %s, remoteID: %s, code: %s", infraredID, req.RemoteID, req.Code)
 
-	success, err := ctrl.useCase.SendIRACCommand(accessToken, infraredID, req.RemoteID, req.Code, req.Value)
+	params := map[string]int{
+		req.Code: req.Value,
+	}
+
+	success, err := ctrl.useCase.SendIRACCommand(accessToken, infraredID, req.RemoteID, params)
 	if err != nil {
 		utils.LogError("SendIRACCommand failed: %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{

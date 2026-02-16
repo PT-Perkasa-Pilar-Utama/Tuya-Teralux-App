@@ -3,6 +3,7 @@ package tuya
 import (
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/middlewares"
+	teralux_repositories "teralux_app/domain/teralux/repositories"
 	"teralux_app/domain/tuya/controllers"
 	"teralux_app/domain/tuya/routes"
 	"teralux_app/domain/tuya/services"
@@ -29,7 +30,7 @@ type TuyaModule struct {
 }
 
 // NewTuyaModule initializes the Tuya module
-func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) *TuyaModule {
+func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *teralux_repositories.DeviceRepository, teraluxRepo *teralux_repositories.TeraluxRepository) *TuyaModule {
 	// Services
 	tuyaAuthService := services.NewTuyaAuthService()
 	tuyaDeviceService := services.NewTuyaDeviceService()
@@ -38,7 +39,7 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 	tuyaAuthUseCase := usecases.NewTuyaAuthUseCase(tuyaAuthService)
 	deviceStateUseCase := usecases.NewDeviceStateUseCase(badger)
 
-	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc)
+	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc, deviceRepo, teraluxRepo)
 	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, badger)
 	tuyaCommandSwitchUseCase := usecases.NewTuyaCommandSwitchUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaSendIRCommandUseCase := usecases.NewTuyaSendIRCommandUseCase(tuyaDeviceService)

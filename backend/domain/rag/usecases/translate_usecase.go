@@ -13,6 +13,7 @@ import (
 
 type TranslateUseCase interface {
 	TranslateText(text, targetLang string) (string, error)
+	TranslateTextSync(text, targetLang string) (string, error)
 }
 
 type translateUseCase struct {
@@ -58,6 +59,10 @@ Text: "%s"
 
 	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, translated, langName)
 	return strings.TrimSpace(translated), nil
+}
+
+func (u *translateUseCase) TranslateTextSync(text, targetLang string) (string, error) {
+	return u.translateInternal(text, targetLang)
 }
 
 func (u *translateUseCase) TranslateText(text, targetLang string) (string, error) {

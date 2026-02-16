@@ -8,7 +8,7 @@ import (
 // This bridge satisfies domains that need a single executor for both command types.
 type TuyaDeviceControlExecutor interface {
 	SendSwitchCommand(accessToken, deviceID string, commands []dtos.TuyaCommandDTO) (bool, error)
-	SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error)
+	SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error)
 }
 
 type tuyaDeviceControlBridge struct {
@@ -28,6 +28,6 @@ func (b *tuyaDeviceControlBridge) SendSwitchCommand(accessToken, deviceID string
 	return b.sendCommandUC.SendSwitchCommand(accessToken, deviceID, commands)
 }
 
-func (b *tuyaDeviceControlBridge) SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error) {
-	return b.sendIRCommandUC.SendIRACCommand(accessToken, infraredID, remoteID, code, value)
+func (b *tuyaDeviceControlBridge) SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error) {
+	return b.sendIRCommandUC.SendIRACCommand(accessToken, infraredID, remoteID, params)
 }

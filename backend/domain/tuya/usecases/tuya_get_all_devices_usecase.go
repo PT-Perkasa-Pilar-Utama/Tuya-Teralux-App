@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
+	teralux_repositories "teralux_app/domain/teralux/repositories"
 	"teralux_app/domain/tuya/dtos"
 	"teralux_app/domain/tuya/services"
 	tuya_utils "teralux_app/domain/tuya/utils"
@@ -26,15 +27,19 @@ type tuyaGetAllDevicesUseCase struct {
 	deviceStateUC DeviceStateUseCase
 	cache         *infrastructure.BadgerService
 	vectorSvc     *infrastructure.VectorService
+	deviceRepo    *teralux_repositories.DeviceRepository
+	teraluxRepo   *teralux_repositories.TeraluxRepository
 }
 
 // NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
-func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService) TuyaGetAllDevicesUseCase {
+func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *teralux_repositories.DeviceRepository, teraluxRepo *teralux_repositories.TeraluxRepository) TuyaGetAllDevicesUseCase {
 	return &tuyaGetAllDevicesUseCase{
 		service:       service,
 		deviceStateUC: deviceStateUC,
 		cache:         cache,
 		vectorSvc:     vectorSvc,
+		deviceRepo:    deviceRepo,
+		teraluxRepo:   teraluxRepo,
 	}
 }
 
@@ -446,12 +451,30 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 
 	// Upsert per-device docs
 	for _, d := range resp.Devices {
-		if db, err := json.Marshal(d); err == nil {
-			dID := fmt.Sprintf("tuya:device:%s", d.ID)
-			if err := uc.vectorSvc.Upsert(dID, string(db), nil); err != nil {
-				utils.LogError("populateVectorDB: failed to upsert device doc %s: %v", d.ID, err)
+		// Construct Search-Optimized String
+		// Format: "Device: [Name] | Category: [Human-Readable Category] | Room: [RoomID] | Product: [ProductName] | Hub: [HubName] | ID: [ID]"
+		
+		friendlyCategory := tuya_utils.MapCategoryToName(d.Category)
+		roomID := "Unknown Room"
+		hubName := "Unknown Hub"
+
+		// Try to enrich with DB context if repositories are available
+		if uc.deviceRepo != nil && uc.teraluxRepo != nil {
+			if devEntity, err := uc.deviceRepo.GetByID(d.ID); err == nil && devEntity != nil {
+				if hubEntity, err := uc.teraluxRepo.GetByID(devEntity.TeraluxID); err == nil && hubEntity != nil {
+					roomID = hubEntity.RoomID
+					hubName = hubEntity.Name
+				}
 			}
 		}
+
+		searchDoc := fmt.Sprintf("Device: %s | Category: %s | Room: %s | Product: %s | Hub: %s | ID: %s", 
+			d.Name, friendlyCategory, roomID, d.ProductName, hubName, d.ID)
+
+		dID := fmt.Sprintf("tuya:device:%s", d.ID)
+		if err := uc.vectorSvc.Upsert(dID, searchDoc, nil); err != nil {
+			utils.LogError("populateVectorDB: failed to upsert device doc %s: %v", d.ID, err)
+		}
 	}
-	utils.LogDebug("populateVectorDB: successfully updated %d documents for user %s", len(resp.Devices)+1, uid)
+	utils.LogDebug("populateVectorDB: successfully updated %d documents with enriched context for user %s", len(resp.Devices)+1, uid)
 }

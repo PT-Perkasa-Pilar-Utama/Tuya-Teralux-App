@@ -60,6 +60,6 @@ func (c *RAGControlController) Control(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "Control command processed successfully",
-		Data:    res,
+		Data:    res.Message,
 	})
 }

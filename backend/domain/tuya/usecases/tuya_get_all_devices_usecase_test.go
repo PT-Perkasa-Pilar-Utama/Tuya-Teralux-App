@@ -28,7 +28,7 @@ func TestGetAllDevices_CachesAndUpsertsVector(t *testing.T) {
 	// use the real service in test mode (returns empty list but ok for cache/vector test)
 	svc := services.NewTuyaDeviceService()
 	deviceState := NewDeviceStateUseCase(cache)
-	uc := NewTuyaGetAllDevicesUseCase(svc, deviceState, cache, vector)
+	uc := NewTuyaGetAllDevicesUseCase(svc, deviceState, cache, vector, nil, nil)
 
 	// Act
 	resp, err := uc.GetAllDevices("valid_token", "user123", 1, 10, "")

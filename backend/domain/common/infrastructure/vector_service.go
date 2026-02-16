@@ -74,28 +74,99 @@ func (s *VectorService) Get(id string) (string, bool) {
 // Search performs a simple keyword-based matching over stored contents.
 func (s *VectorService) Search(query string) ([]string, error) {
 	query = strings.ToLower(query)
-	words := strings.Fields(query) // Split query into words (e.g., "turn on the lamp" -> ["turn", "on", "the", "lamp"])
+	words := strings.Fields(query) // Split query into words
 
-	var matches []string
+	type match struct {
+		id    string
+		score int
+	}
+	
+	matchScores := make(map[string]int) // Track match scores
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	for id, content := range s.store {
 		contentLower := strings.ToLower(content)
+		score := 0
 
-		// If any keyword matches the content, consider it a candidate
+		// Check each word in the query
 		for _, word := range words {
-			// Ignore noise and common smart home terms that match internal JSON structure
-			if len(word) <= 1 || word == "on" || word == "to" || word == "in" || word == "is" {
+			// Ignore noise and common smart home terms
+			if len(word) <= 1 || word == "on" || word == "off" || word == "to" || word == "in" || word == "is" || 
+			   word == "dan" || word == "set" || word == "ke" || word == "nyalakan" || word == "matikan" {
 				continue
 			}
-			if strings.Contains(contentLower, word) {
-				matches = append(matches, id)
-				break
+
+			// Synonym Expansion
+			targets := []string{word}
+			if word == "ac" {
+				targets = append(targets, "air conditioner")
+			} else if word == "lamp" || word == "light" {
+				targets = append(targets, "lamp", "light", "switch")
+			} else if word == "tv" {
+				targets = append(targets, "television")
+			}
+
+			// Check if any target matches
+			for _, t := range targets {
+				if strings.Contains(contentLower, t) {
+					// Higher score for exact word match in device name
+					if strings.Contains(contentLower, "device: "+t) || strings.Contains(contentLower, t+" ") {
+						score += 10 // Exact match in name
+					} else {
+						score += 1 // Generic match
+					}
+					break
+				}
+			}
+		}
+
+		// Only include devices with positive scores
+		if score > 0 {
+			matchScores[id] = score
+		}
+	}
+
+	// Sort matches by score (highest first)
+	var matches []match
+	for id, score := range matchScores {
+		matches = append(matches, match{id: id, score: score})
+	}
+	
+	// Sort by score descending
+	for i := 0; i < len(matches); i++ {
+		for j := i + 1; j < len(matches); j++ {
+			if matches[j].score > matches[i].score {
+				matches[i], matches[j] = matches[j], matches[i]
 			}
 		}
 	}
-	return matches, nil
+
+	// Return only IDs, prioritizing higher scores
+	// If top score is high (>= 10), only return those with the MAXIMUM score
+	// This avoids "generic" matches (like 'temperature' matching a sensor) 
+	// from cluttering results when a specific match (like 'Sharp AC') is found.
+	var result []string
+	if len(matches) > 0 {
+		topScore := matches[0].score
+		if topScore >= 10 {
+			// Return only matches with the TOP score
+			for _, m := range matches {
+				if m.score == topScore {
+					result = append(result, m.id)
+				}
+			}
+		} else {
+			// Return matches with score >= 2 (multiple words matched)
+			for _, m := range matches {
+				if m.score >= 2 {
+					result = append(result, m.id)
+				}
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // Count returns the number of documents in the store.

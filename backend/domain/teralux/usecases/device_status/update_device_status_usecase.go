@@ -12,7 +12,7 @@ import (
 // TuyaDeviceControlExecutor defines the interface for Tuya device control operations
 type TuyaDeviceControlExecutor interface {
 	SendSwitchCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error)
-	SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error)
+	SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error)
 }
 
 // UpdateDeviceStatusUseCase handles updating an existing device status
@@ -71,7 +71,10 @@ func (uc *UpdateDeviceStatusUseCase) UpdateDeviceStatus(deviceID string, req *dt
 			valInt = 0 // default
 		}
 
-		success, err := uc.tuyaCmd.SendIRACCommand(accessToken, deviceID, req.RemoteID, req.Code, valInt)
+		params := map[string]int{
+			req.Code: valInt,
+		}
+		success, err := uc.tuyaCmd.SendIRACCommand(accessToken, deviceID, req.RemoteID, params)
 		if err != nil {
 			return fmt.Errorf("failed to send IR command: %w", err)
 		}

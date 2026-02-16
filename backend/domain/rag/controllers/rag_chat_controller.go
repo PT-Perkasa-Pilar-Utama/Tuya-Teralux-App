@@ -57,6 +57,19 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		return
 	}
 
+	// For control commands, check status code
+	// 400 (ambiguity) is a valid response requiring clarification, not an error
+	// Only 401, 404, 500 are actual errors
+	if res.IsControl && res.HTTPStatusCode != 0 && res.HTTPStatusCode != 200 && res.HTTPStatusCode != 400 {
+		// Return the error status code from control execution
+		ctx.JSON(res.HTTPStatusCode, dtos.StandardResponse{
+			Status:  false,
+			Message: "Command execution failed",
+			Data:    res,
+		})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "Chat processed successfully",

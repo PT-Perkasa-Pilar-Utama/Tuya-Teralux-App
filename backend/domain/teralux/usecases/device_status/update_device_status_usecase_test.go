@@ -26,7 +26,7 @@ func (m *MockTuyaDeviceControlExecutor) SendSwitchCommand(accessToken, deviceID 
 	return true, nil
 }
 
-func (m *MockTuyaDeviceControlExecutor) SendIRACCommand(accessToken, infraredID, remoteID, code string, value int) (bool, error) {
+func (m *MockTuyaDeviceControlExecutor) SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error) {
 	if accessToken == "invalid_token_123" {
 		return false, fmt.Errorf("mock error: invalid token")
 	}

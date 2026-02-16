@@ -140,10 +140,11 @@ func main() {
 
 	// Shared Repositories
 	deviceRepo := teralux_repositories.NewDeviceRepository(badgerService)
+	teraluxRepo := teralux_repositories.NewTeraluxRepository(badgerService)
 
 	// Initialize Modules
 	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService)
-	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService)
+	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, teraluxRepo)
 
 	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
@@ -194,7 +195,7 @@ func main() {
 	} else {
 		// Initialize RAG first as it's a dependency for Speech
 		utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
-		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase)
+		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase)
 
 		// Initialize Speech with RAG, Badger and Tuya Auth dependencies
 		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)

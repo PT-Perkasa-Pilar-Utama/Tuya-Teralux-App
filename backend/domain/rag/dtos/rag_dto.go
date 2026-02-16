@@ -57,9 +57,10 @@ type RAGChatRequestDTO struct {
 }
 
 type RAGChatResponseDTO struct {
-	Response string      `json:"response"`
-	IsControl bool        `json:"is_control"`
-	Redirect  *RedirectDTO `json:"redirect,omitempty"`
+	Response       string       `json:"response"`
+	IsControl      bool         `json:"is_control"`
+	Redirect       *RedirectDTO `json:"redirect,omitempty"`
+	HTTPStatusCode int          `json:"-"` // HTTP status code to return (not exposed in JSON)
 }
 
 type RedirectDTO struct {
@@ -71,4 +72,11 @@ type RedirectDTO struct {
 type RAGControlRequestDTO struct {
 	Prompt    string `json:"prompt" binding:"required" example:"Nyalakan AC"`
 	TeraluxID string `json:"teralux_id" binding:"required" example:"tx-1"`
+}
+
+type ControlResultDTO struct {
+	Message        string `json:"message"`
+	DeviceID       string `json:"device_id,omitempty"`
+	Command        string `json:"command,omitempty"` // e.g., "turn_on", "turn_off", "set_temp_24"
+	HTTPStatusCode int    `json:"-"`                 // HTTP status code to return (not exposed in JSON)
 }
