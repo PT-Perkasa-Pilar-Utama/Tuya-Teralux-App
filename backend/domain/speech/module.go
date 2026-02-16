@@ -42,7 +42,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	getStatusUC := speechUsecases.NewGetTranscriptionStatusUseCase(shortCache, longCache, whisperProxyUsecase)
 
 	// Controllers
-	transcribeController := speechControllers.NewSpeechTranscribeController(transcribeUC, saveRecordingUseCase, cfg)
+	transcribeController := speechControllers.NewSpeechTranscribeController(transcribeUC, saveRecordingUseCase, cfg, mqttSvc)
+	transcribeController.StartMqttSubscription()
 	statusController := speechControllers.NewSpeechTranscribeStatusController(getStatusUC)
 	whisperCppController := speechControllers.NewSpeechTranscribeWhisperCppController(transcribeWhisperCppUC, saveRecordingUseCase, cfg)
 	ppuController := speechControllers.NewSpeechTranscribePPUController(whisperProxyUsecase, saveRecordingUseCase, cfg)

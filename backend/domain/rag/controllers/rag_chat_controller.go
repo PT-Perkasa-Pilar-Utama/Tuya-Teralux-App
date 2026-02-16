@@ -1,20 +1,98 @@
 package controllers
 
 import (
+	"encoding/json"
 	"net/http"
+	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/usecases"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
 )
 
 type RAGChatController struct {
-	chatUC usecases.ChatUseCase
+	chatUC  usecases.ChatUseCase
+	mqttSvc *infrastructure.MqttService
 }
 
-func NewRAGChatController(chatUC usecases.ChatUseCase) *RAGChatController {
+func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService) *RAGChatController {
 	return &RAGChatController{
-		chatUC: chatUC,
+		chatUC:  chatUC,
+		mqttSvc: mqttSvc,
+	}
+}
+
+func (c *RAGChatController) StartMqttSubscription() {
+	if c.mqttSvc == nil {
+		return
+	}
+
+	topic := "users/teralux/chat"
+	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
+		payload := msg.Payload()
+		if len(payload) == 0 {
+			return
+		}
+
+		var req dtos.RAGChatRequestDTO
+		// Strictly JSON unmarshalling as per user request
+		err := json.Unmarshal(payload, &req)
+		if err != nil {
+			utils.LogError("RAGChat MQTT: Failed to unmarshal message: %v", err)
+			respTopic := "users/teralux/chat/answer"
+			respData, _ := json.Marshal(dtos.StandardResponse{
+				Status:  false,
+				Message: "Invalid JSON payload",
+				Details: err.Error(),
+			})
+			c.mqttSvc.Publish(respTopic, 0, false, respData)
+			return
+		}
+
+		if req.Prompt == "" || req.TeraluxID == "" {
+			utils.LogError("RAGChat MQTT: Missing prompt or teralux_id")
+			respTopic := "users/teralux/chat/answer"
+			respData, _ := json.Marshal(dtos.StandardResponse{
+				Status:  false,
+				Message: "Missing required fields (prompt, teralux_id)",
+			})
+			c.mqttSvc.Publish(respTopic, 0, false, respData)
+			return
+		}
+
+		// Process chat
+		uid := req.UID
+		if uid == "" {
+			uid = utils.GetConfig().TuyaUserID
+		}
+
+		res, err := c.chatUC.Chat(uid, req.TeraluxID, req.Prompt, req.Language)
+		if err != nil {
+			utils.LogError("RAGChat MQTT: Chat processing failed: %v", err)
+			respTopic := "users/teralux/chat/answer"
+			respData, _ := json.Marshal(dtos.StandardResponse{
+				Status:  false,
+				Message: "Failed to process chat",
+				Details: err.Error(),
+			})
+			c.mqttSvc.Publish(respTopic, 0, false, respData)
+			return
+		}
+
+		// Publish result back
+		respTopic := "users/teralux/chat/answer"
+		respData, _ := json.Marshal(dtos.StandardResponse{
+			Status:  true,
+			Message: "Chat processed successfully",
+			Data:    res,
+		})
+		c.mqttSvc.Publish(respTopic, 0, false, respData)
+	})
+
+	if err != nil {
+		utils.LogError("RAGChat MQTT: Failed to subscribe to %s: %v", topic, err)
 	}
 }
 
@@ -70,9 +148,18 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+	resp := dtos.StandardResponse{
 		Status:  true,
 		Message: "Chat processed successfully",
 		Data:    res,
-	})
+	}
+
+	// Also publish to MQTT if service is available (for unified view on mobile apps)
+	if c.mqttSvc != nil {
+		respTopic := "users/teralux/chat/answer"
+		respData, _ := json.Marshal(resp)
+		c.mqttSvc.Publish(respTopic, 0, false, respData)
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }

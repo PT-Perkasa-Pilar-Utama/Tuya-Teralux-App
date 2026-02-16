@@ -1,15 +1,21 @@
 package controllers
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
+
+	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
 	recordingUsecases "teralux_app/domain/recordings/usecases"
 	"teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/usecases"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,18 +24,120 @@ type SpeechTranscribeController struct {
 	transcribeUC    usecases.TranscribeUseCase
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase
 	config          *utils.Config
+	mqttSvc         *infrastructure.MqttService
 }
 
 func NewSpeechTranscribeController(
 	transcribeUC usecases.TranscribeUseCase,
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
 	cfg *utils.Config,
+	mqttSvc *infrastructure.MqttService,
 ) *SpeechTranscribeController {
 	return &SpeechTranscribeController{
 		transcribeUC:    transcribeUC,
 		saveRecordingUC: saveRecordingUC,
 		config:          cfg,
+		mqttSvc:         mqttSvc,
 	}
+}
+
+func (c *SpeechTranscribeController) StartMqttSubscription() {
+	if c.mqttSvc == nil {
+		return
+	}
+
+	topic := "users/teralux/whisper"
+	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
+		payload := msg.Payload()
+		if len(payload) == 0 {
+			return
+		}
+
+		var req dtos.WhisperMqttRequestDTO
+		if err := json.Unmarshal(payload, &req); err != nil {
+			utils.LogError("SpeechTranscribe MQTT: Failed to unmarshal JSON: %v", err)
+			c.publishMqttError(err.Error())
+			return
+		}
+
+		if req.Audio == "" || req.TeraluxID == "" {
+			utils.LogError("SpeechTranscribe MQTT: Missing audio or teralux_id")
+			c.publishMqttError("Missing required fields (audio, teralux_id)")
+			return
+		}
+
+		// Decode Base64 audio
+		audioBytes, err := base64.StdEncoding.DecodeString(req.Audio)
+		if err != nil {
+			utils.LogError("SpeechTranscribe MQTT: Failed to decode base64: %v", err)
+			c.publishMqttError("Failed to decode base64 audio")
+			return
+		}
+
+		// Create directory if not exists
+		dir := filepath.Join("uploads", "audio", "mqtt")
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				utils.LogError("SpeechTranscribe MQTT: Failed to create directory: %v", err)
+				return
+			}
+		}
+
+		// Generate filename
+		filename := fmt.Sprintf("mqtt_%s_%d.wav", req.TeraluxID, time.Now().UnixNano())
+		inputPath := filepath.Join(dir, filename)
+
+		if err := os.WriteFile(inputPath, audioBytes, 0644); err != nil {
+			utils.LogError("SpeechTranscribe MQTT: Failed to save audio: %v", err)
+			return
+		}
+
+		language := req.Language
+		if language == "" {
+			language = "id"
+		}
+
+		// Start transcription task (bypass recording save)
+		taskID, err := c.transcribeUC.TranscribeAudio(inputPath, filename, language)
+		if err != nil {
+			utils.LogError("SpeechTranscribe MQTT: Failed to start transcription: %v", err)
+			c.publishMqttError("Failed to start transcription task: " + err.Error())
+			return
+		}
+
+		// Publish success status
+		c.publishMqttResponse(dtos.StandardResponse{
+			Status:  true,
+			Message: "Transcription task submitted successfully",
+			Data: dtos.TranscriptionTaskResponseDTO{
+				TaskID:     taskID,
+				TaskStatus: "pending",
+			},
+		})
+
+		utils.LogInfo("SpeechTranscribe MQTT: Started task %s for file %s", taskID, filename)
+	})
+
+	if err != nil {
+		utils.LogError("SpeechTranscribe MQTT: Failed to subscribe to %s: %v", topic, err)
+	}
+}
+
+func (c *SpeechTranscribeController) publishMqttError(details string) {
+	c.publishMqttResponse(dtos.StandardResponse{
+		Status:  false,
+		Message: "Transcription request failed",
+		Details: details,
+	})
+}
+
+func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardResponse) {
+	if c.mqttSvc == nil {
+		return
+	}
+	respTopic := "users/teralux/whisper/answer"
+	respData, _ := json.Marshal(resp)
+	c.mqttSvc.Publish(respTopic, 0, false, respData)
 }
 
 // Transcribe handles POST /api/speech/transcribe
@@ -129,7 +237,7 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
+	resp := dtos.StandardResponse{
 		Status:  true,
 		Message: "Transcription task submitted successfully",
 		Data: dtos.TranscriptionTaskResponseDTO{
@@ -137,5 +245,10 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 			TaskStatus:  "pending",
 			RecordingID: recording.ID,
 		},
-	})
+	}
+
+	// Also publish to MQTT if service is available
+	c.publishMqttResponse(resp)
+
+	ctx.JSON(http.StatusAccepted, resp)
 }

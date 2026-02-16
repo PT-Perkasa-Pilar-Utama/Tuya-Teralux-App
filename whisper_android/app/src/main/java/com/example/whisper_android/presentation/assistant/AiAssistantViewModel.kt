@@ -28,26 +28,45 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
     init {
         mqttHelper.onMessageReceived = { topic, message ->
             android.util.Log.d("AiAssistantViewModel", "MQTT Message: topic=$topic, message=$message")
-            when {
-                topic.endsWith("chat/answer") -> {
-                    val cleanMessage = parseMarkdownToText(message)
-                    transcriptionResults = transcriptionResults + TranscriptionMessage(
-                        text = cleanMessage,
-                        role = MessageRole.ASSISTANT
-                    )
-                }
-                topic.endsWith("chat") -> {
-                    // Avoid duplicate if we just sent this message
-                    val alreadyExists = transcriptionResults.any { 
-                        it.role == MessageRole.USER && it.text == message 
-                    }
-                    if (!alreadyExists) {
+            try {
+                when {
+                    topic.endsWith("chat/answer") -> {
+                        val json = org.json.JSONObject(message)
+                        val data = json.optJSONObject("data")
+                        val responseText = data?.optString("response") ?: json.optString("message")
+                        
+                        val cleanMessage = parseMarkdownToText(responseText)
                         transcriptionResults = transcriptionResults + TranscriptionMessage(
-                            text = message,
-                            role = MessageRole.USER
+                            text = cleanMessage,
+                            role = MessageRole.ASSISTANT
                         )
                     }
+                    topic.endsWith("chat") -> {
+                        // Extract prompt if it's JSON, otherwise use raw message
+                        val prompt = try {
+                            org.json.JSONObject(message).optString("prompt", message)
+                        } catch (e: Exception) {
+                            message
+                        }
+
+                        // Avoid duplicate if we just sent this message
+                        val alreadyExists = transcriptionResults.any { 
+                            it.role == MessageRole.USER && it.text == prompt 
+                        }
+                        if (!alreadyExists) {
+                            transcriptionResults = transcriptionResults + TranscriptionMessage(
+                                text = prompt,
+                                role = MessageRole.USER
+                            )
+                        }
+                    }
+                    topic.endsWith("whisper/answer") -> {
+                        // Handle whisper answer (e.g. task ID)
+                        android.util.Log.d("AiAssistantViewModel", "Whisper Task: $message")
+                    }
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("AiAssistantViewModel", "Error parsing MQTT message", e)
             }
         }
         mqttHelper.connect()

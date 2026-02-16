@@ -54,6 +54,7 @@ type RAGChatRequestDTO struct {
 	Prompt    string `json:"prompt" binding:"required" example:"Nyalakan AC"`
 	Language  string `json:"language,omitempty" example:"id"`
 	TeraluxID string `json:"teralux_id" binding:"required" example:"tx-1"`
+	UID       string `json:"uid,omitempty" example:"sg1765..."`
 }
 
 type RAGChatResponseDTO struct {

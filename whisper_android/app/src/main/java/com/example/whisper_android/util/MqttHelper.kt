@@ -55,6 +55,7 @@ class MqttHelper(context: Context) {
                     
                     // Subscribe to chat and answer topics
                     subscribe("users/teralux/chat/answer")
+                    subscribe("users/teralux/whisper/answer")
                     subscribe("users/teralux/chat")
                 }
 
@@ -95,11 +96,26 @@ class MqttHelper(context: Context) {
     }
 
     fun publishAudio(payload: ByteArray) {
-        publish("users/teralux/whisper", payload)
+        val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
+        val json = """
+            {
+                "audio": "$base64Audio",
+                "teralux_id": "teralux",
+                "language": "id"
+            }
+        """.trimIndent()
+        publish("users/teralux/whisper", json.toByteArray())
     }
 
     fun publishChat(text: String) {
-        publish("users/teralux/chat", text.toByteArray())
+        val json = """
+            {
+                "prompt": "$text",
+                "teralux_id": "teralux",
+                "language": "id"
+            }
+        """.trimIndent()
+        publish("users/teralux/chat", json.toByteArray())
     }
 
     private fun publish(topic: String, payload: ByteArray) {
