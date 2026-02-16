@@ -16,9 +16,9 @@ import (
 
 // SpeechTranscribePPUController handles POST /api/speech/transcribe/ppu.
 type SpeechTranscribePPUController struct {
-	proxyUC        usecases.WhisperProxyUsecase
-	saveRecording  recordingUsecases.SaveRecordingUseCase
-	config         *utils.Config
+	proxyUC       usecases.WhisperProxyUsecase
+	saveRecording recordingUsecases.SaveRecordingUseCase
+	config        *utils.Config
 }
 
 func NewSpeechTranscribePPUController(

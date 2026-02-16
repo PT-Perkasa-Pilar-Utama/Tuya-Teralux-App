@@ -74,7 +74,7 @@ func TestGetTranscriptionStatusUseCase_Execute(t *testing.T) {
 		if proxyResp.TaskStatus.Status != "completed" {
 			t.Errorf("Expected status completed, got %s", proxyResp.TaskStatus.Status)
 		}
-		
+
 		if proxyResp.TaskStatus.Result.Transcription != "Hello world" {
 			t.Errorf("Expected transcription 'Hello world', got %s", proxyResp.TaskStatus.Result.Transcription)
 		}

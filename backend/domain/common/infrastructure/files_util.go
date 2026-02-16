@@ -53,6 +53,7 @@ func (s *fileService) EnsureDir(dirName string) error {
 
 // Helper for direct usage if needed, but discouraged in favor of DI
 var DefaultFileService = NewFileService()
+
 func SaveUploadedFile(file *multipart.FileHeader, dst string) error {
 	return DefaultFileService.SaveUploadedFile(file, dst)
 }

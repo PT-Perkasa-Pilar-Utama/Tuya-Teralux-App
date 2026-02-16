@@ -22,11 +22,11 @@ type RecordingsModule struct {
 
 func NewRecordingsModule(badger *infrastructure.BadgerService) *RecordingsModule {
 	repo := repositories.NewRecordingRepository(badger)
-	
+
 	// Inject DefaultFileService
 	fileService := infrastructure.DefaultFileService
 	saveUseCase := usecases.NewSaveRecordingUseCase(repo, fileService)
-	
+
 	getAllUseCase := usecases.NewGetAllRecordingsUseCase(repo)
 	getByIDUseCase := usecases.NewGetRecordingByIDUseCase(repo)
 	deleteUseCase := usecases.NewDeleteRecordingUseCase(repo)

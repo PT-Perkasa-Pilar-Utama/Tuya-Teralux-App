@@ -20,13 +20,13 @@ type RecordingRepository interface {
 }
 
 type recordingRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
 	badger *infrastructure.BadgerService // Kept for consistency, though metadata is in SQL
 }
 
 func NewRecordingRepository(badger *infrastructure.BadgerService) RecordingRepository {
 	return &recordingRepository{
-		db: infrastructure.DB,
+		db:     infrastructure.DB,
 		badger: badger,
 	}
 }

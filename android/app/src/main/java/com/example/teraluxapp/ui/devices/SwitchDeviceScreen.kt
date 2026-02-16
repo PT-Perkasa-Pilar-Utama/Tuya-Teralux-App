@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teraluxapp.data.network.Command
+import com.example.teraluxapp.data.network.CommandValue
 import com.example.teraluxapp.data.network.RetrofitClient
 import kotlinx.coroutines.launch
 
@@ -135,7 +136,7 @@ fun SwitchDeviceScreen(
         
         scope.launch {
             try {
-                val cmdResponse = RetrofitClient.instance.sendDeviceCommand("Bearer $token", deviceId, Command(code, value))
+                val cmdResponse = RetrofitClient.instance.sendDeviceCommand("Bearer $token", deviceId, Command(code, CommandValue.BoolValue(value)))
                 
                 if (cmdResponse.isSuccessful && cmdResponse.body()?.status == true) {
                     // Backend auto-saves state, no manual save needed

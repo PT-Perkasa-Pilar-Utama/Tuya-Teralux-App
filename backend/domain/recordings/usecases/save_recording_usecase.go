@@ -33,17 +33,17 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) 
 	// 1. Generate UUIDv4 for filename
 	fileExt := filepath.Ext(fileHeader.Filename)
 	newFilename := uuid.New().String() + fileExt
-	
+
 	// 2. Define paths
 	uploadPath := filepath.Join("uploads", "audio", newFilename)
-	
+
 	// 3. Save physical file (using gin context indirectly or standard io)
 	// Since we are in Usecase, we need to handle file saving responsibly.
-	// In a clean architecture, file saving might be in infrastructure service, 
+	// In a clean architecture, file saving might be in infrastructure service,
 	// but for simplicity here we assume the controller passes the file handler or we use a helper.
 	// HOWEVER, the standard way in Gin is via Context.SaveUploadedFile.
 	// To keep Usecase pure, we should receive the *multipart.FileHeader and save it manually.
-	
+
 	src, err := fileHeader.Open()
 	if err != nil {
 		return nil, err

@@ -80,7 +80,7 @@ func (s *VectorService) Search(query string) ([]string, error) {
 		id    string
 		score int
 	}
-	
+
 	matchScores := make(map[string]int) // Track match scores
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -92,15 +92,16 @@ func (s *VectorService) Search(query string) ([]string, error) {
 		// Check each word in the query
 		for _, word := range words {
 			// Ignore noise and common smart home terms
-			if len(word) <= 1 || word == "on" || word == "off" || word == "to" || word == "in" || word == "is" || 
-			   word == "dan" || word == "set" || word == "ke" || word == "nyalakan" || word == "matikan" {
+			if len(word) <= 1 || word == "on" || word == "off" || word == "to" || word == "in" || word == "is" ||
+				word == "dan" || word == "set" || word == "ke" || word == "nyalakan" || word == "matikan" ||
+				word == "turn" || word == "the" {
 				continue
 			}
 
 			// Synonym Expansion
 			targets := []string{word}
 			if word == "ac" {
-				targets = append(targets, "air conditioner")
+				targets = append(targets, "air conditioner", "conditioner")
 			} else if word == "lamp" || word == "light" {
 				targets = append(targets, "lamp", "light", "switch")
 			} else if word == "tv" {
@@ -132,7 +133,7 @@ func (s *VectorService) Search(query string) ([]string, error) {
 	for id, score := range matchScores {
 		matches = append(matches, match{id: id, score: score})
 	}
-	
+
 	// Sort by score descending
 	for i := 0; i < len(matches); i++ {
 		for j := i + 1; j < len(matches); j++ {
@@ -144,7 +145,7 @@ func (s *VectorService) Search(query string) ([]string, error) {
 
 	// Return only IDs, prioritizing higher scores
 	// If top score is high (>= 10), only return those with the MAXIMUM score
-	// This avoids "generic" matches (like 'temperature' matching a sensor) 
+	// This avoids "generic" matches (like 'temperature' matching a sensor)
 	// from cluttering results when a specific match (like 'Sharp AC') is found.
 	var result []string
 	if len(matches) > 0 {
@@ -157,9 +158,10 @@ func (s *VectorService) Search(query string) ([]string, error) {
 				}
 			}
 		} else {
-			// Return matches with score >= 2 (multiple words matched)
+			// Return matches with score >= 1 (at least one word matched via synonym or exact)
+			// Changed from >= 2 to allow single-word synonym matches like "light" -> "lamp"
 			for _, m := range matches {
-				if m.score >= 2 {
+				if m.score >= 1 {
 					result = append(result, m.id)
 				}
 			}

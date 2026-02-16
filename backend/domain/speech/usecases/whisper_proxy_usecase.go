@@ -198,11 +198,11 @@ func (u *whisperProxyUsecase) FetchToOutsystems(filePath string, fileName string
 		return nil, fmt.Errorf("file write to form failed")
 	}
 
-    // Add language field AFTER file is written
-    if err := writer.WriteField("language", language); err != nil {
-        utils.LogError("Whisper: Failed to write language field: %v", err)
-        return nil, fmt.Errorf("language field write failed")
-    }
+	// Add language field AFTER file is written
+	if err := writer.WriteField("language", language); err != nil {
+		utils.LogError("Whisper: Failed to write language field: %v", err)
+		return nil, fmt.Errorf("language field write failed")
+	}
 
 	if err := writer.Close(); err != nil {
 		utils.LogError("Whisper: Failed to close multipart writer: %v", err)

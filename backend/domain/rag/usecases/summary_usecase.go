@@ -88,7 +88,7 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 
 	// Generate PDF
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
-	
+
 	// Determine backend root to ensure uploads are correctly placed
 	basePath := "."
 	if envPath := utils.FindEnvFile(); envPath != "" {
@@ -285,7 +285,7 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 
 	// PDF rendering with timeout
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
-	
+
 	// Determine backend root
 	basePath := "."
 	if envPath := utils.FindEnvFile(); envPath != "" {

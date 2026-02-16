@@ -43,7 +43,7 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, badger)
 	tuyaCommandSwitchUseCase := usecases.NewTuyaCommandSwitchUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaSendIRCommandUseCase := usecases.NewTuyaSendIRCommandUseCase(tuyaDeviceService)
-	
+
 	// Bridge for shared executor
 	tuyaDeviceControlBridge := usecases.NewTuyaDeviceControlBridge(tuyaCommandSwitchUseCase, tuyaSendIRCommandUseCase)
 

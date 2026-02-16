@@ -89,7 +89,7 @@ func (m *MockToken) Error() error {
 func TestMqttService_Connect(t *testing.T) {
 	mockClient := new(MockMqttClient)
 	mockToken := new(MockToken)
-	
+
 	s := &MqttService{
 		client: mockClient,
 		config: &utils.Config{},
@@ -121,7 +121,7 @@ func TestMqttService_Connect(t *testing.T) {
 func TestMqttService_Publish(t *testing.T) {
 	mockClient := new(MockMqttClient)
 	mockToken := new(MockToken)
-	
+
 	s := &MqttService{
 		client: mockClient,
 		config: &utils.Config{},
@@ -150,7 +150,7 @@ func TestMqttService_Publish(t *testing.T) {
 func TestMqttService_Subscribe(t *testing.T) {
 	mockClient := new(MockMqttClient)
 	mockToken := new(MockToken)
-	
+
 	s := &MqttService{
 		client: mockClient,
 		config: &utils.Config{},

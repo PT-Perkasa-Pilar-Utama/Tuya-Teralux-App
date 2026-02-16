@@ -84,7 +84,7 @@ func TestSaveRecordingUseCase_SaveRecording(t *testing.T) {
 
 		fileHeader, err := createTestFileHeader()
 		assert.NoError(t, err)
-		
+
 		// Mock FileService expectations
 		// Note: The fileHeader passed to SaveUploadedFile will be the same pointer
 		mockFileService.On("SaveUploadedFile", fileHeader, mock.AnythingOfType("string")).Return(nil)
@@ -99,7 +99,7 @@ func TestSaveRecordingUseCase_SaveRecording(t *testing.T) {
 		assert.Contains(t, recording.Filename, ".mp3")
 		assert.Equal(t, "test.mp3", recording.OriginalName)
 		assert.Contains(t, recording.AudioUrl, "/uploads/audio/")
-		
+
 		mockFileService.AssertExpectations(t)
 		mockRepo.AssertExpectations(t)
 	})

@@ -73,7 +73,7 @@ func (ctrl *DocsController) ServeDocs(c *gin.Context) {
 	if strings.HasPrefix(requestPath, "/assets/") {
 		// Map /docs/assets/... to either ./assets/docs/... (CSS) or ./docs/assets/... (Images)
 		relativePath := strings.TrimPrefix(requestPath, "/assets/")
-		
+
 		// 1. Try ./assets/docs/ (CSS location)
 		cssAssetPath := filepath.Join("assets", "docs", relativePath)
 		if _, err := os.Stat(cssAssetPath); err == nil {
@@ -87,7 +87,7 @@ func (ctrl *DocsController) ServeDocs(c *gin.Context) {
 			c.File(imgAssetPath)
 			return
 		}
-		
+
 		// 404 if not found in either
 		c.String(http.StatusNotFound, "Asset not found")
 		return
