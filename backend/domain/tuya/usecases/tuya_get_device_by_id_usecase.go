@@ -100,7 +100,7 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 
 	// Validate response
 	if !deviceResponse.Success {
-		return nil, fmt.Errorf("tuya API failed to fetch device: %s (code: %d)", deviceResponse.Msg, deviceResponse.Code)
+		return nil, fmt.Errorf("Gateway API failed to fetch device details: %s (code: %d)", deviceResponse.Msg, deviceResponse.Code)
 	}
 
 	// Transform status

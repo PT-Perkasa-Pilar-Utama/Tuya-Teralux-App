@@ -118,7 +118,7 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 
 	// Validate response
 	if !devicesResponse.Success {
-		return nil, fmt.Errorf("tuya API failed to fetch devices: %s (code: %d)", devicesResponse.Msg, devicesResponse.Code)
+		return nil, fmt.Errorf("Gateway API failed to list devices: %s (code: %d)", devicesResponse.Msg, devicesResponse.Code)
 	}
 
 	// DEBUG: Log device attributes and SPECIFICATIONS to find correct command values

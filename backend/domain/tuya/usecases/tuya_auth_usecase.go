@@ -94,7 +94,7 @@ func (uc *tuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
 
 	// Validate response
 	if !authResponse.Success {
-		return nil, fmt.Errorf("tuya API authentication failed: %s (code: %d)", authResponse.Msg, authResponse.Code)
+		return nil, fmt.Errorf("Gateway authentication failed: %s (code: %d)", authResponse.Msg, authResponse.Code)
 	}
 
 	// Transform entity to DTO (Original Tuya Response)

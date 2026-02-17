@@ -134,6 +134,7 @@ func (r *OrionRepository) CallModel(prompt string, model string) (string, error)
 		if output.Type == "message" {
 			for _, content := range output.Content {
 				if content.Type == "output_text" && content.Text != "" {
+					utils.LogDebug("Orion: Response received: %s", content.Text)
 					return content.Text, nil
 				}
 			}

@@ -70,6 +70,6 @@ else
     exit 1
 fi
 
-echo ""
-echo "📝 Showing logs (Ctrl+C to stop)..."
-adb -s "$DEVICE_ID" logcat -v daily -s "SensioWakeWord:D" "MainActivity:D" "*:E"
+# echo ""
+# echo "📝 Showing logs (Ctrl+C to stop)..."
+# adb -s "$DEVICE_ID" logcat -v daily -s "SensioWakeWord:D" "MainActivity:D" "*:E"

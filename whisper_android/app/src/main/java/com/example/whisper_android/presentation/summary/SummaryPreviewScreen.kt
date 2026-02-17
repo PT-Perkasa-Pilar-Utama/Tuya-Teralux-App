@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.whisper_android.presentation.components.*
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,32 +36,23 @@ fun SummaryPreviewScreen(
         else -> summaries.enSummary
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Meeting Summary Preview", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-        ) {
+    FeatureBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                FeatureHeader(
+                    title = "Meeting Summary Preview",
+                    onNavigateBack = onNavigateBack
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            ) {
             // Language & Download Row
             Row(
                 modifier = Modifier
@@ -167,6 +159,7 @@ fun SummaryPreviewScreen(
                     )
                 }
             }
+        }
         }
     }
 }

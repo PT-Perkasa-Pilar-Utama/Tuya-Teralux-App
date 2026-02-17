@@ -82,7 +82,7 @@ fun MeetingTranscriberScreen(
     }
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var summaryLanguage by remember { mutableStateOf("en") } // Default to "en" (English)
+    var summaryLanguage by remember { mutableStateOf("id") } // Default to "id" (Indonesian)
     
     val context = LocalContext.current
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -176,22 +176,27 @@ fun MeetingTranscriberScreen(
     ) == PackageManager.PERMISSION_GRANTED
 
     FeatureBackground {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Header
-            FeatureHeader(
-                title = "Meeting Insights",
-                onNavigateBack = onNavigateBack
-            )
-
-            // Main Transcription Card
-            FeatureMainCard(
-                modifier = Modifier.weight(1f)
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                // Header
+                FeatureHeader(
+                    title = "Meeting Insights",
+                    onNavigateBack = onNavigateBack
+                )
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Main Transcription Card
+                FeatureMainCard(
+                    modifier = Modifier.weight(1f)
+                ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -540,6 +545,7 @@ fun MeetingTranscriberScreen(
                     }
                 }
             }
+        }
         }
     }
 }

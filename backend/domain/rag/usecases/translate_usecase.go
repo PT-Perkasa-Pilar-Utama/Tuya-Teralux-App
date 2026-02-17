@@ -42,6 +42,7 @@ func (u *translateUseCase) translateInternal(text, targetLang string) (string, e
 	prompt := fmt.Sprintf(`You are a professional translator and editor. 
 Translate the following transcribed text to clear, grammatically correct %s.
 If the text is already in %s, fix any grammatical errors and improve the clarity.
+CRITICAL: Do not mention "Tuya" or "Tuya API" in your response. Use generic terms like "Smart Home System" or "Gateway" if needed.
 Only return the final polished text without any explanation, quotes, or additional commentary.
 
 Text: "%s"

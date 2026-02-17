@@ -150,7 +150,7 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 			}
 		}
 
-		return false, fmt.Errorf("tuya API failed: %s (code: %d)", resp.Msg, resp.Code)
+		return false, fmt.Errorf("Gateway API failed: %s (code: %d)", resp.Msg, resp.Code)
 	}
 
 	// Save state after successful command

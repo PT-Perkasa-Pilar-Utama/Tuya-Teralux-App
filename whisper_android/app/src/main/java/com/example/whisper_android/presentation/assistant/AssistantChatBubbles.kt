@@ -1,11 +1,12 @@
     package com.example.whisper_android.presentation.assistant
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,6 +19,7 @@ import com.example.whisper_android.presentation.components.MessageRole
 @Composable
 fun AssistantChatBubble(message: TranscriptionMessage) {
     val isUser = message.role == MessageRole.USER
+
     Column(
         modifier = Modifier
             .fillMaxWidth()

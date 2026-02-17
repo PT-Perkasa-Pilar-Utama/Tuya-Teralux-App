@@ -183,20 +183,23 @@ func (s *IRACsensor) parseTemperature(promptLower string) (int, bool) {
 func (s *IRACsensor) parseMode(promptLower string) (int, bool) {
 	// 0: Cool, 1: Heat, 2: Auto, 3: Fan/Wind, 4: Dry/Humidity
 
+	// Priority 1: Explicit technical commands (must win over descriptive adjectives)
+	if strings.Contains(promptLower, "auto") || strings.Contains(promptLower, "otomatis") {
+		return 2, true
+	}
+	if strings.Contains(promptLower, "dry") || strings.Contains(promptLower, "humidity") || strings.Contains(promptLower, "lembab") || strings.Contains(promptLower, "kelembaban") {
+		return 4, true
+	}
+	if strings.Contains(promptLower, "fan") || strings.Contains(promptLower, "wind") || strings.Contains(promptLower, "kipas") || strings.Contains(promptLower, "angin") {
+		return 3, true
+	}
+
+	// Priority 2: Descriptive adjectives (can be used as mode indicators if no explicit mode is found)
 	if strings.Contains(promptLower, "cool") || strings.Contains(promptLower, "dingin") {
 		return 0, true
 	}
 	if strings.Contains(promptLower, "heat") || strings.Contains(promptLower, "panas") {
 		return 1, true
-	}
-	if strings.Contains(promptLower, "auto") || strings.Contains(promptLower, "otomatis") {
-		return 2, true
-	}
-	if strings.Contains(promptLower, "fan") || strings.Contains(promptLower, "wind") || strings.Contains(promptLower, "kipas") || strings.Contains(promptLower, "angin") {
-		return 3, true
-	}
-	if strings.Contains(promptLower, "dry") || strings.Contains(promptLower, "humidity") || strings.Contains(promptLower, "lembab") || strings.Contains(promptLower, "kelembaban") {
-		return 4, true
 	}
 
 	return 0, false

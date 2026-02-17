@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ fun AssistantInputPill(
     onMicClick: () -> Unit,
     onStopClick: () -> Unit,
     onSendClick: () -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -47,8 +49,9 @@ fun AssistantInputPill(
                 isRecording = isRecording,
                 hasPermission = hasPermission,
                 isProcessing = isProcessing,
-                onClick = onMicClick,
-                size = 40.dp
+                onClick = if (enabled) onMicClick else ({}),
+                size = 40.dp,
+                modifier = Modifier.alpha(if (enabled) 1f else 0.4f)
             )
 
             // Red Stop Button (Shown when active)
@@ -93,14 +96,14 @@ fun AssistantInputPill(
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 singleLine = true,
-                enabled = !isRecording && !isProcessing,
+                enabled = enabled && !isRecording && !isProcessing,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
             )
 
             // Send Icon Button
             IconButton(
                 onClick = onSendClick,
-                enabled = !isRecording && !isProcessing && inputValue.isNotBlank()
+                enabled = enabled && !isRecording && !isProcessing && inputValue.isNotBlank()
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,

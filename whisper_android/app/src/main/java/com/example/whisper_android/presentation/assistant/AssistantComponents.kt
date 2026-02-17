@@ -28,7 +28,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun AiMindVisual(
     isThinking: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 64.dp
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "AiMindEngine")
     
@@ -43,9 +44,11 @@ fun AiMindVisual(
         label = "EngineOpacity"
     )
 
+    val scaleFactor = size / 64.dp
+
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.size(64.dp) // Brutal Scale Down (The Identity, not the Hero)
+        modifier = modifier.size(size) 
     ) {
         Surface(
             modifier = Modifier
@@ -54,18 +57,18 @@ fun AiMindVisual(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary,
             tonalElevation = 2.dp,
-            shadowElevation = 6.dp
+            shadowElevation = if (size > 40.dp) 6.dp else 2.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
                 // Engine Signal (Minimalist Heartbeat)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp * scaleFactor),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     repeat(3) { index ->
                         val barHeight by infiniteTransition.animateFloat(
-                            initialValue = 12f,
-                            targetValue = if (isThinking) 24f else 16f,
+                            initialValue = 12f * scaleFactor,
+                            targetValue = if (isThinking) 24f * scaleFactor else 16f * scaleFactor,
                             animationSpec = infiniteRepeatable(
                                 animation = tween(1200 + (index * 150), easing = FastOutSlowInEasing),
                                 repeatMode = RepeatMode.Reverse
@@ -74,9 +77,9 @@ fun AiMindVisual(
                         )
                         Box(
                             modifier = Modifier
-                                .width(3.dp)
+                                .width(3.dp * scaleFactor)
                                 .height(barHeight.dp)
-                                .background(Color.White.copy(alpha = 0.9f), RoundedCornerShape(1.dp))
+                                .background(Color.White.copy(alpha = 0.9f), RoundedCornerShape(1.dp * scaleFactor))
                         )
                     }
                 }
@@ -90,6 +93,7 @@ fun SuggestedActionCard(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var isPressed by remember { mutableStateOf(false) }
@@ -100,7 +104,7 @@ fun SuggestedActionCard(
     )
 
     Surface(
-        onClick = { onClick() },
+        onClick = { if (enabled) onClick() },
         shape = RoundedCornerShape(16.dp),
         color = Color.White.copy(alpha = 0.95f),
         border = androidx.compose.foundation.BorderStroke(
@@ -109,14 +113,17 @@ fun SuggestedActionCard(
         ),
         modifier = modifier
             .scale(scale)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = { 
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                    }
-                )
+            .alpha(if (enabled) 1f else 0.5f)
+            .pointerInput(enabled) {
+                if (enabled) {
+                    detectTapGestures(
+                        onPress = { 
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        }
+                    )
+                }
             },
         shadowElevation = 2.dp,
         tonalElevation = 1.dp
@@ -158,25 +165,47 @@ fun TypingIndicator(
     val infiniteTransition = rememberInfiniteTransition(label = "Typing")
     
     Row(
-        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(3) { index ->
-            val alpha by infiniteTransition.animateFloat(
-                initialValue = 0.2f,
-                targetValue = 1f,
+            val bounce by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -8f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(600, delayMillis = index * 200),
+                    animation = tween(400, delayMillis = index * 150, easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse
                 ),
-                label = "Dot$index"
+                label = "DotBounce$index"
             )
+            
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.4f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(400, delayMillis = index * 150),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "DotAlpha$index"
+            )
+
             Box(
                 modifier = Modifier
-                    .size(6.dp)
+                    .size(8.dp)
+                    .graphicsLayer {
+                        translationY = bounce.dp.toPx()
+                    }
                     .alpha(alpha)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                            )
+                        ),
+                        shape = CircleShape
+                    )
             )
         }
     }

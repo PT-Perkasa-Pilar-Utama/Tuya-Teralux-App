@@ -32,6 +32,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 	topic := "users/teralux/chat"
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
+		utils.LogInfo("RAGChat MQTT: Received message on %s, payload size: %d", topic, len(payload))
 		if len(payload) == 0 {
 			return
 		}
@@ -68,6 +69,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 			uid = utils.GetConfig().TuyaUserID
 		}
 
+		utils.LogInfo("RAGChat MQTT: Starting chat process for UID: %s, Prompt: '%s'", uid, req.Prompt)
 		res, err := c.chatUC.Chat(uid, req.TeraluxID, req.Prompt, req.Language)
 		if err != nil {
 			utils.LogError("RAGChat MQTT: Chat processing failed: %v", err)
@@ -83,11 +85,13 @@ func (c *RAGChatController) StartMqttSubscription() {
 
 		// Publish result back
 		respTopic := "users/teralux/chat/answer"
-		respData, _ := json.Marshal(dtos.StandardResponse{
+		resp := dtos.StandardResponse{
 			Status:  true,
 			Message: "Chat processed successfully",
 			Data:    res,
-		})
+		}
+		respData, _ := json.Marshal(resp)
+		utils.LogInfo("RAGChat MQTT: Publishing answer to %s. Response: %s", respTopic, res.Response)
 		c.mqttSvc.Publish(respTopic, 0, false, respData)
 	})
 

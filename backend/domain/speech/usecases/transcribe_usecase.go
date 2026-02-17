@@ -93,12 +93,17 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	utils.LogInfo("Transcribe Task %s: Finished using %s", taskID, result.Source)
 
 	// Refine (Grammar/Spelling)
-	refined, _ := uc.refineUC.RefineText(result.Transcription, result.DetectedLanguage)
+	// Priority: Use requested language if explicitly provided (e.g. from App), otherwise fallback to detected.
+	refineLang := result.DetectedLanguage
+	if reqLanguage != "" {
+		refineLang = reqLanguage
+	}
+	refined, _ := uc.refineUC.RefineText(result.Transcription, refineLang)
 
 	finalResult := &speechdtos.AsyncTranscriptionResultDTO{
 		Transcription:    result.Transcription,
 		RefinedText:      refined,
-		DetectedLanguage: result.DetectedLanguage,
+		DetectedLanguage: result.DetectedLanguage, // Keep original detection for record
 	}
 
 	uc.updateStatus(taskID, "completed", finalResult)

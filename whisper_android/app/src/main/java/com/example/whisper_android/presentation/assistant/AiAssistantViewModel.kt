@@ -24,6 +24,12 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
     var isProcessing by mutableStateOf(false)
         private set
 
+    var selectedLanguage by mutableStateOf("id")
+        private set
+
+    var mqttStatus by mutableStateOf(MqttHelper.MqttConnectionStatus.DISCONNECTED)
+        private set
+
     private val mqttHelper = MqttHelper(application)
     private val audioRecorder = AudioRecorder(application)
     private var currentRecordingFile: File? = null
@@ -34,6 +40,7 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
             try {
                 when {
                     topic.endsWith("chat/answer") -> {
+                        android.util.Log.d("AiAssistantViewModel", "Received chat/answer: $message")
                         val json = org.json.JSONObject(message)
                         val data = json.optJSONObject("data")
                         val responseText = data?.optString("response") ?: json.optString("message", message)
@@ -43,8 +50,11 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                             text = cleanMessage,
                             role = MessageRole.ASSISTANT
                         )
+                        isProcessing = false
+                        android.util.Log.d("AiAssistantViewModel", "isProcessing set to false")
                     }
                     topic.endsWith("chat") -> {
+                        android.util.Log.d("AiAssistantViewModel", "Received chat (sync): $message")
                         // Extract prompt if it's JSON, otherwise use raw message
                         val prompt = try {
                             val jsonObj = org.json.JSONObject(message)
@@ -71,17 +81,31 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                     topic.endsWith("whisper/answer") -> {
                         // Handle whisper answer (e.g. task ID)
                         android.util.Log.d("AiAssistantViewModel", "Whisper Task: $message")
+                        // If it's just a task ID, we might still be processing, 
+                        // but usually a whisper answer means the command was accepted.
+                        // However, chat/answer is where the final response comes.
                     }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("AiAssistantViewModel", "Error parsing MQTT message", e)
             }
         }
+        
+        mqttHelper.onConnectionStatusChanged = { status ->
+            android.util.Log.d("AiAssistantViewModel", "MQTT Status Changed: $status")
+            mqttStatus = status
+        }
+        
         mqttHelper.connect()
     }
 
-    fun sendChat(text: String, language: String = "id") {
+    fun selectLanguage(language: String) {
+        selectedLanguage = language
+    }
+
+    fun sendChat(text: String) {
         if (text.isNotBlank()) {
+            android.util.Log.d("AiAssistantViewModel", "sendChat: $text")
             // Avoid duplicate if we just sent this
             val alreadyExists = transcriptionResults.any { 
                 it.role == MessageRole.USER && it.text == text 
@@ -89,8 +113,9 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
             if (!alreadyExists) {
                 transcriptionResults = transcriptionResults + TranscriptionMessage(text, MessageRole.USER)
             }
+            isProcessing = true
             viewModelScope.launch {
-                mqttHelper.publishChat(text, language)
+                mqttHelper.publishChat(text, selectedLanguage)
             }
         }
     }
@@ -112,11 +137,8 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                 audioRecorder.finalizeWav(file)
                 viewModelScope.launch {
                     val bytes = file.readBytes()
-                    mqttHelper.publishAudio(bytes)
-                    isProcessing = false
+                    mqttHelper.publishAudio(bytes, selectedLanguage)
                 }
-            } else {
-                isProcessing = false
             }
         }
     }

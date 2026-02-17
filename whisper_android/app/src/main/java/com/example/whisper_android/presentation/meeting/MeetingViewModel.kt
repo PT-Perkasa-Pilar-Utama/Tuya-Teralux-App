@@ -24,7 +24,7 @@ class MeetingViewModel(
     // Ideally, UseCase handles token retrieval.
     // Let's pass token to processMeeting
     
-    fun processRecording(audioFile: File, token: String, targetLang: String = "English") {
+    fun processRecording(audioFile: File, token: String, targetLang: String = "Indonesian") {
         viewModelScope.launch {
             processMeetingUseCase(audioFile, token, targetLang).collect { state ->
                 _uiState.value = state

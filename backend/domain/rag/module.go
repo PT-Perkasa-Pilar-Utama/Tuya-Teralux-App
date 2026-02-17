@@ -9,6 +9,7 @@ import (
 	ragRepos "teralux_app/domain/rag/repositories"
 	"teralux_app/domain/rag/routes"
 	"teralux_app/domain/rag/services"
+	"teralux_app/domain/rag/skills"
 	"teralux_app/domain/rag/usecases"
 	"teralux_app/domain/rag/utilities"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
@@ -30,14 +31,26 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 	cache := tasks.NewBadgerTaskCacheFromService(badger, "rag:task:")
 
+	// Initialize Skills
+	skillRegistry := skills.NewSkillRegistry()
+	controlSkill := skills.NewControlSkill(tuyaExecutor, tuyaAuth)
+	identitySkill := &skills.IdentitySkill{}
+	translationSkill := &skills.TranslationSkill{}
+
+	skillRegistry.Register(controlSkill)
+	skillRegistry.Register(identitySkill)
+	skillRegistry.Register(translationSkill)
+
 	// Initialize Usecases
 	refineUC := usecases.NewRefineUseCase(llmClient, cfg)
 	translateUC := usecases.NewTranslateUseCase(llmClient, cfg, cache, store)
+
+	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
 	pdfRenderer := services.NewMarotoSummaryPDFRenderer()
 	summaryUC := usecases.NewSummaryUseCase(llmClient, cfg, cache, store, pdfRenderer)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(llmClient, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
-	chatUC := usecases.NewChatUseCase(llmClient, cfg, badger, controlUC, translateUC)
+	chatUC := usecases.NewChatUseCase(llmClient, cfg, badger, vectorSvc, orchestrator)
 
 	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)
 	chatController.StartMqttSubscription()

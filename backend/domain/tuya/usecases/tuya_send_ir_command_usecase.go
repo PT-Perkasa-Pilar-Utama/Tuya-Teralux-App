@@ -131,7 +131,7 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 		resp.Success, resp.Code, resp.Msg, resp.Result)
 
 	if !resp.Success {
-		return false, fmt.Errorf("tuya IR API failed: %s (code: %d)", resp.Msg, resp.Code)
+		return false, fmt.Errorf("Gateway IR API failed: %s (code: %d)", resp.Msg, resp.Code)
 	}
 
 	return resp.Result, nil

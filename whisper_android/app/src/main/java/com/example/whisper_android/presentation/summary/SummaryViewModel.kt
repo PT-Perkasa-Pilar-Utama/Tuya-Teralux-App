@@ -13,7 +13,7 @@ class SummaryViewModel : ViewModel() {
     private val _summaries = MutableStateFlow(SummariesData())
     val summaries: StateFlow<SummariesData> = _summaries
 
-    private val _selectedLanguage = MutableStateFlow("en")
+    private val _selectedLanguage = MutableStateFlow("id")
     val selectedLanguage: StateFlow<String> = _selectedLanguage
 
     init {

@@ -111,5 +111,7 @@ func (r *GeminiRepository) CallModel(prompt string, model string) (string, error
 		return "", fmt.Errorf("gemini api returned no candidates")
 	}
 
-	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
+	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
+	utils.LogDebug("Gemini: Response received: %s", responseText)
+	return responseText, nil
 }

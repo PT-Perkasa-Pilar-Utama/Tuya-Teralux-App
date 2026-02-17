@@ -46,41 +46,44 @@ fun FeatureBackground(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeatureHeader(
     title: String,
     onNavigateBack: () -> Unit,
     titleColor: Color = MaterialTheme.colorScheme.onBackground,
-    iconColor: Color = MaterialTheme.colorScheme.primary
+    iconColor: Color = MaterialTheme.colorScheme.primary,
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        IconButton(
-            onClick = onNavigateBack,
-            modifier = Modifier.align(Alignment.CenterStart)
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBackIosNew,
-                contentDescription = "Back",
-                tint = iconColor,
-                modifier = Modifier.size(18.dp)
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = titleColor,
+                textAlign = TextAlign.Center,
+                letterSpacing = (-0.5).sp,
+                style = MaterialTheme.typography.titleLarge
             )
-        }
-        
-        Text(
-            text = title,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            letterSpacing = (-0.5).sp,
-            style = MaterialTheme.typography.titleLarge
-        )
-    }
+        },
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBackIosNew,
+                    contentDescription = "Back",
+                    tint = iconColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        },
+        actions = actions,
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = Color.Transparent
+        ),
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable

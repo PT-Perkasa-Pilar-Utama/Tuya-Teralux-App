@@ -1,9 +1,12 @@
 package com.example.whisper_android.presentation.assistant
 
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +44,7 @@ fun AiAssistantScreen(
     val isRecording = viewModel.isRecording
     val isProcessing = viewModel.isProcessing
     var userInput by remember { mutableStateOf("") }
+    val isMqttOnline = viewModel.mqttStatus == MqttHelper.MqttConnectionStatus.CONNECTED
     
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -70,17 +74,21 @@ fun AiAssistantScreen(
     }
 
     // Wake Word Manager
+    val currentOnWakeWordDetected by rememberUpdatedState {
+        if (isMqttOnline && !isRecording && !isProcessing) {
+            viewModel.startRecording(File(context.cacheDir, "recording.wav"))
+        }
+    }
+
     val wakeWordManager = remember {
         SensioWakeWordManager(context) {
-            if (!isRecording && !isProcessing) {
-                viewModel.startRecording(File(context.cacheDir, "recording.wav"))
-            }
+            currentOnWakeWordDetected()
         }
     }
 
     // Wake Word Lifecycle
-    DisposableEffect(hasPermission, isRecording, isProcessing) {
-        if (hasPermission && !isRecording && !isProcessing) {
+    DisposableEffect(hasPermission, isRecording, isProcessing, isMqttOnline) {
+        if (hasPermission && isMqttOnline && !isRecording && !isProcessing) {
             wakeWordManager.startListening()
         } else {
             wakeWordManager.stopListening()
@@ -107,11 +115,54 @@ fun AiAssistantScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.Transparent
-    ) { padding ->
-        FeatureBackground {
+    FeatureBackground {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = Color.Transparent,
+            topBar = {
+                FeatureHeader(
+                    title = "Whisper Intelligence",
+                    onNavigateBack = onNavigateBack,
+                    titleColor = MaterialTheme.colorScheme.primary,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    actions = {
+                        Row(
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .background(
+                                    Color.LightGray.copy(alpha = 0.2f),
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .padding(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            listOf("id", "en").forEach { lang ->
+                                val isSelected = viewModel.selectedLanguage == lang
+                                Surface(
+                                    onClick = { viewModel.selectLanguage(lang) },
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    modifier = Modifier.size(width = 42.dp, height = 28.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = lang.uppercase(),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(
+                                                alpha = 0.6f
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        MqttStatusBadge(viewModel.mqttStatus)
+                    }
+                )
+            }
+        ) { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -119,43 +170,25 @@ fun AiAssistantScreen(
                     .padding(horizontal = 4.dp, vertical = 0.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                FeatureHeader(
-                    title = "Whisper Intelligence",
-                    onNavigateBack = onNavigateBack,
-                    titleColor = MaterialTheme.colorScheme.primary,
-                    iconColor = MaterialTheme.colorScheme.primary
-                )
-                
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 20.dp, top = 16.dp)
-                        .size(20.dp)
-                        .alpha(0.2f)
+                FeatureMainCard(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    WhisperLogo(showText = false)
+                    if (transcriptionResults.isEmpty() && !isProcessing) {
+                        EmptyAssistantState(
+                            isProcessing = isProcessing,
+                            enabled = isMqttOnline,
+                            onSuggestedAction = { prompt ->
+                                viewModel.sendChat(prompt)
+                            }
+                        )
+                    } else {
+                        ConversationList(
+                            scrollState = scrollState,
+                            messages = transcriptionResults,
+                            isProcessing = isProcessing
+                        )
+                    }
                 }
-            }
-
-            FeatureMainCard(
-                modifier = Modifier.weight(1f)
-            ) {
-                if (transcriptionResults.isEmpty() && !isProcessing) {
-                    EmptyAssistantState(
-                        isProcessing = isProcessing,
-                        onSuggestedAction = { prompt ->
-                            viewModel.sendChat(prompt, "en")
-                        }
-                    )
-                } else {
-                    ConversationList(
-                        scrollState = scrollState,
-                        messages = transcriptionResults,
-                        isProcessing = isProcessing
-                    )
-                }
-            }
 
             Box(
                 modifier = Modifier
@@ -184,7 +217,8 @@ fun AiAssistantScreen(
                             viewModel.sendChat(userInput)
                             userInput = ""
                         }
-                    }
+                    },
+                    enabled = isMqttOnline
                 )
             }
             }
@@ -195,6 +229,7 @@ fun AiAssistantScreen(
 @Composable
 private fun EmptyAssistantState(
     isProcessing: Boolean,
+    enabled: Boolean,
     onSuggestedAction: (String) -> Unit
 ) {
     Column(
@@ -230,16 +265,18 @@ private fun EmptyAssistantState(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             SuggestedActionCard(
-                title = "Summarize Insight",
-                subtitle = "Extract core discussion intent.",
+                title = "Introduce Yourself",
+                subtitle = "Learn about my role and capabilities.",
                 modifier = Modifier.weight(1f),
-                onClick = { onSuggestedAction("Summarize the meeting.") }
+                onClick = { onSuggestedAction("Who are you?") },
+                enabled = enabled
             )
             SuggestedActionCard(
-                title = "List Actions",
-                subtitle = "Identify tasks and assignments.",
+                title = "Explore My Controls",
+                subtitle = "Discover which devices I can manage.",
                 modifier = Modifier.weight(1f),
-                onClick = { onSuggestedAction("What are the action items?") }
+                onClick = { onSuggestedAction("What devices can I control?") },
+                enabled = enabled
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
@@ -262,10 +299,85 @@ private fun ConversationList(
         items(messages) { message ->
             AssistantChatBubble(message)
         }
-        if (isProcessing) {
-            item {
-                TypingIndicator()
+        item {
+            AnimatedVisibility(
+                visible = isProcessing,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(
+                            topStart = 4.dp,
+                            topEnd = 24.dp,
+                            bottomStart = 24.dp,
+                            bottomEnd = 24.dp
+                        ),
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.widthIn(max = 300.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, 
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        ),
+                        shadowElevation = 8.dp,
+                        tonalElevation = 4.dp
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            AiMindVisual(
+                                isThinking = true, 
+                                size = 28.dp,
+                                modifier = Modifier.padding(start = 12.dp)
+                            )
+                            TypingIndicator()
+                        }
+                    }
+                }
             }
         }
+    }
+}
+@Composable
+private fun MqttStatusBadge(status: MqttHelper.MqttConnectionStatus) {
+    val color = when (status) {
+        MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
+        MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
+        MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
+        MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
+    }
+    
+    val text = when (status) {
+        MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
+        MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
+        MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
+        MqttHelper.MqttConnectionStatus.FAILED -> "Error"
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(start = 4.dp)
+            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, androidx.compose.foundation.shape.CircleShape)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = color
+        )
     }
 }

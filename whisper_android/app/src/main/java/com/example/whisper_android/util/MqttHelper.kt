@@ -15,6 +15,14 @@ class MqttHelper(context: Context) {
     private val password = BuildConfig.MQTT_PASSWORD
     private val TAG = "MqttHelper"
     var onMessageReceived: ((topic: String, message: String) -> Unit)? = null
+    var onConnectionStatusChanged: ((status: MqttConnectionStatus) -> Unit)? = null
+
+    enum class MqttConnectionStatus {
+        DISCONNECTED,
+        CONNECTING,
+        CONNECTED,
+        FAILED
+    }
 
     init {
         val appContext = context.applicationContext
@@ -22,6 +30,7 @@ class MqttHelper(context: Context) {
         mqttAndroidClient.setCallback(object : MqttCallback {
             override fun connectionLost(cause: Throwable?) {
                 Log.d(TAG, "Connection lost: ${cause?.message}")
+                onConnectionStatusChanged?.invoke(MqttConnectionStatus.DISCONNECTED)
             }
 
             override fun messageArrived(topic: String, message: MqttMessage) {
@@ -42,6 +51,7 @@ class MqttHelper(context: Context) {
         mqttConnectOptions.userName = username
         mqttConnectOptions.password = password.toCharArray()
 
+        onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTING)
         try {
             mqttAndroidClient.connect(mqttConnectOptions, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken) {
@@ -57,11 +67,13 @@ class MqttHelper(context: Context) {
                     subscribe("users/teralux/chat/answer")
                     subscribe("users/teralux/whisper/answer")
                     subscribe("users/teralux/chat")
+                    onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTED)
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken, exception: Throwable) {
                     Log.w(TAG, "Failed to connect to: $serverUri")
                     exception.printStackTrace()
+                    onConnectionStatusChanged?.invoke(MqttConnectionStatus.FAILED)
                 }
             })
         } catch (ex: MqttException) {
@@ -90,18 +102,19 @@ class MqttHelper(context: Context) {
         try {
             mqttAndroidClient.disconnect()
             Log.d(TAG, "Disconnected from MQTT")
+            onConnectionStatusChanged?.invoke(MqttConnectionStatus.DISCONNECTED)
         } catch (e: MqttException) {
             e.printStackTrace()
         }
     }
 
-    fun publishAudio(payload: ByteArray) {
+    fun publishAudio(payload: ByteArray, language: String = "id") {
         val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
         val json = """
             {
                 "audio": "$base64Audio",
                 "teralux_id": "tx-1",
-                "language": "id"
+                "language": "$language"
             }
         """.trimIndent()
         publish("users/teralux/whisper", json.toByteArray())
@@ -119,10 +132,8 @@ class MqttHelper(context: Context) {
     }
 
     private fun publish(topic: String, payload: ByteArray) {
-        if (!mqttAndroidClient.isConnected) {
-            Log.w(TAG, "Client not connected, skipping publish to $topic")
-            return
-        }
+        val isConnected = mqttAndroidClient.isConnected
+        Log.d(TAG, "Attempting to publish to $topic. Client connected state: $isConnected")
 
         val message = MqttMessage(payload)
         message.qos = 0
@@ -130,7 +141,7 @@ class MqttHelper(context: Context) {
         
         try {
             mqttAndroidClient.publish(topic, message)
-            Log.d(TAG, "Published to $topic: ${payload.size} bytes")
+            Log.d(TAG, "Successfully published to $topic: ${payload.size} bytes")
         } catch (e: MqttException) {
             Log.e(TAG, "Error publishing to $topic: ${e.message}")
             e.printStackTrace()

@@ -97,10 +97,13 @@ func (r *OllamaRepository) CallModel(prompt string, model string) (string, error
 	if err := json.Unmarshal(body, &m); err == nil {
 		// Ollama /api/generate non-stream returns the response in the "response" field
 		if responseText, ok := m["response"].(string); ok {
+			utils.LogDebug("Ollama: Response received: %s", responseText)
 			return responseText, nil
 		}
 	}
 
 	// Fallback: return raw body as string
-	return string(body), nil
+	responseText := string(body)
+	utils.LogDebug("Ollama: Response received (raw): %s", responseText)
+	return responseText, nil
 }
