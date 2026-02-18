@@ -86,7 +86,10 @@ Retrieve specific status entries by their capability code.
 ```json
 {
   "status": false,
-  "message": "Validation Error: device_id is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "device_id", "message": "device_id is required" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

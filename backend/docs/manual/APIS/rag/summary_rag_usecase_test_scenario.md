@@ -79,8 +79,10 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
 ```json
 {
   "status": false,
-  "message": "Invalid request",
-  "details": "Key: 'RAGSummaryRequestDTO.Text' Error:Field validation for 'Text' failed on the 'required' tag"
+  "message": "Validation Error",
+  "details": [
+    { "field": "text", "message": "text is required" }
+  ]
 }
 ```
 *(Status: 400 Bad Request)*

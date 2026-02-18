@@ -45,7 +45,10 @@ Retrieves formatted sensor data (e.g., Temperature, Humidity) for a specific dev
 ```json
 {
   "status": false,
-  "message": "Device is not a sensor or data unavailable"
+  "message": "Validation Error",
+  "details": [
+    { "field": "device", "message": "Device is not a sensor or data unavailable" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

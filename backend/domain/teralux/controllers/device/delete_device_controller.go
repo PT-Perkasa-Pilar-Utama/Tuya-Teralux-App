@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	usecases "teralux_app/domain/teralux/usecases/device"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,9 @@ func (c *DeleteDeviceController) DeleteDevice(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
-			Data:    nil,
+			Details: []utils.ValidationErrorDetail{
+				{Field: "id", Message: "ID is required"},
+			},
 		})
 		return
 	}

@@ -178,6 +178,7 @@ fun MeetingTranscriberScreen(
     FeatureBackground {
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets.systemBars,
             topBar = {
                 // Header
                 FeatureHeader(
@@ -197,122 +198,118 @@ fun MeetingTranscriberScreen(
                 FeatureMainCard(
                     modifier = Modifier.weight(1f)
                 ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    // Header Controls (Download + Language)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        // PDF Download Button (Show only on Success)
-                        if (uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Success) {
-                            val state = uiState as com.example.whisper_android.domain.usecase.MeetingProcessState.Success
-                            if (state.pdfUrl != null) {
-                                Button(
-                                    onClick = { 
-                                        // Check for permission if SDK < 33 (Android 13)
-                                        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
-                                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                                                downloadPdf(context, state.pdfUrl, "Meeting_Summary_${System.currentTimeMillis()}")
+                        // Header Controls (Download + Language) - Always visible at top
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // PDF Download Button (Show only on Success)
+                            if (uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Success) {
+                                val state = uiState as com.example.whisper_android.domain.usecase.MeetingProcessState.Success
+                                if (state.pdfUrl != null) {
+                                    Button(
+                                        onClick = { 
+                                            // Check for permission if SDK < 33 (Android 13)
+                                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                                                    downloadPdf(context, state.pdfUrl, "Meeting_Summary_${System.currentTimeMillis()}")
+                                                } else {
+                                                    storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                                }
                                             } else {
-                                                storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                                // Android 13+ doesn't need WRITE_EXTERNAL_STORAGE for public downloads
+                                                downloadPdf(context, state.pdfUrl, "Meeting_Summary_${System.currentTimeMillis()}")
                                             }
-                                        } else {
-                                            // Android 13+ doesn't need WRITE_EXTERNAL_STORAGE for public downloads
-                                            downloadPdf(context, state.pdfUrl, "Meeting_Summary_${System.currentTimeMillis()}")
-                                        }
-                                    },
-                                    modifier = Modifier.height(24.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    ),
-                                    shape = RoundedCornerShape(16.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Download,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "PDF",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
+                                        },
+                                        modifier = Modifier.height(24.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        ),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Download,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "PDF",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.width(1.dp)) 
                                 }
                             } else {
-                                Spacer(modifier = Modifier.width(1.dp)) 
+                                Spacer(modifier = Modifier.width(1.dp))
                             }
-                        } else {
-                            Spacer(modifier = Modifier.width(1.dp))
+
+                            LanguagePillToggle(
+                                selectedLanguage = summaryLanguage,
+                                onLanguageSelected = { summaryLanguage = it }
+                            )
                         }
-
-                        LanguagePillToggle(
-                            selectedLanguage = summaryLanguage,
-                            onLanguageSelected = { summaryLanguage = it }
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Dynamic Content based on State
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp, bottom = 16.dp),
-                        contentAlignment = if (uiState is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle) 
-                                           Alignment.Center else Alignment.TopStart
-                    ) {
-                        when (uiState) {
-                            is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle -> {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    // Subtle Waveform Cue
-                                    Row(
-                                        modifier = Modifier.height(40.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                        
+                        // Content Area (Takes remaining space)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center // Default center for Loading/Idle
+                        ) {
+                            when (uiState) {
+                                is com.example.whisper_android.domain.usecase.MeetingProcessState.Idle -> {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
                                     ) {
-                                        repeat(5) { index ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(4.dp)
-                                                    .height(if (index % 2 == 0) 24.dp else 16.dp)
-                                                    .background(
-                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                                        RoundedCornerShape(2.dp)
-                                                    )
-                                            )
+                                        // Subtle Waveform Cue
+                                        Row(
+                                            modifier = Modifier.height(40.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            repeat(5) { index ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .width(4.dp)
+                                                        .height(if (index % 2 == 0) 24.dp else 16.dp)
+                                                        .background(
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                                            RoundedCornerShape(2.dp)
+                                                        )
+                                                )
+                                            }
                                         }
+                                        Spacer(modifier = Modifier.height(24.dp))
+                                        Text(
+                                            text = "Ready to capture your next breakthrough.",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Tap the mic to start recording your meeting.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            textAlign = TextAlign.Center
+                                        )
                                     }
-                                    Spacer(modifier = Modifier.height(24.dp))
-                                    Text(
-                                        text = "Ready to capture your next breakthrough.",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                        textAlign = TextAlign.Center,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Tap the mic to start recording your meeting.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                        textAlign = TextAlign.Center
-                                    )
                                 }
-                            }
-                            is com.example.whisper_android.domain.usecase.MeetingProcessState.Recording -> {
-                                Box(modifier = Modifier.fillMaxWidth().padding(top = 100.dp), contentAlignment = Alignment.Center) {
+                                is com.example.whisper_android.domain.usecase.MeetingProcessState.Recording -> {
                                     Text(
                                         text = "Recording...",
                                         style = MaterialTheme.typography.headlineSmall,
@@ -321,39 +318,40 @@ fun MeetingTranscriberScreen(
                                         textAlign = TextAlign.Center
                                     )
                                 }
-                            }
-                            is com.example.whisper_android.domain.usecase.MeetingProcessState.Success -> {
-                                val state = uiState as com.example.whisper_android.domain.usecase.MeetingProcessState.Success
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        text = "Meeting Summary",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(bottom = 2.dp)
-                                    )
-                                    
-                                    MarkdownText(
-                                        markdown = state.summary
-                                            .replace(Regex("^-+\\s*$", RegexOption.MULTILINE), "")  // Remove lines with only dashes
-                                            .replace(Regex("^.*–.*$", RegexOption.MULTILINE), "")  // Remove lines with en-dashes
-                                            .replace("\n\n\n", "\n\n")
-                                            .replace(Regex("\n{3,}"), "\n\n")
-                                            .trim(),
-                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                            color = Color.DarkGray,
-                                            fontSize = 13.sp,
-                                            lineHeight = 16.sp
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                is com.example.whisper_android.domain.usecase.MeetingProcessState.Success -> {
+                                    val state = uiState as com.example.whisper_android.domain.usecase.MeetingProcessState.Success
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                        Text(
+                                            text = "Meeting Summary",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(bottom = 2.dp)
+                                        )
+                                        
+                                        MarkdownText(
+                                            markdown = state.summary
+                                                .replace(Regex("^-+\\s*$", RegexOption.MULTILINE), "")
+                                                .replace(Regex("^.*–.*$", RegexOption.MULTILINE), "")
+                                                .replace("\n\n\n", "\n\n")
+                                                .replace(Regex("\n{3,}"), "\n\n")
+                                                .trim(),
+                                            style = MaterialTheme.typography.bodyLarge.copy(
+                                                color = Color.DarkGray,
+                                                fontSize = 13.sp,
+                                                lineHeight = 16.sp
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                    }
                                 }
-                            }
-                            is com.example.whisper_android.domain.usecase.MeetingProcessState.Error -> {
-                                val state = uiState as com.example.whisper_android.domain.usecase.MeetingProcessState.Error
-                                Box(modifier = Modifier.fillMaxWidth().padding(top = 100.dp), contentAlignment = Alignment.Center) {
+                                is com.example.whisper_android.domain.usecase.MeetingProcessState.Error -> {
+                                    val state = uiState as com.example.whisper_android.domain.usecase.MeetingProcessState.Error
                                     Text(
                                         text = "Error: ${state.message}",
                                         style = MaterialTheme.typography.bodyLarge,
@@ -361,10 +359,8 @@ fun MeetingTranscriberScreen(
                                         textAlign = TextAlign.Center
                                     )
                                 }
-                            }
-                            else -> {
-                                // Loading States (Uploading, Transcribing, Translating, Summarizing)
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                else -> {
+                                    // Loading States - Perfectly Centered
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Box(contentAlignment = Alignment.Center) {
                                             // Glow effect (Primary themed)
@@ -545,7 +541,6 @@ fun MeetingTranscriberScreen(
                     }
                 }
             }
-        }
         }
     }
 }

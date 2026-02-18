@@ -28,7 +28,6 @@ func AuthMiddleware(tuyaAuthUC TuyaTokenProvider) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, dtos.StandardResponse{
 				Status:  false,
 				Message: "Authorization header is required",
-				Data:    nil,
 			})
 			c.Abort()
 			return
@@ -45,7 +44,6 @@ func AuthMiddleware(tuyaAuthUC TuyaTokenProvider) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, dtos.StandardResponse{
 				Status:  false,
 				Message: "Invalid Authorization header format. Expected 'Bearer <token>'",
-				Data:    nil,
 			})
 			c.Abort()
 			return
@@ -59,7 +57,6 @@ func AuthMiddleware(tuyaAuthUC TuyaTokenProvider) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, dtos.StandardResponse{
 				Status:  false,
 				Message: "Invalid or expired token",
-				Data:    nil,
 			})
 			c.Abort()
 			return
@@ -75,8 +72,7 @@ func AuthMiddleware(tuyaAuthUC TuyaTokenProvider) gin.HandlerFunc {
 			utils.LogError("AuthMiddleware: failed to auto-fetch Tuya token: %v", err)
 			c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 				Status:  false,
-				Message: "Failed to authenticate with Tuya cloud",
-				Data:    nil,
+				Message: "Internal Server Error",
 			})
 			c.Abort()
 			return

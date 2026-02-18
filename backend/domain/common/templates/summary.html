@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Process Summary</title>
+</head>
+<body>
+    <h1>Process Summary</h1>
+    <p>Here is the summary of the process:</p>
+    <ul>
+        {{ range .SummaryItems }}
+        <li>{{ . }}</li>
+        {{ end }}
+    </ul>
+    <p>Date: {{ .Date }}</p>
+</body>
+</html>

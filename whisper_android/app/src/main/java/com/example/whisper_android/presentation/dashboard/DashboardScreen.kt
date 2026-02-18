@@ -55,6 +55,7 @@ fun DashboardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background) // Slate950 from theme
+            .padding(WindowInsets.systemBars.asPaddingValues()) // Add system bars padding
     ) {
         // Optional: Add a subtle overlay gradient for depth
         Box(
@@ -72,7 +73,12 @@ fun DashboardScreen(
                 )
         )
         if (uiState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
         } else if (uiState.isAuthenticated) {
             DashboardContent(
                 onNavigateToStreaming = onNavigateToStreaming,
@@ -81,7 +87,9 @@ fun DashboardScreen(
         } else {
             // Error handling (keep existing UI for errors)
             Column(
-                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -107,14 +115,13 @@ fun DashboardContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Header Section
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.padding(top = 32.dp)
         ) {
             Text(
                 text = "Select Workspace",
@@ -137,17 +144,19 @@ fun DashboardContent(
                 text = "Choose your AI-powered environment",
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
             )
         }
 
+        Spacer(modifier = Modifier.weight(1f))
+
         // Cards Section
         BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp), // Reduced from 48.dp
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
+            // Check orientation or width, but mainly we want to fix portrait
             val isTablet = maxWidth > 600.dp
             
             if (isTablet) {
@@ -164,11 +173,13 @@ fun DashboardContent(
                                 imageVector = Icons.Outlined.Groups,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(72.dp) // Reduced icon
+                                modifier = Modifier.size(72.dp)
                             )
                         },
                         onClick = onNavigateToStreaming,
-                        modifier = Modifier.weight(1f).height(240.dp) // Height reduced
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(240.dp)
                     )
                     DashboardFeatureCard(
                         title = "AI Assistant",
@@ -178,49 +189,54 @@ fun DashboardContent(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(72.dp) // Reduced icon
+                                modifier = Modifier.size(72.dp)
                             )
                         },
                         onClick = onNavigateToEdge,
-                        modifier = Modifier.weight(1f).height(240.dp) // Height reduced
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(240.dp)
                     )
                 }
             } else {
+                // Phone / Portrait
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     DashboardFeatureCard(
-                        title = "Meeting Transcriber", // Shortened
-                        description = "Transcribe and summarize meetings.", // Shortened
+                        title = "Meeting Transcriber",
+                        description = "Transcribe and summarize meetings.",
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.Groups,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(56.dp)
+                                modifier = Modifier.size(64.dp) // Increased from 56
                             )
                         },
                         onClick = onNavigateToStreaming,
-                        modifier = Modifier.height(180.dp)
+                        modifier = Modifier.height(200.dp) // Increased from 180
                     )
                     DashboardFeatureCard(
                         title = "AI Assistant",
-                        description = "Conversational AI for tasks.", // Shortened
+                        description = "Conversational AI for tasks.",
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(56.dp)
+                                modifier = Modifier.size(64.dp) // Increased from 56
                             )
                         },
                         onClick = onNavigateToEdge,
-                        modifier = Modifier.height(180.dp)
+                        modifier = Modifier.height(200.dp) // Increased from 180
                     )
                 }
             }
         }
+
+        Spacer(modifier = Modifier.weight(1f))
 
         // Footer
         Row(
@@ -234,7 +250,7 @@ fun DashboardContent(
                     .background(MaterialTheme.colorScheme.primary, CircleShape)
             )
             Text(
-                text = "Powered by Senso",
+                text = "Powered by Sensio",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 fontWeight = FontWeight.SemiBold,

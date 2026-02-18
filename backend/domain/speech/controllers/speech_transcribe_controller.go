@@ -56,13 +56,13 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		var req dtos.WhisperMqttRequestDTO
 		if err := json.Unmarshal(payload, &req); err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to unmarshal JSON: %v", err)
-			c.publishMqttError(err.Error())
+			c.publishMqttValidationError("payload", "Invalid JSON payload: "+err.Error())
 			return
 		}
 
 		if req.Audio == "" || req.TeraluxID == "" {
 			utils.LogError("SpeechTranscribe MQTT: Missing audio or teralux_id")
-			c.publishMqttError("Missing required fields (audio, teralux_id)")
+			c.publishMqttValidationError("audio/teralux_id", "audio and teralux_id are required")
 			return
 		}
 
@@ -70,7 +70,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		audioBytes, err := base64.StdEncoding.DecodeString(req.Audio)
 		if err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to decode base64: %v", err)
-			c.publishMqttError("Failed to decode base64 audio")
+			c.publishMqttValidationError("audio", "Failed to decode base64 audio")
 			return
 		}
 
@@ -127,11 +127,21 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 	}
 }
 
-func (c *SpeechTranscribeController) publishMqttError(details string) {
+func (c *SpeechTranscribeController) publishMqttValidationError(field, message string) {
 	c.publishMqttResponse(dtos.StandardResponse{
 		Status:  false,
-		Message: "Transcription request failed",
-		Details: details,
+		Message: "Validation Error",
+		Details: []utils.ValidationErrorDetail{
+			{Field: field, Message: message},
+		},
+	})
+}
+
+func (c *SpeechTranscribeController) publishMqttError(details string) {
+	utils.LogError("SpeechTranscribe MQTT: %s", details)
+	c.publishMqttResponse(dtos.StandardResponse{
+		Status:  false,
+		Message: "Internal Server Error",
 	})
 }
 
@@ -157,24 +167,26 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/transcribe [post]
 func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to get audio file",
-			Details: err.Error(),
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "audio", Message: "Audio file is required: " + err.Error()},
+			},
 		})
 		return
 	}
 
 	if file.Size > c.config.MaxFileSize {
+		c.publishMqttError(fmt.Sprintf("File too large: %d bytes", file.Size))
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
 			Status:  false,
 			Message: "File too large",
-			Details: fmt.Sprintf("Max file size allowed is %dMB", c.config.MaxFileSize/(1024*1024)),
 		})
 		return
 	}
@@ -191,8 +203,7 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 	if !supportedExts[ext] {
 		ctx.JSON(http.StatusUnsupportedMediaType, dtos.StandardResponse{
 			Status:  false,
-			Message: "Unsupported file type",
-			Details: "Only .mp3, .wav, .m4a, .aac, .ogg, .flac are supported",
+			Message: "Unsupported Media Type",
 		})
 		return
 	}
@@ -206,20 +217,20 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 
 	inputPath := filepath.Join(tempDir, file.Filename)
 	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
+		utils.LogError("Transcribe.SaveUploadedFile: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to save uploaded file",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}
 
 	recording, err := c.saveRecordingUC.SaveRecording(file)
 	if err != nil {
+		utils.LogError("Transcribe.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to save recording metadata",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}
@@ -233,10 +244,10 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 
 	taskID, err := c.transcribeUC.TranscribeAudio(finalInputPath, file.Filename, language)
 	if err != nil {
+		utils.LogError("Transcribe.TranscribeAudio: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to start transcription task",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}

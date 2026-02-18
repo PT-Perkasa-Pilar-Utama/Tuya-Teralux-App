@@ -14,7 +14,7 @@ import java.io.IOException
 class SensioWakeWordManager(
     private val context: Context,
     private val onWakeWordDetected: () -> Unit
-) {
+) : WakeWordListener {
     private var model: Model? = null
     private var speechService: SpeechService? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -93,7 +93,7 @@ class SensioWakeWordManager(
         onWakeWordDetected()
     }
 
-    fun startListening() {
+    override fun startListening() {
         handler.post {
             if (model == null) {
                 Log.w("SensioWakeWord", "Model not ready yet, retrying in 1s")
@@ -114,14 +114,14 @@ class SensioWakeWordManager(
         }
     }
 
-    fun stopListening() {
+    override fun stopListening() {
         handler.post {
             speechService?.stop()
             speechService?.setPause(true)
         }
     }
     
-    fun destroy() {
+    override fun destroy() {
         speechService?.stop()
         speechService?.shutdown()
         speechService = null

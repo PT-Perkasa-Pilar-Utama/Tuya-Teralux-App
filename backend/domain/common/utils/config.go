@@ -40,6 +40,13 @@ type Config struct {
 	MqttPassword string
 	MqttTopic    string
 
+	// SMTP
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUsername string
+	SMTPPassword string
+	SMTPFrom     string
+
 	// Runtime & Networking
 	LogLevel string
 
@@ -114,6 +121,13 @@ func LoadConfig() {
 		MqttUsername: os.Getenv("MQTT_USERNAME"),
 		MqttPassword: os.Getenv("MQTT_PASSWORD"),
 		MqttTopic:    os.Getenv("MQTT_TOPIC"),
+
+		// SMTP
+		SMTPHost:     os.Getenv("SMTP_HOST"),
+		SMTPPort:     os.Getenv("SMTP_PORT"),
+		SMTPUsername: os.Getenv("SMTP_USERNAME"),
+		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:     os.Getenv("SMTP_FROM"),
 
 		// Runtime
 		LogLevel: os.Getenv("LOG_LEVEL"),

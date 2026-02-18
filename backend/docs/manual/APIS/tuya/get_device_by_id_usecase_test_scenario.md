@@ -95,7 +95,10 @@ Retrieves detailed information for a specific Tuya device identified by its ID.
 ```json
 {
   "status": false,
-  "message": "Invalid device ID format"
+  "message": "Validation Error",
+  "details": [
+    { "field": "id", "message": "Invalid device ID format" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

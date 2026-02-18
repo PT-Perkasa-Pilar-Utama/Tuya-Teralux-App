@@ -50,10 +50,13 @@ Submits an audio file for transcription via the **Outsystems Proxy (PPU)**. This
 ```json
 {
   "status": false,
-  "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac"
+  "message": "Validation Error",
+  "details": [
+    { "field": "audio", "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac" }
+  ]
 }
 ```
-  *(Status: 415 Unsupported Media Type)*
+*(Status: 415 Unsupported Media Type)*
 
 ### 3. Error: PPU Proxy Unavailable
 - **Pre-conditions**: The Outsystems Proxy service is down or returning errors.

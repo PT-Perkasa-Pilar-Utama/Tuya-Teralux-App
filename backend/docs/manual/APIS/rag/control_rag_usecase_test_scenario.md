@@ -62,7 +62,10 @@ The execution is **asynchronous** with automatic failover between LLM providers 
 ```json
 {
   "status": false,
-  "message": "Text field is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "text", "message": "Text field is required" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

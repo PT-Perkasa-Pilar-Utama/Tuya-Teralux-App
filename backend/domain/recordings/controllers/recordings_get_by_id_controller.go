@@ -3,10 +3,15 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-
+	common_dtos "teralux_app/domain/common/dtos"
+	recordings_dtos "teralux_app/domain/recordings/dtos"
 	"teralux_app/domain/recordings/usecases"
+
+	"github.com/gin-gonic/gin"
 )
+
+// Force import for Swagger
+var _ = recordings_dtos.RecordingResponseDto{}
 
 type RecordingsGetByIDController struct {
 	useCase usecases.GetRecordingByIDUseCase
@@ -25,17 +30,24 @@ func NewRecordingsGetByIDController(useCase usecases.GetRecordingByIDUseCase) *R
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Recording ID"
-// @Success 200 {object} dtos.RecordingStandardResponse{data=dtos.RecordingResponseDto}
-// @Failure 401 {object} dtos.RecordingStandardResponse
-// @Failure 404 {object} dtos.RecordingStandardResponse
-// @Failure 500 {object} dtos.RecordingStandardResponse
+// @Success 200 {object} recordings_dtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
+// @Failure 401 {object} recordings_dtos.StandardResponse
+// @Failure 404 {object} recordings_dtos.StandardResponse
+// @Failure 500 {object} recordings_dtos.StandardResponse "Internal Server Error"
 // @Router /api/recordings/{id} [get]
 func (c *RecordingsGetByIDController) GetRecordingByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	result, err := c.useCase.GetRecordingByID(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Recording not found"})
+		ctx.JSON(http.StatusNotFound, common_dtos.StandardResponse{
+			Status:  false,
+			Message: "Recording not found",
+		})
 		return
 	}
-	ctx.JSON(http.StatusOK, result)
+	ctx.JSON(http.StatusOK, common_dtos.StandardResponse{
+		Status:  true,
+		Message: "Recording retrieved successfully",
+		Data:    result,
+	})
 }

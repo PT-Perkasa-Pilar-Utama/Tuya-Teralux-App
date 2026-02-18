@@ -31,8 +31,10 @@ func (ctrl *TuyaSendIRCommandController) SendIRACCommand(c *gin.Context) {
 		utils.LogError("Failed to bind IR AC command: %v", err)
 		c.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Invalid request payload",
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request payload: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -46,11 +48,10 @@ func (ctrl *TuyaSendIRCommandController) SendIRACCommand(c *gin.Context) {
 
 	success, err := ctrl.useCase.SendIRACCommand(accessToken, infraredID, req.RemoteID, params)
 	if err != nil {
-		utils.LogError("SendIRACCommand failed: %v", err)
+		utils.LogError("TuyaSendIRCommandController.SendIRACCommand: %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}

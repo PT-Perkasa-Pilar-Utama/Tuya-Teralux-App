@@ -28,11 +28,11 @@ func TestGetTeraluxByMAC_UserBehavior(t *testing.T) {
 	})
 
 	// 2. Get Teralux By MAC (Not Found)
-	// URL: GET /api/teralux/mac/XX:YY:ZZ:00:00:00
+	// URL: GET /api/teralux/mac/AA:BB:CC:DD:EE:FF
 	// SCENARIO: MAC does not exist.
 	// RES: 404 Not Found
 	t.Run("Get Teralux By MAC (Not Found)", func(t *testing.T) {
-		_, err := useCase.GetTeraluxByMAC("XX:YY:ZZ:00:00:00")
+		_, err := useCase.GetTeraluxByMAC("AA:BB:CC:DD:EE:FF")
 		if err == nil {
 			t.Fatal("Expected error for unknown MAC, got nil")
 		}
@@ -50,8 +50,8 @@ func TestGetTeraluxByMAC_UserBehavior(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected error for invalid mac, got nil")
 		}
-		if err.Error() != "Invalid MAC address format" {
-			t.Errorf("Expected 'Invalid MAC address format', got: %v", err)
+		if err.Error() != "invalid mac address or device id format" {
+			t.Errorf("Expected 'invalid mac address or device id format', got: %v", err)
 		}
 	})
 

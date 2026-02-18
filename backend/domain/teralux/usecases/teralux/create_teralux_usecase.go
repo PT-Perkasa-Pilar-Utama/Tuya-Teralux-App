@@ -38,7 +38,7 @@ func (uc *CreateTeraluxUseCase) CreateTeralux(req *dtos.CreateTeraluxRequestDTO)
 		details = append(details, utils.ValidationErrorDetail{Field: "mac_address", Message: "mac_address is required"})
 	} else {
 		// Basic MAC address validation regex
-		matched, _ := regexp.MatchString(`^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$`, req.MacAddress)
+		matched, _ := regexp.MatchString(`^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$|^[0-9A-Fa-f]{16}$`, req.MacAddress)
 		if !matched {
 			details = append(details, utils.ValidationErrorDetail{Field: "mac_address", Message: "invalid mac address format"})
 		}

@@ -19,7 +19,10 @@ func TestTuyaErrorMiddleware(t *testing.T) {
 		r.Use(TuyaErrorMiddleware())
 		r.GET("/test", func(c *gin.Context) {
 			// Simulate response that contains "code: 1010"
-			c.String(http.StatusOK, `{"success":false,"code: 1010","msg":"token invalid"}`)
+			c.JSON(http.StatusOK, map[string]interface{}{
+				"status": false,
+				"message": "code: 1010, token invalid",
+			})
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -52,8 +55,9 @@ func TestTuyaErrorMiddleware(t *testing.T) {
 
 		r.Use(TuyaErrorMiddleware())
 		r.GET("/test", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"success": true,
+			c.JSON(http.StatusOK, map[string]interface{}{
+				"status":  true,
+				"message": "success",
 				"data":    "test data",
 			})
 		})
@@ -71,8 +75,8 @@ func TestTuyaErrorMiddleware(t *testing.T) {
 		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 			t.Fatalf("Failed to unmarshal response: %v", err)
 		}
-		if response["success"] != true {
-			t.Error("Expected success to be true")
+		if response["status"] != true {
+			t.Error("Expected status to be true")
 		}
 	})
 

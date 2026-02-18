@@ -34,7 +34,10 @@ import android.util.Log
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.whisper_android.util.parseMarkdownToText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiAssistantScreen(
     onNavigateBack: () -> Unit,
@@ -81,7 +84,7 @@ fun AiAssistantScreen(
     }
 
     val wakeWordManager = remember {
-        SensioWakeWordManager(context) {
+        WakeWordFactory.getManager(context) {
             currentOnWakeWordDetected()
         }
     }
@@ -119,47 +122,69 @@ fun AiAssistantScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets.systemBars, // Handle status and navigation bars
             topBar = {
-                FeatureHeader(
-                    title = "Whisper Intelligence",
-                    onNavigateBack = onNavigateBack,
-                    titleColor = MaterialTheme.colorScheme.primary,
-                    iconColor = MaterialTheme.colorScheme.primary,
+                // Customized TopAppBar instead of FeatureHeader for better Android look
+                OptIn(ExperimentalMaterial3Api::class)
+                CenterAlignedTopAppBar(
+                    title = { 
+                        Text(
+                            "Whisper Intelligence",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        ) 
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    },
                     actions = {
                         Row(
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .background(
-                                    Color.LightGray.copy(alpha = 0.2f),
-                                    RoundedCornerShape(20.dp)
-                                )
-                                .padding(2.dp),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 8.dp)
                         ) {
-                            listOf("id", "en").forEach { lang ->
-                                val isSelected = viewModel.selectedLanguage == lang
-                                Surface(
-                                    onClick = { viewModel.selectLanguage(lang) },
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                    modifier = Modifier.size(width = 42.dp, height = 28.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = lang.uppercase(),
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(
-                                                alpha = 0.6f
+                            // Language Switcher
+                            Row(
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        RoundedCornerShape(20.dp)
+                                    )
+                                    .padding(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                listOf("id", "en").forEach { lang ->
+                                    val isSelected = viewModel.selectedLanguage == lang
+                                    Surface(
+                                        onClick = { viewModel.selectLanguage(lang) },
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        modifier = Modifier.size(width = 36.dp, height = 24.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = lang.uppercase(),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
+                            
+                            MqttStatusBadge(viewModel.mqttStatus)
                         }
-                        
-                        MqttStatusBadge(viewModel.mqttStatus)
-                    }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
             }
         ) { padding ->
@@ -210,7 +235,11 @@ fun AiAssistantScreen(
                         }
                     },
                     onStopClick = {
-                        viewModel.stopRecording()
+                        if (isRecording) {
+                            viewModel.stopRecording()
+                        } else if (isProcessing) {
+                            viewModel.abortProcessing()
+                        }
                     },
                     onSendClick = {
                         if (userInput.isNotBlank()) {
@@ -227,62 +256,87 @@ fun AiAssistantScreen(
 }
 
 @Composable
-private fun EmptyAssistantState(
+fun EmptyAssistantState(
     isProcessing: Boolean,
     enabled: Boolean,
-    onSuggestedAction: (String) -> Unit
+    onSuggestedAction: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Spacer(modifier = Modifier.weight(0.6f))
-        AiMindVisual(isThinking = isProcessing)
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "Meeting Index Ready.",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.5).sp,
-                fontSize = 20.sp
-            ),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Ask anything from your captured data.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(32.dp))
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val isWide = maxWidth > 600.dp
         
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            SuggestedActionCard(
-                title = "Introduce Yourself",
-                subtitle = "Learn about my role and capabilities.",
-                modifier = Modifier.weight(1f),
-                onClick = { onSuggestedAction("Who are you?") },
-                enabled = enabled
+            AiMindVisual(isThinking = isProcessing)
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Meeting Index Ready.",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                    fontSize = 20.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
-            SuggestedActionCard(
-                title = "Explore My Controls",
-                subtitle = "Discover which devices I can manage.",
-                modifier = Modifier.weight(1f),
-                onClick = { onSuggestedAction("What devices can I control?") },
-                enabled = enabled
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Ask anything from your captured data.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                textAlign = TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Suggested Actions
+            if (isWide) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    SuggestedActionCard(
+                        title = "Introduce Yourself",
+                        subtitle = "Learn about my role.",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSuggestedAction("Who are you?") },
+                        enabled = enabled
+                    )
+                    SuggestedActionCard(
+                        title = "Explore Controls",
+                        subtitle = "What devices can I control?",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSuggestedAction("What devices can I control?") },
+                        enabled = enabled
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SuggestedActionCard(
+                        title = "Introduce Yourself",
+                        subtitle = "Learn about my role.",
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onSuggestedAction("Who are you?") },
+                        enabled = enabled
+                    )
+                    SuggestedActionCard(
+                        title = "Explore Controls",
+                        subtitle = "What devices can I control?",
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onSuggestedAction("What devices can I control?") },
+                        enabled = enabled
+                    )
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        Spacer(modifier = Modifier.weight(1f))
     }
 }
+
+
 
 @Composable
 private fun ConversationList(

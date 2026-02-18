@@ -38,11 +38,10 @@ func (c *TuyaAuthController) Authenticate(ctx *gin.Context) {
 	utils.LogDebug("Authenticate request received")
 	token, err := c.useCase.Authenticate()
 	if err != nil {
-		utils.LogError("Authenticate failed: %v", err)
+		utils.LogError("TuyaAuthController.Authenticate: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}

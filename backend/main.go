@@ -67,11 +67,8 @@ import (
 // @tag.name 06. Recordings
 // @tag.description Recordings management endpoints
 
-// @tag.name 07. Flush
-// @tag.description Cache management endpoints
-
-// @tag.name 08. Health
-// @tag.description Health check endpoint
+// @tag.name 07. Common
+// @tag.description Common endpoints (Email, Health, Cache)
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -206,7 +203,7 @@ func main() {
 	}
 
 	// Register Health at the end so it appears last in Swagger
-	router.GET("/health", commonModule.HealthController.CheckHealth)
+	router.GET("/api/health", commonModule.HealthController.CheckHealth)
 
 	port := scfg.Port
 	if port == "" {

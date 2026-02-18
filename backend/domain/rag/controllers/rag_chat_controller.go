@@ -45,8 +45,10 @@ func (c *RAGChatController) StartMqttSubscription() {
 			respTopic := "users/teralux/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
-				Message: "Invalid JSON payload",
-				Details: err.Error(),
+				Message: "Validation Error",
+				Details: []utils.ValidationErrorDetail{
+					{Field: "payload", Message: "Invalid JSON payload: " + err.Error()},
+				},
 			})
 			c.mqttSvc.Publish(respTopic, 0, false, respData)
 			return
@@ -57,7 +59,11 @@ func (c *RAGChatController) StartMqttSubscription() {
 			respTopic := "users/teralux/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
-				Message: "Missing required fields (prompt, teralux_id)",
+				Message: "Validation Error",
+				Details: []utils.ValidationErrorDetail{
+					{Field: "prompt", Message: "prompt is required"},
+					{Field: "teralux_id", Message: "teralux_id is required"},
+				},
 			})
 			c.mqttSvc.Publish(respTopic, 0, false, respData)
 			return
@@ -76,8 +82,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 			respTopic := "users/teralux/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
-				Message: "Failed to process chat",
-				Details: err.Error(),
+				Message: "Internal Server Error",
 			})
 			c.mqttSvc.Publish(respTopic, 0, false, respData)
 			return
@@ -110,15 +115,17 @@ func (c *RAGChatController) StartMqttSubscription() {
 // @Param request body dtos.RAGChatRequestDTO true "Chat Request"
 // @Success 200 {object} dtos.StandardResponse
 // @Failure 400 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/rag/chat [post]
 func (c *RAGChatController) Chat(ctx *gin.Context) {
 	var req dtos.RAGChatRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Invalid request body",
-			Details: err.Error(),
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -131,10 +138,10 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 
 	res, err := c.chatUC.Chat(uidStr, req.TeraluxID, req.Prompt, req.Language)
 	if err != nil {
+		utils.LogError("RAGChatController.Chat: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to process chat",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}

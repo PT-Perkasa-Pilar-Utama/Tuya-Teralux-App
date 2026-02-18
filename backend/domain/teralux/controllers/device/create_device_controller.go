@@ -31,7 +31,9 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
-			Data:    nil,
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -52,8 +54,10 @@ func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 		if err.Error() == "Invalid teralux_id: Teralux hub does not exist" {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 				Status:  false,
-				Message: "Invalid teralux_id: Teralux hub does not exist",
-				Data:    nil,
+				Message: "Validation Error",
+				Details: []utils.ValidationErrorDetail{
+					{Field: "teralux_id", Message: "Teralux hub does not exist"},
+				},
 			})
 			return
 		}

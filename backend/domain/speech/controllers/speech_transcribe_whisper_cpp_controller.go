@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -45,15 +44,17 @@ func NewSpeechTranscribeWhisperCppController(
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/transcribe/whisper/cpp [post]
 func (c *SpeechTranscribeWhisperCppController) TranscribeWhisperCpp(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to get audio file",
-			Details: err.Error(),
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "audio", Message: "Audio file is required: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -62,8 +63,10 @@ func (c *SpeechTranscribeWhisperCppController) TranscribeWhisperCpp(ctx *gin.Con
 	if lang == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Language is required",
-			Details: "Please provide a language code (e.g. 'id', 'en')",
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "language", Message: "Language code is required (e.g. 'id', 'en')"},
+			},
 		})
 		return
 	}
@@ -72,7 +75,6 @@ func (c *SpeechTranscribeWhisperCppController) TranscribeWhisperCpp(ctx *gin.Con
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
 			Status:  false,
 			Message: "File too large",
-			Details: fmt.Sprintf("Max file size allowed is %dMB", c.config.MaxFileSize/(1024*1024)),
 		})
 		return
 	}
@@ -89,8 +91,7 @@ func (c *SpeechTranscribeWhisperCppController) TranscribeWhisperCpp(ctx *gin.Con
 	if !supportedExts[ext] {
 		ctx.JSON(http.StatusUnsupportedMediaType, dtos.StandardResponse{
 			Status:  false,
-			Message: "Unsupported file type",
-			Details: "Only .mp3, .wav, .m4a, .aac, .ogg, .flac are supported",
+			Message: "Unsupported Media Type",
 		})
 		return
 	}
@@ -104,20 +105,20 @@ func (c *SpeechTranscribeWhisperCppController) TranscribeWhisperCpp(ctx *gin.Con
 
 	inputPath := filepath.Join(tempDir, "whisper_cpp_"+file.Filename)
 	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
+		utils.LogError("TranscribeWhisperCpp.SaveUploadedFile: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to save uploaded file",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}
 
 	recording, err := c.saveRecordingUC.SaveRecording(file)
 	if err != nil {
+		utils.LogError("TranscribeWhisperCpp.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to save recording metadata",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}
@@ -125,10 +126,10 @@ func (c *SpeechTranscribeWhisperCppController) TranscribeWhisperCpp(ctx *gin.Con
 	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
 	taskID, err := c.transcribeUC.TranscribeWhisperCpp(finalInputPath, file.Filename, lang)
 	if err != nil {
+		utils.LogError("TranscribeWhisperCpp.TranscribeWhisperCpp: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to start transcription task",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}

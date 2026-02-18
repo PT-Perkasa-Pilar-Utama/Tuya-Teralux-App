@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -46,7 +45,7 @@ func NewSpeechTranscribePPUController(
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/transcribe/ppu [post]
 func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 	log.Println("[DEBUG] TranscribePPU: Request received")
@@ -57,8 +56,10 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 		log.Printf("[DEBUG] TranscribePPU: FormFile error: %v", err)
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to get audio file",
-			Details: err.Error(),
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "audio", Message: "Audio file is required: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -68,7 +69,6 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
 			Status:  false,
 			Message: "File too large",
-			Details: fmt.Sprintf("Max file size allowed is %dMB", c.config.MaxFileSize/(1024*1024)),
 		})
 		return
 	}
@@ -85,8 +85,7 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 	if !supportedExts[ext] {
 		ctx.JSON(http.StatusUnsupportedMediaType, dtos.StandardResponse{
 			Status:  false,
-			Message: "Unsupported file type",
-			Details: "Only .mp3, .wav, .m4a, .aac, .ogg, .flac are supported",
+			Message: "Unsupported Media Type",
 		})
 		return
 	}
@@ -100,20 +99,20 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 
 	inputPath := filepath.Join(tempDir, file.Filename)
 	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
+		utils.LogError("TranscribePPU.SaveUploadedFile: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to save uploaded file",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}
 
 	recording, err := c.saveRecording.SaveRecording(file)
 	if err != nil {
+		utils.LogError("TranscribePPU.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to save recording metadata",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}
@@ -127,10 +126,10 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 
 	taskID, err := c.proxyUC.ProxyTranscribe(finalPath, file.Filename, language)
 	if err != nil {
+		utils.LogError("TranscribePPU.ProxyTranscribe: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to submit transcription task",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}

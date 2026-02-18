@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/usecases"
 
@@ -28,15 +29,17 @@ func NewRAGControlController(controlUC usecases.ControlUseCase) *RAGControlContr
 // @Param request body dtos.RAGControlRequestDTO true "Control Request"
 // @Success 200 {object} dtos.StandardResponse
 // @Failure 400 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/rag/control [post]
 func (c *RAGControlController) Control(ctx *gin.Context) {
 	var req dtos.RAGControlRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Invalid request body",
-			Details: err.Error(),
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -49,10 +52,10 @@ func (c *RAGControlController) Control(ctx *gin.Context) {
 
 	res, err := c.controlUC.ProcessControl(uidStr, req.TeraluxID, req.Prompt)
 	if err != nil {
+		utils.LogError("RAGControlController.Control: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to process control command",
-			Details: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}

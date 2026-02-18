@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	scene_dtos "teralux_app/domain/scene/dtos"
 	"teralux_app/domain/scene/entities"
 	"teralux_app/domain/scene/usecases"
@@ -40,7 +41,10 @@ func (c *SceneUpdateController) UpdateScene(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -54,13 +58,14 @@ func (c *SceneUpdateController) UpdateScene(ctx *gin.Context) {
 	}
 
 	if err := c.useCase.UpdateScene(teraluxID, id, req.Name, actions); err != nil {
+		utils.LogError("SceneUpdateController.UpdateScene: %v", err)
 		statusCode := http.StatusInternalServerError
 		if err.Error() == "record not found" {
 			statusCode = http.StatusNotFound
 		}
 		ctx.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: http.StatusText(statusCode),
 		})
 		return
 	}
@@ -68,6 +73,6 @@ func (c *SceneUpdateController) UpdateScene(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "Scene updated successfully",
-		Data:    gin.H{"scene_id": id},
+		Data:    scene_dtos.SceneIDResponseDTO{SceneID: id},
 	})
 }

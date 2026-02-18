@@ -32,7 +32,10 @@ func (c *RAGStatusController) GetStatus(ctx *gin.Context) {
 	id := ctx.Param("task_id")
 	status, err := c.statusUC.GetTaskStatus(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{Status: false, Message: "Not found", Details: err.Error()})
+		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
+			Status:  false,
+			Message: "Resource Not Found",
+		})
 		return
 	}
 

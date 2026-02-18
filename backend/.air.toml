@@ -7,7 +7,7 @@ tmp_dir = "tmp"
 
 [build]
   # Just plain old go build command. You can use dynamic variables with $variableName.
-  cmd = "go build -o ./tmp/main ."
+  cmd = "CGO_CFLAGS='-w' go build -o ./tmp/main ."
   # Binary file yields from `cmd`.
   bin = "./tmp/main"
   # Customize binary, can setup environment variables when run.

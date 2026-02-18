@@ -42,9 +42,9 @@ User Request: "%s"
 
 Rules:
 1. Choose the single most appropriate Skill Name from the list above.
-2. If the user is asking about your identity or what you can do, use the "Identity" skill.
-3. If the user wants to control something (lights, AC, etc.), use the "Control" skill.
-4. If no specific skill matches but it's a general question, use the "Identity" skill to provide a helpful response.
+2. If the user wants to control something (lights, AC, music, playback, etc.), use the "Control" skill.
+3. If the user is asking specifically about your identity, name, or general discovery of what you are, use the "Identity" skill.
+4. If no specific skill matches but it's a general conversation, use the "Identity" skill.
 5. ONLY return the Name of the chosen skill. No explanation.
 
 Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)

@@ -28,7 +28,7 @@ func NewSpeechTranscribeStatusController(statusUC usecases.GetTranscriptionStatu
 // @Param transcribe_id path string true "Task ID"
 // @Success 200 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionProcessStatusResponseDTO}
 // @Failure 404 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/transcribe/{transcribe_id} [get]
 func (c *SpeechTranscribeStatusController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("transcribe_id")

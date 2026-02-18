@@ -45,7 +45,7 @@ dev:
 # Run development server without hot reload
 start:
 	@echo "🚀 Starting development server (no hot reload)..."
-	go run main.go
+	CGO_CFLAGS="-w" go run main.go
 
 # Install air for hot reload (Go equivalent of cargo-watch)
 install-watch:
@@ -62,14 +62,14 @@ install-swagger:
 # Generate Swagger documentation
 swagger:
 	@echo "📝 Generating Swagger documentation..."
-	@$(shell go env GOPATH)/bin/swag init -g main.go -o docs/swagger
+	@$(shell go env GOPATH)/bin/swag init -g main.go -o docs/swagger --parseDependency --parseInternal
 	@sed -i 's/package docs/package swagger/g' docs/swagger/docs.go
 	@echo "✅ Swagger documentation updated"
 
 # Build release binary
 build:
 	@echo "🔨 Building release binary..."
-	go build -o main .
+	CGO_CFLAGS="-w" go build -o main .
 
 # --- Docker Configuration ---
 DOCKER_IMAGE_NAME = teralux-backend

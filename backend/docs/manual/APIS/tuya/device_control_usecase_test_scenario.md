@@ -54,7 +54,10 @@ Controls Tuya devices by sending commands. This documentation covers two types o
 ```json
 {
   "status": false,
-  "message": "Invalid request body"
+  "message": "Validation Error",
+  "details": [
+    { "field": "body", "message": "invalid request body" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*
@@ -114,7 +117,10 @@ Controls Tuya devices by sending commands. This documentation covers two types o
 ```json
 {
   "status": false,
-  "message": "Invalid request body: remote_id is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "remote_id", "message": "remote_id is required" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

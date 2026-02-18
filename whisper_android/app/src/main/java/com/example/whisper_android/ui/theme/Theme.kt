@@ -66,7 +66,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun SmartMeetingRoomWhisperDemoTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // Always force light mode
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit

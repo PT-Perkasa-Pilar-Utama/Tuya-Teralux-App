@@ -157,22 +157,37 @@ func (s *TeraluxSensor) extractSwitchNumber(promptLower string) int {
 func (s *TeraluxSensor) matchDeviceCode(promptLower string, status []tuyaDtos.TuyaDeviceStatusDTO) (string, interface{}, bool) {
 	// Map keywords to device codes for Teralux voice/media controls
 
+	isOn := strings.Contains(promptLower, "on") || strings.Contains(promptLower, "nyalakan") || strings.Contains(promptLower, "hidupkan")
+	isOff := strings.Contains(promptLower, "off") || strings.Contains(promptLower, "matikan") || strings.Contains(promptLower, "mati")
+
+	actionValue := true
+	if isOff && !isOn {
+		actionValue = false
+	}
+
 	// Voice/Microphone controls
 	if strings.Contains(promptLower, "voice mic") || strings.Contains(promptLower, "voice_mic") ||
 		strings.Contains(promptLower, "mikrofon") || strings.Contains(promptLower, "mic") {
 		for _, s := range status {
 			if s.Code == "voice_mic" {
-				value := !parseBoolean(s.Value)
-				return s.Code, value, true
+				// If specific action provided, follow it, otherwise toggle
+				var val bool
+				if isOn || isOff {
+					val = actionValue
+				} else {
+					val = !parseBoolean(s.Value)
+				}
+				return s.Code, val, true
 			}
 		}
 	}
 
 	// Play/Playback controls
-	if strings.Contains(promptLower, "play") || strings.Contains(promptLower, "putar") {
+	if strings.Contains(promptLower, "play") || strings.Contains(promptLower, "putar") ||
+		strings.Contains(promptLower, "musik") || strings.Contains(promptLower, "music") {
 		for _, s := range status {
 			if s.Code == "play" || s.Code == "voice_play" {
-				return s.Code, true, true
+				return s.Code, actionValue, true
 			}
 		}
 	}

@@ -39,7 +39,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Flush"
+                    "07. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -53,6 +53,83 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/email/send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send an email using a template or raw body",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "07. Common"
+                ],
+                "summary": "Send an email",
+                "parameters": [
+                    {
+                        "description": "Email Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.SendEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/health": {
+            "get": {
+                "description": "Check if the application and database are healthy",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "07. Common"
+                ],
+                "summary": "Health check endpoint",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -378,13 +455,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.GetAllRecordingsResponseDto"
+                                            "$ref": "#/definitions/recordings_dtos.GetAllRecordingsResponseDto"
                                         }
                                     }
                                 }
@@ -394,13 +471,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
@@ -437,13 +514,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
                                         }
                                     }
                                 }
@@ -453,19 +530,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
@@ -501,13 +578,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
                                         }
                                     }
                                 }
@@ -517,19 +594,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
@@ -561,19 +638,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
@@ -972,7 +1049,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
@@ -1416,35 +1493,33 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/health": {
-            "get": {
-                "description": "Check if the application and database are healthy",
-                "produces": [
-                    "text/plain"
-                ],
-                "tags": [
-                    "08. Health"
-                ],
-                "summary": "Health check endpoint",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
+        "controllers.SendEmailRequest": {
+            "type": "object",
+            "required": [
+                "subject",
+                "to"
+            ],
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                },
+                "to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "dtos.ActionDTO": {
             "type": "object",
             "properties": {
@@ -1526,26 +1601,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.GetAllRecordingsResponseDto": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "recordings": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dtos.RecordingResponseDto"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
         "dtos.RAGChatRequestDTO": {
             "type": "object",
             "required": [
@@ -1564,6 +1619,10 @@ const docTemplate = `{
                 "teralux_id": {
                     "type": "string",
                     "example": "tx-1"
+                },
+                "uid": {
+                    "type": "string",
+                    "example": "sg1765..."
                 }
             }
         },
@@ -1654,39 +1713,6 @@ const docTemplate = `{
                 "text": {
                     "type": "string",
                     "example": "This is a long transcript of a technical meeting..."
-                }
-            }
-        },
-        "dtos.RecordingResponseDto": {
-            "type": "object",
-            "properties": {
-                "audio_url": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "filename": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "original_name": {
-                    "type": "string"
-                }
-            }
-        },
-        "dtos.RecordingStandardResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "details": {},
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "boolean"
                 }
             }
         },
@@ -1903,16 +1929,77 @@ const docTemplate = `{
                 }
             }
         },
+        "recordings_dtos.GetAllRecordingsResponseDto": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "recordings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "recordings_dtos.RecordingResponseDto": {
+            "type": "object",
+            "properties": {
+                "audio_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "original_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "recordings_dtos.StandardResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "details": {
+                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "teralux_app_domain_common_dtos.StandardResponse": {
             "type": "object",
             "properties": {
                 "data": {},
-                "details": {},
+                "details": {
+                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
+                },
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Success"
                 },
                 "status": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -1920,9 +2007,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {},
-                "details": {
-                    "type": "string"
-                },
+                "details": {},
                 "message": {
                     "type": "string"
                 },
@@ -1984,12 +2069,8 @@ const docTemplate = `{
             "name": "06. Recordings"
         },
         {
-            "description": "Cache management endpoints",
-            "name": "07. Flush"
-        },
-        {
-            "description": "Health check endpoint",
-            "name": "08. Health"
+            "description": "Common endpoints (Email, Health, Cache)",
+            "name": "07. Common"
         }
     ]
 }`

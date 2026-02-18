@@ -1,8 +1,10 @@
 package com.example.whisper_android.presentation.summary
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 data class SummariesData(
     val idSummary: String = "",
@@ -56,4 +58,41 @@ class SummaryViewModel : ViewModel() {
     fun selectLanguage(lang: String) {
         _selectedLanguage.value = lang
     }
+
+    private val _emailState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
+    val emailState: StateFlow<UiState<Boolean>> = _emailState
+
+    fun sendEmail(email: String, subject: String) {
+        val currentSummary = if (_selectedLanguage.value == "id") _summaries.value.idSummary else _summaries.value.enSummary
+        val token = com.example.whisper_android.data.di.NetworkModule.tokenManager.getAccessToken() ?: ""
+
+        if (token.isEmpty()) {
+            _emailState.value = UiState.Error("Authentication token not found. Please login again.")
+            return
+        }
+
+        viewModelScope.launch {
+            _emailState.value = UiState.Loading
+            val sendEmailUseCase = com.example.whisper_android.data.di.NetworkModule.sendEmailUseCase
+            
+            sendEmailUseCase(email, subject, currentSummary, token)
+                .onSuccess {
+                    _emailState.value = UiState.Success(true)
+                }
+                .onFailure { e ->
+                    _emailState.value = UiState.Error(e.message ?: "Failed to send email")
+                }
+        }
+    }
+
+    fun resetEmailState() {
+        _emailState.value = UiState.Idle
+    }
+}
+
+sealed class UiState<out T> {
+    object Idle : UiState<Nothing>()
+    object Loading : UiState<Nothing>()
+    data class Success<T>(val data: T) : UiState<T>()
+    data class Error(val message: String) : UiState<Nothing>()
 }

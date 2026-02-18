@@ -47,7 +47,10 @@ Publishes a message to the pre-configured MQTT topic: `users/teralux/whisper`. A
 ```json
 {
   "status": false,
-  "message": "Message field is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "message", "message": "Message field is required" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

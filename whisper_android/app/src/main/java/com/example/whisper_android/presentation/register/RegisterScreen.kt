@@ -2,6 +2,7 @@ package com.example.whisper_android.presentation.register
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.whisper_android.data.di.NetworkModule
 import com.example.whisper_android.presentation.components.*
@@ -24,19 +26,22 @@ import androidx.core.content.ContextCompat
 
 @Composable
 fun RegisterScreen(
-    onNavigateToDashboard: () -> Unit,
-    viewModel: RegisterViewModel = viewModel { 
+    onNavigateToDashboard: () -> Unit
+) {
+    val context = LocalContext.current
+    val application = context.applicationContext as android.app.Application
+    val viewModel: RegisterViewModel = viewModel {
         RegisterViewModel(
+            application,
             NetworkModule.registerUseCase,
             NetworkModule.getTeraluxByMacUseCase,
             NetworkModule.authenticateUseCase
-        ) 
+        )
     }
-) {
     val uiState by viewModel.uiState.collectAsState()
     var name by remember { mutableStateOf("") }
     var roomId by remember { mutableStateOf("") }
-    val context = LocalContext.current
+
 
     // Permission Launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -116,7 +121,12 @@ fun RegisterScreen(
                         horizontalAlignment = Alignment.Start,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        WhisperLogo()
+                        // Logo is clickable
+                        Box(modifier = Modifier.clickable { viewModel.checkRegistration() }) {
+                             WhisperLogo()
+                        }
+                        
+                        // Text is NOT clickable
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(
                             text = "Secure Your\nConversation.",
@@ -159,21 +169,32 @@ fun RegisterScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                        .padding(WindowInsets.statusBars.asPaddingValues()), // Add status bar padding
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    WhisperLogo()
+                    // Wrapper for Logo (Clickable)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { viewModel.checkRegistration() }
+                    ) {
+                        WhisperLogo()
+                    }
+                    
                     Spacer(modifier = Modifier.height(40.dp))
+                    
+                    // Text (Not Clickable)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Secure Your Conversation",
-                            fontSize = 28.sp,
+                            fontSize = 24.sp, // Reduced font size to fit
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onBackground,
+                            textAlign = TextAlign.Center, // Explicitly center text
                             style = androidx.compose.ui.text.TextStyle(
                                 shadow = androidx.compose.ui.graphics.Shadow(
                                     color = Color.Black.copy(alpha = 0.2f),
@@ -187,7 +208,8 @@ fun RegisterScreen(
                             text = "Private meeting transcription",
                             fontSize = 16.sp,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Normal
+                            fontWeight = FontWeight.Normal,
+                            textAlign = TextAlign.Center // Explicitly center text
                         )
                     }
                     Spacer(modifier = Modifier.height(48.dp))

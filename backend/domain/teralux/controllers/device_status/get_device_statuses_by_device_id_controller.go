@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device_status"
 
@@ -31,8 +32,10 @@ func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx 
 	if id == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Device ID is required",
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "id", Message: "Device ID is required"},
+			},
 		})
 		return
 	}

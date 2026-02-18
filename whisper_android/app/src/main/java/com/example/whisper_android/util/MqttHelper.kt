@@ -3,7 +3,7 @@ package com.example.whisper_android.util
 import android.content.Context
 import android.util.Log
 import com.example.whisper_android.BuildConfig
-import org.eclipse.paho.android.service.MqttAndroidClient
+import info.mqtt.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 import java.util.UUID
 
@@ -48,6 +48,7 @@ class MqttHelper(context: Context) {
         val mqttConnectOptions = MqttConnectOptions()
         mqttConnectOptions.isAutomaticReconnect = true
         mqttConnectOptions.isCleanSession = false
+        mqttConnectOptions.keepAliveInterval = 30
         mqttConnectOptions.userName = username
         mqttConnectOptions.password = password.toCharArray()
 

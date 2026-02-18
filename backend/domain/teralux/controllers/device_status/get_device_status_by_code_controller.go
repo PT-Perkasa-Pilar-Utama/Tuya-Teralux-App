@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	teralux_dtos "teralux_app/domain/teralux/dtos"
 	usecases "teralux_app/domain/teralux/usecases/device_status"
 
@@ -31,16 +32,20 @@ func (c *GetDeviceStatusByCodeController) GetDeviceStatusByCode(ctx *gin.Context
 	if deviceID == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Validation Error: id is required",
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "id", Message: "Device ID is required"},
+			},
 		})
 		return
 	}
 	if code == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Validation Error: code is required",
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "code", Message: "Status code is required"},
+			},
 		})
 		return
 	}

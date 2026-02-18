@@ -42,7 +42,7 @@ type StandardResponse struct {
 	Status  bool        `json:"status"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
-	Details string      `json:"details,omitempty"`
+	Details interface{} `json:"details,omitempty"`
 }
 
 type RAGSummaryResponseDTO struct {

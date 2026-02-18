@@ -50,10 +50,15 @@ android {
     }
 
     defaultConfig {
+        val baseUrl = localProperties.getProperty("api.base_url") ?: "https://teralux.farismunir.my.id/"
+        val baseHostname = baseUrl.removePrefix("https://").removePrefix("http://").substringBefore("/")
+
         buildConfigField("String", "MQTT_BROKER_URL", "\"${localProperties.getProperty("mqtt.broker_url") ?: ""}\"")
         buildConfigField("String", "MQTT_USERNAME", "\"${localProperties.getProperty("mqtt.username") ?: ""}\"")
         buildConfigField("String", "MQTT_PASSWORD", "\"${localProperties.getProperty("mqtt.password") ?: ""}\"")
         buildConfigField("String", "TERALUX_API_KEY", "\"${localProperties.getProperty("teralux.api_key") ?: ""}\"")
+        buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+        buildConfigField("String", "BASE_HOSTNAME", "\"$baseHostname\"")
     }
 }
 

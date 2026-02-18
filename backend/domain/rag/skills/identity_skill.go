@@ -14,7 +14,7 @@ func (s *IdentitySkill) Name() string {
 }
 
 func (s *IdentitySkill) Description() string {
-	return "Handles questions about who I am, what I can do, and my identity as Sensio AI Assistant."
+	return "Handles questions about my name, persona, and identity as Sensio AI Assistant."
 }
 
 func (s *IdentitySkill) Execute(ctx *SkillContext) (*SkillResult, error) {

@@ -54,7 +54,10 @@ Processing is **asynchronous** with automatic failover between providers.
 ```json
 {
   "status": false,
-  "message": "Audio file is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "audio", "message": "audio file is required" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*
@@ -66,7 +69,10 @@ Processing is **asynchronous** with automatic failover between providers.
 ```json
 {
   "status": false,
-  "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac"
+  "message": "Validation Error",
+  "details": [
+    { "field": "audio", "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac" }
+  ]
 }
 ```
   *(Status: 415 Unsupported Media Type)*

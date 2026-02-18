@@ -35,11 +35,47 @@ class MainActivity : ComponentActivity() {
         
         // Initialize dependency injection (Manual)
         com.example.whisper_android.data.di.NetworkModule.init(this)
+
+        // Dynamic Orientation Locking
+        if (com.example.whisper_android.util.DeviceUtils.isTeralux()) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else if (com.example.whisper_android.util.DeviceUtils.isPhone(this)) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else {
+            // Tablet: Allow rotation
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
         
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
         setContent {
             SmartMeetingRoomWhisperDemoTheme {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                var permissionsGranted by remember { androidx.compose.runtime.mutableStateOf(false) }
+                
+                val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+                ) { permissions ->
+                    // Check if all permissions are granted
+                    val allGranted = permissions.entries.all { it.value }
+                    permissionsGranted = allGranted
+                }
+
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    val permissionsToRequest = mutableListOf(
+                        android.Manifest.permission.RECORD_AUDIO
+                    )
+                    
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        permissionsToRequest.add(android.Manifest.permission.READ_MEDIA_AUDIO)
+                    } else {
+                        permissionsToRequest.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                        permissionsToRequest.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    }
+                    
+                    launcher.launch(permissionsToRequest.toTypedArray())
+                }
+
                 // Simple state-based navigation (replace with Navigation Component for complex apps)
                 var currentScreen by remember { mutableStateOf("register") }
 

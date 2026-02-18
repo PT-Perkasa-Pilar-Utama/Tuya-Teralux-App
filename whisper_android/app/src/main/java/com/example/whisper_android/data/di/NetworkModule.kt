@@ -10,36 +10,17 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import okhttp3.Dns
-import java.net.InetAddress
 
 object NetworkModule {
-    // Updated to HTTPS domain (Standard Port 443) as verified by user curl
-    const val BASE_URL = "https://teralux.farismunir.my.id/"
+    // Read from BuildConfig (local.properties)
+    val BASE_URL = com.example.whisper_android.BuildConfig.BASE_URL
+    private val BASE_HOSTNAME = com.example.whisper_android.BuildConfig.BASE_HOSTNAME
     private val API_KEY = com.example.whisper_android.BuildConfig.TERALUX_API_KEY
-
-    // Custom DNS to bypass device DNS scaling issues
-    private class CustomDns : Dns {
-        override fun lookup(hostname: String): List<InetAddress> {
-            if (hostname == "teralux.farismunir.my.id") {
-                return try {
-                    // Hardcoded IP from `dig` command on host machine
-                    // Cloudflare IPs: 172.67.136.115, 104.21.46.81
-                    listOf(InetAddress.getByName("104.21.46.81"), InetAddress.getByName("172.67.136.115")) 
-                } catch (e: Exception) {
-                    Dns.SYSTEM.lookup(hostname)
-                }
-            }
-            return Dns.SYSTEM.lookup(hostname)
-        }
-    }
-
     private val client by lazy {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         OkHttpClient.Builder()
-            .dns(CustomDns()) // Apply Custom DNS
             .addInterceptor(logging)
             .build()
     }
@@ -83,6 +64,10 @@ object NetworkModule {
         retrofit.create(com.example.whisper_android.data.remote.api.RAGApi::class.java)
     }
 
+    private val emailApi: com.example.whisper_android.data.remote.api.EmailApi by lazy {
+        retrofit.create(com.example.whisper_android.data.remote.api.EmailApi::class.java)
+    }
+
     val speechRepository: com.example.whisper_android.domain.repository.SpeechRepository by lazy {
         com.example.whisper_android.data.repository.SpeechRepositoryImpl(speechApi)
     }
@@ -121,5 +106,13 @@ object NetworkModule {
             translateTextUseCase,
             summarizeTextUseCase
         )
+    }
+
+    val emailRepository: com.example.whisper_android.domain.repository.EmailRepository by lazy {
+        com.example.whisper_android.data.repository.EmailRepositoryImpl(emailApi)
+    }
+
+    val sendEmailUseCase: com.example.whisper_android.domain.usecase.SendEmailUseCase by lazy {
+        com.example.whisper_android.domain.usecase.SendEmailUseCase(emailRepository)
     }
 }

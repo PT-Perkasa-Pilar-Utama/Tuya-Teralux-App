@@ -1,6 +1,7 @@
 package com.example.whisper_android.data.repository
 
 import android.util.Log
+import com.example.whisper_android.common.util.getErrorMessage
 import com.example.whisper_android.data.remote.api.SpeechApi
 import com.example.whisper_android.data.remote.dto.TranscriptionResultText
 import com.example.whisper_android.domain.repository.Resource
@@ -32,6 +33,8 @@ class SpeechRepositoryImpl(
             } else {
                 emit(Resource.Error(response.message))
             }
+        } catch (e: retrofit2.HttpException) {
+             emit(Resource.Error(e.getErrorMessage()))
         } catch (e: Exception) {
             emit(Resource.Error("Transcribe failed: ${e.message}"))
         }

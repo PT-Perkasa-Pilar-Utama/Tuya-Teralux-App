@@ -35,3 +35,8 @@ type SceneListResponseDTO struct {
 	TeraluxID string `json:"teralux_id"`
 	Name      string `json:"name"`
 }
+
+// SceneIDResponseDTO for returning just the scene ID
+type SceneIDResponseDTO struct {
+	SceneID string `json:"scene_id"`
+}

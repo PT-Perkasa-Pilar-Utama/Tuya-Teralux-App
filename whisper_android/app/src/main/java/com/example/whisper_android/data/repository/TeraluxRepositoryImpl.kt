@@ -1,5 +1,6 @@
 package com.example.whisper_android.data.repository
 
+import com.example.whisper_android.common.util.getErrorMessage
 import com.example.whisper_android.data.remote.api.TeraluxApi
 import com.example.whisper_android.data.remote.dto.TeraluxRequestDto
 import com.example.whisper_android.domain.model.TeraluxRegistration
@@ -26,6 +27,8 @@ class TeraluxRepositoryImpl(
             } else {
                 Result.failure(Exception(response.message))
             }
+        } catch (e: retrofit2.HttpException) {
+             Result.failure(Exception(e.getErrorMessage()))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -58,7 +61,7 @@ class TeraluxRepositoryImpl(
             if (e.code() == 404) {
                 Result.success(null) // Not found means not registered
             } else {
-                Result.failure(e)
+                 Result.failure(Exception(e.getErrorMessage()))
             }
         } catch (e: Exception) {
             Result.failure(e)

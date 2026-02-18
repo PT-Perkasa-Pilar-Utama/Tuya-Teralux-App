@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	scene_dtos "teralux_app/domain/scene/dtos"
 	"teralux_app/domain/scene/usecases"
 
@@ -32,9 +33,10 @@ func (c *SceneListController) ListScenes(ctx *gin.Context) {
 	teraluxID := ctx.Param("id")
 	scenes, err := c.useCase.ListScenes(teraluxID)
 	if err != nil {
+		utils.LogError("SceneListController.ListScenes: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}

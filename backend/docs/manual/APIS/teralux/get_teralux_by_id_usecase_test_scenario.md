@@ -70,7 +70,10 @@ Retrieve a single Teralux device by its unique ID.
 ```json
 {
   "status": false,
-  "message": "Invalid ID format"
+  "message": "Validation Error",
+  "details": [
+    { "field": "id", "message": "Invalid ID format" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

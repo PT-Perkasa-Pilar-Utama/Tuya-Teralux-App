@@ -1,5 +1,6 @@
 package com.example.whisper_android.data.repository
 
+import com.example.whisper_android.common.util.getErrorMessage
 import com.example.whisper_android.data.remote.api.TuyaApi
 import com.example.whisper_android.domain.repository.TuyaRepository
 import com.example.whisper_android.data.local.TokenManager
@@ -18,6 +19,8 @@ class TuyaRepositoryImpl(
             } else {
                 Result.failure(Exception(response.message))
             }
+        } catch (e: retrofit2.HttpException) {
+             Result.failure(Exception(e.getErrorMessage()))
         } catch (e: Exception) {
             Result.failure(e)
         }

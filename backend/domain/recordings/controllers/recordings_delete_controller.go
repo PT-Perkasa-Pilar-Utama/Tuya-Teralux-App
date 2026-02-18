@@ -5,8 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	common_dtos "teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
+	recordings_dtos "teralux_app/domain/recordings/dtos"
 	"teralux_app/domain/recordings/usecases"
 )
+
+// Force import for Swagger
+var _ = recordings_dtos.StandardResponse{}
 
 type RecordingsDeleteController struct {
 	useCase usecases.DeleteRecordingUseCase
@@ -25,16 +31,23 @@ func NewRecordingsDeleteController(useCase usecases.DeleteRecordingUseCase) *Rec
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Recording ID"
-// @Success 200 {object} dtos.RecordingStandardResponse
-// @Failure 401 {object} dtos.RecordingStandardResponse
-// @Failure 500 {object} dtos.RecordingStandardResponse
+// @Success 200 {object} recordings_dtos.StandardResponse
+// @Failure 401 {object} recordings_dtos.StandardResponse
+// @Failure 500 {object} recordings_dtos.StandardResponse "Internal Server Error"
 // @Router /api/recordings/{id} [delete]
 func (c *RecordingsDeleteController) DeleteRecording(ctx *gin.Context) {
 	id := ctx.Param("id")
 	err := c.useCase.DeleteRecording(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.LogError("RecordingsDeleteController.DeleteRecording: %v", err)
+		ctx.JSON(http.StatusInternalServerError, common_dtos.StandardResponse{
+			Status:  false,
+			Message: "Internal Server Error",
+		})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"status": true, "message": "Recording deleted successfully"})
+	ctx.JSON(http.StatusOK, common_dtos.StandardResponse{
+		Status:  true, 
+		Message: "Recording deleted successfully",
+	})
 }

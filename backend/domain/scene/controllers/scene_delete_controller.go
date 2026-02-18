@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -32,9 +33,10 @@ func (c *SceneDeleteController) DeleteScene(ctx *gin.Context) {
 	teraluxID := ctx.Param("id")
 	id := ctx.Param("scene_id")
 	if err := c.useCase.DeleteScene(teraluxID, id); err != nil {
+		utils.LogError("SceneDeleteController.DeleteScene: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}

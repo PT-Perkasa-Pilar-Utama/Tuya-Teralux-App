@@ -14,7 +14,35 @@ fun <T> Response<T>.getErrorMessage(): String {
         if (errorBody != null) {
             val gson = Gson()
             val errorResponse = gson.fromJson(errorBody, BaseResponse::class.java)
-            errorResponse.message
+            
+            var message = errorResponse.message
+            
+            // Check for validation details
+            if (errorResponse.details != null) {
+                if (errorResponse.details is Map<*, *>) {
+                    val detailsMap = errorResponse.details as Map<*, *>
+                    val detailsBuilder = StringBuilder()
+                    detailsBuilder.append("\n")
+                    
+                    detailsMap.forEach { (key, value) ->
+                        if (key is String) {
+                             val errorList = if (value is List<*>) {
+                                 value.joinToString(", ")
+                             } else {
+                                 value.toString()
+                             }
+                             detailsBuilder.append("- $key: $errorList\n")
+                        }
+                    }
+                     if (detailsBuilder.length > 1) {
+                        message += detailsBuilder.toString()
+                    }
+                } else if (errorResponse.details is String) {
+                    message += "\n${errorResponse.details}"
+                }
+            }
+            
+            message
         } else {
             "An error occurred. Please try again"
         }

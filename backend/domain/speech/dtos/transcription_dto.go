@@ -48,7 +48,7 @@ type WhisperProxyProcessResponseDTO = TranscriptionTaskResponseDTO
 type StandardResponse struct {
 	Status  bool        `json:"status"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Data    interface{} `json:"data,omitempty"`
 	Details interface{} `json:"details,omitempty"`
 }
 

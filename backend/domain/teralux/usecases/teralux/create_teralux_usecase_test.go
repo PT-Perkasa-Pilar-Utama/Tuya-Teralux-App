@@ -68,7 +68,25 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 			t.Error("Expected ID to be returned, got empty string")
 		}
 	})
+	// 1b. Create Teralux with Android ID (Success Condition)
+	// URL: POST /api/teralux
+	// SCENARIO: Valid payload with Android ID (16 hex chars).
+	// RES: 201 Created
+	t.Run("Create Teralux with Android ID", func(t *testing.T) {
+		req := &dtos.CreateTeraluxRequestDTO{
+			Name:       "Android Device",
+			MacAddress: "C756630F2F039D27", // 16 chars hex
+			RoomID:     "room-android",
+		}
 
+		res, _, err := useCase.CreateTeralux(req)
+		if err != nil {
+			t.Fatalf("Unexpected error for Android ID: %v", err)
+		}
+		if res.TeraluxID == "" {
+			t.Error("Expected ID to be returned, got empty string")
+		}
+	})
 	// 2. Validation: Empty Fields
 	// URL: POST /api/teralux
 	// SCENARIO: All fields empty.

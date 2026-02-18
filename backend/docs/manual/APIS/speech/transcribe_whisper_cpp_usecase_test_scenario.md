@@ -46,10 +46,13 @@ Starts transcription of an audio file using **local Whisper.cpp only** (no provi
 ```json
 {
   "status": false,
-  "message": "Language is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "language", "message": "language is required" }
+  ]
 }
 ```
-  *(Status: 400 Bad Request)*
+*(Status: 400 Bad Request)*
 
 ### 3. Validation: Unsupported File Type
 - **Method**: `POST`

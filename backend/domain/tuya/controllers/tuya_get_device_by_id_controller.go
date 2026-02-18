@@ -39,8 +39,10 @@ func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	if deviceID == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "device ID is required",
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "id", Message: "Device ID is required"},
+			},
 		})
 		return
 	}
@@ -49,11 +51,10 @@ func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	utils.LogDebug("GetDeviceByID: requesting device %s", deviceID)
 	device, err := c.useCase.GetDeviceByID(accessToken, deviceID)
 	if err != nil {
-		utils.LogError("GetDeviceByID failed: %v", err)
+		utils.LogError("TuyaGetDeviceByIDController.GetDeviceByID: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}

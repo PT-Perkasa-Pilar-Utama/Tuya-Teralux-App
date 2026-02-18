@@ -35,10 +35,10 @@ func (c *GetAllTeraluxController) GetAllTeralux(ctx *gin.Context) {
 	// Execute use case
 	teraluxList, err := c.useCase.ListTeralux(&filter)
 	if err != nil {
+		utils.LogError("GetAllTeraluxController.GetAllTeralux: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to retrieve teralux list: " + err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}
