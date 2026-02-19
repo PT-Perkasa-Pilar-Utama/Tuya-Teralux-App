@@ -63,8 +63,8 @@ func createTestFileHeader() (*multipart.FileHeader, error) {
 	if err != nil {
 		return nil, err
 	}
-	part.Write([]byte("dummy content"))
-	writer.Close()
+	_, _ = part.Write([]byte("dummy content"))
+	_ = writer.Close()
 
 	req, err := http.NewRequest("POST", "/", body)
 	if err != nil {

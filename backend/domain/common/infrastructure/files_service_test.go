@@ -35,21 +35,21 @@ func TestFileService_SaveUploadedFile(t *testing.T) {
 	content := []byte("hello world")
 
 	// 2. Construct multipart.FileHeader
-    body := new(bytes.Buffer)
-    writer := multipart.NewWriter(body)
-    part, err := writer.CreateFormFile("file", "test.txt")
-    assert.NoError(t, err)
-    _, err = part.Write(content)
-    assert.NoError(t, err)
-    writer.Close()
-    
-    // Parse the multipart body to get a valid FileHeader
-    req := multipart.NewReader(body, writer.Boundary())
-    form, err := req.ReadForm(1024)
-    assert.NoError(t, err)
-    defer form.RemoveAll()
-    
-    fileHeader := form.File["file"][0]
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "test.txt")
+	assert.NoError(t, err)
+	_, err = part.Write(content)
+	assert.NoError(t, err)
+	_ = writer.Close()
+
+	// Parse the multipart body to get a valid FileHeader
+	req := multipart.NewReader(body, writer.Boundary())
+	form, err := req.ReadForm(1024)
+	assert.NoError(t, err)
+	defer func() { _ = form.RemoveAll() }()
+
+	fileHeader := form.File["file"][0]
 
 	// 3. Define destination
 	dst := filepath.Join(tmpDir, "saved", "test.txt")

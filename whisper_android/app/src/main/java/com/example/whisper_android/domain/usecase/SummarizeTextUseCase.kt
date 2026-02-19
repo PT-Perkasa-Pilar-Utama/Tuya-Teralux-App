@@ -7,39 +7,57 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class SummarizeTextUseCase(
-    private val ragRepository: RagRepository
+    private val ragRepository: RagRepository,
 ) {
-    suspend operator fun invoke(text: String, language: String?, style: String, token: String): Flow<Resource<RAGSummaryResponseDto>> = flow {
-        emit(Resource.Loading())
-        
-        var taskId: String? = null
-        ragRepository.generateSummary(text, style, language, null, token).collect { result ->
-            when (result) {
-                is Resource.Success -> taskId = result.data
-                is Resource.Error -> {
-                    emit(Resource.Error(result.message ?: "Summary request failed"))
-                    return@collect
-                }
-                is Resource.Loading -> emit(Resource.Loading())
-            }
-        }
-        
-        if (taskId == null) return@flow
+    suspend operator fun invoke(
+        text: String,
+        language: String?,
+        style: String,
+        token: String,
+    ): Flow<Resource<RAGSummaryResponseDto>> =
+        flow {
+            emit(Resource.Loading())
 
-        // Start Polling
-        ragRepository.pollSummary(taskId!!, token).collect { result ->
-            when (result) {
-                is Resource.Success -> {
-                    val summaryData = result.data
-                    if (summaryData != null) {
-                        emit(Resource.Success(summaryData))
-                    } else {
-                        emit(Resource.Error("Summary completed but data is null"))
+            var taskId: String? = null
+            ragRepository.generateSummary(text, style, language, null, token).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        taskId = result.data
+                    }
+
+                    is Resource.Error -> {
+                        emit(Resource.Error(result.message ?: "Summary request failed"))
+                        return@collect
+                    }
+
+                    is Resource.Loading -> {
+                        emit(Resource.Loading())
                     }
                 }
-                is Resource.Error -> emit(Resource.Error(result.message ?: "Summary polling failed"))
-                is Resource.Loading -> emit(Resource.Loading())
+            }
+
+            if (taskId == null) return@flow
+
+            // Start Polling
+            ragRepository.pollSummary(taskId!!, token).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val summaryData = result.data
+                        if (summaryData != null) {
+                            emit(Resource.Success(summaryData))
+                        } else {
+                            emit(Resource.Error("Summary completed but data is null"))
+                        }
+                    }
+
+                    is Resource.Error -> {
+                        emit(Resource.Error(result.message ?: "Summary polling failed"))
+                    }
+
+                    is Resource.Loading -> {
+                        emit(Resource.Loading())
+                    }
+                }
             }
         }
-    }
 }

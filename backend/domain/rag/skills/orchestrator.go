@@ -28,7 +28,7 @@ func (o *Orchestrator) RouteAndExecute(ctx *SkillContext) (*SkillResult, error) 
 	}
 
 	// 1. Build the routing prompt
-	var skillDescriptions []string
+	skillDescriptions := make([]string, 0, len(allSkills))
 	for _, s := range allSkills {
 		skillDescriptions = append(skillDescriptions, fmt.Sprintf("- %s: %s", s.Name(), s.Description()))
 	}
@@ -50,10 +50,7 @@ Rules:
 Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 
 	// 2. Call LLM to decide
-	model := ctx.Config.LLMModel
-	if model == "" {
-		model = "default"
-	}
+	model := "high"
 
 	utils.LogDebug("Orchestrator: Routing prompt for '%s'", ctx.Prompt)
 	chosenSkillName, err := ctx.LLM.CallModel(routingPrompt, model)

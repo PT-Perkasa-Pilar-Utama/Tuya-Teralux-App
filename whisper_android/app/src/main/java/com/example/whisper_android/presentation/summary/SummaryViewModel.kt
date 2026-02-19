@@ -2,13 +2,14 @@ package com.example.whisper_android.presentation.summary
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.whisper_android.presentation.components.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 data class SummariesData(
     val idSummary: String = "",
-    val enSummary: String = ""
+    val enSummary: String = "",
 )
 
 class SummaryViewModel : ViewModel() {
@@ -24,7 +25,8 @@ class SummaryViewModel : ViewModel() {
 
     private fun loadSummaries() {
         // Mock data - in real app this would load from assets/summaries.md
-        val idSummary = """
+        val idSummary =
+            """
 # Ringkasan Pertemuan
 **Topik Utama:** Evaluasi Q3 dan Perencanaan Q4.
 
@@ -36,9 +38,10 @@ class SummaryViewModel : ViewModel() {
 ### Action Items:
 1. Kirim dokumen anggaran ke tim finance.
 2. Jadwalkan meeting dengan partner eksternal.
-        """.trimIndent()
+            """.trimIndent()
 
-        val enSummary = """
+        val enSummary =
+            """
 # Meeting Summary
 **Main Topic:** Q3 Performance Review & Q4 Planning.
 
@@ -50,7 +53,7 @@ class SummaryViewModel : ViewModel() {
 ### Action Items:
 1. Send budget documents to the finance team.
 2. Schedule meeting with external partners.
-        """.trimIndent()
+            """.trimIndent()
 
         _summaries.value = SummariesData(idSummary = idSummary, enSummary = enSummary)
     }
@@ -62,9 +65,14 @@ class SummaryViewModel : ViewModel() {
     private val _emailState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val emailState: StateFlow<UiState<Boolean>> = _emailState
 
-    fun sendEmail(email: String, subject: String) {
+    fun sendEmail(
+        email: String,
+        subject: String,
+    ) {
         val currentSummary = if (_selectedLanguage.value == "id") _summaries.value.idSummary else _summaries.value.enSummary
-        val token = com.example.whisper_android.data.di.NetworkModule.tokenManager.getAccessToken() ?: ""
+        val token =
+            com.example.whisper_android.data.di.NetworkModule.tokenManager
+                .getAccessToken() ?: ""
 
         if (token.isEmpty()) {
             _emailState.value = UiState.Error("Authentication token not found. Please login again.")
@@ -74,12 +82,11 @@ class SummaryViewModel : ViewModel() {
         viewModelScope.launch {
             _emailState.value = UiState.Loading
             val sendEmailUseCase = com.example.whisper_android.data.di.NetworkModule.sendEmailUseCase
-            
+
             sendEmailUseCase(email, subject, currentSummary, token)
                 .onSuccess {
                     _emailState.value = UiState.Success(true)
-                }
-                .onFailure { e ->
+                }.onFailure { e ->
                     _emailState.value = UiState.Error(e.message ?: "Failed to send email")
                 }
         }
@@ -88,11 +95,4 @@ class SummaryViewModel : ViewModel() {
     fun resetEmailState() {
         _emailState.value = UiState.Idle
     }
-}
-
-sealed class UiState<out T> {
-    object Idle : UiState<Nothing>()
-    object Loading : UiState<Nothing>()
-    data class Success<T>(val data: T) : UiState<T>()
-    data class Error(val message: String) : UiState<Nothing>()
 }

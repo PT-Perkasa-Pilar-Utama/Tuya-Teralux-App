@@ -30,9 +30,9 @@ func TestWhisperProxyUsecase_ProxyTranscribe_WithoutBadger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 	_, _ = tempFile.Write([]byte("fake audio data"))
-	tempFile.Close()
+	_ = tempFile.Close()
 
 	// Test task submission without badger
 	taskID, err := uc.ProxyTranscribe(tempFile.Name(), "test.mp3", "id")
@@ -75,7 +75,7 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Initialize global config for badger service
 	utils.AppConfig = &utils.Config{CacheTTL: "1h"}
@@ -84,7 +84,7 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create badger service: %v", err)
 	}
-	defer badgerSvc.Close()
+	defer func() { _ = badgerSvc.Close() }()
 
 	cfg := &utils.Config{}
 	cache := tasks.NewBadgerTaskCache(badgerSvc, "whisper:task:")
@@ -95,9 +95,9 @@ func TestWhisperProxyUsecase_GetStatus_WithBadger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 	_, _ = tempFile.Write([]byte("fake audio data"))
-	tempFile.Close()
+	_ = tempFile.Close()
 
 	// Submit task
 	taskID, err := uc.ProxyTranscribe(tempFile.Name(), "test.mp3", "id")

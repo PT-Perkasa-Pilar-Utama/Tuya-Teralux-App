@@ -62,7 +62,7 @@ func (s *TuyaDeviceService) FetchDevices(url string, headers map[string]string) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -126,7 +126,7 @@ func (s *TuyaDeviceService) FetchDeviceByID(url string, headers map[string]strin
 		utils.LogError("FetchDeviceByID: failed to execute request: %v", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -178,7 +178,7 @@ func (s *TuyaDeviceService) FetchBatchDeviceStatus(url string, headers map[strin
 		utils.LogError("FetchBatchDeviceStatus: failed to execute request: %v", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -242,7 +242,7 @@ func (s *TuyaDeviceService) SendCommand(url string, headers map[string]string, c
 		utils.LogError("SendCommand: failed to execute request: %v", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -295,7 +295,7 @@ func (s *TuyaDeviceService) SendIRCommand(url string, headers map[string]string,
 		utils.LogError("SendIRCommand: failed to execute request: %v", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -347,7 +347,7 @@ func (s *TuyaDeviceService) FetchDeviceSpecification(url string, headers map[str
 		utils.LogError("FetchDeviceSpecification: failed to execute request: %v", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

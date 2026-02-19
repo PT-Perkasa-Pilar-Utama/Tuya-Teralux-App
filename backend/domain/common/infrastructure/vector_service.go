@@ -100,11 +100,12 @@ func (s *VectorService) Search(query string) ([]string, error) {
 
 			// Synonym Expansion
 			targets := []string{word}
-			if word == "ac" {
+			switch word {
+			case "ac":
 				targets = append(targets, "air conditioner", "conditioner")
-			} else if word == "lamp" || word == "light" {
+			case "lamp", "light":
 				targets = append(targets, "lamp", "light", "switch")
-			} else if word == "tv" {
+			case "tv":
 				targets = append(targets, "television")
 			}
 
@@ -129,7 +130,7 @@ func (s *VectorService) Search(query string) ([]string, error) {
 	}
 
 	// Sort matches by score (highest first)
-	var matches []match
+	matches := make([]match, 0, len(matchScores))
 	for id, score := range matchScores {
 		matches = append(matches, match{id: id, score: score})
 	}

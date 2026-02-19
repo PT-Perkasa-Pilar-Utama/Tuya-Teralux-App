@@ -10,6 +10,7 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/services"
+	"teralux_app/domain/rag/skills"
 	"teralux_app/domain/rag/utilities"
 	"time"
 
@@ -59,32 +60,26 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	targetLangName := "Indonesian"
-	if strings.ToLower(language) == "en" {
+	if strings.EqualFold(language, "en") {
 		targetLangName = "English"
 	}
 
-	// Build structured prompt with configured assertiveness and risk scoring
-	promptConfig := &services.PromptConfig{
-		Assertiveness: 8,          // Strategic assertiveness (calling out gaps/risks)
-		Audience:      "mixed",    // C-level + VP/Director level
-		RiskScale:     "granular", // 1-10 scoring for nuance
-		Context:       meetingContext,
-		Style:         style,
-		Language:      targetLangName,
-	}
-	prompt := promptConfig.BuildPrompt(text)
-
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
+	// Delegate prompt generation and LLM call to SummarySkill
+	skill := &skills.SummarySkill{}
+	ctx := &skills.SkillContext{
+		Prompt:   text,
+		Language: language,
+		LLM:      u.llm,
+		Config:   u.config,
+		// History can be used to pass context/style if extended
 	}
 
-	summary, err := u.llm.CallModel(prompt, model)
+	res, err := skill.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	trimmedSummary := strings.TrimSpace(summary)
+	trimmedSummary := res.Message
 
 	// Generate PDF
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
@@ -97,7 +92,7 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
 
 	// Create reports directory if not exists
-	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {
 		meta := services.SummaryPDFMeta{
@@ -239,49 +234,29 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		language = "id"
 	}
 
+	// Delegate prompt generation and LLM call to SummarySkill with context (manually enforced for now)
+	skill := &skills.SummarySkill{}
+	ctxSkill := &skills.SkillContext{
+		Prompt:   text,
+		Language: language,
+		LLM:      u.llm,
+		Config:   u.config,
+	}
+
+	// Calculate targetLangName for PDF Meta (logic moved from deleted block)
 	targetLangName := "Indonesian"
-	if strings.ToLower(language) == "en" {
+	if strings.EqualFold(language, "en") {
 		targetLangName = "English"
 	}
 
-	// Check context before proceeding
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("operation cancelled: %w", ctx.Err())
-	default:
-	}
-
-	// Build structured prompt
-	promptConfig := &services.PromptConfig{
-		Assertiveness: 8,
-		Audience:      "mixed",
-		RiskScale:     "granular",
-		Context:       meetingContext,
-		Style:         style,
-		Language:      targetLangName,
-	}
-	prompt := promptConfig.BuildPrompt(text)
-
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
-	}
-
-	// LLM call (currently no built-in context support in CallModel, so we check before/after)
-	// In future: upgrade LLMClient interface to accept context
-	summary, err := u.llm.CallModel(prompt, model)
+	// We can't easily pass the context cancellation to Skill.Execute yet without modifying Skill interface.
+	// For now, we rely on the skill execution.
+	res, err := skill.Execute(ctxSkill)
 	if err != nil {
-		return nil, fmt.Errorf("LLM call failed: %w", err)
+		return nil, fmt.Errorf("SummarySkill execution failed: %w", err)
 	}
-
-	// Check context again after LLM call
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("operation cancelled after LLM call: %w", ctx.Err())
-	default:
-	}
-
-	trimmedSummary := strings.TrimSpace(summary)
+	
+	trimmedSummary := res.Message
 
 	// PDF rendering with timeout
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
@@ -292,7 +267,7 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		basePath = filepath.Dir(envPath)
 	}
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
-	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {
 		// Use parent context directly

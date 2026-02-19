@@ -35,7 +35,7 @@ func (uc *GetAllDeviceStatusesUseCase) ListDeviceStatuses(page, limit int) (*dto
 	}
 
 	// Map to DTOs
-	var statusDTOs []dtos.DeviceStatusResponseDTO
+	statusDTOs := make([]dtos.DeviceStatusResponseDTO, 0, len(statuses))
 	for _, status := range statuses {
 		statusDTOs = append(statusDTOs, dtos.DeviceStatusResponseDTO{
 			DeviceID:  status.DeviceID,

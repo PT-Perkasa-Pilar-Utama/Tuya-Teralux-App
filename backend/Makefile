@@ -19,6 +19,7 @@ help:
 	@echo "  make start-compose    - Start Docker Compose stack (pulls first)"
 	@echo "  make stop-compose     - Stop Docker Compose stack"
 	@echo "  make update           - Update running container using Watchtower"
+	@echo "  make lint             - Run golangci-lint"
 	@echo "  make test             - Run all unit tests"
 	@echo "  make clean            - Clean build artifacts"
 	@echo "  make kill             - Kill process running on PORT 8081"
@@ -37,7 +38,7 @@ dev:
 	@rm -rf ./tmp/badger
 	@if [ ! -f bin/whisper-cli ]; then \
 		echo "🛠️ whisper-cli missing. Running setup..."; \
-		make setup; \
+		make setup-dev; \
 	fi
 	@echo "💡 Tip: Install air with 'make install-watch' if not installed"
 	@$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
@@ -108,6 +109,18 @@ OLLAMA_IMAGE ?= ollama/ollama:latest
 OLLAMA_DATA_DIR ?= $(HOME)/ollama
 WHISPER_MODEL ?= whisper
 LLM_MODEL ?= gemma
+
+WHISPER_SRC_DIR = services/whisper
+WHISPER_BUILD_DIR = $(WHISPER_SRC_DIR)/build
+
+# Run backend setup (whisper-cli build only) - Non Interactive
+setup-dev:
+	@echo "🚀 Running backend setup (whisper-cli build only)..."
+	@mkdir -p $(WHISPER_BUILD_DIR)
+	@cd $(WHISPER_BUILD_DIR) && cmake .. && make whisper-cli
+	@mkdir -p bin
+	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
+	@echo "✅ Setup complete. use 'make dev' to start."
 
 # Run setup script (build whisper.cpp + tools)
 setup: 
@@ -211,6 +224,11 @@ vet:
 	@echo "🔍 Running go vet..."
 	@go list ./... 2>/dev/null | grep -v /tmp/ | xargs go vet
 
+# Run golangci-lint
+lint:
+	@echo "🔍 Running golangci-lint..."
+	@$(GOLANGCI_LINT) run ./... || (echo "❌ golangci-lint not found. Installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && $(GOLANGCI_LINT) run ./...)
+
 
 # Clean build artifacts
 clean:
@@ -226,7 +244,8 @@ kill:
 
 # --- Database Migration Configuration ---
 # Note: We build from source to include SQLite support (prebuilt binaries don't have it)
-MIGRATE_BIN = $(shell go env GOPATH)/bin/migrate
+MIGRATE_BIN = $(HOME)/go/bin/migrate
+GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
 
 # Load environment variables
 ifneq (,$(wildcard ./.env))

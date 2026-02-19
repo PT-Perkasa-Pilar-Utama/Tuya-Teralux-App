@@ -20,7 +20,7 @@ func TestTuyaErrorMiddleware(t *testing.T) {
 		r.GET("/test", func(c *gin.Context) {
 			// Simulate response that contains "code: 1010"
 			c.JSON(http.StatusOK, map[string]interface{}{
-				"status": false,
+				"status":  false,
 				"message": "code: 1010, token invalid",
 			})
 		})

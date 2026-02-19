@@ -50,7 +50,9 @@ func (c *RAGChatController) StartMqttSubscription() {
 					{Field: "payload", Message: "Invalid JSON payload: " + err.Error()},
 				},
 			})
-			c.mqttSvc.Publish(respTopic, 0, false, respData)
+			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+				utils.LogError("RAGChat MQTT: Failed to publish error response: %v", err)
+			}
 			return
 		}
 
@@ -65,7 +67,9 @@ func (c *RAGChatController) StartMqttSubscription() {
 					{Field: "teralux_id", Message: "teralux_id is required"},
 				},
 			})
-			c.mqttSvc.Publish(respTopic, 0, false, respData)
+			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+				utils.LogError("RAGChat MQTT: Failed to publish validation error response: %v", err)
+			}
 			return
 		}
 
@@ -84,7 +88,9 @@ func (c *RAGChatController) StartMqttSubscription() {
 				Status:  false,
 				Message: "Internal Server Error",
 			})
-			c.mqttSvc.Publish(respTopic, 0, false, respData)
+			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+				utils.LogError("RAGChat MQTT: Failed to publish internal error response: %v", err)
+			}
 			return
 		}
 
@@ -97,7 +103,9 @@ func (c *RAGChatController) StartMqttSubscription() {
 		}
 		respData, _ := json.Marshal(resp)
 		utils.LogInfo("RAGChat MQTT: Publishing answer to %s. Response: %s", respTopic, res.Response)
-		c.mqttSvc.Publish(respTopic, 0, false, respData)
+		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+			utils.LogError("RAGChat MQTT: Failed to publish chat response: %v", err)
+		}
 	})
 
 	if err != nil {
@@ -169,7 +177,9 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	if c.mqttSvc != nil {
 		respTopic := "users/teralux/chat/answer"
 		respData, _ := json.Marshal(resp)
-		c.mqttSvc.Publish(respTopic, 0, false, respData)
+		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+			utils.LogError("RAGChatController.Chat: Failed to publish to MQTT: %v", err)
+		}
 	}
 
 	ctx.JSON(http.StatusOK, resp)

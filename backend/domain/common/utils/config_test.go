@@ -8,16 +8,14 @@ import (
 func TestLoadConfig(t *testing.T) {
 	// Backup original env vars relative to this test
 	originalClientID := os.Getenv("TUYA_CLIENT_ID")
-	defer os.Setenv("TUYA_CLIENT_ID", originalClientID)
+	defer func() { _ = os.Setenv("TUYA_CLIENT_ID", originalClientID) }()
 
 	// Set test env var
 	testID := "test_client_id"
-	os.Setenv("TUYA_CLIENT_ID", testID)
+	_ = os.Setenv("TUYA_CLIENT_ID", testID)
 
 	// Force reload
 	AppConfig = nil // clear global singleton if possible, or just call LoadConfig which overwrites it.
-	// Note: AppConfig is exported, so we can nil it to test GetConfig lazy load
-	AppConfig = nil
 	cfg := GetConfig()
 
 	if cfg.TuyaClientID != testID {
@@ -33,32 +31,32 @@ func TestLoadConfig(t *testing.T) {
 func TestLoadConfig_SetsValues(t *testing.T) {
 	// Backup and restore env
 	backup := map[string]string{}
-	keys := []string{"LLM_MODEL", "WHISPER_MODEL_PATH", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
+	keys := []string{"GEMINI_MODEL", "WHISPER_LOCAL_MODEL", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
 	for _, k := range keys {
 		backup[k] = os.Getenv(k)
 	}
 	defer func() {
 		for k, v := range backup {
-			os.Setenv(k, v)
+			_ = os.Setenv(k, v)
 		}
 		AppConfig = nil
 	}()
 
-	os.Setenv("LLM_MODEL", "gemma-test")
-	os.Setenv("WHISPER_MODEL_PATH", "/tmp/whisper.bin")
-	os.Setenv("MAX_FILE_SIZE_MB", "10")
-	os.Setenv("PORT", "9090")
-	os.Setenv("CACHE_TTL", "30m")
+	_ = os.Setenv("GEMINI_MODEL", "gemini-test")
+	_ = os.Setenv("WHISPER_LOCAL_MODEL", "/tmp/whisper.bin")
+	_ = os.Setenv("MAX_FILE_SIZE_MB", "10")
+	_ = os.Setenv("PORT", "9090")
+	_ = os.Setenv("CACHE_TTL", "30m")
 
 	AppConfig = nil
 	LoadConfig()
 	cfg := GetConfig()
 
-	if cfg.LLMModel != "gemma-test" {
-		t.Fatalf("expected LLMModel to be set, got %s", cfg.LLMModel)
+	if cfg.GeminiModel != "gemini-test" {
+		t.Fatalf("expected GeminiModel to be set, got %s", cfg.GeminiModel)
 	}
-	if cfg.WhisperModelPath != "/tmp/whisper.bin" {
-		t.Fatalf("expected WhisperModelPath to be set, got %s", cfg.WhisperModelPath)
+	if cfg.WhisperLocalModel != "/tmp/whisper.bin" {
+		t.Fatalf("expected WhisperLocalModel to be set, got %s", cfg.WhisperLocalModel)
 	}
 	if cfg.MaxFileSize != 10*1024*1024 {
 		t.Fatalf("expected MaxFileSize to be 10MB in bytes, got %d", cfg.MaxFileSize)
@@ -70,8 +68,8 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 
 func TestLoadConfig_InvalidMaxFileSize(t *testing.T) {
 	backup := os.Getenv("MAX_FILE_SIZE_MB")
-	defer os.Setenv("MAX_FILE_SIZE_MB", backup)
-	os.Setenv("MAX_FILE_SIZE_MB", "notanumber")
+	defer func() { _ = os.Setenv("MAX_FILE_SIZE_MB", backup) }()
+	_ = os.Setenv("MAX_FILE_SIZE_MB", "notanumber")
 	AppConfig = nil
 	LoadConfig()
 	cfg := GetConfig()

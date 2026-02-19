@@ -56,7 +56,7 @@ func (uc *GetAllDevicesUseCase) ListDevices(filter *dtos.DeviceFilterDTO) (*dtos
 	}
 
 	// 3. Map to DTOs
-	var deviceDTOs []dtos.DeviceResponseDTO
+	deviceDTOs := make([]dtos.DeviceResponseDTO, 0, len(devices))
 	for _, item := range devices {
 		deviceDTOs = append(deviceDTOs, dtos.DeviceResponseDTO{
 			ID:                item.ID,

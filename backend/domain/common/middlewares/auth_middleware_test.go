@@ -22,7 +22,7 @@ func TestAuthMiddleware(t *testing.T) {
 	mockProvider := &MockTokenProvider{}
 
 	// Setup JWT Secret for testing
-	os.Setenv("JWT_SECRET", "test-secret")
+	_ = os.Setenv("JWT_SECRET", "test-secret")
 	// Ensure config is loaded or secret is available to utils
 	// In utils/jwt.go, it likely uses os.Getenv("JWT_SECRET") or config.
 	// We might need to ensure utils picks it up. Config loading usually handles this.

@@ -13,11 +13,11 @@ func TestInitDB_SQLite(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 
 	// Set environment variables
-	os.Setenv("DB_TYPE", "sqlite")
-	os.Setenv("DB_SQLITE_PATH", dbPath)
+	_ = os.Setenv("DB_TYPE", "sqlite")
+	_ = os.Setenv("DB_SQLITE_PATH", dbPath)
 	defer func() {
-		os.Unsetenv("DB_TYPE")
-		os.Unsetenv("DB_SQLITE_PATH")
+		_ = os.Unsetenv("DB_TYPE")
+		_ = os.Unsetenv("DB_SQLITE_PATH")
 	}()
 
 	utils.AppConfig = nil
@@ -44,9 +44,9 @@ func TestInitDB_DefaultsToSQLite(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "default.db")
 
 	// Don't set DB_TYPE, should default to SQLite
-	os.Unsetenv("DB_TYPE")
-	os.Setenv("DB_SQLITE_PATH", dbPath)
-	defer os.Unsetenv("DB_SQLITE_PATH")
+	_ = os.Unsetenv("DB_TYPE")
+	_ = os.Setenv("DB_SQLITE_PATH", dbPath)
+	defer func() { _ = os.Unsetenv("DB_SQLITE_PATH") }()
 
 	utils.AppConfig = nil
 	db, err := InitDB()
@@ -62,8 +62,8 @@ func TestInitDB_DefaultsToSQLite(t *testing.T) {
 }
 
 func TestInitDB_UnsupportedType(t *testing.T) {
-	os.Setenv("DB_TYPE", "unsupported")
-	defer os.Unsetenv("DB_TYPE")
+	_ = os.Setenv("DB_TYPE", "unsupported")
+	defer func() { _ = os.Unsetenv("DB_TYPE") }()
 
 	utils.AppConfig = nil
 	_, err := InitDB()
@@ -87,11 +87,11 @@ func TestPingDB(t *testing.T) {
 		tmpDir := t.TempDir()
 		dbPath := filepath.Join(tmpDir, "ping_test.db")
 
-		os.Setenv("DB_TYPE", "sqlite")
-		os.Setenv("DB_SQLITE_PATH", dbPath)
+		_ = os.Setenv("DB_TYPE", "sqlite")
+		_ = os.Setenv("DB_SQLITE_PATH", dbPath)
 		defer func() {
-			os.Unsetenv("DB_TYPE")
-			os.Unsetenv("DB_SQLITE_PATH")
+			_ = os.Unsetenv("DB_TYPE")
+			_ = os.Unsetenv("DB_SQLITE_PATH")
 		}()
 
 		utils.AppConfig = nil
@@ -122,11 +122,11 @@ func TestCloseDB(t *testing.T) {
 		tmpDir := t.TempDir()
 		dbPath := filepath.Join(tmpDir, "close_test.db")
 
-		os.Setenv("DB_TYPE", "sqlite")
-		os.Setenv("DB_SQLITE_PATH", dbPath)
+		_ = os.Setenv("DB_TYPE", "sqlite")
+		_ = os.Setenv("DB_SQLITE_PATH", dbPath)
 		defer func() {
-			os.Unsetenv("DB_TYPE")
-			os.Unsetenv("DB_SQLITE_PATH")
+			_ = os.Unsetenv("DB_TYPE")
+			_ = os.Unsetenv("DB_SQLITE_PATH")
 		}()
 
 		utils.AppConfig = nil

@@ -151,7 +151,9 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 	}
 	respTopic := "users/teralux/whisper/answer"
 	respData, _ := json.Marshal(resp)
-	c.mqttSvc.Publish(respTopic, 0, false, respData)
+	if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+		utils.LogError("SpeechTranscribe MQTT: Failed to publish response: %v", err)
+	}
 }
 
 // Transcribe handles POST /api/speech/transcribe

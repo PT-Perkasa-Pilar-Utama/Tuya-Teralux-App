@@ -27,7 +27,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -72,19 +72,19 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
-    
+
     // Required for XML themes referenced in AndroidManifest
     implementation("com.google.android.material:material:1.12.0")
-    
+
     // ViewModel utilities for Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
     implementation(libs.compose.markdown)
-    
+
     // Offline Speech Recognition (Vosk)
     implementation("com.alphacephei:vosk-android:0.3.75")
 

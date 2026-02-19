@@ -161,8 +161,8 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	}
 
 	// Transform entities to DTOs
-	var deviceIDs []string
-	var deviceDTOs []dtos.TuyaDeviceDTO
+	deviceIDs := make([]string, 0, len(devicesResponse.Result))
+	deviceDTOs := make([]dtos.TuyaDeviceDTO, 0, len(devicesResponse.Result))
 
 	// Collect IDs first
 	for _, device := range devicesResponse.Result {
@@ -267,7 +267,7 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	hubLocalKeyMap := make(map[string]dtos.TuyaDeviceDTO) // LocalKey -> HubDTO
 
 	var irRemotes []dtos.TuyaDeviceDTO
-	var otherDevices []dtos.TuyaDeviceDTO
+	otherDevices := make([]dtos.TuyaDeviceDTO, 0, len(deviceDTOs))
 
 	// First pass: Index Hubs and separate Remotes
 	for _, d := range deviceDTOs {
@@ -289,7 +289,7 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		otherDevices = append(otherDevices, d)
 	}
 
-	var finalDevices []dtos.TuyaDeviceDTO
+	finalDevices := make([]dtos.TuyaDeviceDTO, 0, len(deviceDTOs))
 	usedHubIDs := make(map[string]bool)
 
 	// Process IR Remotes -> Create Merged Entries

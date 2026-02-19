@@ -20,17 +20,24 @@ type Config struct {
 	CacheTTL         string
 
 	// Speech / RAG
-	LLMProvider string // "ollama", "gemini"
-	LLMApiKey   string
-	LLMModel    string
+	// LLM
+	LLMProvider string // "gemini", "orion"
 
+	// Gemini
+	GeminiApiKey       string
+	GeminiModel        string // Default (legacy/fallback)
+	GeminiModelHigh    string // High reasoning
+	GeminiModelLow     string // Fast/Low cost
+	GeminiModelWhisper string // STT
+
+	// Orion
 	OrionBaseURL string
 	OrionApiKey  string
 	OrionModel   string
 
-	WhisperServerURL        string
-	WhisperModelPath        string
-	OutsystemsTranscribeURL string
+	// Whisper
+	WhisperLocalModel     string // Path to local model (e.g., bin/ggml-base.bin)
+	OrionWhisperBaseURL   string // URL for remote transcription service
 	MaxFileSize             int64 // bytes
 	Port                    string
 
@@ -78,7 +85,7 @@ func LoadConfig() {
 		} else {
 			for k, v := range m {
 				if os.Getenv(k) == "" {
-					os.Setenv(k, v)
+					_ = os.Setenv(k, v)
 				}
 			}
 			log.Printf("Loaded env file: %s", envPath)
@@ -100,20 +107,22 @@ func LoadConfig() {
 		TuyaClientSecret: os.Getenv("TUYA_ACCESS_SECRET"),
 		TuyaBaseURL:      os.Getenv("TUYA_BASE_URL"),
 		TuyaUserID:       os.Getenv("TUYA_USER_ID"),
-		ApiKey:           os.Getenv("API_KEY"),
-		CacheTTL:         os.Getenv("CACHE_TTL"),
-
+		ApiKey:    os.Getenv("API_KEY"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
+		LogLevel:  os.Getenv("LOG_LEVEL"),
 		LLMProvider: os.Getenv("LLM_PROVIDER"),
-		LLMApiKey:   os.Getenv("LLM_API_KEY"),
-		LLMModel:    os.Getenv("LLM_MODEL"),
+
+		GeminiApiKey:       os.Getenv("GEMINI_API_KEY"),
+		GeminiModelHigh:    os.Getenv("GEMINI_MODEL_HIGH"),
+		GeminiModelLow:     os.Getenv("GEMINI_MODEL_LOW"),
+		GeminiModelWhisper: os.Getenv("GEMINI_MODEL_WHISPER"),
 
 		OrionBaseURL: os.Getenv("ORION_BASE_URL"),
 		OrionApiKey:  os.Getenv("ORION_API_KEY"),
 		OrionModel:   os.Getenv("ORION_MODEL"),
 
-		WhisperServerURL:        os.Getenv("WHISPER_SERVER_URL"),
-		WhisperModelPath:        os.Getenv("WHISPER_MODEL_PATH"),
-		OutsystemsTranscribeURL: os.Getenv("OUTSYSTEMS_TRANSCRIBE_URL"),
+		WhisperLocalModel:   os.Getenv("WHISPER_LOCAL_MODEL"),
+		OrionWhisperBaseURL: os.Getenv("ORION_WHISPER_BASE_URL"),
 		MaxFileSize:             maxFileSize,
 		Port:                    os.Getenv("PORT"),
 
@@ -130,7 +139,7 @@ func LoadConfig() {
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
 
 		// Runtime
-		LogLevel: os.Getenv("LOG_LEVEL"),
+
 
 		// Database
 		DBType:     os.Getenv("DB_TYPE"),
@@ -139,7 +148,6 @@ func LoadConfig() {
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
 		DBName:     os.Getenv("DB_NAME"),
-		JWTSecret:  os.Getenv("JWT_SECRET"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables

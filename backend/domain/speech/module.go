@@ -6,11 +6,10 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/usecases"
 	recordingUsecases "teralux_app/domain/recordings/usecases"
+	"teralux_app/domain/common/services"
 	speechControllers "teralux_app/domain/speech/controllers"
-	"teralux_app/domain/speech/repositories"
 	speechRoutes "teralux_app/domain/speech/routes"
 	speechUsecases "teralux_app/domain/speech/usecases"
-	"teralux_app/domain/speech/utilities"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -18,9 +17,9 @@ import (
 
 // InitModule initializes the Speech module with the protected router group.
 func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragRefineUC usecases.RefineUseCase, tuyaAuthUseCase tuyaUsecases.TuyaAuthUseCase, mqttSvc *infrastructure.MqttService, saveRecordingUseCase recordingUsecases.SaveRecordingUseCase) {
-	// Repositories
-	whisperCppRepo := repositories.NewWhisperCppRepository(cfg)
-	whisperOrionRepo := repositories.NewWhisperOrionRepository(cfg)
+	// Services
+	geminiService := services.NewGeminiService(cfg)
+	localService := services.NewWhisperLocalService(cfg)
 
 	// Usecases
 	shortCache := tasks.NewBadgerTaskCacheFromService(badgerSvc, "transcribe:task:")
@@ -28,17 +27,30 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	whisperCache := tasks.NewBadgerTaskCacheFromService(badgerSvc, "whisper:task:")
 	whisperProxyUsecase := speechUsecases.NewWhisperProxyUsecase(whisperCache, cfg)
 
-	// Setup Whisper Clients with adapters
-	ppuClient := utilities.NewPPUWhisperClient(whisperProxyUsecase)
-	orionClient := utilities.NewOrionWhisperClient(whisperOrionRepo)
-	localClient := utilities.NewLocalWhisperClient(whisperCppRepo, cfg.WhisperModelPath)
+	// Setup Whisper Clients
+	// whisperProxyUsecase now implements WhisperClient directly.
 
-	// Whisper client with automatic fallback (PPU -> Orion -> Local)
-	whisperClientWithFallback := utilities.NewWhisperClientWithFallback(ppuClient, orionClient, localClient)
+	// Select Whisper Client based on configuration
+	var whisperClient speechUsecases.WhisperClient
+	
+	
+	if cfg.LLMProvider == "gemini" {
+		utils.LogInfo("Speech: Using Gemini Whisper (Multimodal)")
+		whisperClient = geminiService
+	} else if cfg.LLMProvider == "orion" {
+		if cfg.OrionWhisperBaseURL != "" {
+			utils.LogInfo("Speech: Using Remote Whisper (PPU/Orion)")
+			whisperClient = whisperProxyUsecase
+		} else {
+			utils.LogFatal("Speech: LLM_PROVIDER is 'orion' but ORION_WHISPER_BASE_URL is not set.")
+		}
+	} else {
+		utils.LogFatal("Speech: Invalid or missing LLM_PROVIDER. Set it to 'gemini' or 'orion'.")
+	}
 
 	// Feature Usecases (1 Route 1 Usecase)
-	transcribeUC := speechUsecases.NewTranscribeUseCase(whisperClientWithFallback, ragRefineUC, shortCache, cfg, mqttSvc)
-	transcribeWhisperCppUC := speechUsecases.NewTranscribeWhisperCppUseCase(whisperCppRepo, ragRefineUC, longCache, cfg)
+	transcribeUC := speechUsecases.NewTranscribeUseCase(whisperClient, ragRefineUC, shortCache, cfg, mqttSvc)
+	transcribeWhisperCppUC := speechUsecases.NewTranscribeWhisperCppUseCase(localService, ragRefineUC, longCache, cfg)
 	getStatusUC := speechUsecases.NewGetTranscriptionStatusUseCase(shortCache, longCache, whisperProxyUsecase)
 
 	// Controllers

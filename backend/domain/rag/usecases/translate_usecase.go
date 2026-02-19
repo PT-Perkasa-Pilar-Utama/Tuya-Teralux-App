@@ -1,11 +1,10 @@
 package usecases
 
 import (
-	"fmt"
-	"strings"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
+	"teralux_app/domain/rag/skills"
 	"teralux_app/domain/rag/utilities"
 
 	"github.com/google/uuid"
@@ -34,32 +33,21 @@ func NewTranslateUseCase(llm utilities.LLMClient, cfg *utils.Config, cache *task
 
 // translateInternal (private internal for use by Execute)
 func (u *translateUseCase) translateInternal(text, targetLang string) (string, error) {
-	langName := "English"
-	if strings.ToLower(targetLang) == "id" {
-		langName = "Indonesian"
+	skill := &skills.TranslationSkill{}
+	ctx := &skills.SkillContext{
+		Prompt:   text,
+		Language: targetLang,
+		LLM:      u.llm,
+		Config:   u.config,
 	}
 
-	prompt := fmt.Sprintf(`You are a professional translator and editor. 
-Translate the following transcribed text to clear, grammatically correct %s.
-If the text is already in %s, fix any grammatical errors and improve the clarity.
-CRITICAL: Do not mention "Tuya" or "Tuya API" in your response. Use generic terms like "Smart Home System" or "Gateway" if needed.
-Only return the final polished text without any explanation, quotes, or additional commentary.
-
-Text: "%s"
-%s:`, langName, langName, text, langName)
-
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
-	}
-
-	translated, err := u.llm.CallModel(prompt, model)
+	res, err := skill.Execute(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, translated, langName)
-	return strings.TrimSpace(translated), nil
+	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, res.Message, targetLang)
+	return res.Message, nil
 }
 
 func (u *translateUseCase) TranslateTextSync(text, targetLang string) (string, error) {

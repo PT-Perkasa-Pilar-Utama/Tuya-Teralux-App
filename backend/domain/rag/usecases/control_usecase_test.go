@@ -58,7 +58,7 @@ func (m *mockTuyaExecutorForControl) SendIRACCommand(accessToken, infraredID, re
 
 func TestControlUseCase_ProcessControl(t *testing.T) {
 	mockLLM := new(mockLLMForControl)
-	cfg := &utils.Config{LLMModel: "test-model"}
+	cfg := &utils.Config{GeminiModel: "test-model"}
 
 	// Setup Vector Service
 	vectorFile := "test_vector_control.json"
@@ -130,7 +130,16 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	})
 
 	t.Run("Multiple Matches (Ambiguity)", func(t *testing.T) {
-		res, err := uc.ProcessControl(uid, teraluxID, "Matikan AC")
+		prompt := "Matikan AC"
+		localMock := new(mockLLMForControl)
+		// Re-setup usecase with local mock to avoid interference
+		localUC := NewControlUseCase(localMock, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
+
+		// Expect LLM call for disambiguation
+		expectedResponse := "I found 2 matching devices: AC Kamar Utama, AC Ruang Tamu. Which one?"
+		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
+
+		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
 		assert.NoError(t, err)
 		assert.Contains(t, res.Message, "I found 2 matching devices")
 		assert.Contains(t, res.Message, "AC Kamar Utama")
@@ -148,7 +157,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		mockExec.On("SendIRACCommand", "mock-token", "dev-ac-1", "remote-ac-1", mock.Anything).Return(true, nil)
 		localUC := NewControlUseCase(localMock, cfg, vector, badger, mockExec, mockAuth)
 
-		localMock.On("CallModel", mock.Anything, "test-model").Return("EXECUTE:dev-ac-1", nil).Once()
+		localMock.On("CallModel", mock.Anything, "high").Return("EXECUTE:dev-ac-1", nil).Once()
 
 		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
 		assert.NoError(t, err)
@@ -163,7 +172,8 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		localMock := new(mockLLMForControl)
 		localUC := NewControlUseCase(localMock, cfg, vector, badger, nil, nil)
 
-		localMock.On("CallModel", mock.Anything, "test-model").Return("NOT_FOUND", nil).Once()
+		expectedResponse := "I'm sorry, I couldn't find any device matching 'Turn on the Fridge'."
+		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
 
 		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
 		assert.NoError(t, err)

@@ -47,7 +47,7 @@ func (c *RecordingsDeleteController) DeleteRecording(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, common_dtos.StandardResponse{
-		Status:  true, 
+		Status:  true,
 		Message: "Recording deleted successfully",
 	})
 }

@@ -1,0 +1,45 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - revive
+    - gocritic
+    - gofmt
+    - goimports
+    - misspell
+    - unparam
+    - nakedret
+    - prealloc
+    - copyloopvar
+
+linters-settings:
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true
+  gocritic:
+    enabled-checks:
+      - appendCombine
+      - boolExprSimplify
+      - builtinShadow
+      - commentedOutCode
+      - equalFold
+      - indexAlloc
+      - typeAssertChain
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-dirs:
+    - tmp
+    - vendor

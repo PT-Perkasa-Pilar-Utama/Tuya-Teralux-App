@@ -26,7 +26,7 @@ func (s *fileService) SaveUploadedFile(file *multipart.FileHeader, dst string) e
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	if err = os.MkdirAll(filepath.Dir(dst), 0750); err != nil {
 		return err
@@ -36,7 +36,7 @@ func (s *fileService) SaveUploadedFile(file *multipart.FileHeader, dst string) e
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	_, err = io.Copy(out, src)
 	return err

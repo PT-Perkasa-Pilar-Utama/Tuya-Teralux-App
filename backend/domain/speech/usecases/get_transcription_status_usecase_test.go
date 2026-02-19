@@ -12,6 +12,7 @@ type MockWhisperProxyUsecase struct {
 	GetStatusFunc         func(taskID string) (*dtos.WhisperProxyStatusDTO, error)
 	HealthCheckFunc       func() error
 	FetchToOutsystemsFunc func(filePath string, fileName string, language string) (*dtos.OutsystemsTranscriptionResultDTO, error)
+	TranscribeFunc        func(audioPath string, language string) (*dtos.WhisperResult, error)
 }
 
 func (m *MockWhisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, language string) (string, error) {
@@ -40,6 +41,13 @@ func (m *MockWhisperProxyUsecase) FetchToOutsystems(filePath string, fileName st
 		return m.FetchToOutsystemsFunc(filePath, fileName, language)
 	}
 	return nil, nil
+}
+
+func (m *MockWhisperProxyUsecase) Transcribe(audioPath string, language string) (*dtos.WhisperResult, error) {
+	if m.TranscribeFunc != nil {
+		return m.TranscribeFunc(audioPath, language)
+	}
+	return nil, nil // Default return
 }
 
 func TestGetTranscriptionStatusUseCase_Execute(t *testing.T) {

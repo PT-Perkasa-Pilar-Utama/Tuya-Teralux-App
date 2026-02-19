@@ -10,6 +10,6 @@ interface EmailApi {
     @POST("/api/email/send")
     suspend fun sendEmail(
         @Header("Authorization") token: String,
-        @Body request: SendEmailRequestDto
+        @Body request: SendEmailRequestDto,
     ): StandardResponseDto<Any>
 }

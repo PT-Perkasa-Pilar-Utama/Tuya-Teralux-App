@@ -29,4 +29,3 @@ type StandardResponse struct {
 	// For all other status codes, including 500, this field is nil/omitted.
 	Details interface{} `json:"details,omitempty"`
 }
-

@@ -21,7 +21,7 @@ func TestGetAllDevices_CachesAndUpsertsVector(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to init badger: %v", err)
 	}
-	defer cache.Close()
+	defer func() { _ = cache.Close() }()
 
 	vector := infrastructure.NewVectorService("")
 

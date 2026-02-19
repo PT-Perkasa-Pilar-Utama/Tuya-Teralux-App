@@ -42,7 +42,7 @@ func (uc *GetDeviceStatusesByDeviceIDUseCase) ListDeviceStatusesByDeviceID(devic
 		return nil, err
 	}
 
-	var dtosList []dtos.DeviceStatusResponseDTO
+	dtosList := make([]dtos.DeviceStatusResponseDTO, 0, len(statuses))
 	for _, s := range statuses {
 		dtosList = append(dtosList, dtos.DeviceStatusResponseDTO{
 			DeviceID:  s.DeviceID,

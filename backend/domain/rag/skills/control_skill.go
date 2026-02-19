@@ -74,7 +74,7 @@ func (s *ControlSkill) selectDeviceWithLLM(ctx *SkillContext, devices []tuyaDtos
 		historyContext = "Previous conversation:\n" + strings.Join(ctx.History, "\n") + "\n"
 	}
 
-	var deviceList []string
+	deviceList := make([]string, 0, len(devices))
 	for _, d := range devices {
 		deviceList = append(deviceList, fmt.Sprintf("- %s (ID: %s)", d.Name, d.ID))
 	}
@@ -122,10 +122,7 @@ GUIDELINES:
 Response (English):`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 	}
 
-	model := ctx.Config.LLMModel
-	if model == "" {
-		model = "default"
-	}
+	model := "high"
 
 	res, err := ctx.LLM.CallModel(reconcilePrompt, model)
 	if err != nil {
@@ -177,9 +174,11 @@ func (s *ControlSkill) executeOnTarget(ctx *SkillContext, target *tuyaDtos.TuyaD
 
 	return &SkillResult{
 		Message:        res.Message,
+		Data:           map[string]interface{}{"device_id": target.ID},
 		IsControl:      true,
 		HTTPStatusCode: res.HTTPStatusCode,
 	}, nil
+
 }
 
 func (s *ControlSkill) selectDeviceSensor(device *tuyaDtos.TuyaDeviceDTO) sensors.DeviceSensor {

@@ -44,6 +44,39 @@ if [ -z "$DEVICE_ID" ]; then
 fi
 
 echo ""
+
+# Run Linter
+echo "🔍 Running Linter..."
+if command -v ktlint &> /dev/null; then
+    echo "   ktlint found. Checking code style..."
+    set +e # Allow failure for lint check to try auto-fix
+    ktlint > /dev/null 2>&1
+    LINT_STATUS=$?
+    set -e
+
+    if [ $LINT_STATUS -ne 0 ]; then
+        echo "⚠️  Lint issues found. Attempting to auto-fix..."
+        set +e
+        ktlint --format > /dev/null 2>&1
+        LINT_FIX_STATUS=$?
+        set -e
+        
+        if [ $LINT_FIX_STATUS -eq 0 ]; then
+             echo "✅ Lint issues auto-fixed!"
+        else
+             echo "❌ Lint failed even after auto-fix. Please check manually."
+             # Warning only? Or exit? User said "fix linter", implying they want it standard.
+             # Let's fail if it can't be fixed.
+             exit 1
+        fi
+    else
+        echo "✅ Code style is correct."
+    fi
+else
+    echo "⚠️  ktlint not found. Skipping lint."
+fi
+
+echo ""
 echo "🔨 Building APK (clean build)..."
 cd "$PROJECT_DIR"
 ./gradlew clean assembleDebug --quiet
@@ -65,6 +98,16 @@ if [ $? -eq 0 ]; then
     echo "🚀 Launching app..."
     adb -s "$DEVICE_ID" shell am start -n "$PACKAGE_NAME/$LAUNCHER_ACTIVITY"
     echo "✅ App launched!"
+
+    # Launch Scrcpy if available
+    if command -v scrcpy &> /dev/null; then
+        echo ""
+        echo "🖥️  Launching scrcpy for device $DEVICE_ID..."
+        scrcpy -s "$DEVICE_ID" --window-title "Teralux - $DEVICE_ID" &
+    else
+        echo "⚠️  scrcpy not found. Install it to mirror the screen."
+    fi
+
 else
     echo "❌ Installation failed"
     exit 1

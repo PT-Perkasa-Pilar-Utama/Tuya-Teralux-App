@@ -25,7 +25,7 @@ func (uc *SyncDeviceStatusUseCase) SyncDeviceStatuses(accessToken, userID string
 	}
 
 	// 2. Map to simplified DTO and Flatten Collections
-	var syncDevices []dtos.TuyaSyncDeviceDTO
+	var syncDevices = make([]dtos.TuyaSyncDeviceDTO, 0, len(tuyaResp.Devices))
 
 	for _, d := range tuyaResp.Devices {
 		// Add the main device (if it's not just a container regarding logic, but here we add it)
