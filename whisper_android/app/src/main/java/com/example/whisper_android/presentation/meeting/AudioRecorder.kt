@@ -5,14 +5,15 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
-import java.io.File
 import java.io.DataOutputStream
+import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.util.concurrent.atomic.AtomicBoolean
 
-class AudioRecorder(private val context: Context) {
-
+class AudioRecorder(
+    private val context: Context,
+) {
     private var audioRecord: AudioRecord? = null
     private var recordingThread: Thread? = null
     private val isRecording = AtomicBoolean(false)
@@ -29,13 +30,14 @@ class AudioRecorder(private val context: Context) {
         val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
         val bufferSize = (minBufferSize * 2).coerceAtLeast(sampleRate)
 
-        val recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            sampleRate,
-            channelConfig,
-            audioFormat,
-            bufferSize
-        )
+        val recorder =
+            AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                channelConfig,
+                audioFormat,
+                bufferSize,
+            )
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.e("AudioRecorder", "AudioRecord init failed")
@@ -52,27 +54,28 @@ class AudioRecorder(private val context: Context) {
         isRecording.set(true)
         recorder.startRecording()
 
-        recordingThread = Thread {
-            val buffer = ByteArray(bufferSize)
-            try {
-                while (isRecording.get()) {
-                    val read = recorder.read(buffer, 0, buffer.size)
-                    if (read > 0) {
-                        outputStream.write(buffer, 0, read)
-                        bytesWritten += read
+        recordingThread =
+            Thread {
+                val buffer = ByteArray(bufferSize)
+                try {
+                    while (isRecording.get()) {
+                        val read = recorder.read(buffer, 0, buffer.size)
+                        if (read > 0) {
+                            outputStream.write(buffer, 0, read)
+                            bytesWritten += read
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("AudioRecorder", "recording loop failed", e)
+                } finally {
+                    try {
+                        outputStream.flush()
+                        outputStream.close()
+                    } catch (e: Exception) {
+                        Log.e("AudioRecorder", "output close failed", e)
                     }
                 }
-            } catch (e: Exception) {
-                Log.e("AudioRecorder", "recording loop failed", e)
-            } finally {
-                try {
-                    outputStream.flush()
-                    outputStream.close()
-                } catch (e: Exception) {
-                    Log.e("AudioRecorder", "output close failed", e)
-                }
-            }
-        }.also { it.start() }
+            }.also { it.start() }
     }
 
     fun stop() {
@@ -116,7 +119,7 @@ class AudioRecorder(private val context: Context) {
         channels: Int,
         sampleRate: Int,
         bitsPerSample: Int,
-        dataSize: Long
+        dataSize: Long,
     ) {
         val byteRate = sampleRate * channels * bitsPerSample / 8
         val blockAlign = (channels * bitsPerSample / 8).toShort()
@@ -137,14 +140,20 @@ class AudioRecorder(private val context: Context) {
         writeIntLE(output, dataSize.toInt())
     }
 
-    private fun writeIntLE(output: java.io.DataOutput, value: Int) {
+    private fun writeIntLE(
+        output: java.io.DataOutput,
+        value: Int,
+    ) {
         output.writeByte(value and 0xFF)
         output.writeByte((value shr 8) and 0xFF)
         output.writeByte((value shr 16) and 0xFF)
         output.writeByte((value shr 24) and 0xFF)
     }
 
-    private fun writeShortLE(output: java.io.DataOutput, value: Short) {
+    private fun writeShortLE(
+        output: java.io.DataOutput,
+        value: Short,
+    ) {
         output.writeByte(value.toInt() and 0xFF)
         output.writeByte((value.toInt() shr 8) and 0xFF)
     }

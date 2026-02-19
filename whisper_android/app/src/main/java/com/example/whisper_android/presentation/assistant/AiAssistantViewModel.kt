@@ -8,13 +8,15 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisper_android.presentation.components.MessageRole
 import com.example.whisper_android.presentation.components.TranscriptionMessage
+import com.example.whisper_android.presentation.meeting.AudioRecorder
 import com.example.whisper_android.util.MqttHelper
 import com.example.whisper_android.util.parseMarkdownToText
-import com.example.whisper_android.presentation.meeting.AudioRecorder
 import kotlinx.coroutines.launch
 import java.io.File
 
-class AiAssistantViewModel(application: Application) : AndroidViewModel(application) {
+class AiAssistantViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     var transcriptionResults by mutableStateOf(listOf<TranscriptionMessage>())
         private set
 
@@ -45,40 +47,46 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                             val json = org.json.JSONObject(message)
                             val data = json.optJSONObject("data")
                             val responseText = data?.optString("response") ?: json.optString("message", message)
-                            
+
                             val cleanMessage = parseMarkdownToText(responseText)
-                            transcriptionResults = transcriptionResults + TranscriptionMessage(
-                                text = cleanMessage,
-                                role = MessageRole.ASSISTANT
-                            )
+                            transcriptionResults = transcriptionResults +
+                                TranscriptionMessage(
+                                    text = cleanMessage,
+                                    role = MessageRole.ASSISTANT,
+                                )
                             isProcessing = false
                             android.util.Log.d("AiAssistantViewModel", "isProcessing set to false")
                         }
+
                         topic.endsWith("chat") -> {
                             android.util.Log.d("AiAssistantViewModel", "Received chat (sync): $message")
                             // Extract prompt if it's JSON, otherwise use raw message
-                            val prompt = try {
-                                val jsonObj = org.json.JSONObject(message)
-                                if (jsonObj.has("prompt")) {
-                                    jsonObj.getString("prompt")
-                                } else {
+                            val prompt =
+                                try {
+                                    val jsonObj = org.json.JSONObject(message)
+                                    if (jsonObj.has("prompt")) {
+                                        jsonObj.getString("prompt")
+                                    } else {
+                                        message
+                                    }
+                                } catch (e: Exception) {
                                     message
                                 }
-                            } catch (e: Exception) {
-                                message
-                            }
-    
+
                             // Avoid duplicate if we just sent this message
-                            val alreadyExists = transcriptionResults.any { 
-                                it.role == MessageRole.USER && it.text == prompt 
-                            }
+                            val alreadyExists =
+                                transcriptionResults.any {
+                                    it.role == MessageRole.USER && it.text == prompt
+                                }
                             if (!alreadyExists) {
-                                transcriptionResults = transcriptionResults + TranscriptionMessage(
-                                    text = prompt,
-                                    role = MessageRole.USER
-                                )
+                                transcriptionResults = transcriptionResults +
+                                    TranscriptionMessage(
+                                        text = prompt,
+                                        role = MessageRole.USER,
+                                    )
                             }
                         }
+
                         topic.endsWith("whisper/answer") -> {
                             // Handle whisper answer (e.g. task ID)
                             android.util.Log.d("AiAssistantViewModel", "Whisper Task: $message")
@@ -89,22 +97,23 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
                 }
             }
         }
-        
+
         mqttHelper.onConnectionStatusChanged = { status ->
             viewModelScope.launch {
                 android.util.Log.d("AiAssistantViewModel", "MQTT Status Changed: $status")
                 mqttStatus = status
             }
         }
-        
+
         startConnectionMonitoring()
     }
 
     private fun startConnectionMonitoring() {
         viewModelScope.launch {
             while (true) {
-                if (mqttStatus == MqttHelper.MqttConnectionStatus.DISCONNECTED || 
-                    mqttStatus == MqttHelper.MqttConnectionStatus.FAILED) {
+                if (mqttStatus == MqttHelper.MqttConnectionStatus.DISCONNECTED ||
+                    mqttStatus == MqttHelper.MqttConnectionStatus.FAILED
+                ) {
                     android.util.Log.d("AiAssistantViewModel", "Attempting MQTT Reconnection...")
                     mqttHelper.connect()
                 }
@@ -121,9 +130,10 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
         if (text.isNotBlank()) {
             android.util.Log.d("AiAssistantViewModel", "sendChat: $text")
             // Avoid duplicate if we just sent this
-            val alreadyExists = transcriptionResults.any { 
-                it.role == MessageRole.USER && it.text == text 
-            }
+            val alreadyExists =
+                transcriptionResults.any {
+                    it.role == MessageRole.USER && it.text == text
+                }
             if (!alreadyExists) {
                 transcriptionResults = transcriptionResults + TranscriptionMessage(text, MessageRole.USER)
             }
@@ -145,7 +155,7 @@ class AiAssistantViewModel(application: Application) : AndroidViewModel(applicat
             isRecording = false
             isProcessing = true
             audioRecorder.stop()
-            
+
             val file = currentRecordingFile
             if (file != null && file.exists()) {
                 audioRecorder.finalizeWav(file)

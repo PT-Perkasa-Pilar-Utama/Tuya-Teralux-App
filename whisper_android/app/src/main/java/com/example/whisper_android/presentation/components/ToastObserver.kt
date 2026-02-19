@@ -8,7 +8,7 @@ import androidx.compose.ui.platform.LocalContext
 
 /**
  * A reusable component that observes a [message] and displays a [Toast].
- * 
+ *
  * @param message The message to display. If null, nothing is shown.
  * @param onToastShown Callback to clear the message from the state after it's been displayed.
  */
@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 fun ToastObserver(
     message: String?,
     onToastShown: () -> Unit,
-    context: Context = LocalContext.current
+    context: Context = LocalContext.current,
 ) {
     LaunchedEffect(message) {
         message?.let {

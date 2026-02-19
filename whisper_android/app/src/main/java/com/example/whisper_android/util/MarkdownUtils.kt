@@ -3,8 +3,8 @@ package com.example.whisper_android.util
 /**
  * Strips basic Markdown symbols for plain text display in chat bubbles.
  */
-fun parseMarkdownToText(markdown: String): String {
-    return markdown
+fun parseMarkdownToText(markdown: String): String =
+    markdown
         // Remove bold
         .replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
         // Remove italic
@@ -18,4 +18,3 @@ fun parseMarkdownToText(markdown: String): String {
         // Remove code blocks
         .replace(Regex("```[a-z]*\\n?(.*?)\\n?```", RegexOption.DOT_MATCHES_ALL), "$1")
         .trim()
-}

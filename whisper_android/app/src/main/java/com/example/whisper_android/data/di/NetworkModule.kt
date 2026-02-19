@@ -3,13 +3,13 @@ package com.example.whisper_android.data.di
 import com.example.whisper_android.data.remote.api.TeraluxApi
 import com.example.whisper_android.data.repository.TeraluxRepositoryImpl
 import com.example.whisper_android.domain.repository.TeraluxRepository
-import com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase
-import com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase
 import com.example.whisper_android.domain.usecase.AuthenticateUseCase
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase
+import com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkModule {
     // Read from BuildConfig (local.properties)
@@ -17,16 +17,19 @@ object NetworkModule {
     private val BASE_HOSTNAME = com.example.whisper_android.BuildConfig.BASE_HOSTNAME
     private val API_KEY = com.example.whisper_android.BuildConfig.TERALUX_API_KEY
     private val client by lazy {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        OkHttpClient.Builder()
+        val logging =
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+        OkHttpClient
+            .Builder()
             .addInterceptor(logging)
             .build()
     }
 
     private val retrofit by lazy {
-        Retrofit.Builder()
+        Retrofit
+            .Builder()
             .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
@@ -36,7 +39,9 @@ object NetworkModule {
     lateinit var tokenManager: com.example.whisper_android.data.local.TokenManager
 
     fun init(context: android.content.Context) {
-        tokenManager = com.example.whisper_android.data.local.TokenManager(context)
+        tokenManager =
+            com.example.whisper_android.data.local
+                .TokenManager(context)
     }
 
     private val api: TeraluxApi by lazy {
@@ -57,7 +62,8 @@ object NetworkModule {
     }
 
     val tuyaRepository: com.example.whisper_android.domain.repository.TuyaRepository by lazy {
-        com.example.whisper_android.data.repository.TuyaRepositoryImpl(tuyaApi, API_KEY, tokenManager)
+        com.example.whisper_android.data.repository
+            .TuyaRepositoryImpl(tuyaApi, API_KEY, tokenManager)
     }
 
     private val ragApi: com.example.whisper_android.data.remote.api.RAGApi by lazy {
@@ -69,13 +75,15 @@ object NetworkModule {
     }
 
     val speechRepository: com.example.whisper_android.domain.repository.SpeechRepository by lazy {
-        com.example.whisper_android.data.repository.SpeechRepositoryImpl(speechApi)
+        com.example.whisper_android.data.repository
+            .SpeechRepositoryImpl(speechApi)
     }
 
     val ragRepository: com.example.whisper_android.domain.repository.RagRepository by lazy {
-        com.example.whisper_android.data.repository.RagRepositoryImpl(ragApi)
+        com.example.whisper_android.data.repository
+            .RagRepositoryImpl(ragApi)
     }
-    
+
     val registerUseCase: RegisterTeraluxUseCase by lazy {
         RegisterTeraluxUseCase(repository)
     }
@@ -89,30 +97,35 @@ object NetworkModule {
     }
 
     val transcribeAudioUseCase: com.example.whisper_android.domain.usecase.TranscribeAudioUseCase by lazy {
-        com.example.whisper_android.domain.usecase.TranscribeAudioUseCase(speechRepository)
+        com.example.whisper_android.domain.usecase
+            .TranscribeAudioUseCase(speechRepository)
     }
 
     val translateTextUseCase: com.example.whisper_android.domain.usecase.TranslateTextUseCase by lazy {
-        com.example.whisper_android.domain.usecase.TranslateTextUseCase(ragRepository)
+        com.example.whisper_android.domain.usecase
+            .TranslateTextUseCase(ragRepository)
     }
 
     val summarizeTextUseCase: com.example.whisper_android.domain.usecase.SummarizeTextUseCase by lazy {
-        com.example.whisper_android.domain.usecase.SummarizeTextUseCase(ragRepository)
+        com.example.whisper_android.domain.usecase
+            .SummarizeTextUseCase(ragRepository)
     }
 
     val processMeetingUseCase: com.example.whisper_android.domain.usecase.ProcessMeetingUseCase by lazy {
         com.example.whisper_android.domain.usecase.ProcessMeetingUseCase(
             transcribeAudioUseCase,
             translateTextUseCase,
-            summarizeTextUseCase
+            summarizeTextUseCase,
         )
     }
 
     val emailRepository: com.example.whisper_android.domain.repository.EmailRepository by lazy {
-        com.example.whisper_android.data.repository.EmailRepositoryImpl(emailApi)
+        com.example.whisper_android.data.repository
+            .EmailRepositoryImpl(emailApi)
     }
 
     val sendEmailUseCase: com.example.whisper_android.domain.usecase.SendEmailUseCase by lazy {
-        com.example.whisper_android.domain.usecase.SendEmailUseCase(emailRepository)
+        com.example.whisper_android.domain.usecase
+            .SendEmailUseCase(emailRepository)
     }
 }

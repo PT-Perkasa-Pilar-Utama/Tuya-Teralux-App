@@ -6,17 +6,23 @@ import com.example.whisper_android.data.remote.dto.SendEmailRequestDto
 import com.example.whisper_android.domain.repository.EmailRepository
 
 class EmailRepositoryImpl(
-    private val api: EmailApi
+    private val api: EmailApi,
 ) : EmailRepository {
-    override suspend fun sendEmail(to: String, subject: String, body: String, token: String): Result<Boolean> {
-        return try {
-            val request = SendEmailRequestDto(
-                to = listOf(to),
-                subject = subject,
-                body = body
-            )
+    override suspend fun sendEmail(
+        to: String,
+        subject: String,
+        body: String,
+        token: String,
+    ): Result<Boolean> =
+        try {
+            val request =
+                SendEmailRequestDto(
+                    to = listOf(to),
+                    subject = subject,
+                    body = body,
+                )
             val response = api.sendEmail("Bearer $token", request)
-            
+
             if (response.status) {
                 Result.success(true)
             } else {
@@ -27,5 +33,4 @@ class EmailRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
 }
