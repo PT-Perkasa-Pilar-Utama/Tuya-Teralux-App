@@ -154,7 +154,7 @@ func (u *whisperProxyUsecase) HealthCheck() error {
 		utils.LogError("Whisper: Health check request failed - Outsystems server is unreachable: %v", err)
 		return fmt.Errorf("outsystems server unreachable")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
@@ -228,7 +228,7 @@ func (u *whisperProxyUsecase) FetchToOutsystems(filePath string, fileName string
 		utils.LogError("Whisper: Transcribe request to Outsystems failed: %v", err)
 		return nil, fmt.Errorf("transcribe request failed")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)

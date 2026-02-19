@@ -21,7 +21,7 @@ func NewEmailService(cfg *utils.Config) *EmailService {
 	wd, _ := os.Getwd()
 	// Default guess
 	tmplDir := filepath.Join(wd, "domain", "common", "templates")
-	
+
 	// Fallback check for "backend/domain..."
 	if _, err := os.Stat(tmplDir); os.IsNotExist(err) {
 		altDir := filepath.Join(wd, "backend", "domain", "common", "templates")

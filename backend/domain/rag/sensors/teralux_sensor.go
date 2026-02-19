@@ -222,7 +222,7 @@ func parseBoolean(value interface{}) bool {
 	case float64:
 		return v != 0
 	case string:
-		return strings.ToLower(v) == "true" || v == "1"
+		return strings.EqualFold(v, "true") || v == "1"
 	}
 	return false
 }

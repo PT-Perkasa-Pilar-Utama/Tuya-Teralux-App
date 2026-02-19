@@ -63,7 +63,7 @@ func (r *OllamaRepository) HealthCheck() bool {
 		utils.LogWarn("Ollama HealthCheck failed: %v", err)
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		utils.LogWarn("Ollama HealthCheck failed: status %d", resp.StatusCode)
@@ -83,7 +83,7 @@ func (r *OllamaRepository) CallModel(prompt string, model string) (string, error
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %v", err)

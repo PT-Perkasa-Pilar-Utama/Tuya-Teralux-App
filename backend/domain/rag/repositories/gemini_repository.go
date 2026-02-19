@@ -54,7 +54,7 @@ func (r *GeminiRepository) HealthCheck() bool {
 		utils.LogWarn("Gemini HealthCheck failed: %v", err)
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		utils.LogWarn("Gemini HealthCheck failed: status %d", resp.StatusCode)
@@ -91,7 +91,7 @@ func (r *GeminiRepository) CallModel(prompt string, model string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("failed to call gemini api: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -31,7 +31,7 @@ func (u *refineUseCase) RefineText(text string, lang string) (string, error) {
 
 	var prompt string
 
-	if strings.ToLower(lang) == "id" {
+	if strings.EqualFold(lang, "id") {
 		// Indonesian KBBI / Formal Fix
 		prompt = fmt.Sprintf(`You are a professional Indonesian editor. 
 Fix the grammar, spelling, and word choices of the following transcription to align with standard Indonesian (KBBI/PUEBI).

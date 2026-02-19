@@ -54,7 +54,7 @@ func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 		return
 	}
 
-	// Wrap entity in DTO for response consistency if needed, 
+	// Wrap entity in DTO for response consistency if needed,
 	// but here we can just use a simple map or DTO
 	resp := recordings_dtos.RecordingResponseDto{
 		ID:           result.ID,

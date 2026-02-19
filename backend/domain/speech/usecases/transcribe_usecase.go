@@ -123,7 +123,9 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 			"uid":        metadata.UID,
 		}
 		payload, _ := json.Marshal(chatReq)
-		uc.mqttSvc.Publish(chatTopic, 0, false, payload)
+		if err := uc.mqttSvc.Publish(chatTopic, 0, false, payload); err != nil {
+			utils.LogError("TranscribeUseCase: Failed to publish transcript to MQTT: %v", err)
+		}
 		utils.LogInfo("Transcribe Task %s: Chained result to %s", taskID, chatTopic)
 	}
 }

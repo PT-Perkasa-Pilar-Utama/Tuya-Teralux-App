@@ -86,17 +86,21 @@ func main() {
 		os.Exit(0)
 	}
 
+	if err := run(); err != nil {
+		utils.LogError("FATAL: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	utils.LoadConfig()
 
 	// Initialize database connection
 	_, err := infrastructure.InitDB()
 	if err != nil {
-		utils.LogInfo("FATAL: Failed to initialize database: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to initialize database: %w", err)
 	}
-	defer func() {
-		_ = infrastructure.CloseDB()
-	}()
+	defer func() { _ = infrastructure.CloseDB() }()
 	utils.LogInfo("Database initialized successfully")
 
 	// Auto Migrate Entities
@@ -107,8 +111,7 @@ func main() {
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
 	); err != nil {
-		utils.LogInfo("FATAL: Failed to auto-migrate entities: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to auto-migrate entities: %w", err)
 	}
 	utils.LogInfo("Entities auto-migrated successfully")
 
@@ -121,7 +124,7 @@ func main() {
 	if err != nil {
 		utils.LogInfo("Warning: Failed to initialize BadgerDB: %v", err)
 	} else {
-		defer badgerService.Close()
+		defer func() { _ = badgerService.Close() }()
 	}
 
 	// Initialize Vector DB
@@ -187,20 +190,19 @@ func main() {
 		missing = append(missing, "PORT")
 	}
 	if len(missing) > 0 {
-		utils.LogError("FATAL: Speech/RAG config incomplete: %v", missing)
-		os.Exit(1)
-	} else {
-		// Initialize RAG first as it's a dependency for Speech
-		utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
-		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
-
-		// Initialize Speech with RAG, Badger and Tuya Auth dependencies
-		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
-
-		// 6. Scene Module
-		sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
-		sceneModule.RegisterRoutes(protected)
+		return fmt.Errorf("speech/RAG config incomplete: %v", missing)
 	}
+
+	// Initialize RAG first as it's a dependency for Speech
+	utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
+	ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
+
+	// Initialize Speech with RAG, Badger and Tuya Auth dependencies
+	speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
+
+	// 6. Scene Module
+	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
+	sceneModule.RegisterRoutes(protected)
 
 	// Register Health at the end so it appears last in Swagger
 	router.GET("/api/health", commonModule.HealthController.CheckHealth)
@@ -210,7 +212,5 @@ func main() {
 		port = "8080"
 	}
 	utils.LogInfo("Server starting on :%s", port)
-	if err := router.Run(":" + port); err != nil {
-		utils.LogInfo("Failed to start server: %v", err)
-	}
+	return router.Run(":" + port)
 }

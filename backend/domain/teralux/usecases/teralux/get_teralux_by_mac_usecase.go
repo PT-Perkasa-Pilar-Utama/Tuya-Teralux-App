@@ -24,7 +24,7 @@ func (uc *GetTeraluxByMACUseCase) GetTeraluxByMAC(macAddress string) (*dtos.Tera
 	// Regex: ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$  <-- MAC
 	//        ^[0-9a-fA-F]{16}$                     <-- Android ID
 	validMAC := regexp.MustCompile(`^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$|^[0-9a-fA-F]{16}$`)
-	
+
 	if !validMAC.MatchString(macAddress) {
 		return nil, errors.New("invalid mac address or device id format")
 	}

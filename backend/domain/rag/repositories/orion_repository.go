@@ -49,7 +49,7 @@ func (r *OrionRepository) HealthCheck() bool {
 		utils.LogWarn("Orion HealthCheck failed: %v", err)
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		utils.LogWarn("Orion HealthCheck failed: status %d", resp.StatusCode)
@@ -80,7 +80,7 @@ func (r *OrionRepository) CallModel(prompt string, model string) (string, error)
 	}
 
 	// Always use Orion's configured model, ignore parameter
-	model = r.model
+	// model = r.model // Removed to fix SA4009
 
 	// Remove trailing slash from baseURL if present
 	baseURL := r.baseURL
@@ -91,7 +91,7 @@ func (r *OrionRepository) CallModel(prompt string, model string) (string, error)
 	url := fmt.Sprintf("%s/v1/responses", baseURL)
 
 	reqBody := map[string]interface{}{
-		"model": model,
+		"model": r.model,
 		"input": prompt,
 	}
 
@@ -113,7 +113,7 @@ func (r *OrionRepository) CallModel(prompt string, model string) (string, error)
 	if err != nil {
 		return "", fmt.Errorf("failed to call orion api: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

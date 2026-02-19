@@ -43,9 +43,10 @@ func (uc *TuyaSensorUseCase) GetSensorData(accessToken, deviceID string) (*dtos.
 		switch status.Code {
 		case "va_temperature":
 			// value is likely float64 or int in JSON, often comes as float64 from generic interface{} unmarshaling
-			if val, ok := status.Value.(float64); ok {
+			switch val := status.Value.(type) {
+			case float64:
 				temperature = val / 10.0
-			} else if val, ok := status.Value.(int); ok { // unlikely in unmarshaled json but possible
+			case int:
 				temperature = float64(val) / 10.0
 			}
 		case "va_humidity":
@@ -61,20 +62,22 @@ func (uc *TuyaSensorUseCase) GetSensorData(accessToken, deviceID string) (*dtos.
 
 	// Determine status text
 	var tempStatus string
-	if temperature > 28.0 {
+	switch {
+	case temperature > 28.0:
 		tempStatus = "Temperature hot"
-	} else if temperature < 18.0 {
+	case temperature < 18.0:
 		tempStatus = "Temperature cold"
-	} else {
+	default:
 		tempStatus = "Temperature comfortable"
 	}
 
 	var humidStatus string
-	if humidity > 60 {
+	switch {
+	case humidity > 60:
 		humidStatus = "Air moist"
-	} else if humidity < 30 {
+	case humidity < 30:
 		humidStatus = "Air dry"
-	} else {
+	default:
 		humidStatus = "Air comfortable"
 	}
 

@@ -40,7 +40,7 @@ func (r *WhisperOrionRepository) HealthCheck() bool {
 		utils.LogWarn("Orion Whisper HealthCheck failed: %v", err)
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		utils.LogWarn("Orion Whisper HealthCheck failed: status %d", resp.StatusCode)
@@ -61,7 +61,7 @@ func (r *WhisperOrionRepository) Transcribe(audioPath string, lang string) (stri
 	if err != nil {
 		return "", fmt.Errorf("failed to open audio file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
 	if err != nil {
@@ -95,7 +95,7 @@ func (r *WhisperOrionRepository) Transcribe(audioPath string, lang string) (stri
 	if err != nil {
 		return "", fmt.Errorf("request to whisper server failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)

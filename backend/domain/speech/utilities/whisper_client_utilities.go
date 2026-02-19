@@ -196,7 +196,7 @@ func (c *LocalWhisperClient) Transcribe(audioPath string, language string) (*Whi
 	if err := utils.ConvertToWav(audioPath, wavPath); err != nil {
 		return nil, fmt.Errorf("failed to convert audio: %w", err)
 	}
-	defer os.Remove(wavPath)
+	defer func() { _ = os.Remove(wavPath) }()
 
 	text, err := c.repo.TranscribeFull(wavPath, c.modelPath, language)
 	if err != nil {

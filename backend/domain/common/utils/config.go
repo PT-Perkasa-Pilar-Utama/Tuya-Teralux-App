@@ -78,7 +78,7 @@ func LoadConfig() {
 		} else {
 			for k, v := range m {
 				if os.Getenv(k) == "" {
-					os.Setenv(k, v)
+					_ = os.Setenv(k, v)
 				}
 			}
 			log.Printf("Loaded env file: %s", envPath)

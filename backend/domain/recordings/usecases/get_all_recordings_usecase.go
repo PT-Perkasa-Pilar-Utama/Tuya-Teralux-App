@@ -23,7 +23,7 @@ func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*recordings_
 		return nil, err
 	}
 
-	var recordingDtos []recordings_dtos.RecordingResponseDto
+	recordingDtos := make([]recordings_dtos.RecordingResponseDto, 0, len(recordings))
 	for _, r := range recordings {
 		recordingDtos = append(recordingDtos, recordings_dtos.RecordingResponseDto{
 			ID:           r.ID,

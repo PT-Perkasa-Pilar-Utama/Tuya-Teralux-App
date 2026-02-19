@@ -48,7 +48,7 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) 
 	if err != nil {
 		return nil, err
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	if err := uc.fileService.SaveUploadedFile(fileHeader, uploadPath); err != nil {
 		return nil, fmt.Errorf("failed to save file: %v", err)

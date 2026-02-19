@@ -8,11 +8,11 @@ import (
 func TestLoadConfig(t *testing.T) {
 	// Backup original env vars relative to this test
 	originalClientID := os.Getenv("TUYA_CLIENT_ID")
-	defer os.Setenv("TUYA_CLIENT_ID", originalClientID)
+	defer func() { _ = os.Setenv("TUYA_CLIENT_ID", originalClientID) }()
 
 	// Set test env var
 	testID := "test_client_id"
-	os.Setenv("TUYA_CLIENT_ID", testID)
+	_ = os.Setenv("TUYA_CLIENT_ID", testID)
 
 	// Force reload
 	AppConfig = nil // clear global singleton if possible, or just call LoadConfig which overwrites it.
@@ -39,16 +39,16 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 	}
 	defer func() {
 		for k, v := range backup {
-			os.Setenv(k, v)
+			_ = os.Setenv(k, v)
 		}
 		AppConfig = nil
 	}()
 
-	os.Setenv("LLM_MODEL", "gemma-test")
-	os.Setenv("WHISPER_MODEL_PATH", "/tmp/whisper.bin")
-	os.Setenv("MAX_FILE_SIZE_MB", "10")
-	os.Setenv("PORT", "9090")
-	os.Setenv("CACHE_TTL", "30m")
+	_ = os.Setenv("LLM_MODEL", "gemma-test")
+	_ = os.Setenv("WHISPER_MODEL_PATH", "/tmp/whisper.bin")
+	_ = os.Setenv("MAX_FILE_SIZE_MB", "10")
+	_ = os.Setenv("PORT", "9090")
+	_ = os.Setenv("CACHE_TTL", "30m")
 
 	AppConfig = nil
 	LoadConfig()
@@ -70,8 +70,8 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 
 func TestLoadConfig_InvalidMaxFileSize(t *testing.T) {
 	backup := os.Getenv("MAX_FILE_SIZE_MB")
-	defer os.Setenv("MAX_FILE_SIZE_MB", backup)
-	os.Setenv("MAX_FILE_SIZE_MB", "notanumber")
+	defer func() { _ = os.Setenv("MAX_FILE_SIZE_MB", backup) }()
+	_ = os.Setenv("MAX_FILE_SIZE_MB", "notanumber")
 	AppConfig = nil
 	LoadConfig()
 	cfg := GetConfig()

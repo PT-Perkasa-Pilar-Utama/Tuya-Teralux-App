@@ -74,7 +74,7 @@ func (s *ControlSkill) selectDeviceWithLLM(ctx *SkillContext, devices []tuyaDtos
 		historyContext = "Previous conversation:\n" + strings.Join(ctx.History, "\n") + "\n"
 	}
 
-	var deviceList []string
+	deviceList := make([]string, 0, len(devices))
 	for _, d := range devices {
 		deviceList = append(deviceList, fmt.Sprintf("- %s (ID: %s)", d.Name, d.ID))
 	}

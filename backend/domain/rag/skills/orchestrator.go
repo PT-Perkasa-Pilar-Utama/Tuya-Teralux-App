@@ -28,7 +28,7 @@ func (o *Orchestrator) RouteAndExecute(ctx *SkillContext) (*SkillResult, error) 
 	}
 
 	// 1. Build the routing prompt
-	var skillDescriptions []string
+	skillDescriptions := make([]string, 0, len(allSkills))
 	for _, s := range allSkills {
 		skillDescriptions = append(skillDescriptions, fmt.Sprintf("- %s: %s", s.Name(), s.Description()))
 	}

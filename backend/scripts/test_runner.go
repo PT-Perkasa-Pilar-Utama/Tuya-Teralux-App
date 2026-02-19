@@ -101,7 +101,7 @@ func main() {
 				// Individual Test Passed
 				totalPassed++
 				pkgResults[event.Package].Passed++
-				// utils.LogInfo("%s✓ %s%s", ColorGreen, event.Test, ColorReset) // Optional verbose
+				// Optional verbose logging could go here
 			} else if event.Package != "" {
 				// Package Passed
 				pkgResults[event.Package].Elapsed = event.Elapsed

@@ -157,7 +157,7 @@ func (u *controlUseCase) selectDeviceSensor(device *tuyaDtos.TuyaDeviceDTO) sens
 	return sensors.NewTeraluxSensor()
 }
 
-func (u *controlUseCase) handleNoInitialMatches(uid, teraluxID, prompt string, devices []tuyaDtos.TuyaDeviceDTO) (*dtos.ControlResultDTO, error) {
+func (u *controlUseCase) handleNoInitialMatches(_, teraluxID, prompt string, devices []tuyaDtos.TuyaDeviceDTO) (*dtos.ControlResultDTO, error) {
 	if len(devices) == 0 {
 		return &dtos.ControlResultDTO{
 			Message: "I'm sorry, I couldn't find any devices connected to your account.",
@@ -181,7 +181,7 @@ func (u *controlUseCase) handleNoInitialMatches(uid, teraluxID, prompt string, d
 	}
 
 	// 2. Build a list of searchable device names
-	var deviceList []string
+	deviceList := make([]string, 0, len(devices))
 	for _, d := range devices {
 		deviceList = append(deviceList, fmt.Sprintf("- %s (ID: %s)", d.Name, d.ID))
 	}

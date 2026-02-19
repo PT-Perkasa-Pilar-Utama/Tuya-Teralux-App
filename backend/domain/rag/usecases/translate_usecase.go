@@ -35,7 +35,7 @@ func NewTranslateUseCase(llm utilities.LLMClient, cfg *utils.Config, cache *task
 // translateInternal (private internal for use by Execute)
 func (u *translateUseCase) translateInternal(text, targetLang string) (string, error) {
 	langName := "English"
-	if strings.ToLower(targetLang) == "id" {
+	if strings.EqualFold(targetLang, "id") {
 		langName = "Indonesian"
 	}
 

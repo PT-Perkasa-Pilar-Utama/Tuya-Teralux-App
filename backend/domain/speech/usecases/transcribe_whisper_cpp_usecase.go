@@ -78,7 +78,7 @@ func (uc *transcribeWhisperCppUseCase) processAsync(taskID string, inputPath str
 		uc.updateStatus(taskID, "failed", nil)
 		return
 	}
-	defer os.Remove(wavPath)
+	defer func() { _ = os.Remove(wavPath) }()
 
 	// Transcribe with local whisper.cpp
 	text, err := uc.whisperCppRepo.TranscribeFull(wavPath, uc.config.WhisperModelPath, lang)

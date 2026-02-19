@@ -59,7 +59,7 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	targetLangName := "Indonesian"
-	if strings.ToLower(language) == "en" {
+	if strings.EqualFold(language, "en") {
 		targetLangName = "English"
 	}
 
@@ -97,7 +97,7 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
 
 	// Create reports directory if not exists
-	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {
 		meta := services.SummaryPDFMeta{
@@ -240,7 +240,7 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	}
 
 	targetLangName := "Indonesian"
-	if strings.ToLower(language) == "en" {
+	if strings.EqualFold(language, "en") {
 		targetLangName = "English"
 	}
 
@@ -292,7 +292,7 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		basePath = filepath.Dir(envPath)
 	}
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
-	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {
 		// Use parent context directly

@@ -49,7 +49,7 @@ func (s *TuyaAuthService) FetchToken(url string, headers map[string]string) (*en
 		utils.LogError("FetchToken: failed to execute request: %v", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

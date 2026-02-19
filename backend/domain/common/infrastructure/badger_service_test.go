@@ -11,8 +11,8 @@ func TestNewBadgerService(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Set cache TTL in environment
-	os.Setenv("CACHE_TTL", "30m")
-	defer os.Unsetenv("CACHE_TTL")
+	_ = os.Setenv("CACHE_TTL", "30m")
+	defer func() { _ = os.Unsetenv("CACHE_TTL") }()
 
 	// Initialize config to avoid nil pointer
 	utils.AppConfig = nil
@@ -22,7 +22,7 @@ func TestNewBadgerService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	if service == nil {
 		t.Fatal("Expected service instance, got nil")
@@ -43,7 +43,7 @@ func TestBadgerService_SetAndGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	key := "test_key"
 	value := []byte("test_value")
@@ -76,7 +76,7 @@ func TestBadgerService_GetNonExistent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	retrieved, err := service.Get("non_existent_key")
 	if err != nil {
@@ -98,7 +98,7 @@ func TestBadgerService_Delete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	key := "delete_test"
 	value := []byte("value")
@@ -128,7 +128,7 @@ func TestBadgerService_SetPersistent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	key := "persistent_key"
 	value := []byte("persistent_value")
@@ -159,7 +159,7 @@ func TestBadgerService_ClearWithPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	// Set multiple keys with same prefix
 	prefix := "test_prefix:"
@@ -198,7 +198,7 @@ func TestBadgerService_GetAllKeysWithPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	prefix := "list_test:"
 	_ = service.Set(prefix+"a", []byte("1"))
@@ -226,7 +226,7 @@ func TestBadgerService_FlushAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	// Set cache and persistent data
 	_ = service.Set("cache:key1", []byte("cache_value"))
@@ -263,7 +263,7 @@ func TestBadgerService_SetPreserveTTL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBadgerService failed: %v", err)
 	}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 
 	key := "preserve_key"
 	v1 := []byte("v1")

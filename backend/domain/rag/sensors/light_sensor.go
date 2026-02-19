@@ -192,10 +192,10 @@ func (s *LightSensor) matchLightControl(promptLower string, status []tuyaDtos.Tu
 }
 
 // extractNumericValue extracts a numeric value from prompt within given range
-func (s *LightSensor) extractNumericValue(promptLower string, min, max int) (int, bool) {
+func (s *LightSensor) extractNumericValue(promptLower string, minValue, maxValue int) (int, bool) {
 	words := strings.Fields(promptLower)
 	for _, word := range words {
-		if num, err := strconv.Atoi(word); err == nil && num >= min && num <= max {
+		if num, err := strconv.Atoi(word); err == nil && num >= minValue && num <= maxValue {
 			return num, true
 		}
 	}

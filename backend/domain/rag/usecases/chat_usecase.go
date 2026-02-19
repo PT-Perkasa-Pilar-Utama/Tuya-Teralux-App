@@ -69,8 +69,7 @@ func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.R
 
 	// 4. Update History
 	if u.badger != nil {
-		history = append(history, "User: "+prompt)
-		history = append(history, "Assistant: "+result.Message)
+		history = append(history, "User: "+prompt, "Assistant: "+result.Message)
 		if len(history) > 20 {
 			history = history[len(history)-20:]
 		}
@@ -98,4 +97,3 @@ func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.R
 		HTTPStatusCode: result.HTTPStatusCode,
 	}, nil
 }
-

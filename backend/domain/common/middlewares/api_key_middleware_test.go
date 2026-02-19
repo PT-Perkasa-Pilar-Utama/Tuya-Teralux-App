@@ -14,8 +14,8 @@ func TestApiKeyMiddleware(t *testing.T) {
 
 	t.Run("Valid API Key", func(t *testing.T) {
 		// Set valid API key in environment
-		os.Setenv("API_KEY", "test-api-key-123")
-		defer os.Unsetenv("API_KEY")
+		_ = os.Setenv("API_KEY", "test-api-key-123")
+		defer func() { _ = os.Unsetenv("API_KEY") }()
 
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)
@@ -37,8 +37,8 @@ func TestApiKeyMiddleware(t *testing.T) {
 	})
 
 	t.Run("Invalid API Key", func(t *testing.T) {
-		os.Setenv("API_KEY", "correct-key")
-		defer os.Unsetenv("API_KEY")
+		_ = os.Setenv("API_KEY", "correct-key")
+		defer func() { _ = os.Unsetenv("API_KEY") }()
 
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)
@@ -60,8 +60,8 @@ func TestApiKeyMiddleware(t *testing.T) {
 	})
 
 	t.Run("Missing API Key Header", func(t *testing.T) {
-		os.Setenv("API_KEY", "test-key")
-		defer os.Unsetenv("API_KEY")
+		_ = os.Setenv("API_KEY", "test-key")
+		defer func() { _ = os.Unsetenv("API_KEY") }()
 
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)
@@ -84,7 +84,7 @@ func TestApiKeyMiddleware(t *testing.T) {
 
 	t.Run("Server API Key Not Configured", func(t *testing.T) {
 		// Ensure API_KEY is not set
-		os.Unsetenv("API_KEY")
+		_ = os.Unsetenv("API_KEY")
 
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)

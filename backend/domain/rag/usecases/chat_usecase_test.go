@@ -105,4 +105,3 @@ func TestChatUseCase_Chat(t *testing.T) {
 		mockIdentitySkill.AssertExpectations(t)
 	})
 }
-

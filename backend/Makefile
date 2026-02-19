@@ -19,6 +19,7 @@ help:
 	@echo "  make start-compose    - Start Docker Compose stack (pulls first)"
 	@echo "  make stop-compose     - Stop Docker Compose stack"
 	@echo "  make update           - Update running container using Watchtower"
+	@echo "  make lint             - Run golangci-lint"
 	@echo "  make test             - Run all unit tests"
 	@echo "  make clean            - Clean build artifacts"
 	@echo "  make kill             - Kill process running on PORT 8081"
@@ -223,6 +224,11 @@ vet:
 	@echo "🔍 Running go vet..."
 	@go list ./... 2>/dev/null | grep -v /tmp/ | xargs go vet
 
+# Run golangci-lint
+lint:
+	@echo "🔍 Running golangci-lint..."
+	@$(GOLANGCI_LINT) run ./... || (echo "❌ golangci-lint not found. Installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && $(GOLANGCI_LINT) run ./...)
+
 
 # Clean build artifacts
 clean:
@@ -238,7 +244,8 @@ kill:
 
 # --- Database Migration Configuration ---
 # Note: We build from source to include SQLite support (prebuilt binaries don't have it)
-MIGRATE_BIN = $(shell go env GOPATH)/bin/migrate
+MIGRATE_BIN = $(HOME)/go/bin/migrate
+GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
 
 # Load environment variables
 ifneq (,$(wildcard ./.env))

@@ -60,7 +60,7 @@ func (uc *deviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.D
 	}
 
 	// Convert map back to array
-	var mergedCommands []entities.DeviceStateCommand
+	mergedCommands := make([]entities.DeviceStateCommand, 0, len(commandMap))
 	for code, value := range commandMap {
 		mergedCommands = append(mergedCommands, entities.DeviceStateCommand{
 			Code:  code,
@@ -129,7 +129,7 @@ func (uc *deviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceState
 	}
 
 	// Convert to DTO
-	var commandDTOs []dtos.DeviceStateCommandDTO
+	var commandDTOs = make([]dtos.DeviceStateCommandDTO, 0, len(state.LastCommands))
 	for _, cmd := range state.LastCommands {
 		commandDTOs = append(commandDTOs, dtos.DeviceStateCommandDTO{
 			Code:  cmd.Code,

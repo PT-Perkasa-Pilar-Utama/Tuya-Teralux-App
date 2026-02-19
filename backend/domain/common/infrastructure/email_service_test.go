@@ -58,5 +58,4 @@ func TestEmailService_SendEmailWithTemplate_SuccessParsing(t *testing.T) {
 	assert.Error(t, err)
 	assert.NotContains(t, err.Error(), "template")
 	assert.NotContains(t, err.Error(), "parse")
-	// assert.Contains(t, err.Error(), "failed to send email") // Use broader check
 }
