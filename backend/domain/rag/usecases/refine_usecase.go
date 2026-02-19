@@ -1,9 +1,9 @@
 package usecases
 
 import (
-	"fmt"
 	"strings"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/rag/skills"
 	"teralux_app/domain/rag/utilities"
 )
 
@@ -29,38 +29,19 @@ func (u *refineUseCase) RefineText(text string, lang string) (string, error) {
 		return "", nil
 	}
 
-	var prompt string
-
-	if strings.EqualFold(lang, "id") {
-		// Indonesian KBBI / Formal Fix
-		prompt = fmt.Sprintf(`You are a professional Indonesian editor. 
-Fix the grammar, spelling, and word choices of the following transcription to align with standard Indonesian (KBBI/PUEBI).
-Ensure the tone is clear and professional while preserving the original meaning.
-Only return the final polished text without any explanation, quotes, or additional commentary.
-
-Text: "%s"
-Sesuai KBBI:`, text)
-	} else {
-		// English / Default Grammar Fix
-		prompt = fmt.Sprintf(`You are a professional English editor. 
-Fix any grammatical errors, spelling mistakes, and improve the clarity of the following transcription.
-If the text is already clear, return it as is.
-Only return the final polished text without any explanation, quotes, or additional commentary.
-
-Text: "%s"
-Refined English:`, text)
+	skill := &skills.RefineSkill{}
+	ctx := &skills.SkillContext{
+		Prompt:   text,
+		Language: lang,
+		LLM:      u.llm,
+		Config:   u.config,
 	}
 
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
-	}
-
-	refined, err := u.llm.CallModel(prompt, model)
+	res, err := skill.Execute(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, refined)
-	return strings.TrimSpace(refined), nil
+	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, res.Message)
+	return res.Message, nil
 }

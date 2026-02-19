@@ -3,7 +3,6 @@ package usecases
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	ragUsecases "teralux_app/domain/rag/usecases"
@@ -16,27 +15,23 @@ type TranscribeWhisperCppUseCase interface {
 }
 
 type transcribeWhisperCppUseCase struct {
-	whisperCppRepo WhisperCppRepository
-	refineUC       ragUsecases.RefineUseCase
-	cache          *tasks.BadgerTaskCache
-	config         *utils.Config
-}
-
-type WhisperCppRepository interface {
-	TranscribeFull(wavPath string, modelPath string, lang string) (string, error)
+	whisperClient WhisperClient
+	refineUC      ragUsecases.RefineUseCase
+	cache         *tasks.BadgerTaskCache
+	config        *utils.Config
 }
 
 func NewTranscribeWhisperCppUseCase(
-	whisperCppRepo WhisperCppRepository,
+	whisperClient WhisperClient,
 	refineUC ragUsecases.RefineUseCase,
 	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
 ) TranscribeWhisperCppUseCase {
 	return &transcribeWhisperCppUseCase{
-		whisperCppRepo: whisperCppRepo,
-		refineUC:       refineUC,
-		cache:          cache,
-		config:         config,
+		whisperClient: whisperClient,
+		refineUC:      refineUC,
+		cache:         cache,
+		config:        config,
 	}
 }
 
@@ -69,24 +64,25 @@ func (uc *transcribeWhisperCppUseCase) processAsync(taskID string, inputPath str
 		}
 	}()
 
-	// Convert to WAV
-	tempDir := filepath.Dir(inputPath)
-	wavPath := filepath.Join(tempDir, "processed.wav")
-
-	if err := utils.ConvertToWav(inputPath, wavPath); err != nil {
-		utils.LogError("TranscribeWhisperCpp Task %s: Failed to convert audio: %v", taskID, err)
-		uc.updateStatus(taskID, "failed", nil)
-		return
-	}
-	defer func() { _ = os.Remove(wavPath) }()
-
-	// Transcribe with local whisper.cpp
-	text, err := uc.whisperCppRepo.TranscribeFull(wavPath, uc.config.WhisperModelPath, lang)
+	// Transcribe with local whisper.cpp (via service)
+	// Service handles conversion to WAV if needed, but we already converted it here?
+	// WhisperLocalService checks extension and converts if needed.
+	// But here strict WAV is expected by old repo logic?
+	// Service accepts audioPath.
+	// Let's pass the inputPath directly to service and let it handle conversion!
+	// Removing local conversion block?
+	// Wait, processAsync converted to 'processed.wav'.
+	// If I pass inputPath to service, service converts to 'processed_local_service.wav'.
+	// It's fine. Redundant conversion but safe.
+	// Actually, better to just call service with inputPath.
+	
+	result, err := uc.whisperClient.Transcribe(inputPath, lang)
 	if err != nil {
 		utils.LogError("TranscribeWhisperCpp Task %s: Transcription failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil)
 		return
 	}
+	text := result.Transcription
 
 	utils.LogInfo("TranscribeWhisperCpp Task %s: Transcription finished", taskID)
 

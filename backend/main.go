@@ -174,14 +174,11 @@ func run() error {
 	// Log current log level for diagnostic purposes
 	fmt.Printf("Application log level: %s\n", utils.GetCurrentLogLevelName())
 	missing := []string{}
-	if scfg.LLMProvider == "" {
-		missing = append(missing, "LLM_PROVIDER")
+	if scfg.GeminiApiKey == "" && scfg.OrionApiKey == "" {
+		missing = append(missing, "GEMINI_API_KEY or ORION_API_KEY")
 	}
-	if scfg.LLMModel == "" {
-		missing = append(missing, "LLM_MODEL")
-	}
-	if scfg.WhisperModelPath == "" {
-		missing = append(missing, "WHISPER_MODEL_PATH")
+	if scfg.WhisperLocalModel == "" && scfg.OrionWhisperBaseURL == "" {
+		missing = append(missing, "WHISPER_LOCAL_MODEL or ORION_WHISPER_BASE_URL")
 	}
 	if scfg.MaxFileSize == 0 {
 		missing = append(missing, "MAX_FILE_SIZE_MB")
@@ -194,7 +191,7 @@ func run() error {
 	}
 
 	// Initialize RAG first as it's a dependency for Speech
-	utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
+	utils.LogInfo("Configuring RAG/Speech...")
 	ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
 
 	// Initialize Speech with RAG, Badger and Tuya Auth dependencies

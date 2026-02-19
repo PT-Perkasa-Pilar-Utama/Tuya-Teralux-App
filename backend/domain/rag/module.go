@@ -4,9 +4,9 @@ import (
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
+	commonServices "teralux_app/domain/common/services"
 	"teralux_app/domain/rag/controllers"
 	ragdtos "teralux_app/domain/rag/dtos"
-	ragRepos "teralux_app/domain/rag/repositories"
 	"teralux_app/domain/rag/routes"
 	"teralux_app/domain/rag/services"
 	"teralux_app/domain/rag/skills"
@@ -19,13 +19,24 @@ import (
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
 func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) usecases.RefineUseCase {
-	// Initialize Dependencies
-	orionRepo := ragRepos.NewOrionRepository()
-	geminiRepo := ragRepos.NewGeminiRepository()
-	ollamaRepo := ragRepos.NewOllamaRepository()
+	// Initialize Dependencies (Services)
+	orionService := commonServices.NewOrionService(cfg)
+	geminiService := commonServices.NewGeminiService(cfg)
 
-	// Use 3-level Fallback client: Orion (Primary) -> Gemini (Secondary) -> Ollama (Tertiary)
-	llmClient := utilities.NewLLMClientWithFallback(orionRepo, geminiRepo, ollamaRepo)
+
+	// Select LLM Client based on configuration
+	var llmClient utilities.LLMClient
+
+	if cfg.LLMProvider == "gemini" {
+		utils.LogInfo("RAG: Using Gemini as LLM Provider")
+		llmClient = geminiService
+	} else if cfg.LLMProvider == "orion" {
+		utils.LogInfo("RAG: Using Orion as LLM Provider")
+		llmClient = orionService
+	} else {
+		utils.LogFatal("RAG: Invalid or missing LLM_PROVIDER. Set it to 'gemini' or 'orion'. Detected: '%s'", cfg.LLMProvider)
+		return nil // unreachable due to LogFatal likely os.Exit(1), but for safety
+	}
 
 	// Initialize Shared Store
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()

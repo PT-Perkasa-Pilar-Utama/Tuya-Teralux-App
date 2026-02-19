@@ -5,6 +5,13 @@ type TranscriptionResponseDTO struct {
 	RefinedText   string `json:"refined_text,omitempty" example:"Hello world"`
 }
 
+// WhisperResult represents the result of a transcription from any provider
+type WhisperResult struct {
+	Transcription    string
+	DetectedLanguage string
+	Source           string // Which service was used: "PPU", "Orion", "Local", "Gemini"
+}
+
 type WhisperMqttRequestDTO struct {
 	Audio     string `json:"audio" binding:"required"` // Base64 encoded audio
 	Language  string `json:"language,omitempty"`

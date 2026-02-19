@@ -9,7 +9,6 @@ import (
 	"teralux_app/domain/common/utils"
 	ragUsecases "teralux_app/domain/rag/usecases"
 	speechdtos "teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/utilities"
 	"time"
 )
 
@@ -24,7 +23,7 @@ type TranscribeUseCase interface {
 }
 
 type transcribeUseCase struct {
-	whisperClient utilities.WhisperClient
+	whisperClient WhisperClient
 	refineUC      ragUsecases.RefineUseCase
 	cache         *tasks.BadgerTaskCache
 	config        *utils.Config
@@ -32,7 +31,7 @@ type transcribeUseCase struct {
 }
 
 func NewTranscribeUseCase(
-	whisperClient utilities.WhisperClient,
+	whisperClient WhisperClient,
 	refineUC ragUsecases.RefineUseCase,
 	cache *tasks.BadgerTaskCache,
 	config *utils.Config,

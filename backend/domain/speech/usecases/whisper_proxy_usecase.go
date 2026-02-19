@@ -23,6 +23,7 @@ type WhisperProxyUsecase interface {
 	GetStatus(taskID string) (*speechdtos.WhisperProxyStatusDTO, error)
 	HealthCheck() error
 	FetchToOutsystems(filePath string, fileName string, language string) (*speechdtos.OutsystemsTranscriptionResultDTO, error)
+	Transcribe(audioPath string, language string) (*speechdtos.WhisperResult, error)
 }
 
 type whisperProxyUsecase struct {
@@ -127,9 +128,9 @@ func (u *whisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, 
 
 // HealthCheck performs a health check to verify the Outsystems server is online
 func (u *whisperProxyUsecase) HealthCheck() error {
-	outsystemsURL := u.config.OutsystemsTranscribeURL
+	outsystemsURL := u.config.OrionWhisperBaseURL
 	if outsystemsURL == "" {
-		utils.LogError("Whisper: OUTSYSTEMS_TRANSCRIBE_URL not configured")
+		utils.LogError("Whisper: ORION_WHISPER_BASE_URL not configured")
 		return fmt.Errorf("outsystems URL not configured")
 	}
 
@@ -167,11 +168,31 @@ func (u *whisperProxyUsecase) HealthCheck() error {
 	return nil
 }
 
+// Transcribe implements the WhisperClient interface
+func (u *whisperProxyUsecase) Transcribe(audioPath string, language string) (*speechdtos.WhisperResult, error) {
+	fileName := "audio_file" // Simplification
+	res, err := u.FetchToOutsystems(audioPath, fileName, language)
+	if err != nil {
+		return nil, err
+	}
+
+	lang := res.DetectedLanguage
+	if lang == "" {
+		lang = language
+	}
+
+	return &speechdtos.WhisperResult{
+		Transcription:    res.Transcription,
+		DetectedLanguage: lang,
+		Source:           "PPU (Outsystems)",
+	}, nil
+}
+
 // FetchToOutsystems sends the audio file to the external Outsystems server and returns parsed result
 func (u *whisperProxyUsecase) FetchToOutsystems(filePath string, fileName string, language string) (*speechdtos.OutsystemsTranscriptionResultDTO, error) {
-	outsystemsURL := u.config.OutsystemsTranscribeURL
+	outsystemsURL := u.config.OrionWhisperBaseURL
 	if outsystemsURL == "" {
-		utils.LogError("Whisper: OUTSYSTEMS_TRANSCRIBE_URL not configured")
+		utils.LogError("Whisper: ORION_WHISPER_BASE_URL not configured")
 		return nil, fmt.Errorf("outsystems URL not configured")
 	}
 

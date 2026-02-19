@@ -2,22 +2,22 @@ package usecases_test
 
 import (
 	"teralux_app/domain/common/utils"
+	speechdtos "teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/usecases"
-	"teralux_app/domain/speech/utilities"
 	"testing"
 )
 
-// MockWhisperClient is a mock implementation of utilities.WhisperClient
+// MockWhisperClient is a mock implementation of usecases.WhisperClient
 type MockWhisperClient struct {
-	TranscribeFunc  func(audioPath string, language string) (*utilities.WhisperResult, error)
+	TranscribeFunc  func(audioPath string, language string) (*speechdtos.WhisperResult, error)
 	HealthCheckFunc func() bool
 }
 
-func (m *MockWhisperClient) Transcribe(audioPath string, language string) (*utilities.WhisperResult, error) {
+func (m *MockWhisperClient) Transcribe(audioPath string, language string) (*speechdtos.WhisperResult, error) {
 	if m.TranscribeFunc != nil {
 		return m.TranscribeFunc(audioPath, language)
 	}
-	return &utilities.WhisperResult{
+	return &speechdtos.WhisperResult{
 		Transcription:    "test transcription",
 		DetectedLanguage: language,
 		Source:           "Mock",
@@ -43,6 +43,14 @@ func (m *MockWhisperCppRepository) TranscribeFull(wavPath string, modelPath stri
 	return "mock transcription from local", nil
 }
 
+func (m *MockWhisperCppRepository) Transcribe(audioPath string, language string) (*speechdtos.WhisperResult, error) {
+	return &speechdtos.WhisperResult{
+		Transcription:    "mock transcription from local",
+		DetectedLanguage: language,
+		Source:           "LocalCpp",
+	}, nil
+}
+
 // MockRefineUseCase is a mock implementation of RefineUseCase interface
 type MockRefineUseCase struct {
 	RefineTextFunc func(text string, lang string) (string, error)
@@ -57,7 +65,7 @@ func (m *MockRefineUseCase) RefineText(text string, lang string) (string, error)
 
 func TestNewTranscribeUseCase(t *testing.T) {
 	cfg := &utils.Config{
-		WhisperModelPath: "test_model",
+		WhisperLocalModel: "test_model",
 	}
 	mockClient := &MockWhisperClient{}
 
@@ -75,7 +83,7 @@ func TestNewTranscribeUseCase(t *testing.T) {
 
 func TestNewTranscribeWhisperCppUseCase(t *testing.T) {
 	cfg := &utils.Config{
-		WhisperModelPath: "test_model",
+		WhisperLocalModel: "test_model",
 	}
 	mockRepo := &MockWhisperCppRepository{}
 
@@ -92,7 +100,7 @@ func TestNewTranscribeWhisperCppUseCase(t *testing.T) {
 
 func TestTranscribeWhisperCppUseCase_Execute(t *testing.T) {
 	cfg := &utils.Config{
-		WhisperModelPath: "test_model",
+		WhisperLocalModel: "test_model",
 	}
 
 	t.Run("File Not Found", func(t *testing.T) {

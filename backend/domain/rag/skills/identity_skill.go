@@ -55,10 +55,7 @@ GUIDELINES:
 
 Response:`, ctx.Prompt, deviceListStr)
 
-	model := ctx.Config.LLMModel
-	if model == "" {
-		model = "default"
-	}
+	model := "high"
 
 	res, err := ctx.LLM.CallModel(identityPrompt, model)
 	if err != nil {

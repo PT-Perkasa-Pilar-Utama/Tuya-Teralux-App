@@ -16,8 +16,6 @@ func TestLoadConfig(t *testing.T) {
 
 	// Force reload
 	AppConfig = nil // clear global singleton if possible, or just call LoadConfig which overwrites it.
-	// Note: AppConfig is exported, so we can nil it to test GetConfig lazy load
-	AppConfig = nil
 	cfg := GetConfig()
 
 	if cfg.TuyaClientID != testID {
@@ -33,7 +31,7 @@ func TestLoadConfig(t *testing.T) {
 func TestLoadConfig_SetsValues(t *testing.T) {
 	// Backup and restore env
 	backup := map[string]string{}
-	keys := []string{"LLM_MODEL", "WHISPER_MODEL_PATH", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
+	keys := []string{"GEMINI_MODEL", "WHISPER_LOCAL_MODEL", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
 	for _, k := range keys {
 		backup[k] = os.Getenv(k)
 	}
@@ -44,8 +42,8 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 		AppConfig = nil
 	}()
 
-	_ = os.Setenv("LLM_MODEL", "gemma-test")
-	_ = os.Setenv("WHISPER_MODEL_PATH", "/tmp/whisper.bin")
+	_ = os.Setenv("GEMINI_MODEL", "gemini-test")
+	_ = os.Setenv("WHISPER_LOCAL_MODEL", "/tmp/whisper.bin")
 	_ = os.Setenv("MAX_FILE_SIZE_MB", "10")
 	_ = os.Setenv("PORT", "9090")
 	_ = os.Setenv("CACHE_TTL", "30m")
@@ -54,11 +52,11 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 	LoadConfig()
 	cfg := GetConfig()
 
-	if cfg.LLMModel != "gemma-test" {
-		t.Fatalf("expected LLMModel to be set, got %s", cfg.LLMModel)
+	if cfg.GeminiModel != "gemini-test" {
+		t.Fatalf("expected GeminiModel to be set, got %s", cfg.GeminiModel)
 	}
-	if cfg.WhisperModelPath != "/tmp/whisper.bin" {
-		t.Fatalf("expected WhisperModelPath to be set, got %s", cfg.WhisperModelPath)
+	if cfg.WhisperLocalModel != "/tmp/whisper.bin" {
+		t.Fatalf("expected WhisperLocalModel to be set, got %s", cfg.WhisperLocalModel)
 	}
 	if cfg.MaxFileSize != 10*1024*1024 {
 		t.Fatalf("expected MaxFileSize to be 10MB in bytes, got %d", cfg.MaxFileSize)
