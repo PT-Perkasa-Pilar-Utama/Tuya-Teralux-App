@@ -37,7 +37,7 @@ dev:
 	@rm -rf ./tmp/badger
 	@if [ ! -f bin/whisper-cli ]; then \
 		echo "🛠️ whisper-cli missing. Running setup..."; \
-		make setup; \
+		make setup-dev; \
 	fi
 	@echo "💡 Tip: Install air with 'make install-watch' if not installed"
 	@$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
@@ -108,6 +108,18 @@ OLLAMA_IMAGE ?= ollama/ollama:latest
 OLLAMA_DATA_DIR ?= $(HOME)/ollama
 WHISPER_MODEL ?= whisper
 LLM_MODEL ?= gemma
+
+WHISPER_SRC_DIR = services/whisper
+WHISPER_BUILD_DIR = $(WHISPER_SRC_DIR)/build
+
+# Run backend setup (whisper-cli build only) - Non Interactive
+setup-dev:
+	@echo "🚀 Running backend setup (whisper-cli build only)..."
+	@mkdir -p $(WHISPER_BUILD_DIR)
+	@cd $(WHISPER_BUILD_DIR) && cmake .. && make whisper-cli
+	@mkdir -p bin
+	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
+	@echo "✅ Setup complete. use 'make dev' to start."
 
 # Run setup script (build whisper.cpp + tools)
 setup: 
