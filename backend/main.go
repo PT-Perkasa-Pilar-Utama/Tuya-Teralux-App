@@ -174,12 +174,37 @@ func run() error {
 	// Log current log level for diagnostic purposes
 	fmt.Printf("Application log level: %s\n", utils.GetCurrentLogLevelName())
 	missing := []string{}
-	if scfg.GeminiApiKey == "" && scfg.OrionApiKey == "" {
-		missing = append(missing, "GEMINI_API_KEY or ORION_API_KEY")
+	// Validate mandatory config based on provider
+	switch scfg.LLMProvider {
+	case "gemini":
+		if scfg.GeminiApiKey == "" {
+			missing = append(missing, "GEMINI_API_KEY")
+		}
+	case "openai":
+		if scfg.OpenAIApiKey == "" {
+			missing = append(missing, "OPENAI_API_KEY")
+		}
+	case "groq":
+		if scfg.GroqApiKey == "" {
+			missing = append(missing, "GROQ_API_KEY")
+		}
+	case "orion":
+		if scfg.OrionApiKey == "" {
+			missing = append(missing, "ORION_API_KEY")
+		}
+		if scfg.OrionWhisperBaseURL == "" && scfg.WhisperLocalModel == "" {
+			missing = append(missing, "ORION_WHISPER_BASE_URL (required for Orion Whisper)")
+		}
+	default:
+		// If no provider or invalid, still check for common fallback
+		if scfg.GeminiApiKey == "" && scfg.OrionApiKey == "" && scfg.OpenAIApiKey == "" && scfg.GroqApiKey == "" {
+			missing = append(missing, "LLM API Key (GEMINI_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, or ORION_API_KEY)")
+		}
 	}
-	if scfg.WhisperLocalModel == "" && scfg.OrionWhisperBaseURL == "" {
-		missing = append(missing, "WHISPER_LOCAL_MODEL or ORION_WHISPER_BASE_URL")
-	}
+
+	// Whisper check (only if not using multimodal/API-based providers that handle it)
+	// Actually all our new providers handle it, but we might want local fallback.
+	// For now, if provider is set, we trust its InitModule to fail if specific whisper model is missing.
 	if scfg.MaxFileSize == 0 {
 		missing = append(missing, "MAX_FILE_SIZE_MB")
 	}

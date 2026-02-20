@@ -14,8 +14,8 @@ import (
 )
 
 type GeminiService struct {
-	apiKey    string
-	config    *utils.Config
+	apiKey string
+	config *utils.Config
 }
 
 func NewGeminiService(cfg *utils.Config) *GeminiService {
@@ -77,11 +77,12 @@ func (s *GeminiService) CallModel(prompt string, model string) (string, error) {
 
 	// Map abstract model names to actual models from config
 	actualModel := model
-	if model == "high" {
+	switch {
+	case model == "high":
 		actualModel = s.config.GeminiModelHigh
-	} else if model == "low" {
+	case model == "low":
 		actualModel = s.config.GeminiModelLow
-	} else if model == "default" || model == "" {
+	case model == "default" || model == "":
 		actualModel = s.config.GeminiModelLow
 	}
 
@@ -188,7 +189,7 @@ func (s *GeminiService) Transcribe(audioPath string, language string) (*dtos.Whi
 	// Use configured Whisper model
 	model := s.config.GeminiModelWhisper
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, s.apiKey)
-	
+
 	client := &http.Client{Timeout: 0}
 	resp, err := client.Post(url, "application/json", bytes.NewBuffer(b))
 	if err != nil {

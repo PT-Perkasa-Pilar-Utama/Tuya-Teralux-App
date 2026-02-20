@@ -43,7 +43,7 @@ func (s *SummarySkill) Execute(ctx *SkillContext) (*SkillResult, error) {
 		Style:         style,
 		Language:      targetLangName,
 	}
-	
+
 	prompt := promptConfig.BuildPrompt(text)
 	model := "high" // Summarization needs high intelligence
 

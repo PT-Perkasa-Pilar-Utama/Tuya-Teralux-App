@@ -5,7 +5,6 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/skills"
-	"teralux_app/domain/rag/utilities"
 
 	"github.com/google/uuid"
 )
@@ -16,13 +15,13 @@ type TranslateUseCase interface {
 }
 
 type translateUseCase struct {
-	llm    utilities.LLMClient
+	llm    skills.LLMClient
 	config *utils.Config
 	cache  *tasks.BadgerTaskCache
 	store  *tasks.StatusStore[dtos.RAGStatusDTO]
 }
 
-func NewTranslateUseCase(llm utilities.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
+func NewTranslateUseCase(llm skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
 	return &translateUseCase{
 		llm:    llm,
 		config: cfg,

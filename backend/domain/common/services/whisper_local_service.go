@@ -42,10 +42,10 @@ func (s *WhisperLocalService) transcribeFull(wavPath string, modelPath string, l
 	// `whisper_cpp_repository.go` method `TranscribeFull` assumed wavPath input.
 	// But `Transcribe` in `whisper_client_utilities.go` did the conversion.
 	// Since this service implements `WhisperClient`, it SHOULD handle conversion.
-	
+
 	tempDir := filepath.Dir(wavPath)
 	processedWavPath := filepath.Join(tempDir, "processed_local_service.wav")
-	
+
 	if err := utils.ConvertToWav(wavPath, processedWavPath); err != nil {
 		return "", fmt.Errorf("failed to convert audio: %w", err)
 	}
@@ -107,6 +107,6 @@ func (s *WhisperLocalService) transcribeViaCLI(wavPath string, modelPath string,
 		}
 		return strings.Join(result, " "), nil
 	}
-	
+
 	return outputStr, nil
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// mockLLMForControl is a mock for LLMClient
+// mockLLMForControl is a mock for skills.LLMClient
 type mockLLMForControl struct {
 	mock.Mock
 }

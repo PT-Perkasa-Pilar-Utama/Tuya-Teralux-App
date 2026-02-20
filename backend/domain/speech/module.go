@@ -2,11 +2,11 @@ package speech
 
 import (
 	"teralux_app/domain/common/infrastructure"
+	"teralux_app/domain/common/services"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/usecases"
 	recordingUsecases "teralux_app/domain/recordings/usecases"
-	"teralux_app/domain/common/services"
 	speechControllers "teralux_app/domain/speech/controllers"
 	speechRoutes "teralux_app/domain/speech/routes"
 	speechUsecases "teralux_app/domain/speech/usecases"
@@ -20,6 +20,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	// Services
 	geminiService := services.NewGeminiService(cfg)
 	localService := services.NewWhisperLocalService(cfg)
+	openaiService := services.NewOpenAIService(cfg)
+	groqService := services.NewGroqService(cfg)
 
 	// Usecases
 	shortCache := tasks.NewBadgerTaskCacheFromService(badgerSvc, "transcribe:task:")
@@ -32,20 +34,26 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 
 	// Select Whisper Client based on configuration
 	var whisperClient speechUsecases.WhisperClient
-	
-	
-	if cfg.LLMProvider == "gemini" {
+
+	switch cfg.LLMProvider {
+	case "gemini":
 		utils.LogInfo("Speech: Using Gemini Whisper (Multimodal)")
 		whisperClient = geminiService
-	} else if cfg.LLMProvider == "orion" {
+	case "openai":
+		utils.LogInfo("Speech: Using OpenAI Whisper")
+		whisperClient = openaiService
+	case "groq":
+		utils.LogInfo("Speech: Using Groq Whisper")
+		whisperClient = groqService
+	case "orion":
 		if cfg.OrionWhisperBaseURL != "" {
 			utils.LogInfo("Speech: Using Remote Whisper (PPU/Orion)")
 			whisperClient = whisperProxyUsecase
 		} else {
 			utils.LogFatal("Speech: LLM_PROVIDER is 'orion' but ORION_WHISPER_BASE_URL is not set.")
 		}
-	} else {
-		utils.LogFatal("Speech: Invalid or missing LLM_PROVIDER. Set it to 'gemini' or 'orion'.")
+	default:
+		utils.LogFatal("Speech: Invalid or missing LLM_PROVIDER. Set it to 'gemini', 'openai', 'groq', or 'orion'.")
 	}
 
 	// Feature Usecases (1 Route 1 Usecase)

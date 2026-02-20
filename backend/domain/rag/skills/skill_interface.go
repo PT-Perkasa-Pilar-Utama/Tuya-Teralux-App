@@ -3,8 +3,17 @@ package skills
 import (
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/utilities"
 )
+
+// LLMClient represents the external LLM client used by RAG.
+type LLMClient interface {
+	CallModel(prompt string, model string) (string, error)
+}
+
+// Healthcheckable is an internal interface for LLM clients that support a health check.
+type Healthcheckable interface {
+	HealthCheck() bool
+}
 
 // SkillContext holds the shared services and state needed by skills during execution.
 type SkillContext struct {
@@ -13,7 +22,7 @@ type SkillContext struct {
 	Prompt    string
 	Language  string
 	History   []string
-	LLM       utilities.LLMClient
+	LLM       LLMClient
 	Config    *utils.Config
 	Vector    *infrastructure.VectorService
 	Badger    *infrastructure.BadgerService

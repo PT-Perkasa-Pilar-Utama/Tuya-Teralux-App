@@ -75,7 +75,7 @@ func (uc *transcribeWhisperCppUseCase) processAsync(taskID string, inputPath str
 	// If I pass inputPath to service, service converts to 'processed_local_service.wav'.
 	// It's fine. Redundant conversion but safe.
 	// Actually, better to just call service with inputPath.
-	
+
 	result, err := uc.whisperClient.Transcribe(inputPath, lang)
 	if err != nil {
 		utils.LogError("TranscribeWhisperCpp Task %s: Transcription failed: %v", taskID, err)

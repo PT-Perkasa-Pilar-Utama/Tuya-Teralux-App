@@ -2,16 +2,15 @@ package rag
 
 import (
 	"teralux_app/domain/common/infrastructure"
+	commonServices "teralux_app/domain/common/services"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
-	commonServices "teralux_app/domain/common/services"
 	"teralux_app/domain/rag/controllers"
 	ragdtos "teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/routes"
 	"teralux_app/domain/rag/services"
 	"teralux_app/domain/rag/skills"
 	"teralux_app/domain/rag/usecases"
-	"teralux_app/domain/rag/utilities"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -19,22 +18,34 @@ import (
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
 func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) usecases.RefineUseCase {
-	// Initialize Dependencies (Services)
-	orionService := commonServices.NewOrionService(cfg)
+	// Initialize Dependencies	// Services
 	geminiService := commonServices.NewGeminiService(cfg)
-
+	orionService := commonServices.NewOrionService(cfg)
+	openaiService := commonServices.NewOpenAIService(cfg)
+	groqService := commonServices.NewGroqService(cfg)
+	llamaService := commonServices.NewLlamaLocalService(cfg)
 
 	// Select LLM Client based on configuration
-	var llmClient utilities.LLMClient
+	var llmClient skills.LLMClient
 
-	if cfg.LLMProvider == "gemini" {
+	switch cfg.LLMProvider {
+	case "gemini":
 		utils.LogInfo("RAG: Using Gemini as LLM Provider")
 		llmClient = geminiService
-	} else if cfg.LLMProvider == "orion" {
+	case "orion":
 		utils.LogInfo("RAG: Using Orion as LLM Provider")
 		llmClient = orionService
-	} else {
-		utils.LogFatal("RAG: Invalid or missing LLM_PROVIDER. Set it to 'gemini' or 'orion'. Detected: '%s'", cfg.LLMProvider)
+	case "openai":
+		utils.LogInfo("RAG: Using OpenAI as LLM Provider")
+		llmClient = openaiService
+	case "groq":
+		utils.LogInfo("RAG: Using Groq as LLM Provider")
+		llmClient = groqService
+	case "local":
+		utils.LogInfo("RAG: Using Local Llama (llama.cpp) as LLM Provider")
+		llmClient = llamaService
+	default:
+		utils.LogFatal("RAG: Invalid or missing LLM_PROVIDER. Set it to 'gemini', 'orion', 'openai', 'groq', or 'local'. Detected: '%s'", cfg.LLMProvider)
 		return nil // unreachable due to LogFatal likely os.Exit(1), but for safety
 	}
 

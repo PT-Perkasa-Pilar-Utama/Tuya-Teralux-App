@@ -110,23 +110,44 @@ OLLAMA_DATA_DIR ?= $(HOME)/ollama
 WHISPER_MODEL ?= whisper
 LLM_MODEL ?= gemma
 
-WHISPER_SRC_DIR = services/whisper
+# Local Inference (whisper.cpp & llama.cpp)
+WHISPER_SRC_DIR = services/whisper.cpp
 WHISPER_BUILD_DIR = $(WHISPER_SRC_DIR)/build
+LLAMA_SRC_DIR = services/llama.cpp
+LLAMA_BUILD_DIR = $(LLAMA_SRC_DIR)/build
 
-# Run backend setup (whisper-cli build only) - Non Interactive
+# Run backend setup (whisper & llama build) - Non Interactive
 setup-dev:
-	@echo "🚀 Running backend setup (whisper-cli build only)..."
+	@echo "🚀 Running backend setup (whisper & llama build)..."
 	@mkdir -p $(WHISPER_BUILD_DIR)
-	@cd $(WHISPER_BUILD_DIR) && cmake .. && make whisper-cli
+	@cd $(WHISPER_BUILD_DIR) && cmake .. && make whisper-cli -j$$(nproc)
+	@mkdir -p $(LLAMA_BUILD_DIR)
+	@cd $(LLAMA_BUILD_DIR) && cmake .. && make llama-cli llama-server -j$$(nproc)
 	@mkdir -p bin
 	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
+	@cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli
+	@cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server
 	@echo "✅ Setup complete. use 'make dev' to start."
 
 # Run setup script (build whisper.cpp + tools)
 setup: 
-	@echo "🚀 Running backend setup (whisper.cpp build + tools)"
+	@echo "🚀 Running backend setup (build + tools)"
 	@chmod +x setup.sh || true
 	@./setup.sh || true
+
+# Download default models for dev
+download-models:
+	@echo "📥 Downloading models to bin/..."
+	@mkdir -p bin
+	@if [ ! -f bin/ggml-base.bin ]; then \
+		echo "Downloading Whisper base model..."; \
+		curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o bin/ggml-base.bin; \
+	fi
+	@if [ ! -f bin/llama-model.gguf ]; then \
+		echo "Downloading Llama-3.2-1B model..."; \
+		curl -L https://huggingface.co/unsloth/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf -o bin/llama-model.gguf; \
+	fi
+	@echo "✅ Models downloaded."
 
 # Conveniences
 # Usage: make rag text="turn on the lamp"

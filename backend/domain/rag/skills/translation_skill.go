@@ -20,11 +20,12 @@ func (s *TranslationSkill) Execute(ctx *SkillContext) (*SkillResult, error) {
 	// Detect target language from context or prompt
 	targetLang := "English"
 	if ctx.Language != "" {
-		if strings.EqualFold(ctx.Language, "id") || strings.EqualFold(ctx.Language, "indonesian") {
+		switch {
+		case strings.EqualFold(ctx.Language, "id") || strings.EqualFold(ctx.Language, "indonesian"):
 			targetLang = "Indonesian"
-		} else if strings.EqualFold(ctx.Language, "en") || strings.EqualFold(ctx.Language, "english") {
+		case strings.EqualFold(ctx.Language, "en") || strings.EqualFold(ctx.Language, "english"):
 			targetLang = "English"
-		} else {
+		default:
 			targetLang = ctx.Language // Trust the explicit language code/name
 		}
 	} else if strings.Contains(strings.ToLower(ctx.Prompt), "indonesia") || strings.Contains(strings.ToLower(ctx.Prompt), "indo") {

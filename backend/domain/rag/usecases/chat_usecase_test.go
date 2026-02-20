@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// mockLLMForChat is a mock of utilities.LLMClient for Chat test
+// mockLLMForChat is a mock of skills.LLMClient for Chat test
 type mockLLMForChat struct {
 	mock.Mock
 }

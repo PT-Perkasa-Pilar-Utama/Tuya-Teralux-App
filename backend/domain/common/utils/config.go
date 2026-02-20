@@ -30,16 +30,29 @@ type Config struct {
 	GeminiModelLow     string // Fast/Low cost
 	GeminiModelWhisper string // STT
 
+	// OpenAI
+	OpenAIApiKey       string
+	OpenAIModelHigh    string
+	OpenAIModelLow     string
+	OpenAIModelWhisper string
+
+	// Groq
+	GroqApiKey       string
+	GroqModelHigh    string
+	GroqModelLow     string
+	GroqModelWhisper string
+
 	// Orion
 	OrionBaseURL string
 	OrionApiKey  string
 	OrionModel   string
 
-	// Whisper
-	WhisperLocalModel     string // Path to local model (e.g., bin/ggml-base.bin)
-	OrionWhisperBaseURL   string // URL for remote transcription service
-	MaxFileSize             int64 // bytes
-	Port                    string
+	// Local Models
+	WhisperLocalModel   string // Path to whisper ggml model
+	LlamaLocalModel     string // Path to llama gguf model (e.g., bin/ggml-base.bin)
+	OrionWhisperBaseURL string // URL for remote transcription service
+	MaxFileSize         int64  // bytes
+	Port                string
 
 	// MQTT
 	MqttBroker   string
@@ -107,24 +120,35 @@ func LoadConfig() {
 		TuyaClientSecret: os.Getenv("TUYA_ACCESS_SECRET"),
 		TuyaBaseURL:      os.Getenv("TUYA_BASE_URL"),
 		TuyaUserID:       os.Getenv("TUYA_USER_ID"),
-		ApiKey:    os.Getenv("API_KEY"),
-		JWTSecret: os.Getenv("JWT_SECRET"),
-		LogLevel:  os.Getenv("LOG_LEVEL"),
-		LLMProvider: os.Getenv("LLM_PROVIDER"),
+		ApiKey:           os.Getenv("API_KEY"),
+		JWTSecret:        os.Getenv("JWT_SECRET"),
+		LogLevel:         os.Getenv("LOG_LEVEL"),
+		LLMProvider:      os.Getenv("LLM_PROVIDER"),
 
 		GeminiApiKey:       os.Getenv("GEMINI_API_KEY"),
 		GeminiModelHigh:    os.Getenv("GEMINI_MODEL_HIGH"),
 		GeminiModelLow:     os.Getenv("GEMINI_MODEL_LOW"),
 		GeminiModelWhisper: os.Getenv("GEMINI_MODEL_WHISPER"),
 
+		OpenAIApiKey:       os.Getenv("OPENAI_API_KEY"),
+		OpenAIModelHigh:    os.Getenv("OPENAI_MODEL_HIGH"),
+		OpenAIModelLow:     os.Getenv("OPENAI_MODEL_LOW"),
+		OpenAIModelWhisper: os.Getenv("OPENAI_MODEL_WHISPER"),
+
+		GroqApiKey:       os.Getenv("GROQ_API_KEY"),
+		GroqModelHigh:    os.Getenv("GROQ_MODEL_HIGH"),
+		GroqModelLow:     os.Getenv("GROQ_MODEL_LOW"),
+		GroqModelWhisper: os.Getenv("GROQ_MODEL_WHISPER"),
+
 		OrionBaseURL: os.Getenv("ORION_BASE_URL"),
 		OrionApiKey:  os.Getenv("ORION_API_KEY"),
 		OrionModel:   os.Getenv("ORION_MODEL"),
-
+		// Local Models
 		WhisperLocalModel:   os.Getenv("WHISPER_LOCAL_MODEL"),
+		LlamaLocalModel:     os.Getenv("LLAMA_LOCAL_MODEL"),
 		OrionWhisperBaseURL: os.Getenv("ORION_WHISPER_BASE_URL"),
-		MaxFileSize:             maxFileSize,
-		Port:                    os.Getenv("PORT"),
+		MaxFileSize:         maxFileSize,
+		Port:                os.Getenv("PORT"),
 
 		MqttBroker:   os.Getenv("MQTT_BROKER"),
 		MqttUsername: os.Getenv("MQTT_USERNAME"),
@@ -139,7 +163,6 @@ func LoadConfig() {
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
 
 		// Runtime
-
 
 		// Database
 		DBType:     os.Getenv("DB_TYPE"),

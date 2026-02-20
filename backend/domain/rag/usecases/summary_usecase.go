@@ -11,7 +11,6 @@ import (
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/services"
 	"teralux_app/domain/rag/skills"
-	"teralux_app/domain/rag/utilities"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +22,7 @@ type SummaryUseCase interface {
 }
 
 type summaryUseCase struct {
-	llm           utilities.LLMClient
+	llm           skills.LLMClient
 	config        *utils.Config
 	cache         *tasks.BadgerTaskCache
 	store         *tasks.StatusStore[dtos.RAGStatusDTO]
@@ -33,7 +32,7 @@ type summaryUseCase struct {
 }
 
 func NewSummaryUseCase(
-	llm utilities.LLMClient,
+	llm skills.LLMClient,
 	cfg *utils.Config,
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
@@ -255,7 +254,7 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	if err != nil {
 		return nil, fmt.Errorf("SummarySkill execution failed: %w", err)
 	}
-	
+
 	trimmedSummary := res.Message
 
 	// PDF rendering with timeout

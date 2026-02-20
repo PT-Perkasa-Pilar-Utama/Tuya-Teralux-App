@@ -8,7 +8,6 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/skills"
-	"teralux_app/domain/rag/utilities"
 	tuyaUsecases "teralux_app/domain/tuya/usecases"
 )
 
@@ -17,7 +16,7 @@ type ControlUseCase interface {
 }
 
 type controlUseCase struct {
-	llm          utilities.LLMClient
+	llm          skills.LLMClient
 	config       *utils.Config
 	vector       *infrastructure.VectorService
 	badger       *infrastructure.BadgerService
@@ -25,7 +24,7 @@ type controlUseCase struct {
 	tuyaAuth     tuyaUsecases.TuyaAuthUseCase
 }
 
-func NewControlUseCase(llm utilities.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase) ControlUseCase {
+func NewControlUseCase(llm skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase) ControlUseCase {
 	return &controlUseCase{
 		llm:          llm,
 		config:       cfg,

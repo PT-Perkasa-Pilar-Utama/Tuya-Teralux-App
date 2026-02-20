@@ -8,7 +8,6 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/skills"
-	"teralux_app/domain/rag/utilities"
 )
 
 type ChatUseCase interface {
@@ -16,14 +15,14 @@ type ChatUseCase interface {
 }
 
 type ChatUseCaseImpl struct {
-	llm          utilities.LLMClient
+	llm          skills.LLMClient
 	config       *utils.Config
 	badger       *infrastructure.BadgerService
 	vector       *infrastructure.VectorService
 	orchestrator *skills.Orchestrator
 }
 
-func NewChatUseCase(llm utilities.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
+func NewChatUseCase(llm skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
 	return &ChatUseCaseImpl{
 		llm:          llm,
 		config:       cfg,
