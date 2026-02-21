@@ -4,9 +4,8 @@
 Starts transcription of an audio file with automatic provider fallback. This endpoint automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
 
 ### Processing Flow
-1. **PPU First**: System attempts to send audio to the Outsystems PPU proxy with health check.
-2. **Orion Fallback**: If PPU is unavailable or fails, automatically falls back to **Orion Whisper API**.
-3. **Local Fallback**: If Orion is unavailable or fails, finally falls back to **Local Whisper.cpp** engine.
+1. **Orion First**: System attempts to send audio to the Outsystems Orion proxy with health check.
+2. **Local Fallback**: If Orion is unavailable or fails, finally falls back to **Local Whisper.cpp** engine.
 
 Processing is **asynchronous** with automatic failover between providers.
 
@@ -112,7 +111,7 @@ Processing is **asynchronous** with automatic failover between providers.
 - **Expected Status**: Task status becomes `failed` after processing.
 
 ### 8. Error: Internal Server Error
-- **Pre-conditions**: Both PPU and Local Whisper engines are failing or system resources are exhausted.
+- **Pre-conditions**: Both Orion and Local Whisper engines are failing or system resources are exhausted.
 - **Expected Response**:
 ```json
 {

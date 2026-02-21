@@ -53,7 +53,7 @@ func (uc *getTranscriptionStatusUseCase) GetTranscriptionStatus(taskID string) (
 		}
 	}
 
-	// 3. Try PPU Direct Status (if available)
+	// 3. Try Orion Direct Status (if available)
 	if uc.whisperProxyUsecase != nil {
 		if status, err := uc.whisperProxyUsecase.GetStatus(taskID); err == nil {
 			return dtos.WhisperProxyProcessStatusResponseDTO{

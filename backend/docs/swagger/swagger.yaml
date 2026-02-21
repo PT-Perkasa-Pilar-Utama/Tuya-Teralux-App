@@ -814,7 +814,7 @@ paths:
   /api/speech/transcribe/{transcribe_id}:
     get:
       description: Get the status and result of any transcription task (Short, Long,
-        or PPU).
+        or Orion).
       parameters:
       - description: Task ID
         in: path
@@ -846,7 +846,7 @@ paths:
       summary: Get transcription status (Consolidated)
       tags:
       - 04. Speech
-  /api/speech/transcribe/ppu:
+  /api/speech/transcribe/orion:
     post:
       consumes:
       - multipart/form-data
@@ -900,7 +900,7 @@ paths:
       consumes:
       - multipart/form-data
       description: 'Start transcription of audio file using Whisper.cpp. Asynchronous
-        processing with background execution. Pure Whisper.cpp, no PPU. Supports:
+        processing with background execution. Pure Whisper.cpp, no Orion. Supports:
         .mp3, .wav, .m4a, .aac, .ogg, .flac.'
       parameters:
       - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)

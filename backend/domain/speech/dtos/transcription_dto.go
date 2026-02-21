@@ -9,7 +9,7 @@ type TranscriptionResponseDTO struct {
 type WhisperResult struct {
 	Transcription    string
 	DetectedLanguage string
-	Source           string // Which service was used: "PPU", "Orion", "Local", "Gemini"
+	Source           string // Which service was used: "Orion", "Local", "Gemini"
 }
 
 type WhisperMqttRequestDTO struct {

@@ -12,7 +12,7 @@ func SetupSpeechRoutes(
 	transcribeController *controllers.SpeechTranscribeController,
 	statusController *controllers.SpeechTranscribeStatusController,
 	whisperCppController *controllers.SpeechTranscribeWhisperCppController,
-	ppuController *controllers.SpeechTranscribePPUController,
+	orionController *controllers.SpeechTranscribeOrionController,
 ) {
 	api := rg.Group("/api/speech")
 	{
@@ -24,7 +24,7 @@ func SetupSpeechRoutes(
 		api.POST("/transcribe/whisper/cpp", whisperCppController.TranscribeWhisperCpp)
 
 		// Whisper proxy routes (external Outsystems integration) - kept for explicit access
-		api.POST("/transcribe/ppu", ppuController.TranscribePPU)
+		api.POST("/transcribe/orion", orionController.TranscribeOrion)
 
 	}
 }

@@ -735,7 +735,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/speech/transcribe/ppu": {
+        "/api/speech/transcribe/orion": {
             "post": {
                 "security": [
                     {
@@ -821,7 +821,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no PPU. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "description": "Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no Orion. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -901,7 +901,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the status and result of any transcription task (Short, Long, or PPU).",
+                "description": "Get the status and result of any transcription task (Short, Long, or Orion).",
                 "produces": [
                     "application/json"
                 ],

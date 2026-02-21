@@ -1,7 +1,7 @@
 # ENDPOINT: GET /api/speech/transcribe/{transcribe_id}
 
 ## Description
-Retrieves the current status and result of any transcription task. This is a **consolidated** endpoint that works for standard, long, and PPU transcription tasks.
+Retrieves the current status and result of any transcription task. This is a **consolidated** endpoint that works for standard, long, and Orion transcription tasks.
 
 ## Authentication
 - **Type**: BearerAuth

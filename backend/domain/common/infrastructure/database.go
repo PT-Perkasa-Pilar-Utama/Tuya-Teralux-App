@@ -3,13 +3,9 @@ package infrastructure
 import (
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
-	"strings"
 	"teralux_app/domain/common/utils"
 
 	"gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -17,40 +13,21 @@ import (
 // DB is the global database instance
 var DB *gorm.DB
 
-// InitDB initializes the database connection pool using SQLite or MySQL.
+// InitDB initializes the database connection pool using MySQL.
 // Returns the database instance and any error encountered.
 func InitDB() (*gorm.DB, error) {
 	cfg := utils.GetConfig()
-	dbType := strings.ToLower(cfg.DBType)
 
-	var dialector gorm.Dialector
-	var err error
-
-	switch dbType {
-	case "mysql":
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
-			cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
-		dialector = mysql.Open(dsn)
-		log.Printf("📡 Initializing database using MySQL at %s:%s", cfg.DBHost, cfg.DBPort)
-	case "sqlite", "":
-		dbPath := os.Getenv("DB_SQLITE_PATH")
-		if dbPath == "" {
-			dbPath = "./tmp/teralux.db"
-		}
-		if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
-			return nil, fmt.Errorf("failed to create sqlite directory: %w", err)
-		}
-		dialector = sqlite.Open(dbPath)
-		log.Printf("✅ Initializing database using SQLite at %s", dbPath)
-	default:
-		return nil, fmt.Errorf("unsupported DB_TYPE: %s (supported: 'sqlite', 'mysql')", dbType)
-	}
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
+		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
+	dialector := mysql.Open(dsn)
+	log.Printf("📡 Initializing database using MySQL at %s:%s", cfg.DBHost, cfg.DBPort)
 
 	db, err := gorm.Open(dialector, &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database (%s): %w", dbType, err)
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	DB = db

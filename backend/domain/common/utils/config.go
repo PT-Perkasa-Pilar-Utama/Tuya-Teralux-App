@@ -71,7 +71,6 @@ type Config struct {
 	LogLevel string
 
 	// Database
-	DBType     string
 	DBHost     string
 	DBPort     string
 	DBUser     string
@@ -165,12 +164,11 @@ func LoadConfig() {
 		// Runtime
 
 		// Database
-		DBType:     os.Getenv("DB_TYPE"),
-		DBHost:     os.Getenv("DB_HOST"),
-		DBPort:     os.Getenv("DB_PORT"),
-		DBUser:     os.Getenv("DB_USER"),
-		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBName:     os.Getenv("DB_NAME"),
+		DBHost:     os.Getenv("MYSQL_HOST"),
+		DBPort:     os.Getenv("MYSQL_PORT"),
+		DBUser:     os.Getenv("MYSQL_USER"),
+		DBPassword: os.Getenv("MYSQL_PASSWORD"),
+		DBName:     os.Getenv("MYSQL_DATABASE"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables

@@ -33,7 +33,7 @@ func NewSpeechTranscribeWhisperCppController(
 
 // TranscribeWhisperCpp handles POST /api/speech/transcribe/whisper/cpp
 // @Summary Transcribe audio file (Whisper.cpp)
-// @Description Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no PPU. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
+// @Description Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no Orion. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data

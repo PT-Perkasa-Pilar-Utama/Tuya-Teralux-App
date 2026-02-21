@@ -44,7 +44,7 @@ func NewWhisperProxyUsecase(cache *tasks.BadgerTaskCache, cfg *utils.Config) Whi
 
 // ProxyTranscribe accepts audio file and queues async transcription to external Outsystems server
 func (u *whisperProxyUsecase) ProxyTranscribe(filePath string, fileName string, language string) (string, error) {
-	utils.LogDebug("Whisper Proxy: Starting external transcription via Outsystems (PPU)...")
+	utils.LogDebug("Whisper Proxy: Starting external transcription via Outsystems (Orion)...")
 	// Generate UUID task id
 	taskID := uuid.New().String()
 
@@ -184,7 +184,7 @@ func (u *whisperProxyUsecase) Transcribe(audioPath string, language string) (*sp
 	return &speechdtos.WhisperResult{
 		Transcription:    res.Transcription,
 		DetectedLanguage: lang,
-		Source:           "PPU (Outsystems)",
+		Source:           "Orion (Outsystems)",
 	}, nil
 }
 

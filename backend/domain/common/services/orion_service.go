@@ -144,7 +144,7 @@ func (s *OrionService) CallModel(prompt string, model string) (string, error) {
 	return "", fmt.Errorf("orion api returned no text content")
 }
 
-// Whisper Implementation (PPU)
+// Whisper Implementation (Orion)
 
 type OrionWhisperResponse struct {
 	Text string `json:"text"`
@@ -221,6 +221,6 @@ func (s *OrionService) Transcribe(audioPath string, lang string) (*dtos.WhisperR
 	return &dtos.WhisperResult{
 		Transcription:    strings.TrimSpace(result.Text),
 		DetectedLanguage: lang,
-		Source:           "Orion Whisper (PPU)",
+		Source:           "Orion Whisper",
 	}, nil
 }

@@ -13,26 +13,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SpeechTranscribePPUController handles POST /api/speech/transcribe/ppu.
-type SpeechTranscribePPUController struct {
+// SpeechTranscribeOrionController handles POST /api/speech/transcribe/orion.
+type SpeechTranscribeOrionController struct {
 	proxyUC       usecases.WhisperProxyUsecase
 	saveRecording recordingUsecases.SaveRecordingUseCase
 	config        *utils.Config
 }
 
-func NewSpeechTranscribePPUController(
+func NewSpeechTranscribeOrionController(
 	proxyUC usecases.WhisperProxyUsecase,
 	saveRecording recordingUsecases.SaveRecordingUseCase,
 	cfg *utils.Config,
-) *SpeechTranscribePPUController {
-	return &SpeechTranscribePPUController{
+) *SpeechTranscribeOrionController {
+	return &SpeechTranscribeOrionController{
 		proxyUC:       proxyUC,
 		saveRecording: saveRecording,
 		config:        cfg,
 	}
 }
 
-// TranscribePPU handles POST /api/speech/transcribe/ppu
+// TranscribeOrion handles POST /api/speech/transcribe/orion
 // @Summary Transcribe audio file (Proxy to Outsystems)
 // @Description Submit audio file for transcription via Outsystems proxy. Processing is asynchronous.
 // @Tags 04. Speech
@@ -46,14 +46,14 @@ func NewSpeechTranscribePPUController(
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
-// @Router /api/speech/transcribe/ppu [post]
-func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
-	log.Println("[DEBUG] TranscribePPU: Request received")
-	log.Printf("[DEBUG] TranscribePPU: Content-Type: %s", ctx.GetHeader("Content-Type"))
+// @Router /api/speech/transcribe/orion [post]
+func (c *SpeechTranscribeOrionController) TranscribeOrion(ctx *gin.Context) {
+	log.Println("[DEBUG] TranscribeOrion: Request received")
+	log.Printf("[DEBUG] TranscribeOrion: Content-Type: %s", ctx.GetHeader("Content-Type"))
 
 	file, err := ctx.FormFile("audio")
 	if err != nil {
-		log.Printf("[DEBUG] TranscribePPU: FormFile error: %v", err)
+		log.Printf("[DEBUG] TranscribeOrion: FormFile error: %v", err)
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
@@ -63,7 +63,7 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 		})
 		return
 	}
-	log.Printf("[DEBUG] TranscribePPU: File received: %s, Size: %d", file.Filename, file.Size)
+	log.Printf("[DEBUG] TranscribeOrion: File received: %s, Size: %d", file.Filename, file.Size)
 
 	if file.Size > c.config.MaxFileSize {
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
@@ -93,13 +93,13 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 	tempDir := "./tmp"
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
 		if err := os.Mkdir(tempDir, 0755); err != nil {
-			utils.LogError("TranscribePPU: Failed to create temp directory: %v", err)
+			utils.LogError("TranscribeOrion: Failed to create temp directory: %v", err)
 		}
 	}
 
 	inputPath := filepath.Join(tempDir, file.Filename)
 	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
-		utils.LogError("TranscribePPU.SaveUploadedFile: %v", err)
+		utils.LogError("TranscribeOrion.SaveUploadedFile: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
@@ -109,7 +109,7 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 
 	recording, err := c.saveRecording.SaveRecording(file)
 	if err != nil {
-		utils.LogError("TranscribePPU.SaveRecording: %v", err)
+		utils.LogError("TranscribeOrion.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
@@ -126,7 +126,7 @@ func (c *SpeechTranscribePPUController) TranscribePPU(ctx *gin.Context) {
 
 	taskID, err := c.proxyUC.ProxyTranscribe(finalPath, file.Filename, language)
 	if err != nil {
-		utils.LogError("TranscribePPU.ProxyTranscribe: %v", err)
+		utils.LogError("TranscribeOrion.ProxyTranscribe: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",

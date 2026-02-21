@@ -21,7 +21,7 @@ func NewSpeechTranscribeStatusController(statusUC usecases.GetTranscriptionStatu
 
 // GetStatus handles GET /api/speech/transcribe/:transcribe_id
 // @Summary Get transcription status (Consolidated)
-// @Description Get the status and result of any transcription task (Short, Long, or PPU).
+// @Description Get the status and result of any transcription task (Short, Long, or Orion).
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Produce json

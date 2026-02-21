@@ -47,7 +47,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 		whisperClient = groqService
 	case "orion":
 		if cfg.OrionWhisperBaseURL != "" {
-			utils.LogInfo("Speech: Using Remote Whisper (PPU/Orion)")
+			utils.LogInfo("Speech: Using Remote Whisper (Orion)")
 			whisperClient = whisperProxyUsecase
 		} else {
 			utils.LogFatal("Speech: LLM_PROVIDER is 'orion' but ORION_WHISPER_BASE_URL is not set.")
@@ -66,8 +66,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	transcribeController.StartMqttSubscription()
 	statusController := speechControllers.NewSpeechTranscribeStatusController(getStatusUC)
 	whisperCppController := speechControllers.NewSpeechTranscribeWhisperCppController(transcribeWhisperCppUC, saveRecordingUseCase, cfg)
-	ppuController := speechControllers.NewSpeechTranscribePPUController(whisperProxyUsecase, saveRecordingUseCase, cfg)
+	orionController := speechControllers.NewSpeechTranscribeOrionController(whisperProxyUsecase, saveRecordingUseCase, cfg)
 
 	// Routes
-	speechRoutes.SetupSpeechRoutes(protected, transcribeController, statusController, whisperCppController, ppuController)
+	speechRoutes.SetupSpeechRoutes(protected, transcribeController, statusController, whisperCppController, orionController)
 }
