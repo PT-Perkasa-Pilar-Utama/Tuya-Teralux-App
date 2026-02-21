@@ -31,7 +31,7 @@ func TestLoadConfig(t *testing.T) {
 func TestLoadConfig_SetsValues(t *testing.T) {
 	// Backup and restore env
 	backup := map[string]string{}
-	keys := []string{"GEMINI_MODEL", "WHISPER_LOCAL_MODEL", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
+	keys := []string{"GEMINI_MODEL_HIGH", "WHISPER_LOCAL_MODEL", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
 	for _, k := range keys {
 		backup[k] = os.Getenv(k)
 	}
@@ -42,7 +42,7 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 		AppConfig = nil
 	}()
 
-	_ = os.Setenv("GEMINI_MODEL", "gemini-test")
+	_ = os.Setenv("GEMINI_MODEL_HIGH", "gemini-test")
 	_ = os.Setenv("WHISPER_LOCAL_MODEL", "/tmp/whisper.bin")
 	_ = os.Setenv("MAX_FILE_SIZE_MB", "10")
 	_ = os.Setenv("PORT", "9090")
@@ -52,8 +52,8 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 	LoadConfig()
 	cfg := GetConfig()
 
-	if cfg.GeminiModel != "gemini-test" {
-		t.Fatalf("expected GeminiModel to be set, got %s", cfg.GeminiModel)
+	if cfg.GeminiModelHigh != "gemini-test" {
+		t.Fatalf("expected GeminiModelHigh to be set, got %s", cfg.GeminiModelHigh)
 	}
 	if cfg.WhisperLocalModel != "/tmp/whisper.bin" {
 		t.Fatalf("expected WhisperLocalModel to be set, got %s", cfg.WhisperLocalModel)

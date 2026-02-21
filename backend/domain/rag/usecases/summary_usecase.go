@@ -18,7 +18,9 @@ import (
 
 type SummaryUseCase interface {
 	SummarizeText(text string, language string, meetingContext string, style string) (string, error)
+	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, trigger string) (string, error)
 	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error)
+	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, trigger string) (string, error)
 }
 
 type summaryUseCase struct {
@@ -118,29 +120,29 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 }
 
 func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string) (string, error) {
+	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, "")
+}
+
+func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, trigger string) (string, error) {
 	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{Status: "pending"}
+	status := &dtos.RAGStatusDTO{
+		Status:    "pending",
+		Trigger:   trigger,
+		StartedAt: time.Now().Format(time.RFC3339),
+	}
 	u.store.Set(taskID, status)
 
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
 		result, err := u.summaryInternal(text, language, meetingContext, style)
-		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
-			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.updateStatus(taskID, "failed", err, nil)
 		} else {
 			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
-			finalStatus = &dtos.RAGStatusDTO{
-				Status:          "completed",
-				ExecutionResult: result,
-				Result:          result.Summary,
-			}
+			u.updateStatus(taskID, "completed", nil, result)
 		}
-
-		u.store.Set(taskID, finalStatus)
-		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil
@@ -163,6 +165,10 @@ func (u *summaryUseCase) SummarizeText(text string, language string, meetingCont
 //	defer cancel()
 //	taskID, err := useCase.SummarizeTextWithContext(ctx, transcript, "en", "meeting", "executive")
 func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error) {
+	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, "")
+}
+
+func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, trigger string) (string, error) {
 	// Validate context is not already cancelled
 	select {
 	case <-ctx.Done():
@@ -171,7 +177,11 @@ func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text stri
 	}
 
 	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{Status: "pending"}
+	status := &dtos.RAGStatusDTO{
+		Status:    "pending",
+		Trigger:   trigger,
+		StartedAt: time.Now().Format(time.RFC3339),
+	}
 	u.store.Set(taskID, status)
 	_ = u.cache.Set(taskID, status)
 
@@ -182,28 +192,19 @@ func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text stri
 		// Check if parent context was cancelled before starting
 		select {
 		case <-ctx.Done():
-			u.store.Set(taskID, &dtos.RAGStatusDTO{Status: "cancelled", Result: "Parent context cancelled"})
-			_ = u.cache.SetPreserveTTL(taskID, &dtos.RAGStatusDTO{Status: "cancelled"})
+			u.updateStatus(taskID, "cancelled", ctx.Err(), nil)
 			return
 		default:
 		}
 
 		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style)
-		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
-			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.updateStatus(taskID, "failed", err, nil)
 		} else {
 			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
-			finalStatus = &dtos.RAGStatusDTO{
-				Status:          "completed",
-				ExecutionResult: result,
-				Result:          result.Summary,
-			}
+			u.updateStatus(taskID, "completed", nil, result)
 		}
-
-		u.store.Set(taskID, finalStatus)
-		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil
@@ -297,4 +298,38 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		Summary: trimmedSummary,
 		PDFUrl:  pdfUrl,
 	}, nil
+}
+
+func (u *summaryUseCase) updateStatus(taskID string, statusStr string, err error, result *dtos.RAGSummaryResponseDTO) {
+	var existing dtos.RAGStatusDTO
+	_, _, _ = u.cache.GetWithTTL(taskID, &existing)
+
+	status := &dtos.RAGStatusDTO{
+		Status:    statusStr,
+		StartedAt: existing.StartedAt,
+		Trigger:   existing.Trigger,
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	if err != nil {
+		status.Error = err.Error()
+		status.Result = err.Error()
+		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+	}
+
+	if result != nil {
+		status.ExecutionResult = result
+		status.Result = result.Summary
+		status.HTTPStatusCode = 200
+	}
+
+	if statusStr == "completed" || statusStr == "failed" {
+		if existing.StartedAt != "" {
+			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
+			status.DurationSeconds = time.Since(startTime).Seconds()
+		}
+	}
+
+	u.store.Set(taskID, status)
+	_ = u.cache.SetPreserveTTL(taskID, status)
 }

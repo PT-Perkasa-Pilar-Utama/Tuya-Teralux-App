@@ -656,14 +656,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/speech/transcribe": {
+        "/api/speech/models/gemini": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Start transcription of audio file using local Whisper STT. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "description": "Submit audio file for transcription via Gemini. Processing is asynchronous.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -673,7 +673,7 @@ const docTemplate = `{
                 "tags": [
                     "04. Speech"
                 ],
-                "summary": "Transcribe audio file (Whisper)",
+                "summary": "Transcribe audio file (Gemini)",
                 "parameters": [
                     {
                         "type": "file",
@@ -735,14 +735,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/speech/transcribe/orion": {
+        "/api/speech/models/groq": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Submit audio file for transcription via Outsystems proxy. Processing is asynchronous.",
+                "description": "Submit audio file for transcription via Groq. Processing is asynchronous.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -752,7 +752,7 @@ const docTemplate = `{
                 "tags": [
                     "04. Speech"
                 ],
-                "summary": "Transcribe audio file (Proxy to Outsystems)",
+                "summary": "Transcribe audio file (Groq)",
                 "parameters": [
                     {
                         "type": "file",
@@ -814,14 +814,172 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/speech/transcribe/whisper/cpp": {
+        "/api/speech/models/openai": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no Orion. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "description": "Submit audio file for transcription via OpenAI. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Speech"
+                ],
+                "summary": "Transcribe audio file (OpenAI)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/models/orion": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Orion. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Speech"
+                ],
+                "summary": "Transcribe audio file (Orion)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/models/whisper/cpp": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Whisper.cpp. Processing is asynchronous.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -844,8 +1002,86 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Language code (e.g. id, en)",
                         "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/transcribe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Start transcription of audio file using the configured LLM provider (LLM_PROVIDER). Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Speech"
+                ],
+                "summary": "Transcribe audio file (Unified)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
                     }
                 ],
                 "responses": {

@@ -13,8 +13,13 @@ type RAGSummaryRequestDTO struct {
 }
 
 type RAGStatusDTO struct {
-	Status          string            `json:"status"`
-	Result          string            `json:"result,omitempty"` // raw LLM response when not structured
+	Status          string            `json:"status" example:"completed"`
+	Result          string            `json:"result,omitempty" example:"The meeting discussed..."`
+	Error           string            `json:"error,omitempty" example:"gemini api returned status 503"`
+	Trigger         string            `json:"trigger,omitempty" example:"/api/rag/summary"`
+	HTTPStatusCode  int               `json:"-"`
+	StartedAt       string            `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`
+	DurationSeconds float64           `json:"duration_seconds,omitempty" example:"2.5"`
 	Endpoint        string            `json:"endpoint,omitempty"`
 	Method          string            `json:"method,omitempty"`
 	Body            interface{}       `json:"body,omitempty"`

@@ -22,7 +22,7 @@ func (m *mockLLMForRefine) CallModel(prompt string, model string) (string, error
 }
 
 func TestRefineUseCase_Execute(t *testing.T) {
-	cfg := &utils.Config{GeminiModel: "test-model-refine"}
+	cfg := &utils.Config{GeminiModelLow: "test-model-refine"}
 
 	t.Run("Refine Indonesian (KBBI)", func(t *testing.T) {
 		mockLLM := &mockLLMForRefine{

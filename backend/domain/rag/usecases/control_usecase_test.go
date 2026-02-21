@@ -58,7 +58,7 @@ func (m *mockTuyaExecutorForControl) SendIRACCommand(accessToken, infraredID, re
 
 func TestControlUseCase_ProcessControl(t *testing.T) {
 	mockLLM := new(mockLLMForControl)
-	cfg := &utils.Config{GeminiModel: "test-model"}
+	cfg := &utils.Config{GeminiModelHigh: "test-model-control"}
 
 	// Setup Vector Service
 	vectorFile := "test_vector_control.json"

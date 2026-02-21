@@ -31,7 +31,7 @@ func (n *noopSummaryRenderer) Render(summary string, path string, meta services.
 }
 
 func TestSummaryUseCase_Execute(t *testing.T) {
-	cfg := &utils.Config{GeminiModel: "test-model-summary"}
+	cfg := &utils.Config{GeminiModelHigh: "test-model-summary"}
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	t.Run("Success Indonesian", func(t *testing.T) {

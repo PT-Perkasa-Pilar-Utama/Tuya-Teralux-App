@@ -5,12 +5,14 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/skills"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type TranslateUseCase interface {
 	TranslateText(text, targetLang string) (string, error)
+	TranslateTextWithTrigger(text, targetLang string, trigger string) (string, error)
 	TranslateTextSync(text, targetLang string) (string, error)
 }
 
@@ -54,26 +56,63 @@ func (u *translateUseCase) TranslateTextSync(text, targetLang string) (string, e
 }
 
 func (u *translateUseCase) TranslateText(text, targetLang string) (string, error) {
+	return u.TranslateTextWithTrigger(text, targetLang, "")
+}
+
+func (u *translateUseCase) TranslateTextWithTrigger(text, targetLang string, trigger string) (string, error) {
 	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{Status: "pending"}
+	status := &dtos.RAGStatusDTO{
+		Status:    "pending",
+		Trigger:   trigger,
+		StartedAt: time.Now().Format(time.RFC3339),
+	}
 	u.store.Set(taskID, status)
 
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
 		translated, err := u.translateInternal(text, targetLang)
-		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Translate Task %s: Failed with error: %v", taskID, err)
-			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.updateStatus(taskID, "failed", err, "")
 		} else {
 			utils.LogInfo("RAG Translate Task %s: Completed successfully", taskID)
-			finalStatus = &dtos.RAGStatusDTO{Status: "completed", Result: translated}
+			u.updateStatus(taskID, "completed", nil, translated)
 		}
-
-		u.store.Set(taskID, finalStatus)
-		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil
+}
+
+func (u *translateUseCase) updateStatus(taskID string, statusStr string, err error, result string) {
+	var existing dtos.RAGStatusDTO
+	_, _, _ = u.cache.GetWithTTL(taskID, &existing)
+
+	status := &dtos.RAGStatusDTO{
+		Status:    statusStr,
+		StartedAt: existing.StartedAt,
+		Trigger:   existing.Trigger,
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	if err != nil {
+		status.Error = err.Error()
+		status.Result = err.Error()
+		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+	}
+
+	if result != "" {
+		status.Result = result
+		status.HTTPStatusCode = 200
+	}
+
+	if statusStr == "completed" || statusStr == "failed" {
+		if existing.StartedAt != "" {
+			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
+			status.DurationSeconds = time.Since(startTime).Seconds()
+		}
+	}
+
+	u.store.Set(taskID, status)
+	_ = u.cache.SetPreserveTTL(taskID, status)
 }

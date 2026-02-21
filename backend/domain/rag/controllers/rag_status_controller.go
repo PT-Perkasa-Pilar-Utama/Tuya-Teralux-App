@@ -40,10 +40,19 @@ func (c *RAGStatusController) GetStatus(ctx *gin.Context) {
 	}
 
 	isSuccess := status.Status != "failed"
-	message := "OK"
+	message := "Task status retrieved successfully"
+	httpStatus := http.StatusOK
+
 	if status.Status == "failed" {
 		message = "Task failed"
+		if status.HTTPStatusCode != 0 {
+			httpStatus = status.HTTPStatusCode
+		}
 	}
 
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{Status: isSuccess, Message: message, Data: status})
+	ctx.JSON(httpStatus, dtos.StandardResponse{
+		Status:  isSuccess,
+		Message: message,
+		Data:    status,
+	})
 }

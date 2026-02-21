@@ -11,6 +11,7 @@ import (
 // FileService defines operations for file handling
 type FileService interface {
 	SaveUploadedFile(file *multipart.FileHeader, dst string) error
+	SaveFile(data []byte, dst string) error
 	EnsureDir(dirName string) error
 }
 
@@ -40,6 +41,14 @@ func (s *fileService) SaveUploadedFile(file *multipart.FileHeader, dst string) e
 
 	_, err = io.Copy(out, src)
 	return err
+}
+
+// SaveFile saves raw bytes to the specified destination path.
+func (s *fileService) SaveFile(data []byte, dst string) error {
+	if err := os.MkdirAll(filepath.Dir(dst), 0750); err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0644)
 }
 
 // EnsureDir ensures that a directory exists, creating it if necessary.

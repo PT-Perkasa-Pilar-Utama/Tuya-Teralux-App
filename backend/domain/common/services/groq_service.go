@@ -103,7 +103,7 @@ func (s *GroqService) CallModel(prompt string, model string) (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("groq api returned status %d: %s", resp.StatusCode, string(body))
+		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("groq api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var response struct {
@@ -187,7 +187,7 @@ func (s *GroqService) Transcribe(audioPath string, language string) (*dtos.Whisp
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("groq whisper returned status %d: %s", resp.StatusCode, string(respBody))
+		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("groq whisper returned status %d: %s", resp.StatusCode, string(respBody)))
 	}
 
 	var result struct {

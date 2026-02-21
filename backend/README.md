@@ -36,15 +36,9 @@ The application uses **MySQL** as its database engine.
 
 The application provides a robust speech-to-text pipeline with multiple processing paths:
 
-1.  **Standard Transcription (`POST /api/speech/transcribe`)**: 
-    - Optimized for short audio clips.
-    - Automatic fallback: Attempts **Orion (Outsystems)** first, falls back to **Local Whisper** if Orion is offline.
-    - Post-processing: Integrated RAG for grammar correction and spelling refinement.
-2.  **Long Transcription (`POST /api/speech/transcribe/whisper/cpp`)**:
-    - Direct access to the heavy-duty **Local Whisper.cpp** engine.
-    - Explicit language selection support.
-3.  **Orion Transcription (`POST /api/speech/transcribe/orion`)**:
-    - Direct proxy to external Outsystems Orion service.
+3.  **Model-Specific Transcription (`POST /api/speech/models/{provider}`)**:
+    - Direct access to specific model providers (Gemini, OpenAI, Groq, Orion, Whisper.cpp).
+    - Returns a `task_id` for asynchronous polling.
 4.  **Status Tracking (`GET /api/speech/transcribe/{task_id}`)**:
     - Consolidated endpoint to check status and fetch results for any transcription task.
 

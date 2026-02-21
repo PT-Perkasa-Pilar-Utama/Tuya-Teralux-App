@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -74,34 +73,30 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			return
 		}
 
-		// Create directory if not exists
-		dir := filepath.Join("uploads", "audio", "mqtt")
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0755); err != nil {
-				utils.LogError("SpeechTranscribe MQTT: Failed to create directory: %v", err)
-				return
-			}
-		}
-
-		// Generate filename
-		filename := fmt.Sprintf("mqtt_%s_%d.wav", req.TeraluxID, time.Now().UnixNano())
-		inputPath := filepath.Join(dir, filename)
-
-		if err := os.WriteFile(inputPath, audioBytes, 0644); err != nil {
-			utils.LogError("SpeechTranscribe MQTT: Failed to save audio: %v", err)
-			return
-		}
-
 		language := req.Language
 		if language == "" {
 			language = "id"
 		}
 
-		// Start transcription task (bypass recording save)
-		taskID, err := c.transcribeUC.TranscribeAudio(inputPath, filename, language, usecases.TranscriptionMetadata{
+		// Generate a descriptive original name for logging
+		filename := fmt.Sprintf("mqtt_%s_%d.wav", req.TeraluxID, time.Now().UnixNano())
+
+		// Save recording (File + DB) - Same as REST
+		recording, err := c.saveRecordingUC.SaveRecordingFromBytes(audioBytes, filename)
+		if err != nil {
+			utils.LogError("SpeechTranscribe MQTT: Failed to save recording: %v", err)
+			c.publishMqttError("Failed to save recording: " + err.Error())
+			return
+		}
+
+		finalPath := filepath.Join("uploads", "audio", recording.Filename)
+
+		// Start transcription task using usecase - Same metadata logic
+		taskID, err := c.transcribeUC.TranscribeAudio(finalPath, filename, language, usecases.TranscriptionMetadata{
 			UID:       req.UID,
 			TeraluxID: req.TeraluxID,
 			Source:    "mqtt",
+			Trigger:   "mqtt:tera/transcribe", // Assuming this is the topic or some descriptive name
 		})
 		if err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to start transcription: %v", err)
@@ -109,13 +104,14 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			return
 		}
 
-		// Publish success status
+		// Publish success status with RecordingID - Same as REST
 		c.publishMqttResponse(dtos.StandardResponse{
 			Status:  true,
 			Message: "Transcription task submitted successfully",
 			Data: dtos.TranscriptionTaskResponseDTO{
-				TaskID:     taskID,
-				TaskStatus: "pending",
+				TaskID:      taskID,
+				TaskStatus:  "pending",
+				RecordingID: recording.ID,
 			},
 		})
 
@@ -157,8 +153,8 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 }
 
 // Transcribe handles POST /api/speech/transcribe
-// @Summary Transcribe audio file (Whisper)
-// @Description Start transcription of audio file using local Whisper STT. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
+// @Summary Transcribe audio file (Unified)
+// @Description Start transcription of audio file using the configured LLM provider (LLM_PROVIDER). Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
@@ -210,23 +206,6 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 		return
 	}
 
-	tempDir := "./tmp"
-	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-		if err := os.Mkdir(tempDir, 0755); err != nil {
-			utils.LogError("Transcribe: Failed to create temp directory: %v", err)
-		}
-	}
-
-	inputPath := filepath.Join(tempDir, file.Filename)
-	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
-		utils.LogError("Transcribe.SaveUploadedFile: %v", err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
-			Status:  false,
-			Message: "Internal Server Error",
-		})
-		return
-	}
-
 	recording, err := c.saveRecordingUC.SaveRecording(file)
 	if err != nil {
 		utils.LogError("Transcribe.SaveRecording: %v", err)
@@ -244,7 +223,11 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 		language = "id"
 	}
 
-	taskID, err := c.transcribeUC.TranscribeAudio(finalInputPath, file.Filename, language)
+	// Use the same TranscribeAudio with REST metadata
+	taskID, err := c.transcribeUC.TranscribeAudio(finalInputPath, file.Filename, language, usecases.TranscriptionMetadata{
+		Source:  "rest",
+		Trigger: ctx.Request.URL.Path,
+	})
 	if err != nil {
 		utils.LogError("Transcribe.TranscribeAudio: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

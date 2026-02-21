@@ -117,7 +117,7 @@ func (s *GeminiService) CallModel(prompt string, model string) (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("gemini api returned status %d: %s", resp.StatusCode, string(body))
+		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var geminiResp geminiResponse
@@ -203,7 +203,7 @@ func (s *GeminiService) Transcribe(audioPath string, language string) (*dtos.Whi
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("gemini api returned status %d: %s", resp.StatusCode, string(body))
+		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var geminiResp geminiResponse

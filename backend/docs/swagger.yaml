@@ -28,13 +28,6 @@ definitions:
         type: string
       value: {}
     type: object
-  dtos.AsyncTranscriptionProcessStatusResponseDTO:
-    properties:
-      task_id:
-        type: string
-      task_status:
-        $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
-    type: object
   dtos.AsyncTranscriptionResultDTO:
     properties:
       detected_language:
@@ -49,14 +42,26 @@ definitions:
     type: object
   dtos.AsyncTranscriptionStatusDTO:
     properties:
+      duration_seconds:
+        example: 1.5
+        type: number
+      error:
+        example: service unavailable
+        type: string
       expires_at:
         type: string
       expires_in_seconds:
         type: integer
       result:
         $ref: '#/definitions/dtos.AsyncTranscriptionResultDTO'
+      started_at:
+        example: "2026-02-21T11:00:00Z"
+        type: string
       status:
         example: completed
+        type: string
+      trigger:
+        example: /api/speech/models/gemini
         type: string
     type: object
   dtos.CreateSceneRequestDTO:
@@ -112,7 +117,13 @@ definitions:
   dtos.RAGStatusDTO:
     properties:
       body: {}
+      duration_seconds:
+        example: 2.5
+        type: number
       endpoint:
+        type: string
+      error:
+        example: gemini api returned status 503
         type: string
       execution_result:
         description: holds the response from the fetched endpoint
@@ -127,9 +138,16 @@ definitions:
       method:
         type: string
       result:
-        description: raw LLM response when not structured
+        example: The meeting discussed...
+        type: string
+      started_at:
+        example: "2026-02-21T11:00:00Z"
         type: string
       status:
+        example: completed
+        type: string
+      trigger:
+        example: /api/rag/summary
         type: string
     type: object
   dtos.RAGSummaryRequestDTO:
@@ -1073,7 +1091,7 @@ paths:
             - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.AsyncTranscriptionProcessStatusResponseDTO'
+                  $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
               type: object
         "404":
           description: Not Found

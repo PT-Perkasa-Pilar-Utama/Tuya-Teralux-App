@@ -121,7 +121,7 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("openai api returned status %d: %s", resp.StatusCode, string(body))
+		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("openai api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var openaiResp openaiResponse
@@ -199,7 +199,7 @@ func (s *OpenAIService) Transcribe(audioPath string, language string) (*dtos.Whi
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("openai whisper returned status %d: %s", resp.StatusCode, string(respBody))
+		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("openai whisper returned status %d: %s", resp.StatusCode, string(respBody)))
 	}
 
 	var result struct {

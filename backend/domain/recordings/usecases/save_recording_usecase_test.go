@@ -51,6 +51,11 @@ func (m *MockFileService) SaveUploadedFile(file *multipart.FileHeader, dst strin
 	return args.Error(0)
 }
 
+func (m *MockFileService) SaveFile(data []byte, dst string) error {
+	args := m.Called(data, dst)
+	return args.Error(0)
+}
+
 func (m *MockFileService) EnsureDir(dirName string) error {
 	args := m.Called(dirName)
 	return args.Error(0)

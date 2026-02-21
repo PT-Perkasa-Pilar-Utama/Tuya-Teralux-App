@@ -45,7 +45,7 @@ func (c *RAGTranslateController) Translate(ctx *gin.Context) {
 		return
 	}
 
-	taskID, err := c.translateUC.TranslateText(req.Text, req.Language)
+	taskID, err := c.translateUC.TranslateTextWithTrigger(req.Text, req.Language, ctx.Request.URL.Path)
 	if err != nil {
 		utils.LogError("RAGTranslateController.Translate: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

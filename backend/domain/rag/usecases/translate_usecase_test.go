@@ -24,7 +24,7 @@ func (m *mockLLMForTranslate) CallModel(prompt string, model string) (string, er
 func TestTranslateUseCase_Execute(t *testing.T) {
 	utils.LoadConfig()
 	cfg := utils.GetConfig()
-	cfg.GeminiModel = "test-model-v1"
+	cfg.GeminiModelLow = "test-model-v1"
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	t.Run("Success", func(t *testing.T) {
@@ -44,7 +44,7 @@ func TestTranslateUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("Empty Config Model fallback", func(t *testing.T) {
-		emptyCfg := &utils.Config{GeminiModel: ""}
+		emptyCfg := &utils.Config{GeminiModelLow: ""}
 		mockLLM := &mockLLMForTranslate{}
 		u := NewTranslateUseCase(mockLLM, emptyCfg, nil, store)
 

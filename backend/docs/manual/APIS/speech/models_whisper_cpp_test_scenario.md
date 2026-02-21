@@ -1,13 +1,7 @@
-# ENDPOINT: POST /api/speech/transcribe
+# ENDPOINT: POST /api/speech/models/whisper/cpp
 
 ## Description
-Starts transcription of an audio file with automatic provider fallback. This endpoint automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
-
-### Processing Flow
-1. **Configured Provider**: System uses the provider defined in `LLM_PROVIDER` environment variable (Gemini, OpenAI, Groq, or Orion).
-2. **Specialized Models**: Alternatively, users can use dedicated model endpoints under `/api/speech/models/` for specific provider selection.
-
-Processing is **asynchronous** and results can be tracked via the transcription ID.
+Starts transcription of an audio file using **local Whisper.cpp** model. This endpoint provides **background execution** and is processed **asynchronously**.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -17,10 +11,11 @@ Processing is **asynchronous** and results can be tracked via the transcription 
 - **Content-Type**: `multipart/form-data`
 - **Parameters**:
   - `audio` (file, required): Audio file. Supported formats: `.mp3`, `.wav`, `.m4a`, `.aac`, `.ogg`, `.flac`.
+  - `language` (string, optional): Language code (e.g., `id`, `en`).
 
 ## Test Scenarios
 
-### 1. Transcribe Audio File (Success)
+### 1. Transcribe via Whisper.cpp (Success)
 - **Method**: `POST`
 - **Headers**:
 ```json
@@ -28,24 +23,24 @@ Processing is **asynchronous** and results can be tracked via the transcription 
   "Authorization": "Bearer <valid_token>"
 }
 ```
-- **Pre-conditions**: Valid audio file, valid Bearer token.
-- **Request**: Upload `audio.mp3`.
+- **Pre-conditions**: Valid audio file.
+- **Request**: Upload `recording.wav` and `language="id"`.
 - **Expected Response**:
 ```json
 {
   "status": true,
-  "message": "Transcription task submitted successfully",
+  "message": "Whisper.cpp transcription task submitted",
   "data": {
-    "task_id": "abc123-def456-ghi789",
+    "task_id": "whisper-xyz789-abc123",
     "task_status": "pending",
-    "recording_id": "uuid-v4-of-the-recording"
+    "recording_id": "uuid-v4"
   }
 }
 ```
   *(Status: 202 Accepted)*
 - **Side Effects**: 
   - Task entry created in cache storage.
-  - Background processing started.
+  - Background transcription task started using local Whisper.cpp.
 
 ### 2. Validation: Missing Audio File
 - **Method**: `POST`
@@ -56,7 +51,7 @@ Processing is **asynchronous** and results can be tracked via the transcription 
   "status": false,
   "message": "Validation Error",
   "details": [
-    { "field": "audio", "message": "audio file is required" }
+    { "field": "audio", "message": "Audio file is required: http: no such file" }
   ]
 }
 ```
@@ -64,15 +59,12 @@ Processing is **asynchronous** and results can be tracked via the transcription 
 
 ### 3. Validation: Unsupported File Type
 - **Method**: `POST`
-- **Request**: Upload `image.png`.
+- **Request**: Upload `video.mp4`.
 - **Expected Response**:
 ```json
 {
   "status": false,
-  "message": "Validation Error",
-  "details": [
-    { "field": "audio", "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac" }
-  ]
+  "message": "Unsupported Media Type"
 }
 ```
   *(Status: 415 Unsupported Media Type)*
@@ -84,7 +76,7 @@ Processing is **asynchronous** and results can be tracked via the transcription 
 ```json
 {
   "status": false,
-  "message": "File size exceeds maximum limit"
+  "message": "File too large"
 }
 ```
   *(Status: 413 Request Entity Too Large)*
@@ -102,22 +94,20 @@ Processing is **asynchronous** and results can be tracked via the transcription 
 
 ### 6. Scenario: Silent Audio
 - **Request**: Upload 5 seconds of absolute silence.
-- **Expected Behavior**: The transcription process completes successfully.
-- **Expected Result**: `transcription: ""` and `refined_text: ""` because no speech was detected.
+- **Expected Behavior**: Transcription task completes successfully but result text will be empty.
 
 ### 7. Validation: Wrong Extension / Corrupt Header
 - **Request**: Upload a `.txt` file renamed to `.mp3`.
-- **Expected Behavior**: The file is accepted at the API layer (due to extension check).
-- **Processing Outcome**: The background transcription engine (Whisper) will fail to decode the audio.
-- **Expected Status**: Task status becomes `failed` after processing.
+- **Expected Behavior**: File accepted at API layer, but local Whisper engine will fail to process it in background.
+- **Expected Status**: Task status becomes `failed`.
 
 ### 8. Error: Internal Server Error
-- **Pre-conditions**: Both Orion and Local Whisper engines are failing or system resources are exhausted.
+- **Pre-conditions**: Local Whisper service fails to initialize or process the file saving.
 - **Expected Response**:
 ```json
 {
   "status": false,
-  "message": "Failed to start transcription"
+  "message": "Internal Server Error"
 }
 ```
 *(Status: 500 Internal Server Error)*

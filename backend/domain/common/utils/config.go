@@ -25,7 +25,6 @@ type Config struct {
 
 	// Gemini
 	GeminiApiKey       string
-	GeminiModel        string // Default (legacy/fallback)
 	GeminiModelHigh    string // High reasoning
 	GeminiModelLow     string // Fast/Low cost
 	GeminiModelWhisper string // STT

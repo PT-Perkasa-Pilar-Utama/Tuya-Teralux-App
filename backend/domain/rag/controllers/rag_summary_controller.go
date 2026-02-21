@@ -45,7 +45,7 @@ func (c *RAGSummaryController) Summary(ctx *gin.Context) {
 		return
 	}
 
-	taskID, err := c.summaryUC.SummarizeText(req.Text, req.Language, req.Context, req.Style)
+	taskID, err := c.summaryUC.SummarizeTextWithTrigger(req.Text, req.Language, req.Context, req.Style, ctx.Request.URL.Path)
 	if err != nil {
 		utils.LogError("RAGSummaryController.Summary: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

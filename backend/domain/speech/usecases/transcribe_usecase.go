@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	ragUsecases "teralux_app/domain/rag/usecases"
@@ -12,10 +11,20 @@ import (
 	"time"
 )
 
+type mqttPublisher interface {
+	Publish(topic string, qos byte, retained bool, payload interface{}) error
+}
+
+// WhisperClient is the unified interface for all whisper transcription services
+type WhisperClient interface {
+	Transcribe(audioPath string, language string) (*speechdtos.WhisperResult, error)
+}
+
 type TranscriptionMetadata struct {
 	UID       string
 	TeraluxID string
 	Source    string // "mqtt", "rest", etc.
+	Trigger   string // e.g., "/api/speech/transcribe"
 }
 
 type TranscribeUseCase interface {
@@ -25,21 +34,24 @@ type TranscribeUseCase interface {
 type transcribeUseCase struct {
 	whisperClient WhisperClient
 	refineUC      ragUsecases.RefineUseCase
+	store         *tasks.StatusStore[speechdtos.AsyncTranscriptionStatusDTO]
 	cache         *tasks.BadgerTaskCache
 	config        *utils.Config
-	mqttSvc       *infrastructure.MqttService
+	mqttSvc       mqttPublisher
 }
 
 func NewTranscribeUseCase(
 	whisperClient WhisperClient,
 	refineUC ragUsecases.RefineUseCase,
+	store *tasks.StatusStore[speechdtos.AsyncTranscriptionStatusDTO],
 	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
-	mqttSvc *infrastructure.MqttService,
+	mqttSvc mqttPublisher,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
 		whisperClient: whisperClient,
 		refineUC:      refineUC,
+		store:         store,
 		cache:         cache,
 		config:        config,
 		mqttSvc:       mqttSvc,
@@ -53,20 +65,27 @@ func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, 
 	}
 
 	taskID := utils.GenerateUUID()
-	status := &speechdtos.AsyncTranscriptionStatusDTO{
-		Status:    "pending",
-		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
-	}
-
-	// Mark as pending
-	_ = uc.cache.Set(taskID, status)
-
-	utils.LogInfo("Transcribe: Started task %s for file %s", taskID, fileName)
-
 	var meta *TranscriptionMetadata
 	if len(metadata) > 0 {
 		meta = &metadata[0]
 	}
+
+	status := &speechdtos.AsyncTranscriptionStatusDTO{
+		Status:    "pending",
+		Trigger:   "",
+		StartedAt: time.Now().Format(time.RFC3339),
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	if meta != nil && meta.Trigger != "" {
+		status.Trigger = meta.Trigger
+	}
+
+	// Mark as pending
+	uc.store.Set(taskID, status)
+	_ = uc.cache.Set(taskID, status)
+
+	utils.LogInfo("Transcribe: Started task %s for file %s", taskID, fileName)
 
 	go uc.processAsync(taskID, inputPath, language, meta)
 
@@ -77,7 +96,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	defer func() {
 		if r := recover(); r != nil {
 			utils.LogError("Transcribe Task %s: Panic recovered: %v", taskID, r)
-			uc.updateStatus(taskID, "failed", nil)
+			uc.updateStatus(taskID, "failed", nil, fmt.Errorf("internal panic: %v", r))
 		}
 	}()
 
@@ -85,7 +104,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	result, err := uc.whisperClient.Transcribe(inputPath, reqLanguage)
 	if err != nil {
 		utils.LogError("Transcribe Task %s: All transcription methods failed: %v", taskID, err)
-		uc.updateStatus(taskID, "failed", nil)
+		uc.updateStatus(taskID, "failed", nil, err)
 		return
 	}
 
@@ -105,7 +124,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 		DetectedLanguage: result.DetectedLanguage, // Keep original detection for record
 	}
 
-	uc.updateStatus(taskID, "completed", finalResult)
+	uc.updateStatus(taskID, "completed", finalResult, nil)
 
 	// Chaining to /chat ONLY if initiated via MQTT
 	if metadata != nil && metadata.Source == "mqtt" && metadata.TeraluxID != "" && uc.mqttSvc != nil {
@@ -129,11 +148,34 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	}
 }
 
-func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, result *speechdtos.AsyncTranscriptionResultDTO) {
+func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, result *speechdtos.AsyncTranscriptionResultDTO, err error) {
+	// Try to get existing status to preserve StartedAt
+	var existing speechdtos.AsyncTranscriptionStatusDTO
+	_, _, _ = uc.cache.GetWithTTL(taskID, &existing)
+
 	status := &speechdtos.AsyncTranscriptionStatusDTO{
 		Status:    statusStr,
 		Result:    result,
+		StartedAt: existing.StartedAt,
+		Trigger:   existing.Trigger,
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
+
+	if err != nil {
+		status.Error = err.Error()
+		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+	} else if statusStr == "completed" {
+		status.HTTPStatusCode = 200
+	}
+
+	// Calculate duration if finished
+	if statusStr == "completed" || statusStr == "failed" {
+		if existing.StartedAt != "" {
+			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
+			status.DurationSeconds = time.Since(startTime).Seconds()
+		}
+	}
+
+	uc.store.Set(taskID, status)
 	_ = uc.cache.SetPreserveTTL(taskID, status)
 }

@@ -1,9 +1,7 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"teralux_app/domain/common/utils"
 	recordingUsecases "teralux_app/domain/recordings/usecases"
@@ -13,28 +11,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SpeechTranscribeOrionController handles POST /api/speech/transcribe/orion.
-type SpeechTranscribeOrionController struct {
-	proxyUC       usecases.WhisperProxyUsecase
+type SpeechModelsGeminiController struct {
+	usecase       usecases.TranscribeGeminiModelUseCase
 	saveRecording recordingUsecases.SaveRecordingUseCase
 	config        *utils.Config
 }
 
-func NewSpeechTranscribeOrionController(
-	proxyUC usecases.WhisperProxyUsecase,
+func NewSpeechModelsGeminiController(
+	usecase usecases.TranscribeGeminiModelUseCase,
 	saveRecording recordingUsecases.SaveRecordingUseCase,
 	cfg *utils.Config,
-) *SpeechTranscribeOrionController {
-	return &SpeechTranscribeOrionController{
-		proxyUC:       proxyUC,
+) *SpeechModelsGeminiController {
+	return &SpeechModelsGeminiController{
+		usecase:       usecase,
 		saveRecording: saveRecording,
 		config:        cfg,
 	}
 }
 
-// TranscribeOrion handles POST /api/speech/transcribe/orion
-// @Summary Transcribe audio file (Proxy to Outsystems)
-// @Description Submit audio file for transcription via Outsystems proxy. Processing is asynchronous.
+// Transcribe handles POST /api/speech/models/gemini
+// @Summary Transcribe audio file (Gemini)
+// @Description Submit audio file for transcription via Gemini. Processing is asynchronous.
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Accept multipart/form-data
@@ -46,14 +43,10 @@ func NewSpeechTranscribeOrionController(
 // @Failure 413 {object} dtos.StandardResponse
 // @Failure 415 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
-// @Router /api/speech/transcribe/orion [post]
-func (c *SpeechTranscribeOrionController) TranscribeOrion(ctx *gin.Context) {
-	log.Println("[DEBUG] TranscribeOrion: Request received")
-	log.Printf("[DEBUG] TranscribeOrion: Content-Type: %s", ctx.GetHeader("Content-Type"))
-
+// @Router /api/speech/models/gemini [post]
+func (c *SpeechModelsGeminiController) Transcribe(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
-		log.Printf("[DEBUG] TranscribeOrion: FormFile error: %v", err)
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
@@ -63,7 +56,6 @@ func (c *SpeechTranscribeOrionController) TranscribeOrion(ctx *gin.Context) {
 		})
 		return
 	}
-	log.Printf("[DEBUG] TranscribeOrion: File received: %s, Size: %d", file.Filename, file.Size)
 
 	if file.Size > c.config.MaxFileSize {
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
@@ -90,26 +82,9 @@ func (c *SpeechTranscribeOrionController) TranscribeOrion(ctx *gin.Context) {
 		return
 	}
 
-	tempDir := "./tmp"
-	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
-		if err := os.Mkdir(tempDir, 0755); err != nil {
-			utils.LogError("TranscribeOrion: Failed to create temp directory: %v", err)
-		}
-	}
-
-	inputPath := filepath.Join(tempDir, file.Filename)
-	if err := ctx.SaveUploadedFile(file, inputPath); err != nil {
-		utils.LogError("TranscribeOrion.SaveUploadedFile: %v", err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
-			Status:  false,
-			Message: "Internal Server Error",
-		})
-		return
-	}
-
 	recording, err := c.saveRecording.SaveRecording(file)
 	if err != nil {
-		utils.LogError("TranscribeOrion.SaveRecording: %v", err)
+		utils.LogError("Gemini.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
@@ -118,15 +93,11 @@ func (c *SpeechTranscribeOrionController) TranscribeOrion(ctx *gin.Context) {
 	}
 
 	finalPath := filepath.Join("uploads", "audio", recording.Filename)
-
 	language := ctx.PostForm("language")
-	if language == "" {
-		language = "id"
-	}
 
-	taskID, err := c.proxyUC.ProxyTranscribe(finalPath, file.Filename, language)
+	taskID, err := c.usecase.TranscribeAsync(finalPath, file.Filename, language, ctx.Request.URL.Path)
 	if err != nil {
-		utils.LogError("TranscribeOrion.ProxyTranscribe: %v", err)
+		utils.LogError("Gemini.TranscribeAsync: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
@@ -136,7 +107,7 @@ func (c *SpeechTranscribeOrionController) TranscribeOrion(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
 		Status:  true,
-		Message: "Task submitted",
+		Message: "Gemini transcription task submitted",
 		Data: dtos.TranscriptionTaskResponseDTO{
 			TaskID:      taskID,
 			TaskStatus:  "pending",

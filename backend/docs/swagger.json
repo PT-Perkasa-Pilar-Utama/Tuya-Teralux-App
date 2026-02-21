@@ -1163,7 +1163,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessStatusResponseDTO"
+                                            "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
                                         }
                                     }
                                 }
@@ -1771,17 +1771,6 @@
                 "value": {}
             }
         },
-        "dtos.AsyncTranscriptionProcessStatusResponseDTO": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                },
-                "task_status": {
-                    "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
-                }
-            }
-        },
         "dtos.AsyncTranscriptionResultDTO": {
             "type": "object",
             "properties": {
@@ -1802,6 +1791,14 @@
         "dtos.AsyncTranscriptionStatusDTO": {
             "type": "object",
             "properties": {
+                "duration_seconds": {
+                    "type": "number",
+                    "example": 1.5
+                },
+                "error": {
+                    "type": "string",
+                    "example": "service unavailable"
+                },
                 "expires_at": {
                     "type": "string"
                 },
@@ -1811,9 +1808,17 @@
                 "result": {
                     "$ref": "#/definitions/dtos.AsyncTranscriptionResultDTO"
                 },
+                "started_at": {
+                    "type": "string",
+                    "example": "2026-02-21T11:00:00Z"
+                },
                 "status": {
                     "type": "string",
                     "example": "completed"
+                },
+                "trigger": {
+                    "type": "string",
+                    "example": "/api/speech/models/gemini"
                 }
             }
         },
@@ -1894,8 +1899,16 @@
             "type": "object",
             "properties": {
                 "body": {},
+                "duration_seconds": {
+                    "type": "number",
+                    "example": 2.5
+                },
                 "endpoint": {
                     "type": "string"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "gemini api returned status 503"
                 },
                 "execution_result": {
                     "description": "holds the response from the fetched endpoint"
@@ -1916,11 +1929,20 @@
                     "type": "string"
                 },
                 "result": {
-                    "description": "raw LLM response when not structured",
-                    "type": "string"
+                    "type": "string",
+                    "example": "The meeting discussed..."
+                },
+                "started_at": {
+                    "type": "string",
+                    "example": "2026-02-21T11:00:00Z"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "completed"
+                },
+                "trigger": {
+                    "type": "string",
+                    "example": "/api/rag/summary"
                 }
             }
         },
