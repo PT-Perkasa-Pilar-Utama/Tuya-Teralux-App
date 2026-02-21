@@ -57,7 +57,8 @@ func (s *LlamaLocalService) CallModel(prompt string, model string) (string, erro
 		"-m", s.modelPath,
 		"-p", prompt,
 		"-n", "128", // Limit response length for speed in dev
-		"--quiet", // Reduce noise
+		"--log-disable", // Reduce noise
+		"--simple-io",   // Better compatibility in subprocesses
 	}
 
 	cmd := exec.Command(bin, args...)

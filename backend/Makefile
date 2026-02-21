@@ -136,6 +136,7 @@ setup-dev:
 	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
 	@cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli
 	@cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server
+	@$(MAKE) download-models
 	@echo "✅ Setup complete. use 'make dev' to start."
 
 # Run setup script (build whisper.cpp + tools)

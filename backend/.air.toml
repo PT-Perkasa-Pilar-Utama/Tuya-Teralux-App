@@ -13,9 +13,9 @@ tmp_dir = "tmp"
   # Customize binary, can setup environment variables when run.
   full_bin = "./tmp/main"
   # Watch these filename extensions.
-  include_ext = ["go", "tpl", "tmpl", "html"]
+  include_ext = ["go", "tpl", "tmpl", "html", "json", "yaml"]
   # Ignore these filename extensions or directories.
-  exclude_dir = ["assets", "tmp", "vendor", "testdata", "docs"]
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "services/llama.cpp", "services/whisper.cpp"]
   # Watch these directories if you specified.
   include_dir = []
   # Watch these files.

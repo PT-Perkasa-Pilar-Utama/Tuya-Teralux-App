@@ -438,7 +438,7 @@ paths:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - 07. Common
+      - 08. Common
   /api/email/send:
     post:
       consumes:
@@ -470,7 +470,7 @@ paths:
       - BearerAuth: []
       summary: Send an email
       tags:
-      - 07. Common
+      - 08. Common
   /api/health:
     get:
       description: Check if the application and database are healthy
@@ -487,7 +487,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - 07. Common
+      - 08. Common
   /api/models/gemini:
     post:
       consumes:
@@ -906,7 +906,7 @@ paths:
       - BearerAuth: []
       summary: List all recordings
       tags:
-      - 06. Recordings
+      - 07. Recordings
     post:
       consumes:
       - multipart/form-data
@@ -945,7 +945,7 @@ paths:
       - BearerAuth: []
       summary: Save a new recording
       tags:
-      - 06. Recordings
+      - 07. Recordings
   /api/recordings/{id}:
     delete:
       description: Remove a recording and its associated file from the system.
@@ -974,7 +974,7 @@ paths:
       - BearerAuth: []
       summary: Delete a recording
       tags:
-      - 06. Recordings
+      - 07. Recordings
     get:
       description: Retrieve metadata for a specific recording.
       parameters:
@@ -1011,7 +1011,7 @@ paths:
       - BearerAuth: []
       summary: Get recording by ID
       tags:
-      - 06. Recordings
+      - 07. Recordings
   /api/speech/models/gemini:
     post:
       consumes:

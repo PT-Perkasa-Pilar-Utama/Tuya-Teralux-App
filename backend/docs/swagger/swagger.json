@@ -36,7 +36,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "07. Common"
+                    "08. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -70,7 +70,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "07. Common"
+                    "08. Common"
                 ],
                 "summary": "Send an email",
                 "parameters": [
@@ -113,7 +113,7 @@
                     "text/plain"
                 ],
                 "tags": [
-                    "07. Common"
+                    "08. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -774,7 +774,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "List all recordings",
                 "parameters": [
@@ -838,7 +838,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Save a new recording",
                 "parameters": [
@@ -902,7 +902,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Get recording by ID",
                 "parameters": [
@@ -964,7 +964,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Delete a recording",
                 "parameters": [

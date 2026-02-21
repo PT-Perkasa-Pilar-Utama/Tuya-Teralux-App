@@ -29,7 +29,7 @@ type SendEmailRequest struct {
 // SendEmail godoc
 // @Summary Send an email
 // @Description Send an email using a template or raw body
-// @Tags 07. Common
+// @Tags 08. Common
 // @Accept json
 // @Produce json
 // @Param request body SendEmailRequest true "Email Request"

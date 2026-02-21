@@ -27,7 +27,7 @@ func NewRecordingsDeleteController(useCase usecases.DeleteRecordingUseCase) *Rec
 // DeleteRecording handles DELETE /api/recordings/:id endpoint
 // @Summary Delete a recording
 // @Description Remove a recording and its associated file from the system.
-// @Tags 06. Recordings
+// @Tags 07. Recordings
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Recording ID"

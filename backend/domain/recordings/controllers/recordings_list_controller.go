@@ -28,7 +28,7 @@ func NewRecordingsListController(useCase usecases.GetAllRecordingsUseCase) *Reco
 // ListRecordings handles GET /api/recordings endpoint
 // @Summary List all recordings
 // @Description Get a paginated list of all recordings.
-// @Tags 06. Recordings
+// @Tags 07. Recordings
 // @Security BearerAuth
 // @Produce json
 // @Param page query int false "Page number (default 1)"

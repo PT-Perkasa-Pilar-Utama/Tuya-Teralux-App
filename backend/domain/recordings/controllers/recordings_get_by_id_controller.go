@@ -26,7 +26,7 @@ func NewRecordingsGetByIDController(useCase usecases.GetRecordingByIDUseCase) *R
 // GetRecordingByID handles GET /api/recordings/:id endpoint
 // @Summary Get recording by ID
 // @Description Retrieve metadata for a specific recording.
-// @Tags 06. Recordings
+// @Tags 07. Recordings
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Recording ID"

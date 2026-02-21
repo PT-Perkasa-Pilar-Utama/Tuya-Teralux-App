@@ -39,7 +39,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Common"
+                    "08. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -73,7 +73,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Common"
+                    "08. Common"
                 ],
                 "summary": "Send an email",
                 "parameters": [
@@ -116,7 +116,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "07. Common"
+                    "08. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -777,7 +777,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "List all recordings",
                 "parameters": [
@@ -841,7 +841,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Save a new recording",
                 "parameters": [
@@ -905,7 +905,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Get recording by ID",
                 "parameters": [
@@ -967,7 +967,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Delete a recording",
                 "parameters": [
