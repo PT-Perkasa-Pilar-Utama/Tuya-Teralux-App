@@ -135,6 +135,351 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/models/gemini": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the Gemini LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to Gemini model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/groq": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the Groq LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to Groq model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/llama/cpp": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the local Llama.cpp LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to local Llama.cpp model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/openai": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the OpenAI LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to OpenAI model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/orion": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the Orion LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to Orion model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/rag/chat": {
             "post": {
                 "security": [
@@ -1166,7 +1511,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessStatusResponseDTO"
+                                            "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
                                         }
                                     }
                                 }
@@ -1774,17 +2119,6 @@ const docTemplate = `{
                 "value": {}
             }
         },
-        "dtos.AsyncTranscriptionProcessStatusResponseDTO": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                },
-                "task_status": {
-                    "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
-                }
-            }
-        },
         "dtos.AsyncTranscriptionResultDTO": {
             "type": "object",
             "properties": {
@@ -1805,6 +2139,14 @@ const docTemplate = `{
         "dtos.AsyncTranscriptionStatusDTO": {
             "type": "object",
             "properties": {
+                "duration_seconds": {
+                    "type": "number",
+                    "example": 1.5
+                },
+                "error": {
+                    "type": "string",
+                    "example": "service unavailable"
+                },
                 "expires_at": {
                     "type": "string"
                 },
@@ -1814,9 +2156,17 @@ const docTemplate = `{
                 "result": {
                     "$ref": "#/definitions/dtos.AsyncTranscriptionResultDTO"
                 },
+                "started_at": {
+                    "type": "string",
+                    "example": "2026-02-21T11:00:00Z"
+                },
                 "status": {
                     "type": "string",
                     "example": "completed"
+                },
+                "trigger": {
+                    "type": "string",
+                    "example": "/api/speech/models/gemini"
                 }
             }
         },
@@ -1879,6 +2229,42 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.RAGRawPromptRequestDTO": {
+            "type": "object",
+            "required": [
+                "prompt"
+            ],
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "example": "Hello, how are you?"
+                }
+            }
+        },
+        "dtos.RAGRawPromptResponseDTO": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {
+                    "type": "number"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                },
+                "trigger": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.RAGRequestDTO": {
             "type": "object",
             "required": [
@@ -1897,8 +2283,16 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "body": {},
+                "duration_seconds": {
+                    "type": "number",
+                    "example": 2.5
+                },
                 "endpoint": {
                     "type": "string"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "gemini api returned status 503"
                 },
                 "execution_result": {
                     "description": "holds the response from the fetched endpoint"
@@ -1919,11 +2313,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "result": {
-                    "description": "raw LLM response when not structured",
-                    "type": "string"
+                    "type": "string",
+                    "example": "The meeting discussed..."
+                },
+                "started_at": {
+                    "type": "string",
+                    "example": "2026-02-21T11:00:00Z"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "completed"
+                },
+                "trigger": {
+                    "type": "string",
+                    "example": "/api/rag/summary"
                 }
             }
         },
@@ -2301,12 +2704,16 @@ const docTemplate = `{
             "name": "05. RAG"
         },
         {
+            "description": "Direct AI Model access endpoints (Non-RAG)",
+            "name": "06. Models"
+        },
+        {
             "description": "Recordings management endpoints",
-            "name": "06. Recordings"
+            "name": "07. Recordings"
         },
         {
             "description": "Common endpoints (Email, Health, Cache)",
-            "name": "07. Common"
+            "name": "08. Common"
         }
     ]
 }`

@@ -28,13 +28,6 @@ definitions:
         type: string
       value: {}
     type: object
-  dtos.AsyncTranscriptionProcessStatusResponseDTO:
-    properties:
-      task_id:
-        type: string
-      task_status:
-        $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
-    type: object
   dtos.AsyncTranscriptionResultDTO:
     properties:
       detected_language:
@@ -49,14 +42,26 @@ definitions:
     type: object
   dtos.AsyncTranscriptionStatusDTO:
     properties:
+      duration_seconds:
+        example: 1.5
+        type: number
+      error:
+        example: service unavailable
+        type: string
       expires_at:
         type: string
       expires_in_seconds:
         type: integer
       result:
         $ref: '#/definitions/dtos.AsyncTranscriptionResultDTO'
+      started_at:
+        example: "2026-02-21T11:00:00Z"
+        type: string
       status:
         example: completed
+        type: string
+      trigger:
+        example: /api/speech/models/gemini
         type: string
     type: object
   dtos.CreateSceneRequestDTO:
@@ -100,6 +105,30 @@ definitions:
     - prompt
     - teralux_id
     type: object
+  dtos.RAGRawPromptRequestDTO:
+    properties:
+      prompt:
+        example: Hello, how are you?
+        type: string
+    required:
+    - prompt
+    type: object
+  dtos.RAGRawPromptResponseDTO:
+    properties:
+      duration_seconds:
+        type: number
+      error:
+        type: string
+      result:
+        type: string
+      started_at:
+        type: string
+      status:
+        example: completed
+        type: string
+      trigger:
+        type: string
+    type: object
   dtos.RAGRequestDTO:
     properties:
       language:
@@ -112,7 +141,13 @@ definitions:
   dtos.RAGStatusDTO:
     properties:
       body: {}
+      duration_seconds:
+        example: 2.5
+        type: number
       endpoint:
+        type: string
+      error:
+        example: gemini api returned status 503
         type: string
       execution_result:
         description: holds the response from the fetched endpoint
@@ -127,9 +162,16 @@ definitions:
       method:
         type: string
       result:
-        description: raw LLM response when not structured
+        example: The meeting discussed...
+        type: string
+      started_at:
+        example: "2026-02-21T11:00:00Z"
         type: string
       status:
+        example: completed
+        type: string
+      trigger:
+        example: /api/rag/summary
         type: string
     type: object
   dtos.RAGSummaryRequestDTO:
@@ -446,6 +488,214 @@ paths:
       summary: Health check endpoint
       tags:
       - 07. Common
+  /api/models/gemini:
+    post:
+      consumes:
+      - application/json
+      description: Send a raw prompt directly to the Gemini LLM model without RAG
+        orchestration.
+      parameters:
+      - description: Prompt Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRawPromptRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Raw prompt query to Gemini model
+      tags:
+      - 06. Models
+  /api/models/groq:
+    post:
+      consumes:
+      - application/json
+      description: Send a raw prompt directly to the Groq LLM model without RAG orchestration.
+      parameters:
+      - description: Prompt Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRawPromptRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Raw prompt query to Groq model
+      tags:
+      - 06. Models
+  /api/models/llama/cpp:
+    post:
+      consumes:
+      - application/json
+      description: Send a raw prompt directly to the local Llama.cpp LLM model without
+        RAG orchestration.
+      parameters:
+      - description: Prompt Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRawPromptRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Raw prompt query to local Llama.cpp model
+      tags:
+      - 06. Models
+  /api/models/openai:
+    post:
+      consumes:
+      - application/json
+      description: Send a raw prompt directly to the OpenAI LLM model without RAG
+        orchestration.
+      parameters:
+      - description: Prompt Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRawPromptRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Raw prompt query to OpenAI model
+      tags:
+      - 06. Models
+  /api/models/orion:
+    post:
+      consumes:
+      - application/json
+      description: Send a raw prompt directly to the Orion LLM model without RAG orchestration.
+      parameters:
+      - description: Prompt Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RAGRawPromptRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Raw prompt query to Orion model
+      tags:
+      - 06. Models
   /api/rag/{task_id}:
     get:
       parameters:
@@ -1073,7 +1323,7 @@ paths:
             - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.AsyncTranscriptionProcessStatusResponseDTO'
+                  $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
               type: object
         "404":
           description: Not Found
@@ -1446,7 +1696,9 @@ tags:
   name: 04. Speech
 - description: RAG endpoints
   name: 05. RAG
+- description: Direct AI Model access endpoints (Non-RAG)
+  name: 06. Models
 - description: Recordings management endpoints
-  name: 06. Recordings
+  name: 07. Recordings
 - description: Common endpoints (Email, Health, Cache)
-  name: 07. Common
+  name: 08. Common

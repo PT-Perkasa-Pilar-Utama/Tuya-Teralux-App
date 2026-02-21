@@ -77,6 +77,13 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)
 	chatController.StartMqttSubscription()
 
+	// Setup Usecases for Raw Models
+	geminiRawUC := usecases.NewQueryGeminiModelUseCase(geminiService)
+	openaiRawUC := usecases.NewQueryOpenAIModelUseCase(openaiService)
+	groqRawUC := usecases.NewQueryGroqModelUseCase(groqService)
+	orionRawUC := usecases.NewQueryOrionModelUseCase(orionService)
+	llamaRawUC := usecases.NewQueryLlamaCppModelUseCase(llamaService)
+
 	// Setup Routes
 	routes.SetupRAGRoutes(
 		protected,
@@ -85,6 +92,11 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 		controllers.NewRAGStatusController(statusUC),
 		chatController,
 		controllers.NewRAGControlController(controlUC),
+		controllers.NewRAGModelsGeminiController(geminiRawUC),
+		controllers.NewRAGModelsOpenAIController(openaiRawUC),
+		controllers.NewRAGModelsGroqController(groqRawUC),
+		controllers.NewRAGModelsOrionController(orionRawUC),
+		controllers.NewRAGModelsLlamaCppController(llamaRawUC),
 	)
 
 	return refineUC

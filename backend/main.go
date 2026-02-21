@@ -64,10 +64,13 @@ import (
 // @tag.name 05. RAG
 // @tag.description RAG endpoints
 
-// @tag.name 06. Recordings
+// @tag.name 06. Models
+// @tag.description Direct AI Model access endpoints (Non-RAG)
+
+// @tag.name 07. Recordings
 // @tag.description Recordings management endpoints
 
-// @tag.name 07. Common
+// @tag.name 08. Common
 // @tag.description Common endpoints (Email, Health, Cache)
 func main() {
 	// CLI: Healthcheck

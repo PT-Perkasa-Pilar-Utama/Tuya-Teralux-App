@@ -14,6 +14,11 @@ func SetupRAGRoutes(
 	statusController *controllers.RAGStatusController,
 	chatController *controllers.RAGChatController,
 	controlController *controllers.RAGControlController,
+	geminiModelCtrl controllers.RAGModelsGeminiController,
+	openaiModelCtrl controllers.RAGModelsOpenAIController,
+	groqModelCtrl controllers.RAGModelsGroqController,
+	orionModelCtrl controllers.RAGModelsOrionController,
+	llamaCppModelCtrl controllers.RAGModelsLlamaCppController,
 ) {
 	api := rg.Group("/api/rag")
 	{
@@ -22,5 +27,14 @@ func SetupRAGRoutes(
 		api.POST("/chat", chatController.Chat)
 		api.POST("/control", controlController.Control)
 		api.GET("/:task_id", statusController.GetStatus)
+		
+		models := rg.Group("/api/models")
+		{
+			models.POST("/gemini", geminiModelCtrl.Query)
+			models.POST("/openai", openaiModelCtrl.Query)
+			models.POST("/groq", groqModelCtrl.Query)
+			models.POST("/orion", orionModelCtrl.Query)
+			models.POST("/llama/cpp", llamaCppModelCtrl.Query)
+		}
 	}
 }

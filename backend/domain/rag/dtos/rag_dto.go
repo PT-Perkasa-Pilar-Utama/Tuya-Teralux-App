@@ -86,3 +86,19 @@ type ControlResultDTO struct {
 	Command        string `json:"command,omitempty"` // e.g., "turn_on", "turn_off", "set_temp_24"
 	HTTPStatusCode int    `json:"-"`                 // HTTP status code to return (not exposed in JSON)
 }
+
+// RAGRawPromptRequestDTO represents a raw prompt request to a specific model.
+type RAGRawPromptRequestDTO struct {
+	Prompt string `json:"prompt" binding:"required" example:"Hello, how are you?"`
+}
+
+// RAGRawPromptResponseDTO represents the direct string response from an LLM model, formatted to match the Speech tracking style.
+type RAGRawPromptResponseDTO struct {
+	Status          string  `json:"status" example:"completed"`
+	Error           string  `json:"error,omitempty"`
+	Trigger         string  `json:"trigger,omitempty"`
+	HTTPStatusCode  int     `json:"-"`
+	StartedAt       string  `json:"started_at,omitempty"`
+	DurationSeconds float64 `json:"duration_seconds,omitempty"`
+	Result          string  `json:"result,omitempty"`
+}
