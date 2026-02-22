@@ -32,16 +32,18 @@ type TranscribeUseCase interface {
 }
 
 type transcribeUseCase struct {
-	whisperClient WhisperClient
-	refineUC      ragUsecases.RefineUseCase
-	store         *tasks.StatusStore[speechdtos.AsyncTranscriptionStatusDTO]
-	cache         *tasks.BadgerTaskCache
-	config        *utils.Config
-	mqttSvc       mqttPublisher
+	whisperClient  WhisperClient
+	fallbackClient WhisperClient
+	refineUC       ragUsecases.RefineUseCase
+	store          *tasks.StatusStore[speechdtos.AsyncTranscriptionStatusDTO]
+	cache          *tasks.BadgerTaskCache
+	config         *utils.Config
+	mqttSvc        mqttPublisher
 }
 
 func NewTranscribeUseCase(
 	whisperClient WhisperClient,
+	fallbackClient WhisperClient,
 	refineUC ragUsecases.RefineUseCase,
 	store *tasks.StatusStore[speechdtos.AsyncTranscriptionStatusDTO],
 	cache *tasks.BadgerTaskCache,
@@ -49,12 +51,13 @@ func NewTranscribeUseCase(
 	mqttSvc mqttPublisher,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
-		whisperClient: whisperClient,
-		refineUC:      refineUC,
-		store:         store,
-		cache:         cache,
-		config:        config,
-		mqttSvc:       mqttSvc,
+		whisperClient:  whisperClient,
+		fallbackClient: fallbackClient,
+		refineUC:       refineUC,
+		store:          store,
+		cache:          cache,
+		config:         config,
+		mqttSvc:        mqttSvc,
 	}
 }
 
@@ -102,6 +105,11 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 
 	// Use unified whisper client with automatic fallback
 	result, err := uc.whisperClient.Transcribe(inputPath, reqLanguage)
+	if err != nil && uc.fallbackClient != nil {
+		utils.LogWarn("Transcribe: Primary client failed, falling back to local: %v", err)
+		result, err = uc.fallbackClient.Transcribe(inputPath, reqLanguage)
+	}
+
 	if err != nil {
 		utils.LogError("Transcribe Task %s: All transcription methods failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil, err)

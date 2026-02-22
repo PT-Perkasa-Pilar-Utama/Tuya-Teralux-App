@@ -16,15 +16,17 @@ type ChatUseCase interface {
 
 type ChatUseCaseImpl struct {
 	llm          skills.LLMClient
+	fallbackLLM  skills.LLMClient
 	config       *utils.Config
 	badger       *infrastructure.BadgerService
 	vector       *infrastructure.VectorService
 	orchestrator *skills.Orchestrator
 }
 
-func NewChatUseCase(llm skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
+func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
 	return &ChatUseCaseImpl{
 		llm:          llm,
+		fallbackLLM:  fallbackLLM,
 		config:       cfg,
 		badger:       badger,
 		vector:       vector,
@@ -62,6 +64,12 @@ func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.R
 
 	// 3. Route and Execute via Orchestrator
 	result, err := u.orchestrator.RouteAndExecute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("Chat: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		result, err = u.orchestrator.RouteAndExecute(ctx)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("orchestrator execution failed: %w", err)
 	}

@@ -1,21 +1,22 @@
-# Email Service Specification
+# Mail Service Specification
 
 ## Overview
-The Email Service provides a centralized way for the backend application to send emails using SMTP. This service is designed to be used by other domains (e.g., User Management, Alerts) to send notifications, verification emails, and other communications.
+The Mail Service provides a centralized way for the backend application to send emails using SMTP. This service is a dedicated domain used for notifications, verification emails, and other communications.
 
 ## Architecture
-The Email Service is located in `backend/domain/common/infrastructure/email` and implements a simple interface for sending simple text and HTML emails.
+The Mail Service is located in `backend/domain/mail` and implements logic for sending HTML emails using templates.
 
 ### Component Diagram
 ```mermaid
 graph TD
-    A[Other Domains] -->|Uses| B(EmailService)
+    A[Other Domains] -->|Uses| B(MailService)
     B -->|SMTP| C[External SMTP Server]
     B -->|Reads| D[Config/Env]
+    B -->|Uses| E[Templates]
 ```
 
 ## Configuration
-To use the Email Service, the following environment variables must be set in the `.env` file:
+To use the Mail Service, the following environment variables must be set in the `.env` file (shared with other services):
 
 | Variable | Description | Example |
 | :--- | :--- | :--- |
@@ -27,12 +28,15 @@ To use the Email Service, the following environment variables must be set in the
 
 ## Usage
 
-### Interface
+### Controller
+The `MailController` provides the following endpoints:
+1. `POST /api/mail/send`: Sends an email by specifying recipient list directly.
+2. `POST /api/mail/send/mac/:mac_address`: Looks up recipient email via Teralux MAC address and sends the email.
+
+### Service
+The `MailService` can be used by other domains:
 ```go
-type EmailService interface {
-    SendEmail(to []string, subject string, body string) error
-    SendHTML(to []string, subject string, body string) error
-}
+func (s *MailService) SendEmailWithTemplate(to []string, subject string, templateName string, data interface{}) error
 ```
 
 ### Example
@@ -40,23 +44,19 @@ type EmailService interface {
 package main
 
 import (
-    "backend/domain/common/infrastructure/email"
-    "backend/domain/common/utils"
+    "teralux_app/domain/mail/services"
+    "teralux_app/domain/common/utils"
 )
 
 func main() {
-    // 1. Ensure config is loaded
     utils.LoadConfig()
+    mailService := services.NewMailService(utils.GetConfig())
 
-    // 2. Initialize Service
-    emailService := email.NewEmailService()
-
-    // 3. Send Email
     to := []string{"recipient@example.com"}
-    subject := "Test Email"
-    body := "<h1>Hello!</h1><p>This is a test email.</p>"
-
-    err := emailService.SendHTML(to, subject, body)
+    subject := "Teralux Alert"
+    
+    // Uses template: domain/mail/templates/summary.html
+    err := mailService.SendEmailWithTemplate(to, subject, "summary", nil)
     if err != nil {
         // Handle error
     }
@@ -64,5 +64,5 @@ func main() {
 ```
 
 ## Security Considerations
-- **Environment Variables**: Never hardcode SMTP credentials in the code. Always use environment variables.
-- **TLS/SSL**: The service should prefer TLS encryption for communication with the SMTP server.
+- **Environment Variables**: Credentials must be stored in `.env`.
+- **TLS/SSL**: The service uses standard SMTP with authentication.

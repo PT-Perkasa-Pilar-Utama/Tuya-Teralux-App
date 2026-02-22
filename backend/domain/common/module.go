@@ -5,7 +5,6 @@ import (
 	"teralux_app/domain/common/controllers"
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/routes"
-	"teralux_app/domain/common/utils"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -17,7 +16,6 @@ type CommonModule struct {
 	HealthController *controllers.HealthController
 	CacheController  *controllers.CacheController
 	DocsController   *controllers.DocsController
-	EmailController  *controllers.EmailController
 	MqttService      *infrastructure.MqttService
 }
 
@@ -27,7 +25,6 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 		HealthController: controllers.NewHealthController(),
 		CacheController:  controllers.NewCacheController(badger, vector),
 		DocsController:   controllers.NewDocsController(),
-		EmailController:  controllers.NewEmailController(utils.GetConfig()),
 		MqttService:      mqttSvc,
 	}
 }
@@ -60,5 +57,4 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)
-	routes.RegisterEmailRoutes(protected, m.EmailController)
 }

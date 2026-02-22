@@ -64,15 +64,15 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	skillRegistry.Register(translationSkill)
 
 	// Initialize Usecases
-	refineUC := usecases.NewRefineUseCase(llmClient, cfg)
-	translateUC := usecases.NewTranslateUseCase(llmClient, cfg, cache, store)
+	refineUC := usecases.NewRefineUseCase(llmClient, llamaService, cfg)
+	translateUC := usecases.NewTranslateUseCase(llmClient, llamaService, cfg, cache, store)
 
 	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
 	pdfRenderer := services.NewMarotoSummaryPDFRenderer()
-	summaryUC := usecases.NewSummaryUseCase(llmClient, cfg, cache, store, pdfRenderer)
+	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
-	controlUC := usecases.NewControlUseCase(llmClient, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
-	chatUC := usecases.NewChatUseCase(llmClient, cfg, badger, vectorSvc, orchestrator)
+	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
+	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, orchestrator)
 
 	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)
 	chatController.StartMqttSubscription()

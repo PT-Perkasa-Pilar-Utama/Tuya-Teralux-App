@@ -78,7 +78,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	mockTuyaExecutor.On("SendSwitchCommand", "mock-token", mock.Anything, mock.Anything).Return(true, nil)
 	mockTuyaExecutor.On("SendIRACCommand", "mock-token", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
-	uc := NewControlUseCase(mockLLM, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
+	uc := NewControlUseCase(mockLLM, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
 
 	uid := "user-123"
 	teraluxID := "tx-1"
@@ -133,7 +133,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		prompt := "Matikan AC"
 		localMock := new(mockLLMForControl)
 		// Re-setup usecase with local mock to avoid interference
-		localUC := NewControlUseCase(localMock, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
 
 		// Expect LLM call for disambiguation
 		expectedResponse := "I found 2 matching devices: AC Kamar Utama, AC Ruang Tamu. Which one?"
@@ -155,7 +155,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		mockExec := new(mockTuyaExecutorForControl)
 		mockAuth.On("GetTuyaAccessToken").Return("mock-token", nil)
 		mockExec.On("SendIRACCommand", "mock-token", "dev-ac-1", "remote-ac-1", mock.Anything).Return(true, nil)
-		localUC := NewControlUseCase(localMock, cfg, vector, badger, mockExec, mockAuth)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockExec, mockAuth)
 
 		localMock.On("CallModel", mock.Anything, "high").Return("EXECUTE:dev-ac-1", nil).Once()
 
@@ -170,7 +170,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	t.Run("No Match - Not Found", func(t *testing.T) {
 		prompt := "Turn on the Fridge"
 		localMock := new(mockLLMForControl)
-		localUC := NewControlUseCase(localMock, cfg, vector, badger, nil, nil)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, nil, nil)
 
 		expectedResponse := "I'm sorry, I couldn't find any device matching 'Turn on the Fridge'."
 		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()

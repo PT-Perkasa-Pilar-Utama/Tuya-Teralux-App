@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetAllTeralux_UserBehavior(t *testing.T) {
-	repo, _ := setupTestEnv(t)
+	repo, _, _ := setupTestEnv(t)
 	useCase := NewGetAllTeraluxUseCase(repo)
 
 	// 1. Get All Teralux (Success - Empty List)

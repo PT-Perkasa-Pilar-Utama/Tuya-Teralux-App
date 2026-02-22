@@ -8,7 +8,7 @@ import (
 )
 
 func TestUpdateTeralux_UserBehavior(t *testing.T) {
-	repo, _ := setupTestEnv(t)
+	repo, _, _ := setupTestEnv(t)
 	useCase := NewUpdateTeraluxUseCase(repo)
 
 	// Seed data

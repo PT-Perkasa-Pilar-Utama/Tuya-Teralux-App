@@ -17,18 +17,20 @@ type TranslateUseCase interface {
 }
 
 type translateUseCase struct {
-	llm    skills.LLMClient
-	config *utils.Config
-	cache  *tasks.BadgerTaskCache
-	store  *tasks.StatusStore[dtos.RAGStatusDTO]
+	llm         skills.LLMClient
+	fallbackLLM skills.LLMClient
+	config      *utils.Config
+	cache       *tasks.BadgerTaskCache
+	store       *tasks.StatusStore[dtos.RAGStatusDTO]
 }
 
-func NewTranslateUseCase(llm skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
+func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
 	return &translateUseCase{
-		llm:    llm,
-		config: cfg,
-		cache:  cache,
-		store:  store,
+		llm:         llm,
+		fallbackLLM: fallbackLLM,
+		config:      cfg,
+		cache:       cache,
+		store:       store,
 	}
 }
 
@@ -43,6 +45,12 @@ func (u *translateUseCase) translateInternal(text, targetLang string) (string, e
 	}
 
 	res, err := skill.Execute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("Translate: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctx)
+	}
+
 	if err != nil {
 		return "", err
 	}

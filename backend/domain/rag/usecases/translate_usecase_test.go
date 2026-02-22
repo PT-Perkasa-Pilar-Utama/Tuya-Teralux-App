@@ -31,7 +31,7 @@ func TestTranslateUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForTranslate{
 			ReturnString: "  Hello World  ", // Intentionally padded to test trim
 		}
-		u := NewTranslateUseCase(mockLLM, cfg, nil, store)
+		u := NewTranslateUseCase(mockLLM, nil, cfg, nil, store)
 
 		taskID, err := u.TranslateText("hallo welt", "en")
 		if err != nil {
@@ -46,7 +46,7 @@ func TestTranslateUseCase_Execute(t *testing.T) {
 	t.Run("Empty Config Model fallback", func(t *testing.T) {
 		emptyCfg := &utils.Config{GeminiModelLow: ""}
 		mockLLM := &mockLLMForTranslate{}
-		u := NewTranslateUseCase(mockLLM, emptyCfg, nil, store)
+		u := NewTranslateUseCase(mockLLM, nil, emptyCfg, nil, store)
 
 		taskID, _ := u.TranslateText("test", "en")
 		if taskID == "" {

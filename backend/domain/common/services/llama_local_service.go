@@ -1,11 +1,13 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"teralux_app/domain/common/utils"
+	"time"
 )
 
 type LlamaLocalService struct {
@@ -50,29 +52,74 @@ func (s *LlamaLocalService) CallModel(prompt string, model string) (string, erro
 		bin = binInPath
 	}
 
-	// For local service, we use the same model regardless of 'high'/'low'
-	// unless we implement multiple local models later.
-
 	args := []string{
 		"-m", s.modelPath,
 		"-p", prompt,
-		"-n", "128", // Limit response length for speed in dev
-		"--log-disable", // Reduce noise
-		"--simple-io",   // Better compatibility in subprocesses
+		"-n", "64", // Moderate length
+		"--single-turn",
+		"--simple-io",
+		"--log-disable",
+		"--no-display-prompt",
+		"--color", "off",
+		"--log-colors", "off",
 	}
 
-	cmd := exec.Command(bin, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second) // Increased timeout for loading
+	defer cancel()
+
+	utils.LogDebug("LlamaLocal: Running %s (single-turn)", bin)
+
+	cmd := exec.CommandContext(ctx, bin, args...)
+	
+	// Force non-interactive environment
+	cmd.Env = append(os.Environ(), "TERM=dumb")
+	
+	// Capture BOTH stdout and stderr to ensure absolutely nothing leaks to the terminal
+	// and we can clean the whole stream.
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("llama-cli failed: %w - output: %s", err, string(out))
+		if ctx.Err() == context.DeadlineExceeded {
+			utils.LogError("LlamaLocal: Execution timed out")
+			return "", fmt.Errorf("llama-cli timed out after 90s")
+		}
+		// If it failed, don't show the noisy output unless in debug
+		utils.LogDebug("LlamaLocal: raw failure output: %s", string(out))
+		return "", fmt.Errorf("llama-cli failed: %w", err)
 	}
 
-	result := strings.TrimSpace(string(out))
+	rawOutput := string(out)
+	
+	// Robust parsing:
+	// The output looks like: [Junk] \n > [Prompt] \n [Result] \n [Junk/Metrics]
+	// We look for the last "> " followed by the prompt (if echoed) or just the last "> ".
+	
+	result := rawOutput
+	
+	// 1. Find the content after the last "> " prompt marker
+	lastPromptIdx := strings.LastIndex(result, "> ")
+	if lastPromptIdx != -1 {
+		result = result[lastPromptIdx+2:]
+	}
 
-	// llama-cli often repeats the prompt or adds garbage, we might need basic cleaning
-	// However, llama-cli usually just outputs the completion after the prompt if not in interactive mode.
-	// We'll trust the output for now as a simple local implementation.
+	// 2. Remove any prompt echo if it exists immediately after the marker
+	trimmedPrompt := strings.TrimSpace(prompt)
+	if strings.HasPrefix(strings.TrimSpace(result), trimmedPrompt) {
+		result = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(result), trimmedPrompt))
+	}
 
-	utils.LogDebug("LlamaLocal: Response received (length: %d)", len(result))
+	// 3. Cut off at metrics/logs that start with "llama_" or bracketed timings
+	if idx := strings.Index(result, "llama_"); idx != -1 {
+		result = result[:idx]
+	}
+	if idx := strings.Index(result, "[ Prompt:"); idx != -1 {
+		result = result[:idx]
+	}
+	if idx := strings.Index(result, "Exiting..."); idx != -1 {
+		result = result[:idx]
+	}
+
+	result = strings.TrimSpace(result)
+
+	utils.LogDebug("LlamaLocal: Processed result (length: %d)", len(result))
 	return result, nil
 }

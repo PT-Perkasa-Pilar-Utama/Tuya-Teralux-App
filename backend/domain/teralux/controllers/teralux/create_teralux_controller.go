@@ -37,7 +37,7 @@ func (c *CreateTeraluxController) CreateTeralux(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	response, isNew, err := c.useCase.CreateTeralux(&req)
+	response, _, err := c.useCase.CreateTeralux(&req)
 	if err != nil {
 		if valErr, ok := err.(*utils.ValidationError); ok {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
@@ -48,20 +48,16 @@ func (c *CreateTeraluxController) CreateTeralux(ctx *gin.Context) {
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		statusCode := utils.GetErrorStatusCode(err)
+		ctx.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
-			Message: "Internal Server Error",
+			Message: err.Error(),
 			Data:    nil,
 		})
 		return
 	}
 
-	statusCode := http.StatusCreated
-	if !isNew {
-		statusCode = http.StatusOK
-	}
-
-	ctx.JSON(statusCode, dtos.StandardResponse{
+	ctx.JSON(http.StatusCreated, dtos.StandardResponse{
 		Status:  true,
 		Message: "Teralux created successfully",
 		Data:    response,

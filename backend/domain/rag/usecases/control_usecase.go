@@ -17,6 +17,7 @@ type ControlUseCase interface {
 
 type controlUseCase struct {
 	llm          skills.LLMClient
+	fallbackLLM  skills.LLMClient
 	config       *utils.Config
 	vector       *infrastructure.VectorService
 	badger       *infrastructure.BadgerService
@@ -24,9 +25,10 @@ type controlUseCase struct {
 	tuyaAuth     tuyaUsecases.TuyaAuthUseCase
 }
 
-func NewControlUseCase(llm skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase) ControlUseCase {
+func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase) ControlUseCase {
 	return &controlUseCase{
 		llm:          llm,
+		fallbackLLM:  fallbackLLM,
 		config:       cfg,
 		vector:       vector,
 		badger:       badger,
@@ -66,6 +68,12 @@ func (u *controlUseCase) ProcessControl(uid, teraluxID, prompt string) (*dtos.Co
 	ctx.History = history
 
 	res, err := skill.Execute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("Control: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctx)
+	}
+
 	if err != nil {
 		return nil, err
 	}

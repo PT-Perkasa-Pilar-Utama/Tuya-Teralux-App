@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetTeraluxByID_UserBehavior(t *testing.T) {
-	repo, devRepo := setupTestEnv(t) // Need devRepo for associating devices
+	repo, devRepo, _ := setupTestEnv(t) // Need devRepo for associating devices
 	useCase := NewGetTeraluxByIDUseCase(repo, devRepo)
 
 	// Seed data

@@ -9,6 +9,7 @@ import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
+	"teralux_app/domain/teralux/services"
 	"testing"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupTestEnv(t *testing.T) (*repositories.TeraluxRepository, *repositories.DeviceRepository) {
+func setupTestEnv(t *testing.T) (*repositories.TeraluxRepository, *repositories.DeviceRepository, *services.TeraluxExternalService) {
 	dbName := fmt.Sprintf("file:memdb_teralux_%d?mode=memory&cache=shared", time.Now().UnixNano())
 	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
@@ -41,13 +42,14 @@ func setupTestEnv(t *testing.T) (*repositories.TeraluxRepository, *repositories.
 
 	teraluxRepo := repositories.NewTeraluxRepository(cache)
 	deviceRepo := repositories.NewDeviceRepository(cache)
+	externalService := services.NewTeraluxExternalService()
 
-	return teraluxRepo, deviceRepo
+	return teraluxRepo, deviceRepo, externalService
 }
 
 func TestCreateTeralux_UserBehavior(t *testing.T) {
-	repo, _ := setupTestEnv(t)
-	useCase := NewCreateTeraluxUseCase(repo)
+	repo, _, extSvc := setupTestEnv(t)
+	useCase := NewCreateTeraluxUseCase(repo, extSvc)
 
 	// 1. Create Teralux (Success Condition)
 	// URL: POST /api/teralux
@@ -56,8 +58,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	t.Run("Create Teralux (Success Condition)", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
 			Name:       "Master Bedroom Hub",
-			MacAddress: "AA:BB:CC:11:22:33",
-			RoomID:     "room-101",
+			MacAddress:   "AA:BB:CC:11:22:33",
+			RoomID:       "1",
+			DeviceTypeID: "1",
 		}
 
 		res, _, err := useCase.CreateTeralux(req)
@@ -75,8 +78,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	t.Run("Create Teralux with Android ID", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
 			Name:       "Android Device",
-			MacAddress: "C756630F2F039D27", // 16 chars hex
-			RoomID:     "room-android",
+			MacAddress:   "C756630F2F039D27", // 16 chars hex
+			RoomID:       "1",
+			DeviceTypeID: "1",
 		}
 
 		res, _, err := useCase.CreateTeralux(req)
@@ -94,8 +98,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	t.Run("Validation: Empty Fields", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
 			Name:       "",
-			MacAddress: "",
-			RoomID:     "",
+			MacAddress:   "",
+			RoomID:       "",
+			DeviceTypeID: "",
 		}
 
 		_, _, err := useCase.CreateTeralux(req)
@@ -108,8 +113,8 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 			if valErr.Message != "Validation Error" {
 				t.Errorf("Expected message 'Validation Error', got '%s'", valErr.Message)
 			}
-			if len(valErr.Details) != 3 {
-				t.Errorf("Expected 3 validation details, got %d", len(valErr.Details))
+			if len(valErr.Details) != 4 {
+				t.Errorf("Expected 4 validation details, got %d", len(valErr.Details))
 			}
 		} else {
 			t.Fatalf("Expected utils.ValidationError, got %T: %v", err, err)
@@ -123,8 +128,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	t.Run("Validation: Invalid MAC Address Format", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
 			Name:       "Living Room",
-			MacAddress: "INVALID-MAC",
-			RoomID:     "room-1",
+			MacAddress:   "INVALID-MAC",
+			RoomID:       "1",
+			DeviceTypeID: "1",
 		}
 
 		_, _, err := useCase.CreateTeralux(req)
@@ -155,8 +161,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 		longName := strings.Repeat("a", 256)
 		req := &dtos.CreateTeraluxRequestDTO{
 			Name:       longName,
-			MacAddress: "AA:BB:CC:11:22:33",
-			RoomID:     "room-101",
+			MacAddress:   "AA:BB:CC:11:22:33",
+			RoomID:       "1",
+			DeviceTypeID: "1",
 		}
 
 		_, _, err := useCase.CreateTeralux(req)
@@ -179,25 +186,56 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 		}
 	})
 
-	// 5. Idempotent: Duplicate MAC Address Returns Existing ID
+	// 5. Conflict: Duplicate MAC Address Returns 409 (With Normalization)
 	// URL: POST /api/teralux
-	// SCENARIO: MAC already exists (idempotent for booting).
-	// RES: 200 OK
-	t.Run("Idempotent: Duplicate MAC Address Returns Existing ID", func(t *testing.T) {
+	// SCENARIO: MAC already exists. Input is lowercase, but repo has uppercase.
+	// RES: 409 Conflict
+	t.Run("Conflict: Duplicate MAC Address Returns 409 (With Normalization)", func(t *testing.T) {
 		_ = repo.Create(&entities.Teralux{ID: "existing-id", MacAddress: "DD:EE:FF:11:22:33", RoomID: "r1", Name: "Existing"})
 
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "New Hub",
-			MacAddress: "DD:EE:FF:11:22:33",
-			RoomID:     "room-102",
+			Name:         "New Hub",
+			MacAddress:   "dd:ee:ff:11:22:33", // Lowercase
+			RoomID:       "1",
+			DeviceTypeID: "1",
+		}
+
+		_, _, err := useCase.CreateTeralux(req)
+		if err == nil {
+			t.Fatal("Expected error for duplicate MAC, got nil")
+		}
+
+		var apiErr *utils.APIError
+		if errors.As(err, &apiErr) {
+			if apiErr.StatusCode != 409 {
+				t.Errorf("Expected status 409, got %d", apiErr.StatusCode)
+			}
+		} else {
+			t.Fatalf("Expected utils.APIError, got %T: %v", err, err)
+		}
+	})
+
+	// 5b. Create Teralux with 12-digit RAW MAC (Success)
+	// URL: POST /api/teralux
+	// SCENARIO: Valid 12-digit raw MAC.
+	// RES: 201 Created
+	t.Run("Create Teralux with 12-digit RAW MAC", func(t *testing.T) {
+		req := &dtos.CreateTeraluxRequestDTO{
+			Name:         "Raw Hub",
+			MacAddress:   "aabbcc112233",
+			RoomID:       "1",
+			DeviceTypeID: "1",
 		}
 
 		res, _, err := useCase.CreateTeralux(req)
 		if err != nil {
-			t.Fatalf("Expected no error for duplicate MAC (idempotent), got: %v", err)
+			t.Fatalf("Unexpected error for 12-digit MAC: %v", err)
 		}
-		if res.TeraluxID != "existing-id" {
-			t.Errorf("Expected existing ID 'existing-id', got: %s", res.TeraluxID)
+
+		// Verify it was normalized to uppercase in DB
+		saved, _ := repo.GetByID(res.TeraluxID)
+		if saved.MacAddress != "AABBCC112233" {
+			t.Errorf("Expected normalized MAC 'AABBCC112233', got '%s'", saved.MacAddress)
 		}
 	})
 

@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetTeraluxByMAC_UserBehavior(t *testing.T) {
-	repo, _ := setupTestEnv(t)
+	repo, _, _ := setupTestEnv(t)
 	useCase := NewGetTeraluxByMACUseCase(repo)
 
 	// Seed data

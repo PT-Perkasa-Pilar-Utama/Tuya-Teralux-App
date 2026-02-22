@@ -55,7 +55,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
-		uc := usecases.NewTranscribeUseCase(mockClient, mockRefine, statusStore, cache, &utils.Config{}, nil)
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, mockRefine, statusStore, cache, &utils.Config{}, nil)
 		taskID, err := uc.TranscribeAudio(audioFile, "test.wav", "id")
 
 		assert.NoError(t, err)
@@ -70,7 +70,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 
 	t.Run("Scenario 2: File Not Found", func(t *testing.T) {
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
-		uc := usecases.NewTranscribeUseCase(nil, nil, statusStore, nil, nil, nil)
+		uc := usecases.NewTranscribeUseCase(nil, nil, nil, statusStore, nil, nil, nil)
 		_, err := uc.TranscribeAudio("missing.wav", "none", "id")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "audio file not found")
@@ -87,7 +87,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
-		uc := usecases.NewTranscribeUseCase(mockClient, nil, statusStore, cache, nil, nil)
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, nil, statusStore, cache, nil, nil)
 		taskID, _ := uc.TranscribeAudio(audioFile, "test.wav", "id")
 		assert.NotEmpty(t, taskID)
 
@@ -114,7 +114,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
-		uc := usecases.NewTranscribeUseCase(mockClient, &MockRefineUseCase{}, statusStore, cache, &utils.Config{}, mockMqtt)
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, &utils.Config{}, mockMqtt)
 		_, _ = uc.TranscribeAudio(audioFile, "test.wav", "id", usecases.TranscriptionMetadata{
 			Source:    "mqtt",
 			TeraluxID: "TLX001",

@@ -38,7 +38,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForSummary{
 			ReturnString: "# Notulen Rapat\n\n## 1. Agenda\nDiskusi fitur RAG.",
 		}
-		u := NewSummaryUseCase(mockLLM, cfg, nil, store, &noopSummaryRenderer{})
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{})
 
 		taskID, err := u.SummarizeText("Ini adalah transkripsi rapat", "id", "Rapat Teknis", "Professional")
 		if err != nil {
@@ -52,7 +52,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 
 	t.Run("Empty or Whitespace Input", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{}
-		u := NewSummaryUseCase(mockLLM, cfg, nil, store, &noopSummaryRenderer{})
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{})
 
 		taskID, err := u.SummarizeText("   ", "id", "", "")
 		if err != nil {
@@ -67,7 +67,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForSummary{
 			ReturnString: "# Meeting Summary\n\n## Decisions\n- Approve budget allocation",
 		}
-		u := NewSummaryUseCase(mockLLM, cfg, nil, store, &noopSummaryRenderer{})
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -84,7 +84,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 
 	t.Run("Context-aware with cancelled context", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{}
-		u := NewSummaryUseCase(mockLLM, cfg, nil, store, &noopSummaryRenderer{})
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{})
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Immediately cancel

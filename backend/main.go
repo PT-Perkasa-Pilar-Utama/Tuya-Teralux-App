@@ -14,6 +14,7 @@ import (
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/mail"
 	"teralux_app/domain/rag"
 	"teralux_app/domain/recordings"
 	recordings_entities "teralux_app/domain/recordings/entities"
@@ -71,7 +72,9 @@ import (
 // @tag.description Recordings management endpoints
 
 // @tag.name 08. Common
-// @tag.description Common endpoints (Email, Health, Cache)
+// @tag.description Common endpoints (Health, Cache)
+// @tag.name 09. Mail
+// @tag.description Mail service endpoints
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -148,6 +151,7 @@ func run() error {
 	// Initialize Modules
 	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService)
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, teraluxRepo)
+	mailModule := mail.NewMailModule(utils.GetConfig())
 
 	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
@@ -167,6 +171,9 @@ func run() error {
 
 	// 3. Teralux Routes (CRUD)
 	teraluxModule.RegisterRoutes(router, protected)
+
+	// 3a. Mail Routes
+	mailModule.RegisterRoutes(protected)
 
 	// 4. Recordings Module
 	recordingsModule := recordings.NewRecordingsModule(badgerService)

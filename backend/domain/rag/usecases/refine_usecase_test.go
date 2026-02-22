@@ -28,7 +28,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "Saya sedang makan nasi.",
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		got, err := u.RefineText("aku lagi mamam nasi", "id")
 		if err != nil {
@@ -48,7 +48,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "I am eating rice.",
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		got, err := u.RefineText("i is eating rice", "en")
 		if err != nil {
@@ -68,7 +68,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnError: errors.New("llm failure"),
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		_, err := u.RefineText("test", "id")
 		if err == nil {
@@ -82,7 +82,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 
 	t.Run("Empty or Whitespace Input (Silent Audio)", func(t *testing.T) {
 		mockLLM := &mockLLMForRefine{}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		got, err := u.RefineText("   ", "id")
 		if err != nil {
@@ -97,7 +97,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "Refined English",
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		_, err := u.RefineText("some text", "xyz")
 		if err != nil {

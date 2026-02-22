@@ -1,21 +1,5 @@
 basePath: /
 definitions:
-  controllers.SendEmailRequest:
-    properties:
-      body:
-        type: string
-      subject:
-        type: string
-      template:
-        type: string
-      to:
-        items:
-          type: string
-        type: array
-    required:
-    - subject
-    - to
-    type: object
   dtos.ActionDTO:
     properties:
       code:
@@ -74,6 +58,24 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  dtos.MailSendRequestDTO:
+    properties:
+      subject:
+        example: Notification
+        type: string
+      template:
+        example: test
+        type: string
+      to:
+        example:
+        - user@example.com
+        items:
+          type: string
+        type: array
+    required:
+    - subject
+    - to
     type: object
   dtos.RAGChatRequestDTO:
     properties:
@@ -200,6 +202,17 @@ definitions:
         type: string
       teralux_id:
         type: string
+    type: object
+  dtos.SendMailByMacRequestDTO:
+    properties:
+      subject:
+        example: Booking Confirmation
+        type: string
+      template:
+        example: test
+        type: string
+    required:
+    - subject
     type: object
   dtos.SensorDataDTO:
     properties:
@@ -439,38 +452,6 @@ paths:
       summary: Flush all cache
       tags:
       - 08. Common
-  /api/email/send:
-    post:
-      consumes:
-      - application/json
-      description: Send an email using a template or raw body
-      parameters:
-      - description: Email Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/controllers.SendEmailRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Send an email
-      tags:
-      - 08. Common
   /api/health:
     get:
       description: Check if the application and database are healthy
@@ -488,6 +469,87 @@ paths:
       summary: Health check endpoint
       tags:
       - 08. Common
+  /api/mail/send:
+    post:
+      consumes:
+      - application/json
+      description: Send an email using a server-side template and specified recipients
+      parameters:
+      - description: Mail Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.MailSendRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Send an email using a template
+      tags:
+      - 09. Mail
+  /api/mail/send/mac/{mac_address}:
+    post:
+      consumes:
+      - application/json
+      description: Looks up customer email by MAC address and sends an email using
+        a template
+      parameters:
+      - description: Teralux MAC Address
+        in: path
+        name: mac_address
+        required: true
+        type: string
+      - description: Mail Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.SendMailByMacRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email sent successfully, data contains customer_email
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Send an email by Teralux MAC Address
+      tags:
+      - 09. Mail
   /api/models/gemini:
     post:
       consumes:
@@ -1700,5 +1762,7 @@ tags:
   name: 06. Models
 - description: Recordings management endpoints
   name: 07. Recordings
-- description: Common endpoints (Email, Health, Cache)
+- description: Common endpoints (Health, Cache)
   name: 08. Common
+- description: Mail service endpoints
+  name: 09. Mail

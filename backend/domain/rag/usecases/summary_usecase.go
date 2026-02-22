@@ -25,6 +25,7 @@ type SummaryUseCase interface {
 
 type summaryUseCase struct {
 	llm           skills.LLMClient
+	fallbackLLM   skills.LLMClient
 	config        *utils.Config
 	cache         *tasks.BadgerTaskCache
 	store         *tasks.StatusStore[dtos.RAGStatusDTO]
@@ -35,6 +36,7 @@ type summaryUseCase struct {
 
 func NewSummaryUseCase(
 	llm skills.LLMClient,
+	fallbackLLM skills.LLMClient,
 	cfg *utils.Config,
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
@@ -42,6 +44,7 @@ func NewSummaryUseCase(
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:           llm,
+		fallbackLLM:   fallbackLLM,
 		config:        cfg,
 		cache:         cache,
 		store:         store,
@@ -76,6 +79,12 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	res, err := skill.Execute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("SummaryTask: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctx)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -252,6 +261,12 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	// We can't easily pass the context cancellation to Skill.Execute yet without modifying Skill interface.
 	// For now, we rely on the skill execution.
 	res, err := skill.Execute(ctxSkill)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("SummaryTask (WithContext): Primary LLM failed, falling back to local model: %v", err)
+		ctxSkill.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctxSkill)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("SummarySkill execution failed: %w", err)
 	}

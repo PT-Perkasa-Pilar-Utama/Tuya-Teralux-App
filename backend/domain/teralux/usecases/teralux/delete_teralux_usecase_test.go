@@ -7,7 +7,7 @@ import (
 )
 
 func TestDeleteTeralux_UserBehavior(t *testing.T) {
-	repo, _ := setupTestEnv(t)
+	repo, _, _ := setupTestEnv(t)
 	useCase := NewDeleteTeraluxUseCase(repo)
 
 	// Seed data

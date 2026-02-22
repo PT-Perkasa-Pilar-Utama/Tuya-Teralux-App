@@ -58,14 +58,40 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/email/send": {
+        "/api/health": {
+            "get": {
+                "description": "Check if the application and database are healthy",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "08. Common"
+                ],
+                "summary": "Health check endpoint",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mail/send": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Send an email using a template or raw body",
+                "description": "Send an email using a server-side template and specified recipients",
                 "consumes": [
                     "application/json"
                 ],
@@ -73,17 +99,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "09. Mail"
                 ],
-                "summary": "Send an email",
+                "summary": "Send an email using a template",
                 "parameters": [
                     {
-                        "description": "Email Request",
+                        "description": "Mail Request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.SendEmailRequest"
+                            "$ref": "#/definitions/dtos.MailSendRequestDTO"
                         }
                     }
                 ],
@@ -109,27 +135,80 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/health": {
-            "get": {
-                "description": "Check if the application and database are healthy",
+        "/api/mail/send/mac/{mac_address}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Looks up customer email by MAC address and sends an email using a template",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
-                    "text/plain"
+                    "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "09. Mail"
                 ],
-                "summary": "Health check endpoint",
+                "summary": "Send an email by Teralux MAC Address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux MAC Address",
+                        "name": "mac_address",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Mail Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SendMailByMacRequestDTO"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Email sent successfully, data contains customer_email",
                         "schema": {
-                            "type": "string"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
-                    "503": {
-                        "description": "Service Unavailable",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -2077,30 +2156,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controllers.SendEmailRequest": {
-            "type": "object",
-            "required": [
-                "subject",
-                "to"
-            ],
-            "properties": {
-                "body": {
-                    "type": "string"
-                },
-                "subject": {
-                    "type": "string"
-                },
-                "template": {
-                    "type": "string"
-                },
-                "to": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "dtos.ActionDTO": {
             "type": "object",
             "properties": {
@@ -2184,6 +2239,32 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.MailSendRequestDTO": {
+            "type": "object",
+            "required": [
+                "subject",
+                "to"
+            ],
+            "properties": {
+                "subject": {
+                    "type": "string",
+                    "example": "Notification"
+                },
+                "template": {
+                    "type": "string",
+                    "example": "test"
+                },
+                "to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "user@example.com"
+                    ]
                 }
             }
         },
@@ -2366,6 +2447,22 @@ const docTemplate = `{
                 },
                 "teralux_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.SendMailByMacRequestDTO": {
+            "type": "object",
+            "required": [
+                "subject"
+            ],
+            "properties": {
+                "subject": {
+                    "type": "string",
+                    "example": "Booking Confirmation"
+                },
+                "template": {
+                    "type": "string",
+                    "example": "test"
                 }
             }
         },
@@ -2712,8 +2809,12 @@ const docTemplate = `{
             "name": "07. Recordings"
         },
         {
-            "description": "Common endpoints (Email, Health, Cache)",
+            "description": "Common endpoints (Health, Cache)",
             "name": "08. Common"
+        },
+        {
+            "description": "Mail service endpoints",
+            "name": "09. Mail"
         }
     ]
 }`

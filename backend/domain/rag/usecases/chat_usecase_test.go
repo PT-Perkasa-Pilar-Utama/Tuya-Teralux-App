@@ -56,7 +56,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 
 	orchestrator := skills.NewOrchestrator(registry, nil)
 	cfg := &utils.Config{GeminiModelHigh: "test-model-chat"}
-	uc := NewChatUseCase(mockLLM, cfg, nil, nil, orchestrator)
+	uc := NewChatUseCase(mockLLM, nil, cfg, nil, nil, orchestrator)
 	uid := "test-user"
 	teraluxID := "teralux-1"
 

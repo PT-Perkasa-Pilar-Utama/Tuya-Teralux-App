@@ -11,14 +11,16 @@ type RefineUseCase interface {
 }
 
 type refineUseCase struct {
-	llm    skills.LLMClient
-	config *utils.Config
+	llm         skills.LLMClient
+	fallbackLLM skills.LLMClient
+	config      *utils.Config
 }
 
-func NewRefineUseCase(llm skills.LLMClient, cfg *utils.Config) RefineUseCase {
+func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config) RefineUseCase {
 	return &refineUseCase{
-		llm:    llm,
-		config: cfg,
+		llm:         llm,
+		fallbackLLM: fallbackLLM,
+		config:      cfg,
 	}
 }
 
@@ -37,6 +39,12 @@ func (u *refineUseCase) RefineText(text string, lang string) (string, error) {
 	}
 
 	res, err := skill.Execute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("Refine: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctx)
+	}
+
 	if err != nil {
 		return "", err
 	}

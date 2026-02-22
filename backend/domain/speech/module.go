@@ -55,7 +55,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	shortCacheStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
 	
 	// Feature Usecases (1 Route 1 Usecase)
-	transcribeUC := speechUsecases.NewTranscribeUseCase(whisperClient, ragRefineUC, shortCacheStore, shortCache, cfg, mqttSvc)
+	transcribeUC := speechUsecases.NewTranscribeUseCase(whisperClient, localService, ragRefineUC, shortCacheStore, shortCache, cfg, mqttSvc)
 
 	// Models Usecases (Async)
 	geminiModelUC := speechUsecases.NewTranscribeGeminiModelUseCase(geminiService, shortCacheStore, shortCache, cfg)
