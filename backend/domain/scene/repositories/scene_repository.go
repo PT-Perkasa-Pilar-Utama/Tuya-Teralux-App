@@ -6,7 +6,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// SceneRepository handles persistent storage of scenes using GORM/SQLite
+// ISceneRepository defines the interface for scene storage operations
+type ISceneRepository interface {
+	Save(scene *entities.Scene) error
+	GetByID(teraluxID, id string) (*entities.Scene, error)
+	GetAll(teraluxID string) ([]entities.Scene, error)
+	Delete(teraluxID, id string) error
+	GetAllGrouped() (map[string][]entities.Scene, error)
+}
+
+// SceneRepository handles persistent storage of scenes using GORM/MySQL
 type SceneRepository struct {
 	db *gorm.DB
 }

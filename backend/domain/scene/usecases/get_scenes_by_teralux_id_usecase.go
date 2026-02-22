@@ -6,10 +6,10 @@ import (
 )
 
 type GetAllScenesUseCase struct {
-	repo *repositories.SceneRepository
+	repo repositories.ISceneRepository
 }
 
-func NewGetAllScenesUseCase(repo *repositories.SceneRepository) *GetAllScenesUseCase {
+func NewGetAllScenesUseCase(repo repositories.ISceneRepository) *GetAllScenesUseCase {
 	return &GetAllScenesUseCase{repo: repo}
 }
 

@@ -8,11 +8,11 @@ import (
 
 // DeleteTeraluxUseCase handles deleting a teralux
 type DeleteTeraluxUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository repositories.ITeraluxRepository
 }
 
 // NewDeleteTeraluxUseCase creates a new instance of DeleteTeraluxUseCase
-func NewDeleteTeraluxUseCase(repository *repositories.TeraluxRepository) *DeleteTeraluxUseCase {
+func NewDeleteTeraluxUseCase(repository repositories.ITeraluxRepository) *DeleteTeraluxUseCase {
 	return &DeleteTeraluxUseCase{
 		repository: repository,
 	}
@@ -23,5 +23,15 @@ func (uc *DeleteTeraluxUseCase) DeleteTeralux(id string) error {
 	if !validID.MatchString(id) {
 		return errors.New("Invalid ID format")
 	}
-	return uc.repository.Delete(id)
+
+	// Check existence
+	if _, err := uc.repository.GetByID(id); err != nil {
+		return errors.New("Teralux not found")
+	}
+
+	if err := uc.repository.Delete(id); err != nil {
+		return err
+	}
+
+	return uc.repository.InvalidateCache(id)
 }

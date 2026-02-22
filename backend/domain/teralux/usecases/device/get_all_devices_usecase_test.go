@@ -4,56 +4,43 @@ import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
-	repo, _, _ := setupDeviceTestEnv(t)
-	useCase := NewGetAllDevicesUseCase(repo)
-
-	// Seed data
-	_ = repo.Create(&entities.Device{ID: "d1", Name: "Light 1", TeraluxID: "tx-1"})
-	_ = repo.Create(&entities.Device{ID: "d2", Name: "Light 2", TeraluxID: "tx-1"})
-	_ = repo.Create(&entities.Device{ID: "d3", Name: "Fan", TeraluxID: "tx-2"})
-
 	// 1. Get All Devices (Success - Filter by Teralux)
-	// URL: GET /api/devices?teralux_id=tx-1
-	// SCENARIO: Filter by Teralux Hub.
-	// RES: 200 OK
 	t.Run("Get All Devices (Success - Filter by Teralux)", func(t *testing.T) {
+		repo := new(MockDeviceRepository)
+		useCase := NewGetAllDevicesUseCase(repo)
 		teraID := "tx-1"
 		filter := &dtos.DeviceFilterDTO{TeraluxID: &teraID}
+		expectedDevices := []entities.Device{
+			{ID: "d1", Name: "Light 1", TeraluxID: "tx-1"},
+			{ID: "d2", Name: "Light 2", TeraluxID: "tx-1"},
+		}
+		
+		repo.On("GetByTeraluxIDPaginated", teraID, 0, 0).Return(expectedDevices, int64(2), nil).Once()
+
 		res, err := useCase.ListDevices(filter)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if res.Total != 2 {
-			t.Errorf("Expected 2 devices for tx-1, got %d", res.Total)
-		}
-		for _, d := range res.Devices {
-			if d.TeraluxID != "tx-1" {
-				t.Errorf("Expected TeraluxID 'tx-1', got '%s'", d.TeraluxID)
-			}
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, 2, res.Total)
+		assert.Len(t, res.Devices, 2)
+		repo.AssertExpectations(t)
 	})
 
 	// 2. Get All Devices (Success - Empty)
-	// URL: GET /api/devices?teralux_id=tx-999
-	// SCENARIO: No devices match filter (or system empty).
-	// RES: 200 OK
 	t.Run("Get All Devices (Success - Empty)", func(t *testing.T) {
+		repo := new(MockDeviceRepository)
+		useCase := NewGetAllDevicesUseCase(repo)
 		teraID := "tx-999"
 		filter := &dtos.DeviceFilterDTO{TeraluxID: &teraID}
-		res, err := useCase.ListDevices(filter)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if res.Total != 0 {
-			t.Errorf("Expected 0 devices, got %d", res.Total)
-		}
-		if len(res.Devices) != 0 {
-			t.Errorf("Expected empty list, got %d", len(res.Devices))
-		}
-	})
+		repo.On("GetByTeraluxIDPaginated", teraID, 0, 0).Return([]entities.Device{}, int64(0), nil).Once()
 
-	// 3. Security: Unauthorized
+		res, err := useCase.ListDevices(filter)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, res.Total)
+		assert.Len(t, res.Devices, 0)
+		repo.AssertExpectations(t)
+	})
 }

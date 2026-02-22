@@ -10,6 +10,20 @@ import (
 	"gorm.io/gorm"
 )
 
+// IDeviceRepository defines the interface for device storage operations
+type IDeviceRepository interface {
+	Create(device *entities.Device) error
+	GetAll() ([]entities.Device, error)
+	GetAllPaginated(offset, limit int) ([]entities.Device, int64, error)
+	GetByTeraluxID(teraluxID string) ([]entities.Device, error)
+	GetByTeraluxIDPaginated(teraluxID string, offset, limit int) ([]entities.Device, int64, error)
+	GetByIDUnscoped(id string) (*entities.Device, error)
+	GetByID(id string) (*entities.Device, error)
+	Update(device *entities.Device) error
+	Delete(id string) error
+	GetByRemoteID(remoteID string) (*entities.Device, error)
+}
+
 // DeviceRepository handles database operations for Device entities
 type DeviceRepository struct {
 	db    *gorm.DB

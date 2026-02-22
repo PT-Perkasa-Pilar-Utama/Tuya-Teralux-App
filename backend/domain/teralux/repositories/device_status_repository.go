@@ -8,6 +8,20 @@ import (
 	"gorm.io/gorm"
 )
 
+// IDeviceStatusRepository defines the interface for device status storage operations
+type IDeviceStatusRepository interface {
+	Create(status *entities.DeviceStatus) error
+	GetAll() ([]entities.DeviceStatus, error)
+	GetAllPaginated(offset, limit int) ([]entities.DeviceStatus, int64, error)
+	GetByDeviceID(deviceID string) ([]entities.DeviceStatus, error)
+	GetByDeviceIDPaginated(deviceID string, offset, limit int) ([]entities.DeviceStatus, int64, error)
+	GetByDeviceIDAndCode(deviceID, code string) (*entities.DeviceStatus, error)
+	UpsertDeviceStatuses(deviceID string, statuses []entities.DeviceStatus) error
+	Upsert(status *entities.DeviceStatus) error
+	DeleteByDeviceIDAndCode(deviceID, code string) error
+	DeleteByDeviceID(deviceID string) error
+}
+
 // DeviceStatusRepository handles database operations for DeviceStatus entities
 type DeviceStatusRepository struct {
 	db    *gorm.DB

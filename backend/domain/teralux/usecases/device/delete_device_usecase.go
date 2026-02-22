@@ -10,16 +10,16 @@ import (
 
 // DeleteDeviceUseCase handles deleting a device
 type DeleteDeviceUseCase struct {
-	repository       *repositories.DeviceRepository
-	statusRepository *repositories.DeviceStatusRepository
-	teraluxRepo      *repositories.TeraluxRepository
+	repository       repositories.IDeviceRepository
+	statusRepository repositories.IDeviceStatusRepository
+	teraluxRepo      repositories.ITeraluxRepository
 }
 
 // NewDeleteDeviceUseCase creates a new instance of DeleteDeviceUseCase
 func NewDeleteDeviceUseCase(
-	repository *repositories.DeviceRepository,
-	statusRepository *repositories.DeviceStatusRepository,
-	teraluxRepo *repositories.TeraluxRepository,
+	repository repositories.IDeviceRepository,
+	statusRepository repositories.IDeviceStatusRepository,
+	teraluxRepo repositories.ITeraluxRepository,
 ) *DeleteDeviceUseCase {
 	return &DeleteDeviceUseCase{
 		repository:       repository,

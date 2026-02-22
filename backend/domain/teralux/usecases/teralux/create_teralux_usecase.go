@@ -8,23 +8,27 @@ import (
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	"teralux_app/domain/teralux/repositories"
-	"teralux_app/domain/teralux/services"
 
 	"strconv"
 
 	"github.com/google/uuid"
 )
 
+// ITeraluxExternalService defines the interface for third-party teralux operations
+type ITeraluxExternalService interface {
+	ProcInsertMacAddress(roomID int, macAddress string, deviceTypeID int) error
+}
+
 // CreateTeraluxUseCase handles the business logic for creating a new teralux
 type CreateTeraluxUseCase struct {
-	repository      *repositories.TeraluxRepository
-	externalService *services.TeraluxExternalService
+	repository      repositories.ITeraluxRepository
+	externalService ITeraluxExternalService
 }
 
 // NewCreateTeraluxUseCase creates a new instance of CreateTeraluxUseCase
 func NewCreateTeraluxUseCase(
-	repository *repositories.TeraluxRepository,
-	externalService *services.TeraluxExternalService,
+	repository repositories.ITeraluxRepository,
+	externalService ITeraluxExternalService,
 ) *CreateTeraluxUseCase {
 	return &CreateTeraluxUseCase{
 		repository:      repository,

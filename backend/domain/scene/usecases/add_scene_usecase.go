@@ -8,10 +8,10 @@ import (
 )
 
 type AddSceneUseCase struct {
-	repo *repositories.SceneRepository
+	repo repositories.ISceneRepository
 }
 
-func NewAddSceneUseCase(repo *repositories.SceneRepository) *AddSceneUseCase {
+func NewAddSceneUseCase(repo repositories.ISceneRepository) *AddSceneUseCase {
 	return &AddSceneUseCase{repo: repo}
 }
 

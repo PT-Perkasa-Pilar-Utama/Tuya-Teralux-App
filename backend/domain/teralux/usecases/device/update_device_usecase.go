@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"errors"
 	"strings"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/teralux/dtos"
@@ -9,13 +10,15 @@ import (
 
 // UpdateDeviceUseCase handles updating an existing device
 type UpdateDeviceUseCase struct {
-	repository *repositories.DeviceRepository
+	repository  repositories.IDeviceRepository
+	teraluxRepo repositories.ITeraluxRepository
 }
 
 // NewUpdateDeviceUseCase creates a new instance of UpdateDeviceUseCase
-func NewUpdateDeviceUseCase(repository *repositories.DeviceRepository) *UpdateDeviceUseCase {
+func NewUpdateDeviceUseCase(repository repositories.IDeviceRepository, teraluxRepo repositories.ITeraluxRepository) *UpdateDeviceUseCase {
 	return &UpdateDeviceUseCase{
-		repository: repository,
+		repository:  repository,
+		teraluxRepo: teraluxRepo,
 	}
 }
 
@@ -24,7 +27,7 @@ func (uc *UpdateDeviceUseCase) UpdateDevice(id string, req *dtos.UpdateDeviceReq
 	// First check if device exists
 	device, err := uc.repository.GetByID(id)
 	if err != nil {
-		return err
+		return errors.New("Device not found")
 	}
 
 	// Update fields
@@ -38,5 +41,10 @@ func (uc *UpdateDeviceUseCase) UpdateDevice(id string, req *dtos.UpdateDeviceReq
 	}
 
 	// Save changes
-	return uc.repository.Update(device)
+	if err := uc.repository.Update(device); err != nil {
+		return err
+	}
+
+	// Invalidate teralux cache
+	return uc.teraluxRepo.InvalidateCache(device.TeraluxID)
 }

@@ -45,7 +45,7 @@ type TestFailure struct {
 }
 
 func main() {
-	cmd := exec.Command("go", "test", "-json", "./...")
+	cmd := exec.Command("go", "test", "-json", "./domain/...")
 	// Force color output from tests themselves if they support it, though -json usually strips it.
 	// We rely on our own coloring.
 

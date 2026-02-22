@@ -17,13 +17,13 @@ type TuyaDeviceControlExecutor interface {
 
 // UpdateDeviceStatusUseCase handles updating an existing device status
 type UpdateDeviceStatusUseCase struct {
-	repo    *repositories.DeviceStatusRepository
-	devRepo *repositories.DeviceRepository
+	repo    repositories.IDeviceStatusRepository
+	devRepo repositories.IDeviceRepository
 	tuyaCmd TuyaDeviceControlExecutor
 }
 
 // NewUpdateDeviceStatusUseCase creates a new instance of UpdateDeviceStatusUseCase
-func NewUpdateDeviceStatusUseCase(repo *repositories.DeviceStatusRepository, devRepo *repositories.DeviceRepository, tuyaCmd TuyaDeviceControlExecutor) *UpdateDeviceStatusUseCase {
+func NewUpdateDeviceStatusUseCase(repo repositories.IDeviceStatusRepository, devRepo repositories.IDeviceRepository, tuyaCmd TuyaDeviceControlExecutor) *UpdateDeviceStatusUseCase {
 	return &UpdateDeviceStatusUseCase{
 		repo:    repo,
 		devRepo: devRepo,

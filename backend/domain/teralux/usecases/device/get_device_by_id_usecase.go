@@ -1,17 +1,18 @@
 package usecases
 
 import (
+	"errors"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/repositories"
 )
 
 // GetDeviceByIDUseCase handles retrieving a single device
 type GetDeviceByIDUseCase struct {
-	repository *repositories.DeviceRepository
+	repository repositories.IDeviceRepository
 }
 
 // NewGetDeviceByIDUseCase creates a new instance of GetDeviceByIDUseCase
-func NewGetDeviceByIDUseCase(repository *repositories.DeviceRepository) *GetDeviceByIDUseCase {
+func NewGetDeviceByIDUseCase(repository repositories.IDeviceRepository) *GetDeviceByIDUseCase {
 	return &GetDeviceByIDUseCase{
 		repository: repository,
 	}
@@ -19,9 +20,9 @@ func NewGetDeviceByIDUseCase(repository *repositories.DeviceRepository) *GetDevi
 
 // Execute retrieves a device by ID
 func (uc *GetDeviceByIDUseCase) GetDeviceByID(id string) (*dtos.DeviceSingleResponseDTO, error) {
-	device, err := uc.repository.GetByID(id)
+	device, err := uc.repository.GetByID(id) // Kept 'device' as the variable name, assuming 'dev item' was a typo in the instruction
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Device not found") // Changed error return
 	}
 
 	return &dtos.DeviceSingleResponseDTO{

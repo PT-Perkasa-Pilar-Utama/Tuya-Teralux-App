@@ -6,10 +6,10 @@ import (
 )
 
 type UpdateSceneUseCase struct {
-	repo *repositories.SceneRepository
+	repo repositories.ISceneRepository
 }
 
-func NewUpdateSceneUseCase(repo *repositories.SceneRepository) *UpdateSceneUseCase {
+func NewUpdateSceneUseCase(repo repositories.ISceneRepository) *UpdateSceneUseCase {
 	return &UpdateSceneUseCase{repo: repo}
 }
 

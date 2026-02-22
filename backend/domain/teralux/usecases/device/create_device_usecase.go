@@ -24,20 +24,20 @@ type TuyaGetDeviceByIDUseCaseInterface interface {
 
 // CreateDeviceUseCase handles the business logic for creating a new device
 type CreateDeviceUseCase struct {
-	repository       *repositories.DeviceRepository
-	statusRepository *repositories.DeviceStatusRepository
-	teraluxRepo      *repositories.TeraluxRepository
+	repository       repositories.IDeviceRepository
+	statusRepository repositories.IDeviceStatusRepository
+	teraluxRepo      repositories.ITeraluxRepository
 	tuyaAuthUC       TuyaAuthUseCaseInterface
 	tuyaGetDeviceUC  TuyaGetDeviceByIDUseCaseInterface
 }
 
 // NewCreateDeviceUseCase creates a new instance of CreateDeviceUseCase
 func NewCreateDeviceUseCase(
-	repository *repositories.DeviceRepository,
-	statusRepository *repositories.DeviceStatusRepository,
+	repository repositories.IDeviceRepository,
+	statusRepository repositories.IDeviceStatusRepository,
 	tuyaAuthUC TuyaAuthUseCaseInterface,
 	tuyaGetDeviceUC TuyaGetDeviceByIDUseCaseInterface,
-	teraluxRepo *repositories.TeraluxRepository,
+	teraluxRepo repositories.ITeraluxRepository,
 ) *CreateDeviceUseCase {
 	return &CreateDeviceUseCase{
 		repository:       repository,

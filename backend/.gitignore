@@ -6,6 +6,7 @@ main
 teralux_app
 tmp_build
 server
+bin.*/
 bin/
 
 *.db

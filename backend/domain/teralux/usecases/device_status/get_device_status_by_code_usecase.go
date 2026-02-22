@@ -8,12 +8,12 @@ import (
 
 // GetDeviceStatusByCodeUseCase handles retrieving a single device status by code
 type GetDeviceStatusByCodeUseCase struct {
-	repo    *repositories.DeviceStatusRepository
-	devRepo *repositories.DeviceRepository
+	repo    repositories.IDeviceStatusRepository
+	devRepo repositories.IDeviceRepository
 }
 
 // NewGetDeviceStatusByCodeUseCase creates a new instance of GetDeviceStatusByCodeUseCase
-func NewGetDeviceStatusByCodeUseCase(repo *repositories.DeviceStatusRepository, devRepo *repositories.DeviceRepository) *GetDeviceStatusByCodeUseCase {
+func NewGetDeviceStatusByCodeUseCase(repo repositories.IDeviceStatusRepository, devRepo repositories.IDeviceRepository) *GetDeviceStatusByCodeUseCase {
 	return &GetDeviceStatusByCodeUseCase{
 		repo:    repo,
 		devRepo: devRepo,

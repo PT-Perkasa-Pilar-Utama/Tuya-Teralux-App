@@ -8,11 +8,11 @@ import (
 
 // GetAllDevicesUseCase handles retrieving all devices
 type GetAllDevicesUseCase struct {
-	repository *repositories.DeviceRepository
+	repository repositories.IDeviceRepository
 }
 
 // NewGetAllDevicesUseCase creates a new instance of GetAllDevicesUseCase
-func NewGetAllDevicesUseCase(repository *repositories.DeviceRepository) *GetAllDevicesUseCase {
+func NewGetAllDevicesUseCase(repository repositories.IDeviceRepository) *GetAllDevicesUseCase {
 	return &GetAllDevicesUseCase{
 		repository: repository,
 	}

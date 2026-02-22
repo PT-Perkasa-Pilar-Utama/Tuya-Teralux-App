@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 	"teralux_app/domain/common/utils"
@@ -10,11 +11,11 @@ import (
 
 // UpdateTeraluxUseCase handles updating an existing teralux
 type UpdateTeraluxUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository repositories.ITeraluxRepository
 }
 
 // NewUpdateTeraluxUseCase creates a new instance of UpdateTeraluxUseCase
-func NewUpdateTeraluxUseCase(repository *repositories.TeraluxRepository) *UpdateTeraluxUseCase {
+func NewUpdateTeraluxUseCase(repository repositories.ITeraluxRepository) *UpdateTeraluxUseCase {
 	return &UpdateTeraluxUseCase{
 		repository: repository,
 	}
@@ -25,7 +26,7 @@ func (uc *UpdateTeraluxUseCase) UpdateTeralux(id string, req *dtos.UpdateTeralux
 	// First check if exists
 	item, err := uc.repository.GetByID(id)
 	if err != nil {
-		return err
+		return errors.New("Teralux not found")
 	}
 
 	var details []utils.ValidationErrorDetail
@@ -70,5 +71,9 @@ func (uc *UpdateTeraluxUseCase) UpdateTeralux(id string, req *dtos.UpdateTeralux
 	}
 
 	// Save changes
-	return uc.repository.Update(item)
+	if err := uc.repository.Update(item); err != nil {
+		return err
+	}
+
+	return uc.repository.InvalidateCache(id)
 }

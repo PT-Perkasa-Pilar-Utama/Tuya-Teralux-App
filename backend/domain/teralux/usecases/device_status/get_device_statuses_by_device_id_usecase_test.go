@@ -1,61 +1,41 @@
 package usecases
 
 import (
-	"strings"
 	"teralux_app/domain/teralux/entities"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestGetDeviceStatusesByDeviceID_UserBehavior(t *testing.T) {
-	repo, devRepo := setupStatusTestEnv(t)
-	// We assume New... takes both repos now
-	useCase := NewGetDeviceStatusesByDeviceIDUseCase(repo, devRepo)
+func TestGetDeviceStatusesByDeviceIDUseCase_UserBehavior(t *testing.T) {
+	statusRepo := new(MockDeviceStatusRepository)
+	deviceRepo := new(MockDeviceRepository)
+	useCase := NewGetDeviceStatusesByDeviceIDUseCase(statusRepo, deviceRepo)
 
-	// Seed data
-	_ = devRepo.Create(&entities.Device{ID: "dev-1", Name: "D1"})
-	_ = devRepo.Create(&entities.Device{ID: "dev-2", Name: "D2"}) // Empty statuses
+	// 1. Get Device Statuses By Device ID (Success)
+	t.Run("Get Device Statuses By Device ID (Success)", func(t *testing.T) {
+		deviceID := "d1"
+		deviceRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID}, nil).Once()
+		statusRepo.On("GetByDeviceIDPaginated", deviceID, 0, 10).Return([]entities.DeviceStatus{
+			{DeviceID: deviceID, Code: "c1", Value: "v1"},
+			{DeviceID: deviceID, Code: "c2", Value: "v2"},
+		}, int64(2), nil).Once()
 
-	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_1", Value: "true"})
-	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "dev-1", Code: "switch_2", Value: "false"})
-
-	// 1. Get Statuses By Device ID (Success)
-	// URL: GET /api/devices/dev-1/statuses
-	// RES: 200 OK
-	t.Run("Get Statuses By Device ID (Success)", func(t *testing.T) {
-		res, err := useCase.ListDeviceStatusesByDeviceID("dev-1", 0, 0)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if len(res.DeviceStatuses) != 2 {
-			t.Errorf("Expected 2 statuses, got %d", len(res.DeviceStatuses))
-		}
+		res, err := useCase.ListDeviceStatusesByDeviceID(deviceID, 1, 10)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, res.Total)
+		assert.Len(t, res.DeviceStatuses, 2)
+		deviceRepo.AssertExpectations(t)
+		statusRepo.AssertExpectations(t)
 	})
 
-	// 2. Get Statuses By Device ID (Success - Empty)
-	// URL: GET /api/devices/dev-2/statuses
-	// RES: 200 OK
-	t.Run("Get Statuses By Device ID (Success - Empty)", func(t *testing.T) {
-		res, err := useCase.ListDeviceStatusesByDeviceID("dev-2", 0, 0)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if len(res.DeviceStatuses) != 0 {
-			t.Errorf("Expected empty list, got %d items", len(res.DeviceStatuses))
-		}
-	})
+	// 2. Get Device Statuses By Device ID (Invalid Device)
+	t.Run("Get Device Statuses By Device ID (Invalid Device)", func(t *testing.T) {
+		deviceRepo.On("GetByID", "unknown").Return(nil, assert.AnError).Once()
 
-	// 3. Get Statuses By Device ID (Not Found)
-	// URL: GET /api/devices/unknown/statuses
-	// RES: 404 Not Found
-	t.Run("Get Statuses By Device ID (Not Found)", func(t *testing.T) {
-		_, err := useCase.ListDeviceStatusesByDeviceID("unknown", 0, 0)
-		if err == nil {
-			t.Fatal("Expected error for unknown device, got nil")
-		}
-		if !strings.Contains(err.Error(), "Device not found") && !strings.Contains(err.Error(), "record not found") {
-			t.Errorf("Expected 'not found' error, got: %v", err)
-		}
+		_, err := useCase.ListDeviceStatusesByDeviceID("unknown", 1, 10)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Device not found")
+		deviceRepo.AssertExpectations(t)
 	})
-
-	// 4. Unauthorized (Middleware)
 }

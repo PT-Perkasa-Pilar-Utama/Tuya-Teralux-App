@@ -7,11 +7,11 @@ import (
 
 // GetAllTeraluxUseCase handles retrieving all teralux records
 type GetAllTeraluxUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository repositories.ITeraluxRepository
 }
 
 // NewGetAllTeraluxUseCase creates a new instance of GetAllTeraluxUseCase
-func NewGetAllTeraluxUseCase(repository *repositories.TeraluxRepository) *GetAllTeraluxUseCase {
+func NewGetAllTeraluxUseCase(repository repositories.ITeraluxRepository) *GetAllTeraluxUseCase {
 	return &GetAllTeraluxUseCase{
 		repository: repository,
 	}

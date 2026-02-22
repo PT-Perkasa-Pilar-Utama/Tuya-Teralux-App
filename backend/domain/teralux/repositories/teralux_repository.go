@@ -10,6 +10,18 @@ import (
 	"gorm.io/gorm"
 )
 
+// ITeraluxRepository defines the interface for teralux storage operations
+type ITeraluxRepository interface {
+	Create(teralux *entities.Teralux) error
+	GetAll() ([]entities.Teralux, error)
+	GetAllPaginated(offset, limit int, roomID *string) ([]entities.Teralux, int64, error)
+	GetByID(id string) (*entities.Teralux, error)
+	GetByMacAddress(macAddress string) (*entities.Teralux, error)
+	Update(teralux *entities.Teralux) error
+	Delete(id string) error
+	InvalidateCache(id string) error
+}
+
 // TeraluxRepository handles database operations for Teralux entities
 type TeraluxRepository struct {
 	db    *gorm.DB

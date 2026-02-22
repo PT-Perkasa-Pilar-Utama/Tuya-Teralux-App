@@ -85,7 +85,7 @@ func main() {
 			port = "8080"
 		}
 		client := http.Client{Timeout: 2 * time.Second}
-		resp, err := client.Get("http://localhost:" + port + "/health")
+		resp, err := client.Get("http://localhost:" + port + "/api/health")
 		if err != nil || resp.StatusCode != 200 {
 			os.Exit(1)
 		}

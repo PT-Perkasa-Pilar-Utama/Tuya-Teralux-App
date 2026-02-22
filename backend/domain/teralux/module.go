@@ -72,7 +72,7 @@ func NewTeraluxModule(
 	getAllDevicesUseCase := device_usecases.NewGetAllDevicesUseCase(deviceRepository)
 	getDeviceByIDUseCase := device_usecases.NewGetDeviceByIDUseCase(deviceRepository)
 	getDevicesByTeraluxIDUseCase := device_usecases.NewGetDevicesByTeraluxIDUseCase(deviceRepository, teraluxRepository)
-	updateDeviceUseCase := device_usecases.NewUpdateDeviceUseCase(deviceRepository)
+	updateDeviceUseCase := device_usecases.NewUpdateDeviceUseCase(deviceRepository, teraluxRepository)
 	deleteDeviceUseCase := device_usecases.NewDeleteDeviceUseCase(deviceRepository, deviceStatusRepository, teraluxRepository)
 
 	// Device Status Use Cases

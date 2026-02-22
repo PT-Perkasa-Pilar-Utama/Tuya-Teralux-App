@@ -1,64 +1,46 @@
 package usecases
 
 import (
-	"strings"
+	"errors"
 	"teralux_app/domain/teralux/entities"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetTeraluxByID_UserBehavior(t *testing.T) {
-	repo, devRepo, _ := setupTestEnv(t) // Need devRepo for associating devices
+	repo := new(MockTeraluxRepository)
+	devRepo := new(MockDeviceRepository)
 	useCase := NewGetTeraluxByIDUseCase(repo, devRepo)
 
-	// Seed data
-	_ = repo.Create(&entities.Teralux{ID: "t1", Name: "Living Room", MacAddress: "M1", RoomID: "r1"})
-	// Seed associated device
-	_ = devRepo.Create(&entities.Device{ID: "d1", TeraluxID: "t1", Name: "Light 1"})
-
 	// 1. Get Teralux By ID (Success)
-	// URL: GET /api/teralux/t1
-	// SCENARIO: Device exists.
-	// RES: 200 OK
 	t.Run("Get Teralux By ID (Success)", func(t *testing.T) {
-		res, err := useCase.GetTeraluxByID("t1")
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if res.Teralux.ID != "t1" {
-			t.Errorf("Expected ID 't1', got '%s'", res.Teralux.ID)
-		}
-		if res.Teralux.Name != "Living Room" {
-			t.Errorf("Expected Name 'Living Room', got '%s'", res.Teralux.Name)
-		}
+		id := "t1"
+		repo.On("GetByID", id).Return(&entities.Teralux{ID: id, Name: "Living Room"}, nil).Once()
+		devRepo.On("GetByTeraluxID", id).Return([]entities.Device{{ID: "d1", Name: "Light"}}, nil).Once()
+
+		res, err := useCase.GetTeraluxByID(id)
+		assert.NoError(t, err)
+		assert.Equal(t, id, res.Teralux.ID)
+		
+		repo.AssertExpectations(t)
+		devRepo.AssertExpectations(t)
 	})
 
 	// 2. Get Teralux By ID (Not Found)
-	// URL: GET /api/teralux/unknown-id
-	// SCENARIO: Device does not exist.
-	// RES: 404 Not Found
 	t.Run("Get Teralux By ID (Not Found)", func(t *testing.T) {
+		repo.On("GetByID", "unknown-id").Return(nil, errors.New("record not found")).Once()
+
 		_, err := useCase.GetTeraluxByID("unknown-id")
-		if err == nil {
-			t.Fatal("Expected error for unknown ID, got nil")
-		}
-		if !strings.Contains(err.Error(), "record not found") && !strings.Contains(err.Error(), "Teralux not found") {
-			t.Errorf("Expected 'not found' error, got: %v", err)
-		}
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Teralux not found")
+		repo.AssertExpectations(t)
 	})
 
 	// 3. Validation: Invalid ID Format
-	// URL: GET /api/teralux/INVALID-FORMAT
-	// SCENARIO: ID is not a valid UUID format.
-	// RES: 400 Bad Request
 	t.Run("Validation: Invalid ID Format", func(t *testing.T) {
 		_, err := useCase.GetTeraluxByID("INVALID-FORMAT")
-		if err == nil {
-			t.Fatal("Expected error for invalid ID format, got nil")
-		}
-		if err.Error() != "Invalid ID format" {
-			t.Errorf("Expected 'Invalid ID format', got: %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "Invalid ID format", err.Error())
 	})
-
-	// 4. Security: Unauthorized
 }

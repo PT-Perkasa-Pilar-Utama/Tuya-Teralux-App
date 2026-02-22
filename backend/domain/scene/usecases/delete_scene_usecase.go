@@ -5,10 +5,10 @@ import (
 )
 
 type DeleteSceneUseCase struct {
-	repo *repositories.SceneRepository
+	repo repositories.ISceneRepository
 }
 
-func NewDeleteSceneUseCase(repo *repositories.SceneRepository) *DeleteSceneUseCase {
+func NewDeleteSceneUseCase(repo repositories.ISceneRepository) *DeleteSceneUseCase {
 	return &DeleteSceneUseCase{repo: repo}
 }
 

@@ -9,11 +9,11 @@ import (
 
 // GetTeraluxByMACUseCase handles the business logic for retrieving a teralux by MAC address
 type GetTeraluxByMACUseCase struct {
-	repository *repositories.TeraluxRepository
+	repository repositories.ITeraluxRepository
 }
 
 // NewGetTeraluxByMACUseCase creates a new instance of GetTeraluxByMACUseCase
-func NewGetTeraluxByMACUseCase(repository *repositories.TeraluxRepository) *GetTeraluxByMACUseCase {
+func NewGetTeraluxByMACUseCase(repository repositories.ITeraluxRepository) *GetTeraluxByMACUseCase {
 	return &GetTeraluxByMACUseCase{
 		repository: repository,
 	}
@@ -31,7 +31,7 @@ func (uc *GetTeraluxByMACUseCase) GetTeraluxByMAC(macAddress string) (*dtos.Tera
 
 	teralux, err := uc.repository.GetByMacAddress(macAddress)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Teralux not found")
 	}
 
 	return &dtos.TeraluxSingleResponseDTO{

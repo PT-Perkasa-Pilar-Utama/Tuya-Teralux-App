@@ -7,11 +7,11 @@ import (
 
 // GetAllDeviceStatusesUseCase handles retrieving all device statuses
 type GetAllDeviceStatusesUseCase struct {
-	repository *repositories.DeviceStatusRepository
+	repository repositories.IDeviceStatusRepository
 }
 
 // NewGetAllDeviceStatusesUseCase creates a new instance of GetAllDeviceStatusesUseCase
-func NewGetAllDeviceStatusesUseCase(repository *repositories.DeviceStatusRepository) *GetAllDeviceStatusesUseCase {
+func NewGetAllDeviceStatusesUseCase(repository repositories.IDeviceStatusRepository) *GetAllDeviceStatusesUseCase {
 	return &GetAllDeviceStatusesUseCase{
 		repository: repository,
 	}

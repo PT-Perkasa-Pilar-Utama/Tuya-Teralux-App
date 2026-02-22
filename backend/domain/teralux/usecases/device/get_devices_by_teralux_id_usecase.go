@@ -8,12 +8,12 @@ import (
 
 // GetDevicesByTeraluxIDUseCase handles retrieving devices linked to a teralux ID
 type GetDevicesByTeraluxIDUseCase struct {
-	repository  *repositories.DeviceRepository
-	teraluxRepo *repositories.TeraluxRepository
+	repository  repositories.IDeviceRepository
+	teraluxRepo repositories.ITeraluxRepository
 }
 
 // NewGetDevicesByTeraluxIDUseCase creates a new instance of GetDevicesByTeraluxIDUseCase
-func NewGetDevicesByTeraluxIDUseCase(repository *repositories.DeviceRepository, teraluxRepo *repositories.TeraluxRepository) *GetDevicesByTeraluxIDUseCase {
+func NewGetDevicesByTeraluxIDUseCase(repository repositories.IDeviceRepository, teraluxRepo repositories.ITeraluxRepository) *GetDevicesByTeraluxIDUseCase {
 	return &GetDevicesByTeraluxIDUseCase{
 		repository:  repository,
 		teraluxRepo: teraluxRepo,

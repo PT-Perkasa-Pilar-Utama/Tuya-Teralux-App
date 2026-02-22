@@ -1,63 +1,43 @@
 package usecases
 
 import (
-	"strings"
+	"errors"
 	"teralux_app/domain/teralux/entities"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDeleteTeralux_UserBehavior(t *testing.T) {
-	repo, _, _ := setupTestEnv(t)
+	repo := new(MockTeraluxRepository)
 	useCase := NewDeleteTeraluxUseCase(repo)
 
-	// Seed data
-	t1 := &entities.Teralux{ID: "tx-1", Name: "T1", MacAddress: "AA:BB"}
-	_ = repo.Create(t1)
-
 	// 1. Delete Teralux (Success Condition)
-	// URL: DELETE /api/teralux/tx-1
-	// SCENARIO: Device exists.
-	// RES: 200 OK
 	t.Run("Delete Teralux (Success Condition)", func(t *testing.T) {
-		err := useCase.DeleteTeralux("tx-1")
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
+		id := "tx-1"
+		repo.On("GetByID", id).Return(&entities.Teralux{ID: id}, nil).Once()
+		repo.On("Delete", id).Return(nil).Once()
+		repo.On("InvalidateCache", id).Return(nil).Once()
 
-		// Verify deletion
-		_, err = repo.GetByID("tx-1")
-		if err == nil {
-			t.Error("Expected error getting deleted item, got nil")
-		}
+		err := useCase.DeleteTeralux(id)
+		assert.NoError(t, err)
+		repo.AssertExpectations(t)
 	})
 
 	// 2. Delete Teralux (Not Found)
-	// URL: DELETE /api/teralux/tx-999
-	// SCENARIO: Device does not exist.
-	// RES: 404 Not Found
 	t.Run("Delete Teralux (Not Found)", func(t *testing.T) {
+		repo.On("GetByID", "tx-999").Return(nil, errors.New("record not found")).Once()
+
 		err := useCase.DeleteTeralux("tx-999")
-		if err == nil {
-			t.Fatal("Expected error for unknown ID, got nil")
-		}
-		if !strings.Contains(err.Error(), "Teralux not found") && !strings.Contains(err.Error(), "record not found") {
-			t.Errorf("Expected 'not found' error, got: %v", err)
-		}
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Teralux not found")
+		repo.AssertExpectations(t)
 	})
 
 	// 3. Validation: Invalid ID Format
-	// URL: DELETE /api/teralux/INVALID-UUID
-	// SCENARIO: ID is not a valid UUID format.
-	// RES: 400 Bad Request
 	t.Run("Validation: Invalid ID Format", func(t *testing.T) {
 		err := useCase.DeleteTeralux("INVALID-UUID")
-		if err == nil {
-			t.Fatal("Expected error for invalid ID format, got nil")
-		}
-		if err.Error() != "Invalid ID format" {
-			t.Errorf("Expected 'Invalid ID format', got: %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "Invalid ID format", err.Error())
 	})
-
-	// 4. Security: Unauthorized
 }

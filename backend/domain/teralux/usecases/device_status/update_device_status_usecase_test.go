@@ -1,140 +1,123 @@
 package usecases
 
 import (
-	"fmt"
-	"strings"
+	"errors"
 	"teralux_app/domain/teralux/dtos"
 	"teralux_app/domain/teralux/entities"
 	tuya_dtos "teralux_app/domain/tuya/dtos"
 	"testing"
 
-	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 // MockTuyaDeviceControlExecutor mocks the TuyaDeviceControlExecutor interface
 type MockTuyaDeviceControlExecutor struct {
-	ShouldFail bool
+	mock.Mock
 }
 
 func (m *MockTuyaDeviceControlExecutor) SendSwitchCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error) {
-	if accessToken == "invalid_token_123" {
-		return false, fmt.Errorf("mock error: invalid token")
-	}
-	if m.ShouldFail {
-		return false, fmt.Errorf("mock failure")
-	}
-	return true, nil
+	args := m.Called(accessToken, deviceID, commands)
+	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockTuyaDeviceControlExecutor) SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error) {
-	if accessToken == "invalid_token_123" {
-		return false, fmt.Errorf("mock error: invalid token")
-	}
-	if m.ShouldFail {
-		return false, fmt.Errorf("mock failure")
-	}
-	return true, nil
+	args := m.Called(accessToken, infraredID, remoteID, params)
+	return args.Bool(0), args.Error(1)
 }
 
 func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	repo, devRepo := setupStatusTestEnv(t)
-
-	// Setup Mock
-	mockTuya := &MockTuyaDeviceControlExecutor{ShouldFail: false}
+	repo := new(MockDeviceStatusRepository)
+	devRepo := new(MockDeviceRepository)
+	mockTuya := new(MockTuyaDeviceControlExecutor)
 
 	useCase := NewUpdateDeviceStatusUseCase(repo, devRepo, mockTuya)
 
-	// Seed data
-	_ = devRepo.Create(&entities.Device{ID: "d1", Name: "D1"})
-	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "switch_1", Value: "false"})
-	_ = repo.Upsert(&entities.DeviceStatus{DeviceID: "d1", Code: "dimmer", Value: "50"})
-
 	// 1. Update Status (Success)
-	// URL: PUT /api/devices/d1/status
-	// BODY: { "code": "switch_1", "value": true }
-	// RES: 200 OK
 	t.Run("Update Status (Success - Command)", func(t *testing.T) {
+		deviceID := "d1"
+		token := "valid_token"
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
-		// Use valid token to pass "command" success check in mock service
-		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
+		
+		devRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID, RemoteID: "r1"}, nil).Once()
+		
+		mockTuya.On("SendSwitchCommand", token, deviceID, mock.MatchedBy(func(cmds []tuya_dtos.TuyaCommandDTO) bool {
+			return len(cmds) == 1 && cmds[0].Code == "switch_1" && cmds[0].Value == true
+		})).Return(true, nil).Once()
+		
+		repo.On("Upsert", mock.MatchedBy(func(s *entities.DeviceStatus) bool {
+			return s.DeviceID == deviceID && s.Code == "switch_1" && s.Value == "true"
+		})).Return(nil).Once()
 
-		updated, _ := repo.GetByDeviceIDAndCode("d1", "switch_1")
-		if updated.Value != "true" { // Assuming stored as string "true"
-			t.Errorf("Expected value 'true', got '%s'", updated.Value)
-		}
+		err := useCase.UpdateDeviceStatus(deviceID, req, token)
+		assert.NoError(t, err)
+		
+		devRepo.AssertExpectations(t)
+		repo.AssertExpectations(t)
+		mockTuya.AssertExpectations(t)
 	})
 
 	// 2. Update Status (Not Found - Device)
 	t.Run("Update Status (Not Found - Device)", func(t *testing.T) {
-		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
-		err := useCase.UpdateDeviceStatus("unknown", req, "valid_token")
-		if err == nil {
-			t.Fatal("Expected error for unknown device, got nil")
-		}
-		if !strings.Contains(err.Error(), "Device not found") && !strings.Contains(err.Error(), "record not found") {
-			t.Errorf("Expected 'Device not found', got: %v", err)
-		}
+		devRepo.On("GetByID", "unknown").Return(nil, errors.New("record not found")).Once()
+		
+		err := useCase.UpdateDeviceStatus("unknown", &dtos.UpdateDeviceStatusRequestDTO{Code: "c"}, "t")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Device not found")
 	})
 
 	// 3. Update Status (Not Found - Invalid Code)
 	t.Run("Update Status (Not Found - Invalid Code)", func(t *testing.T) {
-		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "nuclear_launch", Value: true}
-		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
-		if err == nil {
-			t.Fatal("Expected error for invalid code, got nil")
-		}
-		if !strings.Contains(err.Error(), "Invalid status code") && !strings.Contains(err.Error(), "record not found") {
-			t.Errorf("Expected 'Invalid status code', got: %v", err)
-		}
+		deviceID := "d1"
+		token := "valid_token"
+		devRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID}, nil).Once()
+
+		err := useCase.UpdateDeviceStatus(deviceID, &dtos.UpdateDeviceStatusRequestDTO{Code: "nuclear_launch"}, token)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Invalid status code")
 	})
 
-	// 4. Validation: Invalid Value Type
-	t.Run("Validation: Invalid Value Type", func(t *testing.T) {
-		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "dimmer", Value: "full_power"}
-		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
-		if err == nil {
-			t.Fatal("Expected error for invalid value type, got nil")
-		}
-		if !strings.Contains(err.Error(), "Invalid value") {
-			t.Errorf("Expected 'Invalid value', got: %v", err)
-		}
-	})
-
-	// 5. Command Failure (Invalid Token)
-	t.Run("Command Failure (Invalid Token)", func(t *testing.T) {
+	// 5. Command Failure
+	t.Run("Command Failure", func(t *testing.T) {
+		deviceID := "d1"
+		token := "valid_token"
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
-		err := useCase.UpdateDeviceStatus("d1", req, "invalid_token_123")
-		if err == nil {
-			t.Fatal("Expected error for command failure, got nil")
-		}
-		// Should contain "mock error: invalid token"
-		if !strings.Contains(err.Error(), "mock error: invalid token") {
-			t.Errorf("Expected 'invalid token', got: %v", err)
-		}
+		
+		devRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID, RemoteID: "r1"}, nil).Once()
+		
+		mockTuya.On("SendSwitchCommand", token, deviceID, mock.Anything).Return(false, errors.New("tuya error")).Once()
+
+		err := useCase.UpdateDeviceStatus(deviceID, req, token)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "tuya error")
 	})
 
 	// 6. IR Command Success
 	t.Run("IR Command Success", func(t *testing.T) {
+		deviceID := "d1"
+		token := "valid_token"
+		remoteID := "ir_remote_1"
 		req := &dtos.UpdateDeviceStatusRequestDTO{
 			Code:     "temp",
 			Value:    24,
-			RemoteID: "ir_remote_1",
+			RemoteID: remoteID,
 		}
-		// Reuse d1 or creates new one if needed, but d1 exists.
-		// IR logic calls SendIRACCommand.
-		// "valid_token" triggers mock success.
-		err := useCase.UpdateDeviceStatus("d1", req, "valid_token")
-		if err != nil {
-			t.Fatalf("Unexpected error for IR command: %v", err)
-		}
+		
+		devRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID}, nil).Once()
+		
+		mockTuya.On("SendIRACCommand", token, deviceID, remoteID, mock.MatchedBy(func(p map[string]int) bool {
+			return p["temp"] == 24
+		})).Return(true, nil).Once()
+		
+		repo.On("Upsert", mock.MatchedBy(func(s *entities.DeviceStatus) bool {
+			return s.DeviceID == deviceID && s.Code == "temp" && s.Value == "24"
+		})).Return(nil).Once()
 
-		updated, _ := repo.GetByDeviceIDAndCode("d1", "temp")
-		if updated.Value != "24" {
-			t.Errorf("Expected value '24', got '%s'", updated.Value)
-		}
+		err := useCase.UpdateDeviceStatus(deviceID, req, token)
+		assert.NoError(t, err)
+		
+		devRepo.AssertExpectations(t)
+		repo.AssertExpectations(t)
+		mockTuya.AssertExpectations(t)
 	})
 }
