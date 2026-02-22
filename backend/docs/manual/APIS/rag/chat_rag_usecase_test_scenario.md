@@ -59,6 +59,27 @@ The AI Assistant Chat endpoint (`/api/rag/chat`) serves as the primary entry poi
 }
 ```
 
+### 3.3 Validation: Missing Prompt
+**Request Body**:
+```json
+{
+    "prompt": "",
+    "teralux_id": "tx-1"
+}
+```
+
+**Expected Response**:
+```json
+{
+    "status": false,
+    "message": "Validation Error",
+    "details": [
+        { "field": "prompt", "message": "prompt is required" }
+    ]
+}
+```
+*(Status: 400 Bad Request)*
+
 ## 4. Verification Steps
 1. Send the CHAT request using `curl` or Postman.
 2. Verify that `is_control` is `false` and the `response` is conversational.

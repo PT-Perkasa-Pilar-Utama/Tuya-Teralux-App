@@ -9,43 +9,50 @@ NC='\033[0m' # No Color
 echo -e "${INFO}[INFO] Starting Teralux Backend Container Initialization...${NC}"
 
 # 1. Model Check
-MODEL_DIR="/app/bin/models"
-MODEL_PATH="${MODEL_DIR}/ggml-base.bin"
+MODEL_DIR="/app/bin"
+WHISPER_MODEL="${MODEL_DIR}/ggml-base.bin"
+LLAMA_MODEL="${MODEL_DIR}/llama-model.gguf"
 
-if [ ! -f "$MODEL_PATH" ]; then
-    echo -e "${INFO}[INFO] Whisper model not found at ${MODEL_PATH}. Downloading...${NC}"
-    mkdir -p "$MODEL_DIR"
-    curl -L "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin" -o "$MODEL_PATH"
-    echo -e "${SUCCESS}[SUCCESS] Model downloaded successfully.${NC}"
-else
-    echo -e "${SUCCESS}[SUCCESS] Whisper model found.${NC}"
+mkdir -p "$MODEL_DIR"
+
+if [ ! -f "$WHISPER_MODEL" ]; then
+    echo -e "${INFO}[INFO] Whisper model not found at ${WHISPER_MODEL}. Downloading...${NC}"
+    curl -L "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin" -o "$WHISPER_MODEL"
+    echo -e "${SUCCESS}[SUCCESS] Whisper model downloaded.${NC}"
+fi
+
+if [ ! -f "$LLAMA_MODEL" ]; then
+    echo -e "${INFO}[INFO] Llama model not found at ${LLAMA_MODEL}. Downloading...${NC}"
+    curl -L "https://huggingface.co/unsloth/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf" -o "$LLAMA_MODEL"
+    echo -e "${SUCCESS}[SUCCESS] Llama model downloaded.${NC}"
 fi
 
 # 2. Binary Check & Build
 WHISPER_CLI="/app/bin/whisper-cli"
+LLAMA_CLI="/app/bin/llama-cli"
 
+# Build whisper-cli if missing
 if [ ! -f "$WHISPER_CLI" ]; then
-    echo -e "${INFO}[INFO] whisper-cli not found at ${WHISPER_CLI}. Building from source...${NC}"
+    echo -e "${INFO}[INFO] whisper-cli not found. Building...${NC}"
     mkdir -p "/app/tmp/whisper_build"
     cd "/app/tmp/whisper_build"
-    
-    echo -e "${INFO}[INFO] Cloning whisper.cpp...${NC}"
     git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git .
-    
-    echo -e "${INFO}[INFO] Configuring and building...${NC}"
-    cmake -B build
-    cmake --build build --config Release -t main
-    
-    echo -e "${INFO}[INFO] Moving binary to ${WHISPER_CLI}...${NC}"
-    cp build/bin/main "$WHISPER_CLI"
-    chmod +x "$WHISPER_CLI"
-    
-    echo -e "${INFO}[INFO] Cleaning up build files...${NC}"
-    cd "/app"
-    rm -rf "/app/tmp/whisper_build"
-    echo -e "${SUCCESS}[SUCCESS] whisper-cli built successfully.${NC}"
-else
-    echo -e "${SUCCESS}[SUCCESS] whisper-cli found.${NC}"
+    cmake -B build && cmake --build build --config Release -t main
+    cp build/bin/main "$WHISPER_CLI" && chmod +x "$WHISPER_CLI"
+    cd "/app" && rm -rf "/app/tmp/whisper_build"
+    echo -e "${SUCCESS}[SUCCESS] whisper-cli built.${NC}"
+fi
+
+# Build llama-cli if missing
+if [ ! -f "$LLAMA_CLI" ]; then
+    echo -e "${INFO}[INFO] llama-cli not found. Building...${NC}"
+    mkdir -p "/app/tmp/llama_build"
+    cd "/app/tmp/llama_build"
+    git clone --depth 1 https://github.com/ggerganov/llama.cpp.git .
+    cmake -B build && cmake --build build --config Release -t llama-cli
+    cp build/bin/llama-cli "$LLAMA_CLI" && chmod +x "$LLAMA_CLI"
+    cd "/app" && rm -rf "/app/tmp/llama_build"
+    echo -e "${SUCCESS}[SUCCESS] llama-cli built.${NC}"
 fi
 
 # 3. Database Migration

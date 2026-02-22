@@ -20,19 +20,38 @@ type Config struct {
 	CacheTTL         string
 
 	// Speech / RAG
-	LLMProvider string // "ollama", "gemini"
-	LLMApiKey   string
-	LLMModel    string
+	// LLM
+	LLMProvider string // "gemini", "orion"
 
+	// Gemini
+	GeminiApiKey       string
+	GeminiModelHigh    string // High reasoning
+	GeminiModelLow     string // Fast/Low cost
+	GeminiModelWhisper string // STT
+
+	// OpenAI
+	OpenAIApiKey       string
+	OpenAIModelHigh    string
+	OpenAIModelLow     string
+	OpenAIModelWhisper string
+
+	// Groq
+	GroqApiKey       string
+	GroqModelHigh    string
+	GroqModelLow     string
+	GroqModelWhisper string
+
+	// Orion
 	OrionBaseURL string
 	OrionApiKey  string
 	OrionModel   string
 
-	WhisperServerURL        string
-	WhisperModelPath        string
-	OutsystemsTranscribeURL string
-	MaxFileSize             int64 // bytes
-	Port                    string
+	// Local Models
+	WhisperLocalModel   string // Path to whisper ggml model
+	LlamaLocalModel     string // Path to llama gguf model (e.g., bin/ggml-base.bin)
+	OrionWhisperBaseURL string // URL for remote transcription service
+	MaxFileSize         int64  // bytes
+	Port                string
 
 	// MQTT
 	MqttBroker   string
@@ -40,11 +59,17 @@ type Config struct {
 	MqttPassword string
 	MqttTopic    string
 
+	// SMTP
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUsername string
+	SMTPPassword string
+	SMTPFrom     string
+
 	// Runtime & Networking
 	LogLevel string
 
 	// Database
-	DBType     string
 	DBHost     string
 	DBPort     string
 	DBUser     string
@@ -71,7 +96,9 @@ func LoadConfig() {
 		} else {
 			for k, v := range m {
 				if os.Getenv(k) == "" {
-					os.Setenv(k, v)
+					_ = os.Setenv(k, v)
+				} else if os.Getenv(k) != v {
+					log.Printf("Config: Environment variable '%s' already set to '%s', ignoring .env value '%s'", k, os.Getenv(k), v)
 				}
 			}
 			log.Printf("Loaded env file: %s", envPath)
@@ -94,38 +121,55 @@ func LoadConfig() {
 		TuyaBaseURL:      os.Getenv("TUYA_BASE_URL"),
 		TuyaUserID:       os.Getenv("TUYA_USER_ID"),
 		ApiKey:           os.Getenv("API_KEY"),
-		CacheTTL:         os.Getenv("CACHE_TTL"),
+		JWTSecret:        os.Getenv("JWT_SECRET"),
+		LogLevel:         os.Getenv("LOG_LEVEL"),
+		LLMProvider:      os.Getenv("LLM_PROVIDER"),
 
-		LLMProvider: os.Getenv("LLM_PROVIDER"),
-		LLMApiKey:   os.Getenv("LLM_API_KEY"),
-		LLMModel:    os.Getenv("LLM_MODEL"),
+		GeminiApiKey:       os.Getenv("GEMINI_API_KEY"),
+		GeminiModelHigh:    os.Getenv("GEMINI_MODEL_HIGH"),
+		GeminiModelLow:     os.Getenv("GEMINI_MODEL_LOW"),
+		GeminiModelWhisper: os.Getenv("GEMINI_MODEL_WHISPER"),
+
+		OpenAIApiKey:       os.Getenv("OPENAI_API_KEY"),
+		OpenAIModelHigh:    os.Getenv("OPENAI_MODEL_HIGH"),
+		OpenAIModelLow:     os.Getenv("OPENAI_MODEL_LOW"),
+		OpenAIModelWhisper: os.Getenv("OPENAI_MODEL_WHISPER"),
+
+		GroqApiKey:       os.Getenv("GROQ_API_KEY"),
+		GroqModelHigh:    os.Getenv("GROQ_MODEL_HIGH"),
+		GroqModelLow:     os.Getenv("GROQ_MODEL_LOW"),
+		GroqModelWhisper: os.Getenv("GROQ_MODEL_WHISPER"),
 
 		OrionBaseURL: os.Getenv("ORION_BASE_URL"),
 		OrionApiKey:  os.Getenv("ORION_API_KEY"),
 		OrionModel:   os.Getenv("ORION_MODEL"),
-
-		WhisperServerURL:        os.Getenv("WHISPER_SERVER_URL"),
-		WhisperModelPath:        os.Getenv("WHISPER_MODEL_PATH"),
-		OutsystemsTranscribeURL: os.Getenv("OUTSYSTEMS_TRANSCRIBE_URL"),
-		MaxFileSize:             maxFileSize,
-		Port:                    os.Getenv("PORT"),
+		// Local Models
+		WhisperLocalModel:   os.Getenv("WHISPER_LOCAL_MODEL"),
+		LlamaLocalModel:     os.Getenv("LLAMA_LOCAL_MODEL"),
+		OrionWhisperBaseURL: os.Getenv("ORION_WHISPER_BASE_URL"),
+		MaxFileSize:         maxFileSize,
+		Port:                os.Getenv("PORT"),
 
 		MqttBroker:   os.Getenv("MQTT_BROKER"),
 		MqttUsername: os.Getenv("MQTT_USERNAME"),
 		MqttPassword: os.Getenv("MQTT_PASSWORD"),
 		MqttTopic:    os.Getenv("MQTT_TOPIC"),
 
+		// SMTP
+		SMTPHost:     os.Getenv("SMTP_HOST"),
+		SMTPPort:     os.Getenv("SMTP_PORT"),
+		SMTPUsername: os.Getenv("SMTP_USERNAME"),
+		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:     os.Getenv("SMTP_FROM"),
+
 		// Runtime
-		LogLevel: os.Getenv("LOG_LEVEL"),
 
 		// Database
-		DBType:     os.Getenv("DB_TYPE"),
-		DBHost:     os.Getenv("DB_HOST"),
-		DBPort:     os.Getenv("DB_PORT"),
-		DBUser:     os.Getenv("DB_USER"),
-		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBName:     os.Getenv("DB_NAME"),
-		JWTSecret:  os.Getenv("JWT_SECRET"),
+		DBHost:     os.Getenv("MYSQL_HOST"),
+		DBPort:     os.Getenv("MYSQL_PORT"),
+		DBUser:     os.Getenv("MYSQL_USER"),
+		DBPassword: os.Getenv("MYSQL_PASSWORD"),
+		DBName:     os.Getenv("MYSQL_DATABASE"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables

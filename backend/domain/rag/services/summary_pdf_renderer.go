@@ -133,23 +133,23 @@ func (r *MarotoSummaryPDFRenderer) Render(summary string, path string, meta Summ
 
 		// Detect section switches
 		lowerLine := strings.ToLower(line)
-		if strings.Contains(lowerLine, "executive signals") {
+		switch {
+		case strings.Contains(lowerLine, "executive signals"):
 			addSectionHeader(m, "EXECUTIVE SIGNALS", brandDark)
 			continue
-		} else if strings.Contains(lowerLine, "executive summary") {
+		case strings.Contains(lowerLine, "executive summary"):
 			addSectionHeader(m, "EXECUTIVE SUMMARY", brandDark)
 			continue
-		} else if strings.Contains(lowerLine, "strategic interpretation") {
+		case strings.Contains(lowerLine, "strategic interpretation"):
 			addSectionHeader(m, "STRATEGIC INTERPRETATION", brandDark)
 			continue
-		} else if strings.Contains(lowerLine, "risk assessment") {
+		case strings.Contains(lowerLine, "risk assessment"):
 			addSectionHeader(m, "RISK ASSESSMENT", brandDark)
 			continue
-		} else if strings.Contains(lowerLine, "strategic commentary") {
+		case strings.Contains(lowerLine, "strategic commentary"):
 			addSectionHeader(m, "STRATEGIC COMMENTARY", brandDark)
 			continue
-		} else // Detect dividers
-		if line == "---" {
+		case line == "---":
 			m.AddRows(row.New(1).Add(col.New(12).Add(text.New(" ", props.Text{}))).WithStyle(&props.Cell{BorderType: border.Bottom, BorderColor: textMuted}))
 			m.AddRows(row.New(4))
 			continue
@@ -386,11 +386,6 @@ func cleanText(s string) string {
 
 func stripMarkdown(s string) string {
 	return cleanText(s) // Use centralized cleaner
-}
-
-// Helper: Strip complex emojis for PDF stability (Deprecated, use cleanText)
-func stripEmojis(s string) string {
-	return cleanText(s)
 }
 
 // Helper: Estimate row height based on content

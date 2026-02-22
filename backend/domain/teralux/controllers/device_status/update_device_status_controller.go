@@ -29,8 +29,10 @@ func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 	if id == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "Device ID is required",
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "id", Message: "Device ID is required"},
+			},
 		})
 		return
 	}
@@ -41,7 +43,9 @@ func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
-			Data:    nil,
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}

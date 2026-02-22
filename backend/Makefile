@@ -19,6 +19,7 @@ help:
 	@echo "  make start-compose    - Start Docker Compose stack (pulls first)"
 	@echo "  make stop-compose     - Stop Docker Compose stack"
 	@echo "  make update           - Update running container using Watchtower"
+	@echo "  make lint             - Run golangci-lint"
 	@echo "  make test             - Run all unit tests"
 	@echo "  make clean            - Clean build artifacts"
 	@echo "  make kill             - Kill process running on PORT 8081"
@@ -26,26 +27,33 @@ help:
 	@echo "  make migrate-down     - Rollback last migration"
 	@echo "  make migrate-version  - Show current migration version"
 	@echo "  make migrate-force    - Force database to specific version (VERSION=N)"
-	@echo "  make prune-db         - Remove SQLite database file (Empty)"
-	@echo "  make prune-db-fresh   - Remove SQLite database and re-migrate (Fresh)"
 	@echo ""
+
+# Start MySQL for development
+start-mysql-dev:
+	docker compose -f docker-compose.dev.yml up -d --wait
+
+# Stop MySQL for development
+stop-mysql-dev:
+	docker compose -f docker-compose.dev.yml down -v
 
 # Run development server with hot reload (requires air)
 dev:
-	@echo "🚀 Starting development server with hot reload..."
-	@echo "🧹 Cleaning BadgerDB cache for fresh start..."
-	@rm -rf ./tmp/badger
-	@if [ ! -f bin/whisper-cli ]; then \
-		echo "🛠️ whisper-cli missing. Running setup..."; \
-		make setup; \
-	fi
-	@echo "💡 Tip: Install air with 'make install-watch' if not installed"
-	@$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
+	@trap 'make stop-mysql-dev' EXIT INT TERM; \
+	set -e; \
+	make start-mysql-dev; \
+	echo "🟢 MySQL started"; \
+	echo "🚀 Starting development server with hot reload..."; \
+	if [ ! -f bin/whisper-cli ] || [ ! -f bin/llama-cli ] || [ ! -f bin/llama-server ]; then \
+		echo "🛠️ Some AI binaries missing. Running setup..."; \
+		make setup-dev; \
+	fi; \
+	$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
 
 # Run development server without hot reload
 start:
 	@echo "🚀 Starting development server (no hot reload)..."
-	go run main.go
+	CGO_CFLAGS="-w" go run main.go
 
 # Install air for hot reload (Go equivalent of cargo-watch)
 install-watch:
@@ -62,14 +70,14 @@ install-swagger:
 # Generate Swagger documentation
 swagger:
 	@echo "📝 Generating Swagger documentation..."
-	@$(shell go env GOPATH)/bin/swag init -g main.go -o docs/swagger
+	@$(shell go env GOPATH)/bin/swag init -g main.go -o docs/swagger --parseDependency --parseInternal
 	@sed -i 's/package docs/package swagger/g' docs/swagger/docs.go
 	@echo "✅ Swagger documentation updated"
 
 # Build release binary
 build:
 	@echo "🔨 Building release binary..."
-	go build -o main .
+	CGO_CFLAGS="-w" go build -o main .
 
 # --- Docker Configuration ---
 DOCKER_IMAGE_NAME = teralux-backend
@@ -109,11 +117,47 @@ OLLAMA_DATA_DIR ?= $(HOME)/ollama
 WHISPER_MODEL ?= whisper
 LLM_MODEL ?= gemma
 
+# Local Inference (whisper.cpp & llama.cpp)
+WHISPER_SRC_DIR = services/whisper.cpp
+WHISPER_BUILD_DIR = $(WHISPER_SRC_DIR)/build
+LLAMA_SRC_DIR = services/llama.cpp
+LLAMA_BUILD_DIR = $(LLAMA_SRC_DIR)/build
+
+# Run backend setup (whisper & llama build) - Non Interactive
+setup-dev:
+	@echo "🚀 Running backend setup (whisper & llama build)..."
+	@echo "🧹 Cleaning previous build artifacts to avoid CMake cache issues..."
+	@rm -rf $(WHISPER_BUILD_DIR) $(LLAMA_BUILD_DIR)
+	@mkdir -p $(WHISPER_BUILD_DIR)
+	@cd $(WHISPER_BUILD_DIR) && cmake .. && make whisper-cli -j$$(nproc)
+	@mkdir -p $(LLAMA_BUILD_DIR)
+	@cd $(LLAMA_BUILD_DIR) && cmake .. && make llama-cli llama-server -j$$(nproc)
+	@mkdir -p bin
+	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
+	@cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli
+	@cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server
+	@$(MAKE) download-models
+	@echo "✅ Setup complete. use 'make dev' to start."
+
 # Run setup script (build whisper.cpp + tools)
 setup: 
-	@echo "🚀 Running backend setup (whisper.cpp build + tools)"
+	@echo "🚀 Running backend setup (build + tools)"
 	@chmod +x setup.sh || true
 	@./setup.sh || true
+
+# Download default models for dev
+download-models:
+	@echo "📥 Downloading models to bin/..."
+	@mkdir -p bin
+	@if [ ! -f bin/ggml-base.bin ]; then \
+		echo "Downloading Whisper base model..."; \
+		curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o bin/ggml-base.bin; \
+	fi
+	@if [ ! -f bin/llama-model.gguf ]; then \
+		echo "Downloading Llama-3.2-1B model..."; \
+		curl -L https://huggingface.co/unsloth/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf -o bin/llama-model.gguf; \
+	fi
+	@echo "✅ Models downloaded."
 
 # Conveniences
 # Usage: make rag text="turn on the lamp"
@@ -211,6 +255,11 @@ vet:
 	@echo "🔍 Running go vet..."
 	@go list ./... 2>/dev/null | grep -v /tmp/ | xargs go vet
 
+# Run golangci-lint
+lint:
+	@echo "🔍 Running golangci-lint..."
+	@$(GOLANGCI_LINT) run ./... || (echo "❌ golangci-lint not found. Installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && $(GOLANGCI_LINT) run ./...)
+
 
 # Clean build artifacts
 clean:
@@ -226,7 +275,8 @@ kill:
 
 # --- Database Migration Configuration ---
 # Note: We build from source to include SQLite support (prebuilt binaries don't have it)
-MIGRATE_BIN = $(shell go env GOPATH)/bin/migrate
+MIGRATE_BIN = $(HOME)/go/bin/migrate
+GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
 
 # Load environment variables
 ifneq (,$(wildcard ./.env))
@@ -234,13 +284,8 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-# Database connection string from .env (supports both SQLite and MySQL)
-ifeq ($(DB_TYPE),mysql)
-    DB_URL = mysql://$(DB_USER):$(DB_PASSWORD)@tcp($(DB_HOST):$(DB_PORT))/$(DB_NAME)?charset=utf8mb4&parseTime=True&loc=Local
-else
-    # Default to SQLite
-    DB_URL = sqlite3://$(DB_SQLITE_PATH)
-endif
+# Database connection string (MySQL only)
+DB_URL = mysql://$(MYSQL_USER):$(MYSQL_PASSWORD)@tcp($(MYSQL_HOST):$(MYSQL_PORT))/$(MYSQL_DATABASE)?charset=utf8mb4&parseTime=True&loc=Local
 
 # Install golang-migrate from source with SQLite support
 $(MIGRATE_BIN):
@@ -275,18 +320,3 @@ migrate-force: $(MIGRATE_BIN)
 	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" force $(VERSION)
 	@echo "✅ Database forced to version $(VERSION)"
 
-# Prune database (SQLite only) - Deletes the database file
-prune-db:
-	@if [ "$(DB_TYPE)" = "mysql" ]; then \
-		echo "❌ prune-db is only supported for SQLite"; \
-		exit 1; \
-	fi
-	@echo "🗑️  Removing SQLite database: $(DB_SQLITE_PATH)..."
-	@rm -f $(DB_SQLITE_PATH)
-	@echo "🗑️  Removing BadgerDB cache: ./tmp/badger..."
-	@rm -rf ./tmp/badger
-	@echo "✅ Database and Cache removed."
-
-# Prune and re-migrate (Fresh install)
-prune-db-fresh: prune-db migrate-up
-	@echo "✅ Database pruned and re-migrated (Fresh)."

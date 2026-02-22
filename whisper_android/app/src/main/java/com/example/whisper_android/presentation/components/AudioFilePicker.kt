@@ -5,7 +5,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,14 +24,15 @@ fun AudioFilePicker(
     disabledTint: Color = Color.Gray
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { onFileSelected(it) }
-    }
+    val launcher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri ->
+            uri?.let { onFileSelected(it) }
+        }
 
     IconButton(
-        onClick = { 
+        onClick = {
             if (hasPermission) {
                 try {
                     launcher.launch("audio/*")
@@ -48,9 +51,12 @@ fun AudioFilePicker(
         Icon(
             imageVector = Icons.Default.UploadFile,
             contentDescription = "Upload Audio File",
-            tint = if (enabled) {
+            tint =
+            if (enabled) {
                 if (hasPermission) tint else MaterialTheme.colorScheme.error // Red if permission missing
-            } else disabledTint
+            } else {
+                disabledTint
+            }
         )
     }
 }

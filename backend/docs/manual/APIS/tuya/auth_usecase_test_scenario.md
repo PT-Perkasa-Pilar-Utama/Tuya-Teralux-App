@@ -96,7 +96,8 @@ Initiates the Tuya authentication process to retrieve an access token. This endp
 ```json
 {
   "status": false,
-  "message": "Failed to authenticate with Tuya"
+  "message": "Failed to authenticate with Tuya",
+  "details": "error: connection refused"
 }
 ```
   *(Status: 500 Internal Server Error)*

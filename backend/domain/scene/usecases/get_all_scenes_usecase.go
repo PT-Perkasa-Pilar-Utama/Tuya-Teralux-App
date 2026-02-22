@@ -5,14 +5,14 @@ import (
 	"teralux_app/domain/scene/repositories"
 )
 
-type GetAllScenesUseCase struct {
+type GetAllGroupedScenesUseCase struct {
 	repo *repositories.SceneRepository
 }
 
-func NewGetAllScenesUseCase(repo *repositories.SceneRepository) *GetAllScenesUseCase {
-	return &GetAllScenesUseCase{repo: repo}
+func NewGetAllGroupedScenesUseCase(repo *repositories.SceneRepository) *GetAllGroupedScenesUseCase {
+	return &GetAllGroupedScenesUseCase{repo: repo}
 }
 
-func (u *GetAllScenesUseCase) ListScenes(teraluxID string) ([]entities.Scene, error) {
-	return u.repo.GetAll(teraluxID)
+func (u *GetAllGroupedScenesUseCase) ListAllGrouped() (map[string][]entities.Scene, error) {
+	return u.repo.GetAllGrouped()
 }

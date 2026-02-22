@@ -31,7 +31,7 @@ func NewSyncDeviceStatusController(useCase *usecases.SyncDeviceStatusUseCase) *S
 // @Security BearerAuth
 // @Success 200 {object} dtos.StandardResponse{data=[]dtos.TuyaSyncDeviceDTO}
 // @Failure 401 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/tuya/devices/sync [get]
 func (ctrl *SyncDeviceStatusController) SyncStatus(c *gin.Context) {
 	// 1. Extract Access Token from Context (set by AuthMiddleware/TuyaMiddleware)
@@ -62,11 +62,10 @@ func (ctrl *SyncDeviceStatusController) SyncStatus(c *gin.Context) {
 	// 3. Execute Sync
 	resp, err := ctrl.useCase.SyncDeviceStatuses(accessToken, uid)
 	if err != nil {
-		utils.LogError("Failed to sync device status: %v", err)
+		utils.LogError("SyncDeviceStatusController.SyncStatus: %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to sync device status: " + err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}

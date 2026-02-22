@@ -3,49 +3,33 @@ package com.example.whisper_android.data.di
 import com.example.whisper_android.data.remote.api.TeraluxApi
 import com.example.whisper_android.data.repository.TeraluxRepositoryImpl
 import com.example.whisper_android.domain.repository.TeraluxRepository
-import com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase
-import com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase
 import com.example.whisper_android.domain.usecase.AuthenticateUseCase
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase
+import com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import okhttp3.Dns
-import java.net.InetAddress
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkModule {
-    // Updated to HTTPS domain (Standard Port 443) as verified by user curl
-    const val BASE_URL = "https://teralux.farismunir.my.id/"
+    // Read from BuildConfig (local.properties)
+    val BASE_URL = com.example.whisper_android.BuildConfig.BASE_URL
+    private val BASE_HOSTNAME = com.example.whisper_android.BuildConfig.BASE_HOSTNAME
     private val API_KEY = com.example.whisper_android.BuildConfig.TERALUX_API_KEY
-
-    // Custom DNS to bypass device DNS scaling issues
-    private class CustomDns : Dns {
-        override fun lookup(hostname: String): List<InetAddress> {
-            if (hostname == "teralux.farismunir.my.id") {
-                return try {
-                    // Hardcoded IP from `dig` command on host machine
-                    // Cloudflare IPs: 172.67.136.115, 104.21.46.81
-                    listOf(InetAddress.getByName("104.21.46.81"), InetAddress.getByName("172.67.136.115")) 
-                } catch (e: Exception) {
-                    Dns.SYSTEM.lookup(hostname)
-                }
-            }
-            return Dns.SYSTEM.lookup(hostname)
-        }
-    }
-
     private val client by lazy {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        OkHttpClient.Builder()
-            .dns(CustomDns()) // Apply Custom DNS
+        val logging =
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+        OkHttpClient
+            .Builder()
             .addInterceptor(logging)
             .build()
     }
 
     private val retrofit by lazy {
-        Retrofit.Builder()
+        Retrofit
+            .Builder()
             .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
@@ -55,7 +39,9 @@ object NetworkModule {
     lateinit var tokenManager: com.example.whisper_android.data.local.TokenManager
 
     fun init(context: android.content.Context) {
-        tokenManager = com.example.whisper_android.data.local.TokenManager(context)
+        tokenManager =
+            com.example.whisper_android.data.local
+                .TokenManager(context)
     }
 
     private val api: TeraluxApi by lazy {
@@ -76,21 +62,28 @@ object NetworkModule {
     }
 
     val tuyaRepository: com.example.whisper_android.domain.repository.TuyaRepository by lazy {
-        com.example.whisper_android.data.repository.TuyaRepositoryImpl(tuyaApi, API_KEY, tokenManager)
+        com.example.whisper_android.data.repository
+            .TuyaRepositoryImpl(tuyaApi, API_KEY, tokenManager)
     }
 
     private val ragApi: com.example.whisper_android.data.remote.api.RAGApi by lazy {
         retrofit.create(com.example.whisper_android.data.remote.api.RAGApi::class.java)
     }
 
+    private val emailApi: com.example.whisper_android.data.remote.api.EmailApi by lazy {
+        retrofit.create(com.example.whisper_android.data.remote.api.EmailApi::class.java)
+    }
+
     val speechRepository: com.example.whisper_android.domain.repository.SpeechRepository by lazy {
-        com.example.whisper_android.data.repository.SpeechRepositoryImpl(speechApi)
+        com.example.whisper_android.data.repository
+            .SpeechRepositoryImpl(speechApi)
     }
 
     val ragRepository: com.example.whisper_android.domain.repository.RagRepository by lazy {
-        com.example.whisper_android.data.repository.RagRepositoryImpl(ragApi)
+        com.example.whisper_android.data.repository
+            .RagRepositoryImpl(ragApi)
     }
-    
+
     val registerUseCase: RegisterTeraluxUseCase by lazy {
         RegisterTeraluxUseCase(repository)
     }
@@ -104,15 +97,18 @@ object NetworkModule {
     }
 
     val transcribeAudioUseCase: com.example.whisper_android.domain.usecase.TranscribeAudioUseCase by lazy {
-        com.example.whisper_android.domain.usecase.TranscribeAudioUseCase(speechRepository)
+        com.example.whisper_android.domain.usecase
+            .TranscribeAudioUseCase(speechRepository)
     }
 
     val translateTextUseCase: com.example.whisper_android.domain.usecase.TranslateTextUseCase by lazy {
-        com.example.whisper_android.domain.usecase.TranslateTextUseCase(ragRepository)
+        com.example.whisper_android.domain.usecase
+            .TranslateTextUseCase(ragRepository)
     }
 
     val summarizeTextUseCase: com.example.whisper_android.domain.usecase.SummarizeTextUseCase by lazy {
-        com.example.whisper_android.domain.usecase.SummarizeTextUseCase(ragRepository)
+        com.example.whisper_android.domain.usecase
+            .SummarizeTextUseCase(ragRepository)
     }
 
     val processMeetingUseCase: com.example.whisper_android.domain.usecase.ProcessMeetingUseCase by lazy {
@@ -121,5 +117,15 @@ object NetworkModule {
             translateTextUseCase,
             summarizeTextUseCase
         )
+    }
+
+    val emailRepository: com.example.whisper_android.domain.repository.EmailRepository by lazy {
+        com.example.whisper_android.data.repository
+            .EmailRepositoryImpl(emailApi)
+    }
+
+    val sendEmailUseCase: com.example.whisper_android.domain.usecase.SendEmailUseCase by lazy {
+        com.example.whisper_android.domain.usecase
+            .SendEmailUseCase(emailRepository)
     }
 }

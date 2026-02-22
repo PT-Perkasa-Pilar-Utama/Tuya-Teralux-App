@@ -91,7 +91,7 @@ Terminology: Technical but business-aware.`
 
 // RiskScoringGuidance returns prompt guidance for risk assessment scoring
 func (pc *PromptConfig) RiskScoringGuidance() string {
-	if strings.ToLower(pc.RiskScale) == "granular" {
+	if strings.EqualFold(pc.RiskScale, "granular") {
 		return `
 RISK SCORING (1-10 granular scale):
 1-3: Low risk. Easily managed, low probability or low impact. Can defer without consequence.
@@ -288,12 +288,4 @@ Final synthesis for leadership:
 // Helper: validate assertiveness
 func (pc *PromptConfig) assertivenessValid() bool {
 	return pc.Assertiveness < 1 || pc.Assertiveness > 10
-}
-
-// Helper: risk score label for output structure
-func (pc *PromptConfig) riskScoreLabel() string {
-	if strings.ToLower(pc.RiskScale) == "granular" {
-		return "Score (1-10)"
-	}
-	return "Level (Low/Med/High)"
 }

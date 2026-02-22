@@ -1,10 +1,23 @@
 package com.example.whisper_android.presentation.assistant
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +42,8 @@ fun AssistantInputPill(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxWidth()
             .height(64.dp) // Professional 64dp height
             .padding(horizontal = 4.dp),
@@ -39,7 +53,8 @@ fun AssistantInputPill(
         shadowElevation = 6.dp
     ) {
         Row(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxSize()
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -73,18 +88,27 @@ fun AssistantInputPill(
             TextField(
                 value = inputValue,
                 onValueChange = onValueChange,
-                modifier = Modifier
+                modifier =
+                Modifier
                     .weight(1f)
                     .padding(horizontal = 4.dp),
                 placeholder = {
                     Text(
-                        text = if (isRecording) "Recording..." else if (isProcessing) "Thinking..." else "Ask Intelligence...",
+                        text =
+                        if (isRecording) {
+                            "Recording..."
+                        } else if (isProcessing) {
+                            "Thinking..."
+                        } else {
+                            "Ask Intelligence..."
+                        },
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
                 },
-                colors = TextFieldDefaults.colors(
+                colors =
+                TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     disabledContainerColor = Color.Transparent,
@@ -108,10 +132,12 @@ fun AssistantInputPill(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Send",
-                    tint = if (!isRecording && !isProcessing && inputValue.isNotBlank()) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                    tint =
+                    if (!isRecording && !isProcessing && inputValue.isNotBlank()) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    },
                     modifier = Modifier.size(26.dp)
                 )
             }

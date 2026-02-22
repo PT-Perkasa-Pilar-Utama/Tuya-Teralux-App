@@ -43,3 +43,16 @@ func (r *SceneRepository) GetAll(teraluxID string) ([]entities.Scene, error) {
 func (r *SceneRepository) Delete(teraluxID, id string) error {
 	return r.db.Where("id = ? AND teralux_id = ?", id, teraluxID).Delete(&entities.Scene{}).Error
 }
+
+// GetAllGrouped retrieves all scenes across all Teralux devices, grouped by TeraluxID
+func (r *SceneRepository) GetAllGrouped() (map[string][]entities.Scene, error) {
+	var scenes []entities.Scene
+	if err := r.db.Order("teralux_id").Find(&scenes).Error; err != nil {
+		return nil, err
+	}
+	grouped := make(map[string][]entities.Scene)
+	for _, s := range scenes {
+		grouped[s.TeraluxID] = append(grouped[s.TeraluxID], s)
+	}
+	return grouped, nil
+}

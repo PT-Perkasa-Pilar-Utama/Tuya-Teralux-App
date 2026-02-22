@@ -1,65 +1,62 @@
 package usecases
 
 import (
-	"fmt"
-	"strings"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/utilities"
+	"teralux_app/domain/rag/skills"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type TranslateUseCase interface {
 	TranslateText(text, targetLang string) (string, error)
+	TranslateTextWithTrigger(text, targetLang string, trigger string) (string, error)
 	TranslateTextSync(text, targetLang string) (string, error)
 }
 
 type translateUseCase struct {
-	llm    utilities.LLMClient
-	config *utils.Config
-	cache  *tasks.BadgerTaskCache
-	store  *tasks.StatusStore[dtos.RAGStatusDTO]
+	llm         skills.LLMClient
+	fallbackLLM skills.LLMClient
+	config      *utils.Config
+	cache       *tasks.BadgerTaskCache
+	store       *tasks.StatusStore[dtos.RAGStatusDTO]
 }
 
-func NewTranslateUseCase(llm utilities.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
+func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO]) TranslateUseCase {
 	return &translateUseCase{
-		llm:    llm,
-		config: cfg,
-		cache:  cache,
-		store:  store,
+		llm:         llm,
+		fallbackLLM: fallbackLLM,
+		config:      cfg,
+		cache:       cache,
+		store:       store,
 	}
 }
 
 // translateInternal (private internal for use by Execute)
 func (u *translateUseCase) translateInternal(text, targetLang string) (string, error) {
-	langName := "English"
-	if strings.ToLower(targetLang) == "id" {
-		langName = "Indonesian"
+	skill := &skills.TranslationSkill{}
+	ctx := &skills.SkillContext{
+		Prompt:   text,
+		Language: targetLang,
+		LLM:      u.llm,
+		Config:   u.config,
 	}
 
-	prompt := fmt.Sprintf(`You are a professional translator and editor. 
-Translate the following transcribed text to clear, grammatically correct %s.
-If the text is already in %s, fix any grammatical errors and improve the clarity.
-CRITICAL: Do not mention "Tuya" or "Tuya API" in your response. Use generic terms like "Smart Home System" or "Gateway" if needed.
-Only return the final polished text without any explanation, quotes, or additional commentary.
-
-Text: "%s"
-%s:`, langName, langName, text, langName)
-
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
+	res, err := skill.Execute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("Translate: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctx)
 	}
 
-	translated, err := u.llm.CallModel(prompt, model)
 	if err != nil {
 		return "", err
 	}
 
-	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, translated, langName)
-	return strings.TrimSpace(translated), nil
+	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, res.Message, targetLang)
+	return res.Message, nil
 }
 
 func (u *translateUseCase) TranslateTextSync(text, targetLang string) (string, error) {
@@ -67,26 +64,63 @@ func (u *translateUseCase) TranslateTextSync(text, targetLang string) (string, e
 }
 
 func (u *translateUseCase) TranslateText(text, targetLang string) (string, error) {
+	return u.TranslateTextWithTrigger(text, targetLang, "")
+}
+
+func (u *translateUseCase) TranslateTextWithTrigger(text, targetLang string, trigger string) (string, error) {
 	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{Status: "pending"}
+	status := &dtos.RAGStatusDTO{
+		Status:    "pending",
+		Trigger:   trigger,
+		StartedAt: time.Now().Format(time.RFC3339),
+	}
 	u.store.Set(taskID, status)
 
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
 		translated, err := u.translateInternal(text, targetLang)
-		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Translate Task %s: Failed with error: %v", taskID, err)
-			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.updateStatus(taskID, "failed", err, "")
 		} else {
 			utils.LogInfo("RAG Translate Task %s: Completed successfully", taskID)
-			finalStatus = &dtos.RAGStatusDTO{Status: "completed", Result: translated}
+			u.updateStatus(taskID, "completed", nil, translated)
 		}
-
-		u.store.Set(taskID, finalStatus)
-		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil
+}
+
+func (u *translateUseCase) updateStatus(taskID string, statusStr string, err error, result string) {
+	var existing dtos.RAGStatusDTO
+	_, _, _ = u.cache.GetWithTTL(taskID, &existing)
+
+	status := &dtos.RAGStatusDTO{
+		Status:    statusStr,
+		StartedAt: existing.StartedAt,
+		Trigger:   existing.Trigger,
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	if err != nil {
+		status.Error = err.Error()
+		status.Result = err.Error()
+		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+	}
+
+	if result != "" {
+		status.Result = result
+		status.HTTPStatusCode = 200
+	}
+
+	if statusStr == "completed" || statusStr == "failed" {
+		if existing.StartedAt != "" {
+			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
+			status.DurationSeconds = time.Since(startTime).Seconds()
+		}
+	}
+
+	u.store.Set(taskID, status)
+	_ = u.cache.SetPreserveTTL(taskID, status)
 }

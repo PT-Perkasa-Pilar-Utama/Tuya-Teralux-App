@@ -1,14 +1,58 @@
 package com.example.whisper_android.presentation.assistant
 
-import androidx.compose.animation.*
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -17,24 +61,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.whisper_android.presentation.components.FeatureBackground
+import com.example.whisper_android.presentation.components.FeatureMainCard
+import com.example.whisper_android.presentation.components.TranscriptionMessage
 import com.example.whisper_android.util.MqttHelper
 import java.io.File
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import com.example.whisper_android.presentation.components.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import android.util.Log
 
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.whisper_android.util.parseMarkdownToText
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiAssistantScreen(
     onNavigateBack: () -> Unit,
@@ -45,33 +83,42 @@ fun AiAssistantScreen(
     val isProcessing = viewModel.isProcessing
     var userInput by remember { mutableStateOf("") }
     val isMqttOnline = viewModel.mqttStatus == MqttHelper.MqttConnectionStatus.CONNECTED
-    
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberLazyListState()
-    
+
     // Auto-scroll to bottom
     LaunchedEffect(transcriptionResults.size, isProcessing) {
         if (transcriptionResults.isNotEmpty() || isProcessing) {
             scrollState.animateScrollToItem(
-                if (isProcessing) transcriptionResults.size else maxOf(0, transcriptionResults.size - 1)
+                if (isProcessing) {
+                    transcriptionResults.size
+                } else {
+                    maxOf(
+                        0,
+                        transcriptionResults.size - 1
+                    )
+                }
             )
         }
     }
 
-    val hasPermission = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.RECORD_AUDIO
-    ) == PackageManager.PERMISSION_GRANTED
+    val hasPermission =
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
 
     // Permission Launcher
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            // Permission granted
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                // Permission granted
+            }
         }
-    }
 
     // Wake Word Manager
     val currentOnWakeWordDetected by rememberUpdatedState {
@@ -80,11 +127,12 @@ fun AiAssistantScreen(
         }
     }
 
-    val wakeWordManager = remember {
-        SensioWakeWordManager(context) {
-            currentOnWakeWordDetected()
+    val wakeWordManager =
+        remember {
+            WakeWordFactory.getManager(context) {
+                currentOnWakeWordDetected()
+            }
         }
-    }
 
     // Wake Word Lifecycle
     DisposableEffect(hasPermission, isRecording, isProcessing, isMqttOnline) {
@@ -93,7 +141,7 @@ fun AiAssistantScreen(
         } else {
             wakeWordManager.stopListening()
         }
-        
+
         onDispose {
             wakeWordManager.stopListening()
             wakeWordManager.destroy()
@@ -119,52 +167,78 @@ fun AiAssistantScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets.systemBars, // Handle status and navigation bars
             topBar = {
-                FeatureHeader(
-                    title = "Whisper Intelligence",
-                    onNavigateBack = onNavigateBack,
-                    titleColor = MaterialTheme.colorScheme.primary,
-                    iconColor = MaterialTheme.colorScheme.primary,
+                // Customized TopAppBar instead of FeatureHeader for better Android look
+                OptIn(ExperimentalMaterial3Api::class)
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            "Whisper Intelligence",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    },
                     actions = {
                         Row(
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .background(
-                                    Color.LightGray.copy(alpha = 0.2f),
-                                    RoundedCornerShape(20.dp)
-                                )
-                                .padding(2.dp),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 8.dp)
                         ) {
-                            listOf("id", "en").forEach { lang ->
-                                val isSelected = viewModel.selectedLanguage == lang
-                                Surface(
-                                    onClick = { viewModel.selectLanguage(lang) },
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                    modifier = Modifier.size(width = 42.dp, height = 28.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = lang.uppercase(),
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(
-                                                alpha = 0.6f
+                            // Language Switcher
+                            Row(
+                                modifier =
+                                Modifier
+                                    .padding(end = 8.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        RoundedCornerShape(20.dp)
+                                    ).padding(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                listOf("id", "en").forEach { lang ->
+                                    val isSelected = viewModel.selectedLanguage == lang
+                                    Surface(
+                                        onClick = { viewModel.selectLanguage(lang) },
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        modifier = Modifier.size(width = 36.dp, height = 24.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = lang.uppercase(),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
+
+                            MqttStatusBadge(viewModel.mqttStatus)
                         }
-                        
-                        MqttStatusBadge(viewModel.mqttStatus)
-                    }
+                    },
+                    colors =
+                    TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
             }
         ) { padding ->
             Column(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 4.dp, vertical = 0.dp),
@@ -190,97 +264,126 @@ fun AiAssistantScreen(
                     }
                 }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                AssistantInputPill(
-                    inputValue = userInput,
-                    onValueChange = { userInput = it },
-                    isRecording = isRecording,
-                    isProcessing = isProcessing,
-                    hasPermission = hasPermission,
-                    onMicClick = {
-                        if (!hasPermission) {
-                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        } else if (!isRecording && !isProcessing) {
-                            viewModel.startRecording(File(context.cacheDir, "recording.wav"))
-                        }
-                    },
-                    onStopClick = {
-                        viewModel.stopRecording()
-                    },
-                    onSendClick = {
-                        if (userInput.isNotBlank()) {
-                            viewModel.sendChat(userInput)
-                            userInput = ""
-                        }
-                    },
-                    enabled = isMqttOnline
-                )
-            }
+                Box(
+                    modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AssistantInputPill(
+                        inputValue = userInput,
+                        onValueChange = { userInput = it },
+                        isRecording = isRecording,
+                        isProcessing = isProcessing,
+                        hasPermission = hasPermission,
+                        onMicClick = {
+                            if (!hasPermission) {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            } else if (!isRecording && !isProcessing) {
+                                viewModel.startRecording(File(context.cacheDir, "recording.wav"))
+                            }
+                        },
+                        onStopClick = {
+                            if (isRecording) {
+                                viewModel.stopRecording()
+                            } else if (isProcessing) {
+                                viewModel.abortProcessing()
+                            }
+                        },
+                        onSendClick = {
+                            if (userInput.isNotBlank()) {
+                                viewModel.sendChat(userInput)
+                                userInput = ""
+                            }
+                        },
+                        enabled = isMqttOnline
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun EmptyAssistantState(
+fun EmptyAssistantState(
     isProcessing: Boolean,
     enabled: Boolean,
-    onSuggestedAction: (String) -> Unit
+    onSuggestedAction: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Spacer(modifier = Modifier.weight(0.6f))
-        AiMindVisual(isThinking = isProcessing)
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "Meeting Index Ready.",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.5).sp,
-                fontSize = 20.sp
-            ),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Ask anything from your captured data.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val isWide = maxWidth > 600.dp
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            SuggestedActionCard(
-                title = "Introduce Yourself",
-                subtitle = "Learn about my role and capabilities.",
-                modifier = Modifier.weight(1f),
-                onClick = { onSuggestedAction("Who are you?") },
-                enabled = enabled
+            AiMindVisual(isThinking = isProcessing)
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Meeting Index Ready.",
+                style =
+                MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                    fontSize = 20.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
-            SuggestedActionCard(
-                title = "Explore My Controls",
-                subtitle = "Discover which devices I can manage.",
-                modifier = Modifier.weight(1f),
-                onClick = { onSuggestedAction("What devices can I control?") },
-                enabled = enabled
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Ask anything from your captured data.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                textAlign = TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Suggested Actions
+            if (isWide) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    SuggestedActionCard(
+                        title = "Introduce Yourself",
+                        subtitle = "Learn about my role.",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSuggestedAction("Who are you?") },
+                        enabled = enabled
+                    )
+                    SuggestedActionCard(
+                        title = "Explore Controls",
+                        subtitle = "What devices can I control?",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSuggestedAction("What devices can I control?") },
+                        enabled = enabled
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SuggestedActionCard(
+                        title = "Introduce Yourself",
+                        subtitle = "Learn about my role.",
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onSuggestedAction("Who are you?") },
+                        enabled = enabled
+                    )
+                    SuggestedActionCard(
+                        title = "Explore Controls",
+                        subtitle = "What devices can I control?",
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onSuggestedAction("What devices can I control?") },
+                        enabled = enabled
+                    )
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        Spacer(modifier = Modifier.weight(1f))
     }
 }
 
@@ -306,13 +409,15 @@ private fun ConversationList(
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalAlignment = Alignment.Start
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(
+                        shape =
+                        RoundedCornerShape(
                             topStart = 4.dp,
                             topEnd = 24.dp,
                             bottomStart = 24.dp,
@@ -320,8 +425,9 @@ private fun ConversationList(
                         ),
                         color = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.widthIn(max = 300.dp),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp, 
+                        border =
+                        androidx.compose.foundation.BorderStroke(
+                            1.dp,
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                         ),
                         shadowElevation = 8.dp,
@@ -332,7 +438,7 @@ private fun ConversationList(
                             modifier = Modifier.padding(horizontal = 4.dp)
                         ) {
                             AiMindVisual(
-                                isThinking = true, 
+                                isThinking = true,
                                 size = 28.dp,
                                 modifier = Modifier.padding(start = 12.dp)
                             )
@@ -344,31 +450,36 @@ private fun ConversationList(
         }
     }
 }
+
 @Composable
 private fun MqttStatusBadge(status: MqttHelper.MqttConnectionStatus) {
-    val color = when (status) {
-        MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
-        MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
-        MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
-        MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
-    }
-    
-    val text = when (status) {
-        MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
-        MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
-        MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
-        MqttHelper.MqttConnectionStatus.FAILED -> "Error"
-    }
+    val color =
+        when (status) {
+            MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
+            MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
+            MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
+            MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
+        }
+
+    val text =
+        when (status) {
+            MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
+            MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
+            MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
+            MqttHelper.MqttConnectionStatus.FAILED -> "Error"
+        }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier =
+        Modifier
             .padding(start = 4.dp)
             .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(8.dp)
                 .background(color, androidx.compose.foundation.shape.CircleShape)
         )

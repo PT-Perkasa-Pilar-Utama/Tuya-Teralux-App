@@ -27,20 +27,22 @@ class DashboardViewModel(
     fun authenticate() {
         viewModelScope.launch {
             _uiState.value = DashboardUiState(isLoading = true)
-            
+
             // Call API to authenticate and get/refresh token
             val result: Result<String> = authenticateUseCase()
-            
-            result.onSuccess {
-                _uiState.value = DashboardUiState(isAuthenticated = true)
-            }.onFailure { e ->
-                // If authentication fails (e.g. 401, network error), 
-                // we treat it as unauthenticated and should redirect to login/register.
-                _uiState.value = DashboardUiState(
-                    isAuthenticated = false, 
-                    error = e.message ?: "Authentication failed"
-                )
-            }
+
+            result
+                .onSuccess {
+                    _uiState.value = DashboardUiState(isAuthenticated = true)
+                }.onFailure { e ->
+                    // If authentication fails (e.g. 401, network error),
+                    // we treat it as unauthenticated and should redirect to login/register.
+                    _uiState.value =
+                        DashboardUiState(
+                            isAuthenticated = false,
+                            error = e.message ?: "Authentication failed"
+                        )
+                }
         }
     }
 }

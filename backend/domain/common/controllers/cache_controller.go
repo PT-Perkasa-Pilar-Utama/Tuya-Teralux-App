@@ -26,19 +26,19 @@ func NewCacheController(cache *infrastructure.BadgerService, vector *infrastruct
 // FlushCache clears the entire cache
 // @Summary Flush all cache
 // @Description Remove all data from the cache storage
-// @Tags         07. Flush
+// @Tags         08. Common
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/cache/flush [delete]
 func (ctrl *CacheController) FlushCache(c *gin.Context) {
 	if ctrl.cache == nil {
+		utils.LogError("CacheController.FlushCache: Cache service not initialized")
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Cache service not initialized",
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}
@@ -46,11 +46,10 @@ func (ctrl *CacheController) FlushCache(c *gin.Context) {
 	// 1. Flush BadgerDB Cache
 	err := ctrl.cache.FlushAll()
 	if err != nil {
-		utils.LogError("Failed to flush badger cache: %v", err)
+		utils.LogError("CacheController.FlushCache (Badger): %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to flush badger cache",
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}
@@ -59,11 +58,10 @@ func (ctrl *CacheController) FlushCache(c *gin.Context) {
 	if ctrl.vector != nil {
 		err = ctrl.vector.FlushAll()
 		if err != nil {
-			utils.LogError("Failed to flush vector cache: %v", err)
+			utils.LogError("CacheController.FlushCache (Vector): %v", err)
 			c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 				Status:  false,
-				Message: "Failed to flush vector cache",
-				Data:    nil,
+				Message: "Internal Server Error",
 			})
 			return
 		}

@@ -1,16 +1,35 @@
 package com.example.whisper_android.presentation.dashboard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -29,13 +48,14 @@ fun DashboardScreen(
     onNavigateToUpload: () -> Unit,
     onNavigateToStreaming: () -> Unit,
     onNavigateToEdge: () -> Unit,
-    viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel { 
-        DashboardViewModel(NetworkModule.authenticateUseCase) 
-    }
+    viewModel: DashboardViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel {
+            DashboardViewModel(NetworkModule.authenticateUseCase)
+        }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    
+
     var hasMicPermission by remember {
         mutableStateOf(
             androidx.core.content.ContextCompat.checkSelfPermission(
@@ -45,34 +65,47 @@ fun DashboardScreen(
         )
     }
 
-    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasMicPermission = isGranted
-    }
+    val launcher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts
+                .RequestPermission()
+        ) { isGranted ->
+            hasMicPermission = isGranted
+        }
 
     Box(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background) // Slate950 from theme
+            .padding(WindowInsets.systemBars.asPaddingValues()) // Add system bars padding
     ) {
         // Optional: Add a subtle overlay gradient for depth
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxSize()
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(
+                        colors =
+                        listOf(
                             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
                             Color.Transparent
                         ),
-                        center = androidx.compose.ui.geometry.Offset(0f, 0f),
+                        center =
+                        androidx.compose.ui.geometry
+                            .Offset(0f, 0f),
                         radius = 2000f
                     )
                 )
         )
         if (uiState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
         } else if (uiState.isAuthenticated) {
             DashboardContent(
                 onNavigateToStreaming = onNavigateToStreaming,
@@ -81,7 +114,10 @@ fun DashboardScreen(
         } else {
             // Error handling (keep existing UI for errors)
             Column(
-                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                modifier =
+                Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -105,16 +141,16 @@ fun DashboardContent(
     onNavigateToEdge: () -> Unit
 ) {
     Column(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxSize()
-            .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Header Section
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.padding(top = 32.dp)
         ) {
             Text(
                 text = "Select Workspace",
@@ -124,10 +160,14 @@ fun DashboardContent(
                 textAlign = TextAlign.Center,
                 lineHeight = 40.sp,
                 letterSpacing = (-0.5).sp,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    shadow = androidx.compose.ui.graphics.Shadow(
+                style =
+                MaterialTheme.typography.headlineMedium.copy(
+                    shadow =
+                    androidx.compose.ui.graphics.Shadow(
                         color = Color.Black.copy(alpha = 0.3f),
-                        offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                        offset =
+                        androidx.compose.ui.geometry
+                            .Offset(2f, 2f),
                         blurRadius = 8f
                     )
                 )
@@ -137,19 +177,21 @@ fun DashboardContent(
                 text = "Choose your AI-powered environment",
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
             )
         }
 
+        Spacer(modifier = Modifier.weight(1f))
+
         // Cards Section
         BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp), // Reduced from 48.dp
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
+            // Check orientation or width, but mainly we want to fix portrait
             val isTablet = maxWidth > 600.dp
-            
+
             if (isTablet) {
                 Row(
                     modifier = Modifier.fillMaxWidth(0.95f),
@@ -164,11 +206,14 @@ fun DashboardContent(
                                 imageVector = Icons.Outlined.Groups,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(72.dp) // Reduced icon
+                                modifier = Modifier.size(72.dp)
                             )
                         },
                         onClick = onNavigateToStreaming,
-                        modifier = Modifier.weight(1f).height(240.dp) // Height reduced
+                        modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(240.dp)
                     )
                     DashboardFeatureCard(
                         title = "AI Assistant",
@@ -178,49 +223,55 @@ fun DashboardContent(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(72.dp) // Reduced icon
+                                modifier = Modifier.size(72.dp)
                             )
                         },
                         onClick = onNavigateToEdge,
-                        modifier = Modifier.weight(1f).height(240.dp) // Height reduced
+                        modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(240.dp)
                     )
                 }
             } else {
+                // Phone / Portrait
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     DashboardFeatureCard(
-                        title = "Meeting Transcriber", // Shortened
-                        description = "Transcribe and summarize meetings.", // Shortened
+                        title = "Meeting Transcriber",
+                        description = "Transcribe and summarize meetings.",
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.Groups,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(56.dp)
+                                modifier = Modifier.size(64.dp) // Increased from 56
                             )
                         },
                         onClick = onNavigateToStreaming,
-                        modifier = Modifier.height(180.dp)
+                        modifier = Modifier.height(200.dp) // Increased from 180
                     )
                     DashboardFeatureCard(
                         title = "AI Assistant",
-                        description = "Conversational AI for tasks.", // Shortened
+                        description = "Conversational AI for tasks.",
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.SmartToy,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(56.dp)
+                                modifier = Modifier.size(64.dp) // Increased from 56
                             )
                         },
                         onClick = onNavigateToEdge,
-                        modifier = Modifier.height(180.dp)
+                        modifier = Modifier.height(200.dp) // Increased from 180
                     )
                 }
             }
         }
+
+        Spacer(modifier = Modifier.weight(1f))
 
         // Footer
         Row(
@@ -229,12 +280,13 @@ fun DashboardContent(
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .size(4.dp)
                     .background(MaterialTheme.colorScheme.primary, CircleShape)
             )
             Text(
-                text = "Powered by Senso",
+                text = "Powered by Sensio",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                 fontWeight = FontWeight.SemiBold,

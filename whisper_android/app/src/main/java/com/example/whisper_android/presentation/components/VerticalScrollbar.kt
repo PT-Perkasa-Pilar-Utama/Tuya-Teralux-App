@@ -4,11 +4,20 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -50,17 +59,25 @@ fun VerticalScrollbar(
             // Estimate total height and current scroll position in pixels
             val averageItemHeight = visibleItemsInfo.map { it.size }.average().toFloat()
             val estimatedTotalHeight = averageItemHeight * totalItemsCount
-            val currentScrollPosition = (lazyListState.firstVisibleItemIndex * averageItemHeight) + lazyListState.firstVisibleItemScrollOffset
+            val currentScrollPosition =
+                (lazyListState.firstVisibleItemIndex * averageItemHeight) + lazyListState.firstVisibleItemScrollOffset
 
             // Calculate ratios
-            val thumbHeightRatio = (viewportHeight.toFloat() / estimatedTotalHeight).coerceIn(0.1f, 1f)
-            val thumbOffsetRatio = (currentScrollPosition / estimatedTotalHeight).coerceIn(0f, 1f - thumbHeightRatio)
+            val thumbHeightRatio = (viewportHeight.toFloat() / estimatedTotalHeight).coerceIn(
+                0.1f,
+                1f
+            )
+            val thumbOffsetRatio = (currentScrollPosition / estimatedTotalHeight).coerceIn(
+                0f,
+                1f - thumbHeightRatio
+            )
 
             val thumbHeight = maxHeight * thumbHeightRatio
             val thumbOffset = maxHeight * thumbOffsetRatio
 
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .offset(y = thumbOffset)
                     .height(thumbHeight)
                     .fillMaxWidth()
@@ -97,14 +114,17 @@ fun VerticalScrollbar(
 
         BoxWithConstraints(modifier = modifier.fillMaxHeight().width(width)) {
             val maxHeight = maxHeight
-            
+
             // Calculate thumb height and offset
             val totalContentHeight = scrollState.maxValue + maxHeight.value
-            val thumbHeight = (maxHeight.value / totalContentHeight * maxHeight.value).dp.coerceAtLeast(40.dp)
+            val thumbHeight = (maxHeight.value / totalContentHeight * maxHeight.value).dp.coerceAtLeast(
+                40.dp
+            )
             val thumbOffset = (scrollState.value.toFloat() / scrollState.maxValue * (maxHeight.value - thumbHeight.value)).dp
 
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .offset(y = thumbOffset)
                     .height(thumbHeight)
                     .fillMaxWidth()

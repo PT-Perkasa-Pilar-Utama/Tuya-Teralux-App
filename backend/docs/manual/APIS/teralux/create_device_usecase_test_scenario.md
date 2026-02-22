@@ -93,7 +93,10 @@ Register a new sub-device (e.g., switch, sensor) under a Teralux Controller.
 ```json
 {
   "status": false,
-  "message": "Invalid teralux_id: Teralux hub does not exist"
+  "message": "Validation Error",
+  "details": [
+    { "field": "teralux_id", "message": "Teralux hub does not exist" }
+  ]
 }
 ```
   *(Status: 422 Unprocessable Entity)*

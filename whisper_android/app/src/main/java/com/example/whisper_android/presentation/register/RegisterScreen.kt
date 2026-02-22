@@ -1,51 +1,81 @@
 package com.example.whisper_android.presentation.register
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.whisper_android.data.di.NetworkModule
-import com.example.whisper_android.presentation.components.*
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
+import com.example.whisper_android.presentation.components.ToastObserver
+import com.example.whisper_android.presentation.components.WhisperButton
+import com.example.whisper_android.presentation.components.WhisperLogo
+import com.example.whisper_android.presentation.components.WhisperTextField
 
 @Composable
-fun RegisterScreen(
-    onNavigateToDashboard: () -> Unit,
-    viewModel: RegisterViewModel = viewModel { 
-        RegisterViewModel(
-            NetworkModule.registerUseCase,
-            NetworkModule.getTeraluxByMacUseCase,
-            NetworkModule.authenticateUseCase
-        ) 
-    }
-) {
+fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
+    val context = LocalContext.current
+    val application = context.applicationContext as android.app.Application
+    val viewModel: RegisterViewModel =
+        viewModel {
+            RegisterViewModel(
+                application,
+                NetworkModule.registerUseCase,
+                NetworkModule.getTeraluxByMacUseCase,
+                NetworkModule.authenticateUseCase
+            )
+        }
     val uiState by viewModel.uiState.collectAsState()
     var name by remember { mutableStateOf("") }
     var roomId by remember { mutableStateOf("") }
-    val context = LocalContext.current
 
     // Permission Launcher
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val recordGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
-        val storageGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
-        // We just request them, the UI will update based on checkSelfPermission later
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val recordGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
+            val storageGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
+            // We just request them, the UI will update based on checkSelfPermission later
+        }
 
     // Proactive Request on Launch
     LaunchedEffect(Unit) {
@@ -56,7 +86,7 @@ fun RegisterScreen(
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
-        
+
         if (permissionsToRequest.isNotEmpty()) {
             permissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
@@ -79,18 +109,25 @@ fun RegisterScreen(
     val containerColor = MaterialTheme.colorScheme.primaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    val bgGradient = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.background,
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-            MaterialTheme.colorScheme.background
-        ),
-        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-        end = androidx.compose.ui.geometry.Offset(2000f, 2000f)
-    )
+    val bgGradient =
+        Brush.linearGradient(
+            colors =
+            listOf(
+                MaterialTheme.colorScheme.background,
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                MaterialTheme.colorScheme.background
+            ),
+            start =
+            androidx.compose.ui.geometry
+                .Offset(0f, 0f),
+            end =
+            androidx.compose.ui.geometry
+                .Offset(2000f, 2000f)
+        )
 
     Box(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxSize()
             .background(bgGradient)
     ) {
@@ -102,7 +139,8 @@ fun RegisterScreen(
 
             if (isTablet) {
                 Row(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .padding(32.dp)
                         .fillMaxWidth(0.9f),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -110,13 +148,19 @@ fun RegisterScreen(
                 ) {
                     // Left Side: Branding & Microcopy
                     Column(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .weight(1.2f)
                             .padding(end = 48.dp),
                         horizontalAlignment = Alignment.Start,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        WhisperLogo()
+                        // Logo is clickable
+                        Box(modifier = Modifier.clickable { viewModel.checkRegistration() }) {
+                            WhisperLogo()
+                        }
+
+                        // Text is NOT clickable
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(
                             text = "Secure Your\nConversation.",
@@ -124,10 +168,14 @@ fun RegisterScreen(
                             lineHeight = 56.sp,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onBackground,
-                            style = androidx.compose.ui.text.TextStyle(
-                                shadow = androidx.compose.ui.graphics.Shadow(
+                            style =
+                            androidx.compose.ui.text.TextStyle(
+                                shadow =
+                                androidx.compose.ui.graphics.Shadow(
                                     color = Color.Black.copy(alpha = 0.3f),
-                                    offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                                    offset =
+                                    androidx.compose.ui.geometry
+                                        .Offset(2f, 2f),
                                     blurRadius = 8f
                                 )
                             )
@@ -145,9 +193,15 @@ fun RegisterScreen(
                     // Right Side: Card Form
                     RegisterCard(
                         name = name,
-                        onNameChange = { name = it; viewModel.clearError() },
+                        onNameChange = {
+                            name = it
+                            viewModel.clearError()
+                        },
                         roomId = roomId,
-                        onRoomIdChange = { roomId = it; viewModel.clearError() },
+                        onRoomIdChange = {
+                            roomId = it
+                            viewModel.clearError()
+                        },
                         isLoading = uiState.isLoading,
                         error = uiState.error,
                         onRegisterClick = { viewModel.register(name, roomId) },
@@ -157,27 +211,44 @@ fun RegisterScreen(
             } else {
                 // Mobile Layout (Vertical Stack)
                 Column(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .fillMaxSize()
-                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                        .padding(WindowInsets.statusBars.asPaddingValues()),
+                    // Add status bar padding
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    WhisperLogo()
+                    // Wrapper for Logo (Clickable)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { viewModel.checkRegistration() }
+                    ) {
+                        WhisperLogo()
+                    }
+
                     Spacer(modifier = Modifier.height(40.dp))
+
+                    // Text (Not Clickable)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Secure Your Conversation",
-                            fontSize = 28.sp,
+                            fontSize = 24.sp, // Reduced font size to fit
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onBackground,
-                            style = androidx.compose.ui.text.TextStyle(
-                                shadow = androidx.compose.ui.graphics.Shadow(
+                            textAlign = TextAlign.Center, // Explicitly center text
+                            style =
+                            androidx.compose.ui.text.TextStyle(
+                                shadow =
+                                androidx.compose.ui.graphics.Shadow(
                                     color = Color.Black.copy(alpha = 0.2f),
-                                    offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                                    offset =
+                                    androidx.compose.ui.geometry
+                                        .Offset(1f, 1f),
                                     blurRadius = 4f
                                 )
                             )
@@ -187,15 +258,22 @@ fun RegisterScreen(
                             text = "Private meeting transcription",
                             fontSize = 16.sp,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Normal
+                            fontWeight = FontWeight.Normal,
+                            textAlign = TextAlign.Center // Explicitly center text
                         )
                     }
                     Spacer(modifier = Modifier.height(48.dp))
                     RegisterCard(
                         name = name,
-                        onNameChange = { name = it; viewModel.clearError() },
+                        onNameChange = {
+                            name = it
+                            viewModel.clearError()
+                        },
                         roomId = roomId,
-                        onRoomIdChange = { roomId = it; viewModel.clearError() },
+                        onRoomIdChange = {
+                            roomId = it
+                            viewModel.clearError()
+                        },
                         isLoading = uiState.isLoading,
                         error = uiState.error,
                         onRegisterClick = { viewModel.register(name, roomId) }
@@ -218,14 +296,17 @@ fun RegisterCard(
     modifier: Modifier = Modifier
 ) {
     OutlinedCard(
-        modifier = modifier
+        modifier =
+        modifier
             .padding(8.dp)
             .wrapContentHeight(),
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.outlinedCardColors(
+        colors =
+        CardDefaults.outlinedCardColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
         ),
-        border = androidx.compose.foundation.BorderStroke(
+        border =
+        androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         )

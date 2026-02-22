@@ -1,8 +1,10 @@
 package dtos
 
-type TranscriptionResponseDTO struct {
-	Transcription string `json:"transcription" example:"Halo dunia"`
-	RefinedText   string `json:"refined_text,omitempty" example:"Hello world"`
+// WhisperResult represents the result of a transcription from any provider
+type WhisperResult struct {
+	Transcription    string
+	DetectedLanguage string
+	Source           string // Which service was used: "Orion", "Local", "Gemini"
 }
 
 type WhisperMqttRequestDTO struct {
@@ -12,10 +14,6 @@ type WhisperMqttRequestDTO struct {
 	UID       string `json:"uid,omitempty"`
 }
 
-type TranscriptionLongResponseDTO struct {
-	Transcription    string `json:"transcription" example:"Ini adalah transkripsi yang sangat panjang..."`
-	DetectedLanguage string `json:"detected_language,omitempty" example:"id"`
-}
 
 // OutsystemsTranscriptionResultDTO represents the structured response from Outsystems
 type OutsystemsTranscriptionResultDTO struct {
@@ -24,18 +22,6 @@ type OutsystemsTranscriptionResultDTO struct {
 	DetectedLanguage string `json:"detected_language" example:"id"`
 }
 
-type WhisperProxyStatusDTO struct {
-	Status          string                            `json:"status" example:"completed"`
-	Result          *OutsystemsTranscriptionResultDTO `json:"result,omitempty"`
-	ExpiresAt       string                            `json:"expires_at,omitempty"`
-	ExpiresInSecond int64                             `json:"expires_in_seconds,omitempty"`
-}
-
-// SetExpiry implements tasks.StatusWithExpiry interface
-func (s *WhisperProxyStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
-	s.ExpiresAt = expiresAt
-	s.ExpiresInSecond = expiresInSeconds
-}
 
 type TranscriptionTaskResponseDTO struct {
 	TaskID      string `json:"task_id" example:"abc-123"`
@@ -43,12 +29,11 @@ type TranscriptionTaskResponseDTO struct {
 	RecordingID string `json:"recording_id,omitempty" example:"uuid-v4"`
 }
 
-type WhisperProxyProcessResponseDTO = TranscriptionTaskResponseDTO
 
 type StandardResponse struct {
 	Status  bool        `json:"status"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Data    interface{} `json:"data,omitempty"`
 	Details interface{} `json:"details,omitempty"`
 }
 
@@ -66,6 +51,11 @@ type AsyncTranscriptionResultDTO struct {
 type AsyncTranscriptionStatusDTO struct {
 	Status          string                       `json:"status" example:"completed"`
 	Result          *AsyncTranscriptionResultDTO `json:"result,omitempty"`
+	Error           string                       `json:"error,omitempty" example:"service unavailable"`
+	Trigger         string                       `json:"trigger,omitempty" example:"/api/speech/models/gemini"`
+	HTTPStatusCode  int                          `json:"-"`
+	StartedAt       string                       `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`
+	DurationSeconds float64                      `json:"duration_seconds,omitempty" example:"1.5"`
 	ExpiresAt       string                       `json:"expires_at,omitempty"`
 	ExpiresInSecond int64                        `json:"expires_in_seconds,omitempty"`
 }
@@ -81,17 +71,8 @@ type AsyncTranscriptionProcessStatusResponseDTO struct {
 	TaskStatus *AsyncTranscriptionStatusDTO `json:"task_status,omitempty"`
 }
 
-type WhisperProxyProcessStatusResponseDTO struct {
-	TaskID     string                 `json:"task_id"`
-	TaskStatus *WhisperProxyStatusDTO `json:"task_status,omitempty"`
-}
 
 type AsyncTranscriptionProcessResponseDTO = TranscriptionTaskResponseDTO
-
-// Keeping these for backward compatibility if used in code, but they are now aliases/identical
-type AsyncTranscriptionLongResultDTO = AsyncTranscriptionResultDTO
-type AsyncTranscriptionLongStatusDTO = AsyncTranscriptionStatusDTO
-type AsyncTranscriptionLongProcessResponseDTO = AsyncTranscriptionProcessResponseDTO
 
 // StatusUpdateMessage is used for real-time notifications via MQTT
 type StatusUpdateMessage struct {

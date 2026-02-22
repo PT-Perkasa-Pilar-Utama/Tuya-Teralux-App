@@ -19,36 +19,36 @@ Retrieves the status and execution result of a RAG processing task.
 ```json
 {
   "status": true,
-  "message": "RAG status retrieved",
+  "message": "Task status retrieved successfully",
   "data": {
-    "task_id": "rag-xyz789",
-    "task_status": {
-      "status": "completed",
-      "expires_at": "2026-02-10T11:00:00Z",
-      "expires_in_seconds": 2400,
-      "result": "The remote work policy allows up to 3 days per week..."
-    }
+    "status": "completed",
+    "result": "The remote work policy allows up to 3 days per week...",
+    "trigger": "/api/rag/summary",
+    "started_at": "2026-02-10T11:00:00Z",
+    "duration_seconds": 1.5,
+    "expires_at": "2026-02-10T12:00:00Z",
+    "expires_in_seconds": 3600
   }
 }
 ```
 *(Status: 200 OK)*
 
-### 2. Get Failed Status (Success)
+### 2. Get Failed Status (Failure)
 - **Method**: `GET`
 - **Pre-conditions**: The external service returned an error during execution.
 - **Expected Response**:
 ```json
 {
-  "status": true,
-  "message": "RAG status retrieved",
+  "status": false,
+  "message": "Task failed",
   "data": {
-    "task_id": "rag-xyz789",
-    "task_status": {
-      "status": "failed",
-      "expires_at": "2026-02-10T11:00:00Z",
-      "expires_in_seconds": 1800,
-      "result": "Error: Upstream service timeout (Code 504)"
-    }
+    "status": "failed",
+    "error": "Gemini API returned status 503: Service Unavailable",
+    "trigger": "/api/rag/summary",
+    "started_at": "2026-02-10T11:00:00Z",
+    "duration_seconds": 0.5,
+    "expires_at": "2026-02-10T12:00:00Z",
+    "expires_in_seconds": 3600
   }
 }
 ```

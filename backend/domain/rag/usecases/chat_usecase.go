@@ -8,7 +8,6 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/skills"
-	"teralux_app/domain/rag/utilities"
 )
 
 type ChatUseCase interface {
@@ -16,16 +15,18 @@ type ChatUseCase interface {
 }
 
 type ChatUseCaseImpl struct {
-	llm          utilities.LLMClient
+	llm          skills.LLMClient
+	fallbackLLM  skills.LLMClient
 	config       *utils.Config
 	badger       *infrastructure.BadgerService
 	vector       *infrastructure.VectorService
 	orchestrator *skills.Orchestrator
 }
 
-func NewChatUseCase(llm utilities.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
+func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
 	return &ChatUseCaseImpl{
 		llm:          llm,
+		fallbackLLM:  fallbackLLM,
 		config:       cfg,
 		badger:       badger,
 		vector:       vector,
@@ -63,14 +64,19 @@ func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.R
 
 	// 3. Route and Execute via Orchestrator
 	result, err := u.orchestrator.RouteAndExecute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("Chat: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		result, err = u.orchestrator.RouteAndExecute(ctx)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("orchestrator execution failed: %w", err)
 	}
 
 	// 4. Update History
 	if u.badger != nil {
-		history = append(history, "User: "+prompt)
-		history = append(history, "Assistant: "+result.Message)
+		history = append(history, "User: "+prompt, "Assistant: "+result.Message)
 		if len(history) > 20 {
 			history = history[len(history)-20:]
 		}
@@ -98,4 +104,3 @@ func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.R
 		HTTPStatusCode: result.HTTPStatusCode,
 	}, nil
 }
-

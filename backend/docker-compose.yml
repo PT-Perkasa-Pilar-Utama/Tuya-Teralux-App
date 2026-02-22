@@ -9,6 +9,9 @@ services:
     depends_on:
       teralux-db:
         condition: service_healthy
+    environment:
+      - MYSQL_HOST=teralux-db
+      - MYSQL_PORT=3306
     restart: unless-stopped
 
   teralux-db:

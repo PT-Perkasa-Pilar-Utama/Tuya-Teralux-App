@@ -128,19 +128,16 @@ func (s *IRACsensor) prepareACParams(isOff bool, promptLower string, history []s
 	// - Humidity (4) and Auto (2): only mode + power, no temp/wind
 	// - Fan (3): mode + power + wind, no temp
 	// - Cool (0) and Heat (1): mode + power + temp + wind
-
-	if mode == 2 || mode == 4 {
-		// Auto or Humidity: Don't add temp or wind
+	switch mode {
+	case 2, 4: // Auto or Humidity
 		// Only mode and power are needed
-	} else if mode == 3 {
-		// Fan/Wind: Add wind but not temp
+	case 3: // Fan/Wind
 		if windFound {
 			params["wind"] = wind
 			windNames := map[int]string{0: "Auto", 1: "Low", 2: "Medium", 3: "High"}
 			actions = append(actions, fmt.Sprintf("set fan speed to %s", windNames[wind]))
 		}
-	} else {
-		// Cool (0) or Heat (1): Add both temp and wind
+	default: // Cool (0) or Heat (1)
 		if tempFound {
 			params["temp"] = temp
 			actions = append(actions, fmt.Sprintf("set temperature to %d°C", temp))

@@ -48,7 +48,10 @@ Directly translates input text to the target language using LLM with automatic p
 ```json
 {
   "status": false,
-  "message": "Text field is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "text", "message": "text field is required" }
+  ]
 }
 ```
 *(Status: 400 Bad Request)*

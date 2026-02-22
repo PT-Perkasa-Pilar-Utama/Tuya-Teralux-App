@@ -85,11 +85,10 @@ func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 
 	devices, err := c.useCase.GetAllDevices(accessToken, uid, page, limit, category)
 	if err != nil {
-		utils.LogError("Error fetching devices: %v", err)
+		utils.LogError("TuyaGetAllDevicesController.GetAllDevices: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}

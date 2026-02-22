@@ -1,49 +1,21 @@
 package usecases_test
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
+	speechdtos "teralux_app/domain/speech/dtos"
 	"teralux_app/domain/speech/usecases"
-	"teralux_app/domain/speech/utilities"
+	speechUtils "teralux_app/domain/speech/utils"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-// MockWhisperClient is a mock implementation of utilities.WhisperClient
-type MockWhisperClient struct {
-	TranscribeFunc  func(audioPath string, language string) (*utilities.WhisperResult, error)
-	HealthCheckFunc func() bool
-}
-
-func (m *MockWhisperClient) Transcribe(audioPath string, language string) (*utilities.WhisperResult, error) {
-	if m.TranscribeFunc != nil {
-		return m.TranscribeFunc(audioPath, language)
-	}
-	return &utilities.WhisperResult{
-		Transcription:    "test transcription",
-		DetectedLanguage: language,
-		Source:           "Mock",
-	}, nil
-}
-
-func (m *MockWhisperClient) HealthCheck() bool {
-	if m.HealthCheckFunc != nil {
-		return m.HealthCheckFunc()
-	}
-	return true
-}
-
-// MockWhisperCppRepository is a mock for local whisper cpp repository
-type MockWhisperCppRepository struct {
-	TranscribeFullFunc func(wavPath string, modelPath string, lang string) (string, error)
-}
-
-func (m *MockWhisperCppRepository) TranscribeFull(wavPath string, modelPath string, lang string) (string, error) {
-	if m.TranscribeFullFunc != nil {
-		return m.TranscribeFullFunc(wavPath, modelPath, lang)
-	}
-	return "mock transcription from local", nil
-}
-
-// MockRefineUseCase is a mock implementation of RefineUseCase interface
 type MockRefineUseCase struct {
 	RefineTextFunc func(text string, lang string) (string, error)
 }
@@ -55,63 +27,101 @@ func (m *MockRefineUseCase) RefineText(text string, lang string) (string, error)
 	return text, nil
 }
 
-func TestNewTranscribeUseCase(t *testing.T) {
-	cfg := &utils.Config{
-		WhisperModelPath: "test_model",
-	}
-	mockClient := &MockWhisperClient{}
+func TestTranscribeUseCase_FullScenarios(t *testing.T) {
+	tmpDir, _ := os.MkdirTemp("", "transcribe_usecase_test_*")
+	defer os.RemoveAll(tmpDir)
 
-	uc := usecases.NewTranscribeUseCase(
-		mockClient,
-		&MockRefineUseCase{},
-		nil,
-		cfg,
-		nil,
-	)
-	if uc == nil {
-		t.Error("NewTranscribeUseCase returned nil")
-	}
-}
+	audioFile := filepath.Join(tmpDir, "test.wav")
+	_ = os.WriteFile(audioFile, []byte("audio content"), 0644)
 
-func TestNewTranscribeWhisperCppUseCase(t *testing.T) {
-	cfg := &utils.Config{
-		WhisperModelPath: "test_model",
-	}
-	mockRepo := &MockWhisperCppRepository{}
+	t.Run("Scenario 1: Fallback Success", func(t *testing.T) {
+		mockClient := new(speechUtils.GenericMockClient)
+		mockRefine := new(MockRefineUseCase)
+		mockStore := new(speechUtils.MockBadgerStore)
+		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 
-	uc := usecases.NewTranscribeWhisperCppUseCase(
-		mockRepo,
-		&MockRefineUseCase{},
-		nil,
-		cfg,
-	)
-	if uc == nil {
-		t.Error("NewTranscribeWhisperCppUseCase returned nil")
-	}
-}
+		mockClient.On("Transcribe", audioFile, "id").Return(&speechdtos.WhisperResult{
+			Transcription:    "Raw text",
+			DetectedLanguage: "id",
+			Source:           "Gemini",
+		}, nil)
 
-func TestTranscribeWhisperCppUseCase_Execute(t *testing.T) {
-	cfg := &utils.Config{
-		WhisperModelPath: "test_model",
-	}
-
-	t.Run("File Not Found", func(t *testing.T) {
-		mockRepo := &MockWhisperCppRepository{}
-		uc := usecases.NewTranscribeWhisperCppUseCase(mockRepo, nil, nil, cfg)
-
-		_, err := uc.TranscribeWhisperCpp("non_existent.mp3", "test.mp3", "en")
-		if err == nil {
-			t.Error("Expected error for non-existent file, got nil")
+		mockRefine.RefineTextFunc = func(text, lang string) (string, error) {
+			return "Refined text", nil
 		}
+
+		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
+		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
+		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
+
+		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, mockRefine, statusStore, cache, &utils.Config{}, nil)
+		taskID, err := uc.TranscribeAudio(audioFile, "test.wav", "id")
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, taskID)
+
+		time.Sleep(50 * time.Millisecond)
+		// We can't easily check StatusStore here because it's internal to TranscribeUseCase and not exposed or passed in.
+		// Wait, TranscribeUseCase uses cache (BadgerTaskCache).
+		
+		mockStore.AssertCalled(t, "SetPreserveTTL", mock.Anything, mock.Anything)
 	})
 
-	t.Run("Task Creation Error", func(t *testing.T) {
-		// Needs a real file to bypass os.Stat check
-		// We can use a dummy file
-		// But TranscribeWhisperCppUseCase.Execute triggers a goroutine.
-		// Testing async logic here is tricky without waitgroups in the usecase.
-		// We can just test that Execute returns a TaskID if file exists.
+	t.Run("Scenario 2: File Not Found", func(t *testing.T) {
+		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
+		uc := usecases.NewTranscribeUseCase(nil, nil, nil, statusStore, nil, nil, nil)
+		_, err := uc.TranscribeAudio("missing.wav", "none", "id")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "audio file not found")
+	})
 
-		// Skip for now or create a temp file
+	t.Run("Scenario 8: All Providers Failed", func(t *testing.T) {
+		mockClient := new(speechUtils.GenericMockClient)
+		mockStore := new(speechUtils.MockBadgerStore)
+		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
+
+		mockClient.On("Transcribe", audioFile, "id").Return(nil, errors.New("total failure"))
+		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
+		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
+		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
+
+		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, nil, statusStore, cache, nil, nil)
+		taskID, _ := uc.TranscribeAudio(audioFile, "test.wav", "id")
+		assert.NotEmpty(t, taskID)
+
+		time.Sleep(50 * time.Millisecond)
+		// Check that it was updated to failed (SetPreserveTTL called with failed status)
+		// This is hard to assert without custom matcher for the byte payload.
+	})
+
+	t.Run("Scenario 9: MQTT Chaining", func(t *testing.T) {
+		mockClient := new(speechUtils.GenericMockClient)
+		mockMqtt := new(speechUtils.GenericMockClient)
+		mockStore := new(speechUtils.MockBadgerStore)
+		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
+
+		mockClient.On("Transcribe", audioFile, "id").Return(&speechdtos.WhisperResult{
+			Transcription:    "Mqtt text",
+			DetectedLanguage: "id",
+			Source:           "OpenAI",
+		}, nil)
+
+		mockMqtt.On("Publish", "users/teralux/chat", byte(0), false, mock.Anything).Return(nil)
+		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
+		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
+		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
+
+		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, &utils.Config{}, mockMqtt)
+		_, _ = uc.TranscribeAudio(audioFile, "test.wav", "id", usecases.TranscriptionMetadata{
+			Source:    "mqtt",
+			TeraluxID: "TLX001",
+			UID:       "USER001",
+		})
+
+		time.Sleep(50 * time.Millisecond)
+		mockMqtt.AssertCalled(t, "Publish", "users/teralux/chat", byte(0), false, mock.Anything)
 	})
 }

@@ -9,6 +9,7 @@ import (
 	"teralux_app/domain/teralux/routes"
 
 	"teralux_app/domain/common/middlewares"
+	teralux_services "teralux_app/domain/teralux/services"
 	device_usecases "teralux_app/domain/teralux/usecases/device"
 	device_status_usecases "teralux_app/domain/teralux/usecases/device_status"
 	teralux_usecases "teralux_app/domain/teralux/usecases/teralux"
@@ -51,12 +52,15 @@ func NewTeraluxModule(
 	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
 	tuyaDeviceControlUC device_status_usecases.TuyaDeviceControlExecutor,
 ) *TeraluxModule {
+	// Services
+	teraluxExternalService := teralux_services.NewTeraluxExternalService()
+
 	// Repositories
 	teraluxRepository := repositories.NewTeraluxRepository(badger)
 	deviceStatusRepository := repositories.NewDeviceStatusRepository(badger)
 
 	// Teralux Use Cases
-	createTeraluxUseCase := teralux_usecases.NewCreateTeraluxUseCase(teraluxRepository)
+	createTeraluxUseCase := teralux_usecases.NewCreateTeraluxUseCase(teraluxRepository, teraluxExternalService)
 	getAllTeraluxUseCase := teralux_usecases.NewGetAllTeraluxUseCase(teraluxRepository)
 	getTeraluxByIDUseCase := teralux_usecases.NewGetTeraluxByIDUseCase(teraluxRepository, deviceRepository)
 	getTeraluxByMACUseCase := teralux_usecases.NewGetTeraluxByMACUseCase(teraluxRepository)

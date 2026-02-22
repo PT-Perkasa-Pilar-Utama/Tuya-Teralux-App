@@ -22,13 +22,13 @@ func (m *mockLLMForRefine) CallModel(prompt string, model string) (string, error
 }
 
 func TestRefineUseCase_Execute(t *testing.T) {
-	cfg := &utils.Config{LLMModel: "test-model-refine"}
+	cfg := &utils.Config{GeminiModelLow: "test-model-refine"}
 
 	t.Run("Refine Indonesian (KBBI)", func(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "Saya sedang makan nasi.",
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		got, err := u.RefineText("aku lagi mamam nasi", "id")
 		if err != nil {
@@ -48,7 +48,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "I am eating rice.",
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		got, err := u.RefineText("i is eating rice", "en")
 		if err != nil {
@@ -68,20 +68,21 @@ func TestRefineUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnError: errors.New("llm failure"),
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		_, err := u.RefineText("test", "id")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
-		if err.Error() != "llm failure" {
-			t.Errorf("expected 'llm failure', got '%v'", err)
+		if !strings.Contains(err.Error(), "llm failure") {
+			t.Errorf("expected error to contain 'llm failure', got '%v'", err)
 		}
+
 	})
 
 	t.Run("Empty or Whitespace Input (Silent Audio)", func(t *testing.T) {
 		mockLLM := &mockLLMForRefine{}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		got, err := u.RefineText("   ", "id")
 		if err != nil {
@@ -96,7 +97,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForRefine{
 			ReturnString: "Refined English",
 		}
-		u := NewRefineUseCase(mockLLM, cfg)
+		u := NewRefineUseCase(mockLLM, nil, cfg)
 
 		_, err := u.RefineText("some text", "xyz")
 		if err != nil {

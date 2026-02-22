@@ -1,7 +1,7 @@
 # ENDPOINT: GET /api/speech/transcribe/{transcribe_id}
 
 ## Description
-Retrieves the current status and result of any transcription task. This is a **consolidated** endpoint that works for standard, long, and PPU transcription tasks.
+Retrieves the current status and result of any transcription task. This is a **consolidated** endpoint that works for any task ID returned by standard or model-specific transcription requests.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -19,15 +19,12 @@ Retrieves the current status and result of any transcription task. This is a **c
 ```json
 {
   "status": true,
-  "message": "Transcription status retrieved",
+  "message": "Task status retrieved successfully",
   "data": {
-    "task_id": "short-abc123",
-    "task_status": {
-      "status": "processing",
-      "expires_at": "2026-02-10T11:00:00Z",
-      "expires_in_seconds": 3500,
-      "result": null
-    }
+    "status": "pending",
+    "started_at": "2026-02-21T11:00:00Z",
+    "expires_at": "2026-02-21T12:00:00Z",
+    "expires_in_seconds": 3600
   }
 }
 ```
@@ -40,44 +37,43 @@ Retrieves the current status and result of any transcription task. This is a **c
 ```json
 {
   "status": true,
-  "message": "Transcription status retrieved",
+  "message": "Task status retrieved successfully",
   "data": {
-    "task_id": "short-abc123",
-    "task_status": {
-      "status": "completed",
-      "expires_at": "2026-02-10T11:00:00Z",
-      "expires_in_seconds": 3200,
-      "result": {
-        "transcription": "halo apa kabar",
-        "refined_text": "Halo, apa kabar?",
-        "detected_language": "id"
-      }
-    }
+    "status": "completed",
+    "result": {
+      "transcription": "halo apa kabar",
+      "detected_language": "id"
+    },
+    "trigger": "/api/speech/models/gemini",
+    "started_at": "2026-02-21T11:00:04Z",
+    "duration_seconds": 1.2,
+    "expires_at": "2026-02-21T12:00:04Z",
+    "expires_in_seconds": 3600
   }
 }
 ```
   *(Status: 200 OK)*
 
-### 3. Get Failed Status (Success)
+### 3. Get Failed Status (Failure)
 - **Method**: `GET`
 - **Pre-conditions**: Task failed during processing.
 - **Expected Response**:
 ```json
 {
-  "status": true,
-  "message": "Transcription status retrieved",
+  "status": false,
+  "message": "Task failed",
   "data": {
-    "task_id": "short-abc123",
-    "task_status": {
-      "status": "failed",
-      "expires_at": "2026-02-10T11:00:00Z",
-      "expires_in_seconds": 3000,
-      "result": null
-    }
+    "status": "failed",
+    "error": "openai whisper returned status 401: Unauthorized",
+    "trigger": "/api/speech/models/openai",
+    "started_at": "2026-02-21T11:10:00Z",
+    "duration_seconds": 0.3,
+    "expires_at": "2026-02-21T12:10:00Z",
+    "expires_in_seconds": 3600
   }
 }
 ```
-  *(Status: 200 OK)*
+  *(Status: 401 Unauthorized)*
 
 ### 4. Validation: Task Not Found
 - **Method**: `GET`

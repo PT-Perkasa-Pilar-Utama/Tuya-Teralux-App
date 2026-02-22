@@ -107,6 +107,19 @@ func LogWarn(format string, v ...interface{}) {
 //
 // param format The format string.
 // param v The arguments.
+// LogError logs a message at ERROR level.
+//
+// param format The format string.
+// param v The arguments.
 func LogError(format string, v ...interface{}) {
 	logMessage(LevelError, format, v...)
+}
+
+// LogFatal logs a message at ERROR level and exits the application.
+//
+// param format The format string.
+// param v The arguments.
+func LogFatal(format string, v ...interface{}) {
+	logMessage(LevelError, format, v...)
+	os.Exit(1)
 }

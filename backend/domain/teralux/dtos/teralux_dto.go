@@ -4,9 +4,10 @@ import "time"
 
 // CreateTeraluxRequestDTO represents the request body for creating a new teralux
 type CreateTeraluxRequestDTO struct {
-	MacAddress string `json:"mac_address" binding:"required"`
-	RoomID     string `json:"room_id" binding:"required"`
-	Name       string `json:"name" binding:"required"`
+	MacAddress   string `json:"mac_address" binding:"required"`
+	RoomID       string `json:"room_id" binding:"required"`
+	Name         string `json:"name" binding:"required"`
+	DeviceTypeID string `json:"device_type_id" binding:"required"`
 }
 
 // CreateTeraluxResponseDTO represents the response for creating a teralux (only returns ID)

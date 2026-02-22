@@ -22,7 +22,8 @@ Create a new Teralux device. This endpoint handles the registration of a new cen
 {
   "name": "Master Bedroom Hub",
   "mac_address": "AA:BB:CC:11:22:33",
-  "room_id": "room-101"
+  "room_id": "1",
+  "device_type_id": "1"
 }
 ```
 - **Expected Response**:
@@ -131,7 +132,7 @@ Create a new Teralux device. This endpoint handles the registration of a new cen
 ```
   *(Status: 422 Unprocessable Entity)*
 
-### 5. Idempotent: Duplicate MAC Address Returns Existing ID
+### 5. Conflict: Duplicate MAC Address Returns 409 Error
 - **URL**: `http://localhost:8080/api/teralux`
 - **Method**: `POST`
 - **Headers**:
@@ -142,28 +143,28 @@ Create a new Teralux device. This endpoint handles the registration of a new cen
 }
 ```
 - **Pre-conditions**:
-  - Device with MAC `AA:BB:CC:11:22:33` already exists with ID `existing-id`.
+  - Device with MAC `AA:BB:CC:11:22:33` already exists.
 - **Request Body**:
 ```json
 {
   "name": "Duplicate Hub",
   "mac_address": "AA:BB:CC:11:22:33",
-  "room_id": "room-102"
+  "room_id": "1",
+  "device_type_id": "1"
 }
 ```
 - **Expected Response**:
 ```json
 {
-  "status": true,
-  "message": "Teralux created successfully",
-  "data": {
-    "teralux_id": "existing-id"
-  }
+  "status": false,
+  "message": "Mac Address already in use",
+  "data": null
 }
 ```
-  *(Status: 200 OK)*
+  *(Status: 409 Conflict)*
 - **Side Effects**:
-  - No new record created (idempotent for device booting).
+  - No new record created.
+  - No external API call made.
 
 ### 6. Security: Unauthorized
 - **URL**: `http://localhost:8080/api/teralux`

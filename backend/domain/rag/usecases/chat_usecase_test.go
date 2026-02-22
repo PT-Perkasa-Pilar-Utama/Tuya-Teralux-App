@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// mockLLMForChat is a mock of utilities.LLMClient for Chat test
+// mockLLMForChat is a mock of skills.LLMClient for Chat test
 type mockLLMForChat struct {
 	mock.Mock
 }
@@ -55,8 +55,8 @@ func TestChatUseCase_Chat(t *testing.T) {
 	registry.Register(mockIdentitySkill)
 
 	orchestrator := skills.NewOrchestrator(registry, nil)
-	cfg := &utils.Config{LLMModel: "test-model"}
-	uc := NewChatUseCase(mockLLM, cfg, nil, nil, orchestrator)
+	cfg := &utils.Config{GeminiModelHigh: "test-model-chat"}
+	uc := NewChatUseCase(mockLLM, nil, cfg, nil, nil, orchestrator)
 	uid := "test-user"
 	teraluxID := "teralux-1"
 
@@ -69,7 +69,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 	t.Run("Orchestration to Control", func(t *testing.T) {
 		prompt := "Nyalakan AC"
 		// Orchestrator logic: first it calls LLM to route
-		mockLLM.On("CallModel", mock.Anything, "test-model").Return("Control", nil).Once()
+		mockLLM.On("CallModel", mock.Anything, "high").Return("Control", nil).Once()
 
 		// Then it calls the chosen skill's Execute
 		mockControlSkill.On("Execute", mock.MatchedBy(func(ctx *skills.SkillContext) bool {
@@ -89,7 +89,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 
 	t.Run("Orchestration to Identity", func(t *testing.T) {
 		prompt := "Siapa kamu?"
-		mockLLM.On("CallModel", mock.Anything, "test-model").Return("Identity", nil).Once()
+		mockLLM.On("CallModel", mock.Anything, "high").Return("Identity", nil).Once()
 
 		mockIdentitySkill.On("Execute", mock.MatchedBy(func(ctx *skills.SkillContext) bool {
 			return ctx.Prompt == prompt
@@ -105,4 +105,3 @@ func TestChatUseCase_Chat(t *testing.T) {
 		mockIdentitySkill.AssertExpectations(t)
 	})
 }
-

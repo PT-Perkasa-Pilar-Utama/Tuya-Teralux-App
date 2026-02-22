@@ -23,7 +23,7 @@ fi
 # Get connected devices
 echo "📱 Checking connected devices..."
 DEVICES=$(adb devices | grep -v "List" | grep "device$" | awk '{print $1}')
-DEVICE_COUNT=$(echo "$DEVICES" | grep -c . || echo 0)
+DEVICE_COUNT=$(echo "$DEVICES" | grep -v "^$" | wc -l | xargs)
 
 if [ "$DEVICE_COUNT" -eq 0 ]; then
     echo "❌ No ADB devices connected."
@@ -44,6 +44,33 @@ if [ -z "$DEVICE_ID" ]; then
 fi
 
 echo ""
+
+# Run Linter
+echo "🔍 Running Linter..."
+chmod +x gradlew
+set +e
+./gradlew ktlintCheck --quiet
+LINT_STATUS=$?
+set -e
+
+if [ $LINT_STATUS -ne 0 ]; then
+    echo "⚠️  Lint issues found. Attempting to auto-fix..."
+    set +e
+    ./gradlew ktlintFormat --quiet
+    LINT_FIX_STATUS=$?
+    set -e
+    
+    if [ $LINT_FIX_STATUS -eq 0 ]; then
+         echo "✅ Lint issues auto-fixed!"
+    else
+         echo "❌ Lint failed even after auto-fix. Please check manually."
+         exit 1
+    fi
+else
+    echo "✅ Code style is correct."
+fi
+
+echo ""
 echo "🔨 Building APK (clean build)..."
 cd "$PROJECT_DIR"
 ./gradlew clean assembleDebug --quiet
@@ -57,14 +84,43 @@ echo "✅ Build complete: $APK_PATH"
 echo ""
 
 echo "📲 Installing APK on $DEVICE_ID..."
-adb -s "$DEVICE_ID" install -r "$APK_PATH"
+set +e
+INSTALL_OUTPUT=$(adb -s "$DEVICE_ID" install -r "$APK_PATH" 2>&1)
+INSTALL_STATUS=$?
+set -e
 
-if [ $? -eq 0 ]; then
+if [ $INSTALL_STATUS -ne 0 ]; then
+    if echo "$INSTALL_OUTPUT" | grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE"; then
+        echo "⚠️  Signature mismatch detected. Uninstalling existing app..."
+        set +e
+        adb -s "$DEVICE_ID" uninstall "$PACKAGE_NAME"
+        echo "🔄 Retrying installation..."
+        adb -s "$DEVICE_ID" install -r "$APK_PATH"
+        INSTALL_STATUS=$?
+        set -e
+    else
+        echo "❌ Installation failed:"
+        echo "$INSTALL_OUTPUT"
+        exit 1
+    fi
+fi
+
+if [ $INSTALL_STATUS -eq 0 ]; then
     echo "✅ Installation successful!"
     echo ""
     echo "🚀 Launching app..."
     adb -s "$DEVICE_ID" shell am start -n "$PACKAGE_NAME/$LAUNCHER_ACTIVITY"
     echo "✅ App launched!"
+
+    # Launch Scrcpy if available
+    if command -v scrcpy &> /dev/null; then
+        echo ""
+        echo "🖥️  Launching scrcpy for device $DEVICE_ID..."
+        scrcpy -s "$DEVICE_ID" --window-title "Teralux - $DEVICE_ID" &
+    else
+        echo "⚠️  scrcpy not found. Install it to mirror the screen."
+    fi
+
 else
     echo "❌ Installation failed"
     exit 1

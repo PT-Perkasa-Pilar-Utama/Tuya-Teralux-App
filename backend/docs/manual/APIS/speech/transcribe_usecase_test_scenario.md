@@ -4,11 +4,10 @@
 Starts transcription of an audio file with automatic provider fallback. This endpoint automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
 
 ### Processing Flow
-1. **PPU First**: System attempts to send audio to the Outsystems PPU proxy with health check.
-2. **Orion Fallback**: If PPU is unavailable or fails, automatically falls back to **Orion Whisper API**.
-3. **Local Fallback**: If Orion is unavailable or fails, finally falls back to **Local Whisper.cpp** engine.
+1. **Configured Provider**: System uses the provider defined in `LLM_PROVIDER` environment variable (Gemini, OpenAI, Groq, or Orion).
+2. **Specialized Models**: Alternatively, users can use dedicated model endpoints under `/api/speech/models/` for specific provider selection.
 
-Processing is **asynchronous** with automatic failover between providers.
+Processing is **asynchronous** and results can be tracked via the transcription ID.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -38,7 +37,8 @@ Processing is **asynchronous** with automatic failover between providers.
   "message": "Transcription task submitted successfully",
   "data": {
     "task_id": "abc123-def456-ghi789",
-    "task_status": "pending"
+    "task_status": "pending",
+    "recording_id": "uuid-v4-of-the-recording"
   }
 }
 ```
@@ -54,7 +54,10 @@ Processing is **asynchronous** with automatic failover between providers.
 ```json
 {
   "status": false,
-  "message": "Audio file is required"
+  "message": "Validation Error",
+  "details": [
+    { "field": "audio", "message": "audio file is required" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*
@@ -66,7 +69,10 @@ Processing is **asynchronous** with automatic failover between providers.
 ```json
 {
   "status": false,
-  "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac"
+  "message": "Validation Error",
+  "details": [
+    { "field": "audio", "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac" }
+  ]
 }
 ```
   *(Status: 415 Unsupported Media Type)*
@@ -106,7 +112,7 @@ Processing is **asynchronous** with automatic failover between providers.
 - **Expected Status**: Task status becomes `failed` after processing.
 
 ### 8. Error: Internal Server Error
-- **Pre-conditions**: Both PPU and Local Whisper engines are failing or system resources are exhausted.
+- **Pre-conditions**: Both Orion and Local Whisper engines are failing or system resources are exhausted.
 - **Expected Response**:
 ```json
 {

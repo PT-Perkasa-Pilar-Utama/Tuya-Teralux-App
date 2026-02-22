@@ -102,7 +102,10 @@ Update the status of a specific capability (code) for a device. This triggers th
 ```json
 {
   "status": false,
-  "message": "Invalid value for status code 'dimmer'"
+  "message": "Validation Error",
+  "details": [
+    { "field": "value", "message": "invalid value for status code 'dimmer'" }
+  ]
 }
 ```
   *(Status: 422 Unprocessable Entity)*

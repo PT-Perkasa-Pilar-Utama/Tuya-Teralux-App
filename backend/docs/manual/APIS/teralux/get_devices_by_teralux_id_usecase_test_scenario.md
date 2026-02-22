@@ -121,7 +121,10 @@ Retrieve all devices linked to a specific Teralux ID.
 ```json
 {
   "status": false,
-  "message": "Invalid Teralux ID format"
+  "message": "Validation Error",
+  "details": [
+    { "field": "teralux_id", "message": "Invalid Teralux ID format" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

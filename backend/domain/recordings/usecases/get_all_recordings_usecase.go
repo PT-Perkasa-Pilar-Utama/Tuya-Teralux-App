@@ -1,12 +1,12 @@
 package usecases
 
 import (
-	"teralux_app/domain/recordings/dtos"
+	recordings_dtos "teralux_app/domain/recordings/dtos"
 	"teralux_app/domain/recordings/repositories"
 )
 
 type GetAllRecordingsUseCase interface {
-	ListRecordings(page, limit int) (*dtos.GetAllRecordingsResponseDto, error)
+	ListRecordings(page, limit int) (*recordings_dtos.GetAllRecordingsResponseDto, error)
 }
 
 type getAllRecordingsUseCase struct {
@@ -17,15 +17,15 @@ func NewGetAllRecordingsUseCase(repo repositories.RecordingRepository) GetAllRec
 	return &getAllRecordingsUseCase{repo: repo}
 }
 
-func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*dtos.GetAllRecordingsResponseDto, error) {
+func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*recordings_dtos.GetAllRecordingsResponseDto, error) {
 	recordings, total, err := uc.repo.GetAll(page, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	var recordingDtos []dtos.RecordingResponseDto
+	recordingDtos := make([]recordings_dtos.RecordingResponseDto, 0, len(recordings))
 	for _, r := range recordings {
-		recordingDtos = append(recordingDtos, dtos.RecordingResponseDto{
+		recordingDtos = append(recordingDtos, recordings_dtos.RecordingResponseDto{
 			ID:           r.ID,
 			Filename:     r.Filename,
 			OriginalName: r.OriginalName,
@@ -34,7 +34,7 @@ func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*dtos.GetAll
 		})
 	}
 
-	return &dtos.GetAllRecordingsResponseDto{
+	return &recordings_dtos.GetAllRecordingsResponseDto{
 		Recordings: recordingDtos,
 		Total:      total,
 		Page:       page,

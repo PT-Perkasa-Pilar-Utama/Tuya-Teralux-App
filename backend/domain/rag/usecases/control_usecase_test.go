@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// mockLLMForControl is a mock for LLMClient
+// mockLLMForControl is a mock for skills.LLMClient
 type mockLLMForControl struct {
 	mock.Mock
 }
@@ -58,7 +58,7 @@ func (m *mockTuyaExecutorForControl) SendIRACCommand(accessToken, infraredID, re
 
 func TestControlUseCase_ProcessControl(t *testing.T) {
 	mockLLM := new(mockLLMForControl)
-	cfg := &utils.Config{LLMModel: "test-model"}
+	cfg := &utils.Config{GeminiModelHigh: "test-model-control"}
 
 	// Setup Vector Service
 	vectorFile := "test_vector_control.json"
@@ -78,7 +78,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	mockTuyaExecutor.On("SendSwitchCommand", "mock-token", mock.Anything, mock.Anything).Return(true, nil)
 	mockTuyaExecutor.On("SendIRACCommand", "mock-token", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 
-	uc := NewControlUseCase(mockLLM, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
+	uc := NewControlUseCase(mockLLM, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
 
 	uid := "user-123"
 	teraluxID := "tx-1"
@@ -130,7 +130,16 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	})
 
 	t.Run("Multiple Matches (Ambiguity)", func(t *testing.T) {
-		res, err := uc.ProcessControl(uid, teraluxID, "Matikan AC")
+		prompt := "Matikan AC"
+		localMock := new(mockLLMForControl)
+		// Re-setup usecase with local mock to avoid interference
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
+
+		// Expect LLM call for disambiguation
+		expectedResponse := "I found 2 matching devices: AC Kamar Utama, AC Ruang Tamu. Which one?"
+		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
+
+		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
 		assert.NoError(t, err)
 		assert.Contains(t, res.Message, "I found 2 matching devices")
 		assert.Contains(t, res.Message, "AC Kamar Utama")
@@ -146,9 +155,9 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		mockExec := new(mockTuyaExecutorForControl)
 		mockAuth.On("GetTuyaAccessToken").Return("mock-token", nil)
 		mockExec.On("SendIRACCommand", "mock-token", "dev-ac-1", "remote-ac-1", mock.Anything).Return(true, nil)
-		localUC := NewControlUseCase(localMock, cfg, vector, badger, mockExec, mockAuth)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockExec, mockAuth)
 
-		localMock.On("CallModel", mock.Anything, "test-model").Return("EXECUTE:dev-ac-1", nil).Once()
+		localMock.On("CallModel", mock.Anything, "high").Return("EXECUTE:dev-ac-1", nil).Once()
 
 		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
 		assert.NoError(t, err)
@@ -161,9 +170,10 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	t.Run("No Match - Not Found", func(t *testing.T) {
 		prompt := "Turn on the Fridge"
 		localMock := new(mockLLMForControl)
-		localUC := NewControlUseCase(localMock, cfg, vector, badger, nil, nil)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, nil, nil)
 
-		localMock.On("CallModel", mock.Anything, "test-model").Return("NOT_FOUND", nil).Once()
+		expectedResponse := "I'm sorry, I couldn't find any device matching 'Turn on the Fridge'."
+		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
 
 		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
 		assert.NoError(t, err)

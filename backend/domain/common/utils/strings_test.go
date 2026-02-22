@@ -57,7 +57,7 @@ func TestHashString(t *testing.T) {
 		t.Errorf("HashString(%q) = %q; want %q", input, result, expected)
 	}
 
-	// Verify consistentcy
+	// Verify consistency
 	result2 := HashString(input)
 	if result != result2 {
 		t.Error("HashString is not deterministic")

@@ -17,9 +17,18 @@ func (s *TranslationSkill) Description() string {
 }
 
 func (s *TranslationSkill) Execute(ctx *SkillContext) (*SkillResult, error) {
-	// Simple logic to detect target language from the prompt if possible
+	// Detect target language from context or prompt
 	targetLang := "English"
-	if strings.Contains(strings.ToLower(ctx.Prompt), "indonesia") || strings.Contains(strings.ToLower(ctx.Prompt), "indo") {
+	if ctx.Language != "" {
+		switch {
+		case strings.EqualFold(ctx.Language, "id") || strings.EqualFold(ctx.Language, "indonesian"):
+			targetLang = "Indonesian"
+		case strings.EqualFold(ctx.Language, "en") || strings.EqualFold(ctx.Language, "english"):
+			targetLang = "English"
+		default:
+			targetLang = ctx.Language // Trust the explicit language code/name
+		}
+	} else if strings.Contains(strings.ToLower(ctx.Prompt), "indonesia") || strings.Contains(strings.ToLower(ctx.Prompt), "indo") {
 		targetLang = "Indonesian"
 	}
 
@@ -32,10 +41,7 @@ Only return the final polished text without any explanation, quotes, or addition
 Text: "%s"
 %s:`, targetLang, targetLang, ctx.Prompt, targetLang)
 
-	model := ctx.Config.LLMModel
-	if model == "" {
-		model = "default"
-	}
+	model := "low"
 
 	res, err := ctx.LLM.CallModel(prompt, model)
 	if err != nil {

@@ -51,6 +51,11 @@ func (m *MockFileService) SaveUploadedFile(file *multipart.FileHeader, dst strin
 	return args.Error(0)
 }
 
+func (m *MockFileService) SaveFile(data []byte, dst string) error {
+	args := m.Called(data, dst)
+	return args.Error(0)
+}
+
 func (m *MockFileService) EnsureDir(dirName string) error {
 	args := m.Called(dirName)
 	return args.Error(0)
@@ -63,8 +68,8 @@ func createTestFileHeader() (*multipart.FileHeader, error) {
 	if err != nil {
 		return nil, err
 	}
-	part.Write([]byte("dummy content"))
-	writer.Close()
+	_, _ = part.Write([]byte("dummy content"))
+	_ = writer.Close()
 
 	req, err := http.NewRequest("POST", "/", body)
 	if err != nil {

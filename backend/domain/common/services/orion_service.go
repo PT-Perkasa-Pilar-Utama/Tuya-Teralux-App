@@ -1,0 +1,268 @@
+package services
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"teralux_app/domain/common/utils"
+	"teralux_app/domain/speech/dtos"
+	"time"
+)
+
+type OrionService struct {
+	config *utils.Config
+}
+
+func NewOrionService(cfg *utils.Config) *OrionService {
+	return &OrionService{
+		config: cfg,
+	}
+}
+
+// LLM Implementation
+
+type orionResponse struct {
+	ID     string        `json:"id"`
+	Output []orionOutput `json:"output"`
+	Status string        `json:"status"`
+}
+
+type orionOutput struct {
+	Type    string         `json:"type"`
+	Content []orionContent `json:"content"`
+}
+
+type orionContent struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+func (s *OrionService) HealthCheck() bool {
+	if s.config.OrionBaseURL == "" || s.config.OrionApiKey == "" {
+		return false
+	}
+
+	// Remove trailing slash from baseURL if present
+	baseURL := s.config.OrionBaseURL
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+
+	url := fmt.Sprintf("%s/v1/models", baseURL)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false
+	}
+
+	req.Header.Set("Authorization", "Bearer "+s.config.OrionApiKey)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		utils.LogWarn("Orion HealthCheck failed: %v", err)
+		return false
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		utils.LogWarn("Orion HealthCheck failed: status %d", resp.StatusCode)
+		return false
+	}
+	return true
+}
+
+func (s *OrionService) CallModel(prompt string, model string) (string, error) {
+	if s.config.OrionApiKey == "" {
+		return "", fmt.Errorf("ORION_API_KEY is not configured")
+	}
+
+	// Remove trailing slash from baseURL if present
+	baseURL := s.config.OrionBaseURL
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+
+	url := fmt.Sprintf("%s/v1/responses", baseURL)
+
+	// Use configured model regardless of input (strict Orion behavior as requested)
+	reqBody := map[string]interface{}{
+		"model": s.config.OrionModel,
+		"input": prompt,
+	}
+
+	b, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal orion request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		return "", fmt.Errorf("failed to create orion request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+s.config.OrionApiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 0}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to call orion api: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read orion response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("orion api returned status %d: %s", resp.StatusCode, string(body)))
+	}
+
+	var orionResp orionResponse
+	if err := json.Unmarshal(body, &orionResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal orion response: %w", err)
+	}
+
+	// Extract text
+	for _, output := range orionResp.Output {
+		if output.Type == "message" {
+			for _, content := range output.Content {
+				if content.Type == "output_text" && content.Text != "" {
+					utils.LogDebug("Orion: Response received: %s", content.Text)
+					return content.Text, nil
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("orion api returned no text content")
+}
+
+// Whisper Implementation (Orion)
+
+type OrionWhisperResponse struct {
+	Text string `json:"text"`
+}
+
+func (s *OrionService) WhisperHealthCheck() bool {
+	outsystemsURL := s.config.OrionWhisperBaseURL
+	if outsystemsURL == "" {
+		utils.LogError("Orion: ORION_WHISPER_BASE_URL not configured")
+		return false
+	}
+
+	// Extract base URL (remove /whisper/transcribe)
+	var baseURL string
+	if len(outsystemsURL) > len("/whisper/transcribe") && strings.HasSuffix(outsystemsURL, "/whisper/transcribe") {
+		baseURL = outsystemsURL[:len(outsystemsURL)-len("/whisper/transcribe")]
+	} else {
+		baseURL = outsystemsURL
+	}
+
+	healthCheckURL := baseURL + "/"
+
+	// Create HTTP request
+	req, err := http.NewRequest("GET", healthCheckURL, nil)
+	if err != nil {
+		utils.LogError("Orion: Failed to create health check request: %v", err)
+		return false
+	}
+
+	// Execute request
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		utils.LogWarn("Orion: Health check request failed - server unreachable: %v", err)
+		return false
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	return resp.StatusCode == http.StatusOK
+}
+
+func (s *OrionService) Transcribe(audioPath string, lang string) (*dtos.WhisperResult, error) {
+	outsystemsURL := s.config.OrionWhisperBaseURL
+	if outsystemsURL == "" {
+		return nil, fmt.Errorf("ORION_WHISPER_BASE_URL not configured")
+	}
+
+	// Create multipart form data
+	bodyBuf := &bytes.Buffer{}
+	writer := multipart.NewWriter(bodyBuf)
+
+	// Read file
+	fileData, err := os.ReadFile(audioPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read audio file: %w", err)
+	}
+
+	// Add file to multipart form
+	fileWriter, err := writer.CreateFormFile("file", filepath.Base(audioPath))
+	if err != nil {
+		return nil, fmt.Errorf("form file creation failed: %w", err)
+	}
+
+	if _, err := fileWriter.Write(fileData); err != nil {
+		return nil, fmt.Errorf("file write to form failed: %w", err)
+	}
+
+	// Add language field
+	if err := writer.WriteField("language", lang); err != nil {
+		return nil, fmt.Errorf("language field write failed: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("multipart writer close failed: %w", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", outsystemsURL, bodyBuf)
+	if err != nil {
+		return nil, fmt.Errorf("request creation failed: %w", err)
+	}
+
+	// Set multipart content type header
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// Execute request
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("transcribe request to Orion failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	// Read response body
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("response read failed: %w", err)
+	}
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("Orion server returned error status %d: %s", resp.StatusCode, string(respBody)))
+	}
+
+	// Parse response as JSON
+	var result dtos.OutsystemsTranscriptionResultDTO
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse Orion response: %w", err)
+	}
+
+	detectedLang := result.DetectedLanguage
+	if detectedLang == "" {
+		detectedLang = lang
+	}
+
+	return &dtos.WhisperResult{
+		Transcription:    result.Transcription,
+		DetectedLanguage: detectedLang,
+		Source:           "Orion (Outsystems)",
+	}, nil
+}

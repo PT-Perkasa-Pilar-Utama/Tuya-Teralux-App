@@ -48,7 +48,7 @@ func (uc *GetAllTeraluxUseCase) ListTeralux(filter *dtos.TeraluxFilterDTO) (*dto
 	}
 
 	// Map to DTOs
-	var teraluxDTOs []dtos.TeraluxResponseDTO
+	teraluxDTOs := make([]dtos.TeraluxResponseDTO, 0, len(teraluxList))
 	for _, item := range teraluxList {
 		teraluxDTOs = append(teraluxDTOs, dtos.TeraluxResponseDTO{
 			ID:         item.ID,

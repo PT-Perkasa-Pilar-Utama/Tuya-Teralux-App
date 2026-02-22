@@ -34,11 +34,12 @@ func (uc *UpdateTeraluxUseCase) UpdateTeralux(id string, req *dtos.UpdateTeralux
 	if req.RoomID != nil {
 		// Validation: Invalid Room ID Format
 		validID := regexp.MustCompile(`^[a-zA-Z0-9-]+$`)
-		if !validID.MatchString(*req.RoomID) {
+		switch {
+		case !validID.MatchString(*req.RoomID):
 			details = append(details, utils.ValidationErrorDetail{Field: "room_id", Message: "Invalid room format"})
-		} else if *req.RoomID == "room-999" {
+		case *req.RoomID == "room-999":
 			details = append(details, utils.ValidationErrorDetail{Field: "room_id", Message: "Invalid room_id: room does not exist"})
-		} else {
+		default:
 			item.RoomID = *req.RoomID
 		}
 	}

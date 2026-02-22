@@ -2,18 +2,18 @@ package controllers
 
 import (
 	"net/http"
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/usecases"
 
 	"github.com/gin-gonic/gin"
 )
 
 // SpeechTranscribeStatusController handles GET /api/speech/transcribe/:transcribe_id.
 type SpeechTranscribeStatusController struct {
-	statusUC usecases.GetTranscriptionStatusUseCase
+	statusUC tasks.GenericStatusUseCase[dtos.AsyncTranscriptionStatusDTO]
 }
 
-func NewSpeechTranscribeStatusController(statusUC usecases.GetTranscriptionStatusUseCase) *SpeechTranscribeStatusController {
+func NewSpeechTranscribeStatusController(statusUC tasks.GenericStatusUseCase[dtos.AsyncTranscriptionStatusDTO]) *SpeechTranscribeStatusController {
 	return &SpeechTranscribeStatusController{
 		statusUC: statusUC,
 	}
@@ -21,14 +21,14 @@ func NewSpeechTranscribeStatusController(statusUC usecases.GetTranscriptionStatu
 
 // GetStatus handles GET /api/speech/transcribe/:transcribe_id
 // @Summary Get transcription status (Consolidated)
-// @Description Get the status and result of any transcription task (Short, Long, or PPU).
+// @Description Get the status and result of any transcription task (Short, Long, or Orion).
 // @Tags 04. Speech
 // @Security BearerAuth
 // @Produce json
 // @Param transcribe_id path string true "Task ID"
-// @Success 200 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionProcessStatusResponseDTO}
+// @Success 200 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionStatusDTO}
 // @Failure 404 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/transcribe/{transcribe_id} [get]
 func (c *SpeechTranscribeStatusController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("transcribe_id")
@@ -40,11 +40,22 @@ func (c *SpeechTranscribeStatusController) GetStatus(ctx *gin.Context) {
 		return
 	}
 
-	status, err := c.statusUC.GetTranscriptionStatus(taskID)
+	status, err := c.statusUC.GetTaskStatus(taskID)
 	if err == nil {
-		ctx.JSON(http.StatusOK, dtos.StandardResponse{
-			Status:  true,
-			Message: "Task status retrieved successfully",
+		isSuccess := status.Status != "failed"
+		message := "Task status retrieved successfully"
+		httpStatus := http.StatusOK
+
+		if status.Status == "failed" {
+			message = "Task failed"
+			if status.HTTPStatusCode != 0 {
+				httpStatus = status.HTTPStatusCode
+			}
+		}
+
+		ctx.JSON(httpStatus, dtos.StandardResponse{
+			Status:  isSuccess,
+			Message: message,
 			Data:    status,
 		})
 		return

@@ -14,6 +14,7 @@ import (
 	"teralux_app/domain/common/infrastructure"
 	"teralux_app/domain/common/middlewares"
 	"teralux_app/domain/common/utils"
+	"teralux_app/domain/mail"
 	"teralux_app/domain/rag"
 	"teralux_app/domain/recordings"
 	recordings_entities "teralux_app/domain/recordings/entities"
@@ -64,14 +65,16 @@ import (
 // @tag.name 05. RAG
 // @tag.description RAG endpoints
 
-// @tag.name 06. Recordings
+// @tag.name 06. Models
+// @tag.description Direct AI Model access endpoints (Non-RAG)
+
+// @tag.name 07. Recordings
 // @tag.description Recordings management endpoints
 
-// @tag.name 07. Flush
-// @tag.description Cache management endpoints
-
-// @tag.name 08. Health
-// @tag.description Health check endpoint
+// @tag.name 08. Common
+// @tag.description Common endpoints (Health, Cache)
+// @tag.name 09. Mail
+// @tag.description Mail service endpoints
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -89,17 +92,21 @@ func main() {
 		os.Exit(0)
 	}
 
+	if err := run(); err != nil {
+		utils.LogError("FATAL: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	utils.LoadConfig()
 
 	// Initialize database connection
 	_, err := infrastructure.InitDB()
 	if err != nil {
-		utils.LogInfo("FATAL: Failed to initialize database: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to initialize database: %w", err)
 	}
-	defer func() {
-		_ = infrastructure.CloseDB()
-	}()
+	defer func() { _ = infrastructure.CloseDB() }()
 	utils.LogInfo("Database initialized successfully")
 
 	// Auto Migrate Entities
@@ -110,8 +117,7 @@ func main() {
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
 	); err != nil {
-		utils.LogInfo("FATAL: Failed to auto-migrate entities: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to auto-migrate entities: %w", err)
 	}
 	utils.LogInfo("Entities auto-migrated successfully")
 
@@ -124,7 +130,7 @@ func main() {
 	if err != nil {
 		utils.LogInfo("Warning: Failed to initialize BadgerDB: %v", err)
 	} else {
-		defer badgerService.Close()
+		defer func() { _ = badgerService.Close() }()
 	}
 
 	// Initialize Vector DB
@@ -145,6 +151,7 @@ func main() {
 	// Initialize Modules
 	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService)
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, teraluxRepo)
+	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
 	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
@@ -165,24 +172,50 @@ func main() {
 	// 3. Teralux Routes (CRUD)
 	teraluxModule.RegisterRoutes(router, protected)
 
+	// 3a. Mail Routes
+	mailModule.RegisterRoutes(protected)
+
 	// 4. Recordings Module
 	recordingsModule := recordings.NewRecordingsModule(badgerService)
 	recordingsModule.RegisterRoutes(router, protected)
 
 	// 5. Speech & RAG Modules (migrated from stt-service)
 	scfg := utils.GetConfig()
-	// Log current log level for diagnostic purposes
-	fmt.Printf("Application log level: %s\n", utils.GetCurrentLogLevelName())
+	// Log current configuration for diagnostic purposes
+	utils.LogInfo("Startup: LLM Provider is set to '%s'", scfg.LLMProvider)
+	utils.LogInfo("Startup: Application log level is '%s'", utils.GetCurrentLogLevelName())
 	missing := []string{}
-	if scfg.LLMProvider == "" {
-		missing = append(missing, "LLM_PROVIDER")
+	// Validate mandatory config based on provider
+	switch scfg.LLMProvider {
+	case "gemini":
+		if scfg.GeminiApiKey == "" {
+			missing = append(missing, "GEMINI_API_KEY")
+		}
+	case "openai":
+		if scfg.OpenAIApiKey == "" {
+			missing = append(missing, "OPENAI_API_KEY")
+		}
+	case "groq":
+		if scfg.GroqApiKey == "" {
+			missing = append(missing, "GROQ_API_KEY")
+		}
+	case "orion":
+		if scfg.OrionApiKey == "" {
+			missing = append(missing, "ORION_API_KEY")
+		}
+		if scfg.OrionWhisperBaseURL == "" && scfg.WhisperLocalModel == "" {
+			missing = append(missing, "ORION_WHISPER_BASE_URL (required for Orion Whisper)")
+		}
+	default:
+		// If no provider or invalid, still check for common fallback
+		if scfg.GeminiApiKey == "" && scfg.OrionApiKey == "" && scfg.OpenAIApiKey == "" && scfg.GroqApiKey == "" {
+			missing = append(missing, "LLM API Key (GEMINI_API_KEY, OPENAI_API_KEY, GROQ_API_KEY, or ORION_API_KEY)")
+		}
 	}
-	if scfg.LLMModel == "" {
-		missing = append(missing, "LLM_MODEL")
-	}
-	if scfg.WhisperModelPath == "" {
-		missing = append(missing, "WHISPER_MODEL_PATH")
-	}
+
+	// Whisper check (only if not using multimodal/API-based providers that handle it)
+	// Actually all our new providers handle it, but we might want local fallback.
+	// For now, if provider is set, we trust its InitModule to fail if specific whisper model is missing.
 	if scfg.MaxFileSize == 0 {
 		missing = append(missing, "MAX_FILE_SIZE_MB")
 	}
@@ -190,30 +223,27 @@ func main() {
 		missing = append(missing, "PORT")
 	}
 	if len(missing) > 0 {
-		utils.LogError("FATAL: Speech/RAG config incomplete: %v", missing)
-		os.Exit(1)
-	} else {
-		// Initialize RAG first as it's a dependency for Speech
-		utils.LogInfo("Configuring LLM: Provider=%s, Model=%s", scfg.LLMProvider, scfg.LLMModel)
-		ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
-
-		// Initialize Speech with RAG, Badger and Tuya Auth dependencies
-		speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
-
-		// 6. Scene Module
-		sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
-		sceneModule.RegisterRoutes(protected)
+		return fmt.Errorf("speech/RAG config incomplete: %v", missing)
 	}
 
+	// Initialize RAG first as it's a dependency for Speech
+	utils.LogInfo("Configuring RAG/Speech...")
+	ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
+
+	// Initialize Speech with RAG, Badger and Tuya Auth dependencies
+	speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
+
+	// 6. Scene Module
+	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
+	sceneModule.RegisterRoutes(protected)
+
 	// Register Health at the end so it appears last in Swagger
-	router.GET("/health", commonModule.HealthController.CheckHealth)
+	router.GET("/api/health", commonModule.HealthController.CheckHealth)
 
 	port := scfg.Port
 	if port == "" {
 		port = "8080"
 	}
 	utils.LogInfo("Server starting on :%s", port)
-	if err := router.Run(":" + port); err != nil {
-		utils.LogInfo("Failed to start server: %v", err)
-	}
+	return router.Run(":" + port)
 }

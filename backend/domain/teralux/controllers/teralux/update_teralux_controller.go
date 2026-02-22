@@ -33,7 +33,9 @@ func (c *UpdateTeraluxController) UpdateTeralux(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
-			Data:    nil,
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -58,10 +60,10 @@ func (c *UpdateTeraluxController) UpdateTeralux(ctx *gin.Context) {
 			statusCode = http.StatusConflict
 		}
 
+		utils.LogError("UpdateTeraluxController.UpdateTeralux: %v", err)
 		ctx.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
-			Message: "Failed to update teralux: " + err.Error(),
-			Data:    nil,
+			Message: http.StatusText(statusCode),
 		})
 		return
 	}

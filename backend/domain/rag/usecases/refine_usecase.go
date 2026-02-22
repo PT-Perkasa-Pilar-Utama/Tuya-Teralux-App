@@ -1,10 +1,9 @@
 package usecases
 
 import (
-	"fmt"
 	"strings"
 	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/utilities"
+	"teralux_app/domain/rag/skills"
 )
 
 type RefineUseCase interface {
@@ -12,14 +11,16 @@ type RefineUseCase interface {
 }
 
 type refineUseCase struct {
-	llm    utilities.LLMClient
-	config *utils.Config
+	llm         skills.LLMClient
+	fallbackLLM skills.LLMClient
+	config      *utils.Config
 }
 
-func NewRefineUseCase(llm utilities.LLMClient, cfg *utils.Config) RefineUseCase {
+func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config) RefineUseCase {
 	return &refineUseCase{
-		llm:    llm,
-		config: cfg,
+		llm:         llm,
+		fallbackLLM: fallbackLLM,
+		config:      cfg,
 	}
 }
 
@@ -29,38 +30,25 @@ func (u *refineUseCase) RefineText(text string, lang string) (string, error) {
 		return "", nil
 	}
 
-	var prompt string
-
-	if strings.ToLower(lang) == "id" {
-		// Indonesian KBBI / Formal Fix
-		prompt = fmt.Sprintf(`You are a professional Indonesian editor. 
-Fix the grammar, spelling, and word choices of the following transcription to align with standard Indonesian (KBBI/PUEBI).
-Ensure the tone is clear and professional while preserving the original meaning.
-Only return the final polished text without any explanation, quotes, or additional commentary.
-
-Text: "%s"
-Sesuai KBBI:`, text)
-	} else {
-		// English / Default Grammar Fix
-		prompt = fmt.Sprintf(`You are a professional English editor. 
-Fix any grammatical errors, spelling mistakes, and improve the clarity of the following transcription.
-If the text is already clear, return it as is.
-Only return the final polished text without any explanation, quotes, or additional commentary.
-
-Text: "%s"
-Refined English:`, text)
+	skill := &skills.RefineSkill{}
+	ctx := &skills.SkillContext{
+		Prompt:   text,
+		Language: lang,
+		LLM:      u.llm,
+		Config:   u.config,
 	}
 
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
+	res, err := skill.Execute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("Refine: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctx)
 	}
 
-	refined, err := u.llm.CallModel(prompt, model)
 	if err != nil {
 		return "", err
 	}
 
-	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, refined)
-	return strings.TrimSpace(refined), nil
+	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, res.Message)
+	return res.Message, nil
 }

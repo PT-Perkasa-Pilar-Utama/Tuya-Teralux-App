@@ -39,7 +39,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Flush"
+                    "08. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -53,6 +53,574 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/health": {
+            "get": {
+                "description": "Check if the application and database are healthy",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "08. Common"
+                ],
+                "summary": "Health check endpoint",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mail/send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send an email using a server-side template and specified recipients",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Mail"
+                ],
+                "summary": "Send an email using a template",
+                "parameters": [
+                    {
+                        "description": "Mail Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.MailSendRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.MailTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mail/send/mac/{mac_address}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Looks up customer email by MAC address and sends an email using a template",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Mail"
+                ],
+                "summary": "Send an email by Teralux MAC Address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Teralux MAC Address",
+                        "name": "mac_address",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Mail Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SendMailByMacRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Email task submitted successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.MailTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mail/status/{task_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the status and result of an email sending task.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Mail"
+                ],
+                "summary": "Get email task status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.MailStatusDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/gemini": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the Gemini LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to Gemini model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/groq": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the Groq LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to Groq model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/llama/cpp": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the local Llama.cpp LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to local Llama.cpp model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/openai": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the OpenAI LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to OpenAI model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/models/orion": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a raw prompt directly to the Orion LLM model without RAG orchestration.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Models"
+                ],
+                "summary": "Raw prompt query to Orion model",
+                "parameters": [
+                    {
+                        "description": "Prompt Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RAGRawPromptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGRawPromptResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -355,7 +923,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "List all recordings",
                 "parameters": [
@@ -378,13 +946,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.GetAllRecordingsResponseDto"
+                                            "$ref": "#/definitions/recordings_dtos.GetAllRecordingsResponseDto"
                                         }
                                     }
                                 }
@@ -394,13 +962,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
@@ -419,7 +987,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Save a new recording",
                 "parameters": [
@@ -437,13 +1005,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
                                         }
                                     }
                                 }
@@ -453,19 +1021,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
@@ -483,7 +1051,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Get recording by ID",
                 "parameters": [
@@ -501,13 +1069,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.RecordingResponseDto"
+                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
                                         }
                                     }
                                 }
@@ -517,19 +1085,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
@@ -545,7 +1113,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "07. Recordings"
                 ],
                 "summary": "Delete a recording",
                 "parameters": [
@@ -561,32 +1129,72 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.RecordingStandardResponse"
+                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
                         }
                     }
                 }
             }
         },
-        "/api/speech/transcribe": {
+        "/api/scenes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all configured scenes grouped under each Teralux device",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "List all scenes across all Teralux devices",
+                "responses": {
+                    "200": {
+                        "description": "All scenes grouped by Teralux",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dtos.TeraluxScenesWrapperDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/models/gemini": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Start transcription of audio file using local Whisper STT. Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "description": "Submit audio file for transcription via Gemini. Processing is asynchronous.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -596,7 +1204,7 @@ const docTemplate = `{
                 "tags": [
                     "04. Speech"
                 ],
-                "summary": "Transcribe audio file (Whisper)",
+                "summary": "Transcribe audio file (Gemini)",
                 "parameters": [
                     {
                         "type": "file",
@@ -658,14 +1266,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/speech/transcribe/ppu": {
+        "/api/speech/models/groq": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Submit audio file for transcription via Outsystems proxy. Processing is asynchronous.",
+                "description": "Submit audio file for transcription via Groq. Processing is asynchronous.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -675,7 +1283,7 @@ const docTemplate = `{
                 "tags": [
                     "04. Speech"
                 ],
-                "summary": "Transcribe audio file (Proxy to Outsystems)",
+                "summary": "Transcribe audio file (Groq)",
                 "parameters": [
                     {
                         "type": "file",
@@ -737,14 +1345,172 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/speech/transcribe/whisper/cpp": {
+        "/api/speech/models/openai": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Start transcription of audio file using Whisper.cpp. Asynchronous processing with background execution. Pure Whisper.cpp, no PPU. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "description": "Submit audio file for transcription via OpenAI. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Speech"
+                ],
+                "summary": "Transcribe audio file (OpenAI)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/models/orion": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Orion. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Speech"
+                ],
+                "summary": "Transcribe audio file (Orion)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/models/whisper/cpp": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Whisper.cpp. Processing is asynchronous.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -767,8 +1533,86 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Language code (e.g. id, en)",
                         "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/speech/transcribe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Start transcription of audio file using the configured LLM provider (LLM_PROVIDER). Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Speech"
+                ],
+                "summary": "Transcribe audio file (Unified)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -824,7 +1668,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the status and result of any transcription task (Short, Long, or PPU).",
+                "description": "Get the status and result of any transcription task (Short, Long, or Orion).",
                 "produces": [
                     "application/json"
                 ],
@@ -853,7 +1697,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.AsyncTranscriptionProcessStatusResponseDTO"
+                                            "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
                                         }
                                     }
                                 }
@@ -882,7 +1726,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of all configured scenes for a specific Teralux device",
+                "description": "Retrieve a list of all configured scenes for a specific Teralux device, including all actions for each scene.",
                 "produces": [
                     "application/json"
                 ],
@@ -901,7 +1745,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of scenes",
+                        "description": "List of scenes with actions",
                         "schema": {
                             "allOf": [
                                 {
@@ -913,7 +1757,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dtos.SceneListResponseDTO"
+                                                "$ref": "#/definitions/dtos.SceneResponseDTO"
                                             }
                                         }
                                     }
@@ -972,7 +1816,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
                         }
@@ -1416,32 +2260,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/health": {
-            "get": {
-                "description": "Check if the application and database are healthy",
-                "produces": [
-                    "text/plain"
-                ],
-                "tags": [
-                    "08. Health"
-                ],
-                "summary": "Health check endpoint",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -1461,17 +2279,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "value": {}
-            }
-        },
-        "dtos.AsyncTranscriptionProcessStatusResponseDTO": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                },
-                "task_status": {
-                    "$ref": "#/definitions/dtos.AsyncTranscriptionStatusDTO"
-                }
             }
         },
         "dtos.AsyncTranscriptionResultDTO": {
@@ -1494,6 +2301,14 @@ const docTemplate = `{
         "dtos.AsyncTranscriptionStatusDTO": {
             "type": "object",
             "properties": {
+                "duration_seconds": {
+                    "type": "number",
+                    "example": 1.5
+                },
+                "error": {
+                    "type": "string",
+                    "example": "service unavailable"
+                },
                 "expires_at": {
                     "type": "string"
                 },
@@ -1503,9 +2318,17 @@ const docTemplate = `{
                 "result": {
                     "$ref": "#/definitions/dtos.AsyncTranscriptionResultDTO"
                 },
+                "started_at": {
+                    "type": "string",
+                    "example": "2026-02-21T11:00:00Z"
+                },
                 "status": {
                     "type": "string",
                     "example": "completed"
+                },
+                "trigger": {
+                    "type": "string",
+                    "example": "/api/speech/models/gemini"
                 }
             }
         },
@@ -1526,23 +2349,78 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.GetAllRecordingsResponseDto": {
+        "dtos.MailSendRequestDTO": {
             "type": "object",
+            "required": [
+                "subject",
+                "to"
+            ],
             "properties": {
-                "limit": {
-                    "type": "integer"
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/summary_123.pdf"
                 },
-                "page": {
-                    "type": "integer"
+                "subject": {
+                    "type": "string",
+                    "example": "Notification"
                 },
-                "recordings": {
+                "template": {
+                    "type": "string",
+                    "example": "test"
+                },
+                "to": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/dtos.RecordingResponseDto"
-                    }
+                        "type": "string"
+                    },
+                    "example": [
+                        "user@example.com"
+                    ]
+                }
+            }
+        },
+        "dtos.MailStatusDTO": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {
+                    "type": "number"
                 },
-                "total": {
+                "error": {
+                    "type": "string",
+                    "example": "smtp auth failed"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
                     "type": "integer"
+                },
+                "result": {
+                    "type": "string",
+                    "example": "Email sent to user@example.com"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                },
+                "trigger": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.MailTaskResponseDTO": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string",
+                    "example": "mail-abc-123"
+                },
+                "task_status": {
+                    "type": "string",
+                    "example": "pending"
                 }
             }
         },
@@ -1564,6 +2442,10 @@ const docTemplate = `{
                 "teralux_id": {
                     "type": "string",
                     "example": "tx-1"
+                },
+                "uid": {
+                    "type": "string",
+                    "example": "sg1765..."
                 }
             }
         },
@@ -1581,6 +2463,42 @@ const docTemplate = `{
                 "teralux_id": {
                     "type": "string",
                     "example": "tx-1"
+                }
+            }
+        },
+        "dtos.RAGRawPromptRequestDTO": {
+            "type": "object",
+            "required": [
+                "prompt"
+            ],
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "example": "Hello, how are you?"
+                }
+            }
+        },
+        "dtos.RAGRawPromptResponseDTO": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {
+                    "type": "number"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                },
+                "trigger": {
+                    "type": "string"
                 }
             }
         },
@@ -1602,8 +2520,16 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "body": {},
+                "duration_seconds": {
+                    "type": "number",
+                    "example": 2.5
+                },
                 "endpoint": {
                     "type": "string"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "gemini api returned status 503"
                 },
                 "execution_result": {
                     "description": "holds the response from the fetched endpoint"
@@ -1624,11 +2550,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "result": {
-                    "description": "raw LLM response when not structured",
-                    "type": "string"
+                    "type": "string",
+                    "example": "The meeting discussed..."
+                },
+                "started_at": {
+                    "type": "string",
+                    "example": "2026-02-21T11:00:00Z"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "completed"
+                },
+                "trigger": {
+                    "type": "string",
+                    "example": "/api/rag/summary"
                 }
             }
         },
@@ -1657,42 +2592,32 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.RecordingResponseDto": {
+        "dtos.SceneItemDTO": {
             "type": "object",
             "properties": {
-                "audio_url": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "filename": {
-                    "type": "string"
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionDTO"
+                    }
                 },
                 "id": {
                     "type": "string"
                 },
-                "original_name": {
+                "name": {
                     "type": "string"
                 }
             }
         },
-        "dtos.RecordingStandardResponse": {
+        "dtos.SceneResponseDTO": {
             "type": "object",
             "properties": {
-                "data": {},
-                "details": {},
-                "message": {
-                    "type": "string"
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionDTO"
+                    }
                 },
-                "status": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "dtos.SceneListResponseDTO": {
-            "type": "object",
-            "properties": {
                 "id": {
                     "type": "string"
                 },
@@ -1701,6 +2626,26 @@ const docTemplate = `{
                 },
                 "teralux_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.SendMailByMacRequestDTO": {
+            "type": "object",
+            "required": [
+                "subject"
+            ],
+            "properties": {
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/summary_123.pdf"
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Booking Confirmation"
+                },
+                "template": {
+                    "type": "string",
+                    "example": "test"
                 }
             }
         },
@@ -1721,6 +2666,28 @@ const docTemplate = `{
                 },
                 "temperature": {
                     "type": "number"
+                }
+            }
+        },
+        "dtos.TeraluxScenesDTO": {
+            "type": "object",
+            "properties": {
+                "scenes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.SceneItemDTO"
+                    }
+                },
+                "teralux_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.TeraluxScenesWrapperDTO": {
+            "type": "object",
+            "properties": {
+                "teralux": {
+                    "$ref": "#/definitions/dtos.TeraluxScenesDTO"
                 }
             }
         },
@@ -1903,16 +2870,77 @@ const docTemplate = `{
                 }
             }
         },
+        "recordings_dtos.GetAllRecordingsResponseDto": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "recordings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "recordings_dtos.RecordingResponseDto": {
+            "type": "object",
+            "properties": {
+                "audio_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "original_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "recordings_dtos.StandardResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "details": {
+                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "teralux_app_domain_common_dtos.StandardResponse": {
             "type": "object",
             "properties": {
                 "data": {},
-                "details": {},
+                "details": {
+                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
+                },
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Success"
                 },
                 "status": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -1920,9 +2948,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {},
-                "details": {
-                    "type": "string"
-                },
+                "details": {},
                 "message": {
                     "type": "string"
                 },
@@ -1980,16 +3006,20 @@ const docTemplate = `{
             "name": "05. RAG"
         },
         {
+            "description": "Direct AI Model access endpoints (Non-RAG)",
+            "name": "06. Models"
+        },
+        {
             "description": "Recordings management endpoints",
-            "name": "06. Recordings"
+            "name": "07. Recordings"
         },
         {
-            "description": "Cache management endpoints",
-            "name": "07. Flush"
+            "description": "Common endpoints (Health, Cache)",
+            "name": "08. Common"
         },
         {
-            "description": "Health check endpoint",
-            "name": "08. Health"
+            "description": "Mail service endpoints",
+            "name": "09. Mail"
         }
     ]
 }`

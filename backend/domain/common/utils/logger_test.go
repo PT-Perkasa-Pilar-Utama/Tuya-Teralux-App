@@ -24,7 +24,7 @@ func TestUpdateLogLevel(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Save original env
 			original := os.Getenv("LOG_LEVEL")
-			defer os.Setenv("LOG_LEVEL", original)
+			defer func() { _ = os.Setenv("LOG_LEVEL", original) }()
 
 			// Save and clear global AppConfig to avoid interference
 			originalConfig := AppConfig
@@ -32,7 +32,7 @@ func TestUpdateLogLevel(t *testing.T) {
 			defer func() { AppConfig = originalConfig }()
 
 			// Set test value
-			os.Setenv("LOG_LEVEL", tt.envValue)
+			_ = os.Setenv("LOG_LEVEL", tt.envValue)
 			UpdateLogLevel()
 
 			if currentLogLevel != tt.expected {

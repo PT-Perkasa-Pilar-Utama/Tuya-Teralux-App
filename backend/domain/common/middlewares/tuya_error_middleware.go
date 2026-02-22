@@ -53,7 +53,6 @@ func TuyaErrorMiddleware() gin.HandlerFunc {
 			newResponse := dtos.StandardResponse{
 				Status:  false,
 				Message: "Token expired. Please login or refresh the token",
-				Data:    nil,
 			}
 			c.Header("Content-Type", "application/json")
 			c.Status(http.StatusUnauthorized)

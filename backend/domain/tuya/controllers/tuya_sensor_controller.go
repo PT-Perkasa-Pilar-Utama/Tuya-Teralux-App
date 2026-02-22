@@ -38,8 +38,10 @@ func (c *TuyaSensorController) GetSensorData(ctx *gin.Context) {
 	if deviceID == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "device ID is required",
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "id", Message: "Device ID is required"},
+			},
 		})
 		return
 	}
@@ -50,11 +52,10 @@ func (c *TuyaSensorController) GetSensorData(ctx *gin.Context) {
 
 	data, err := c.useCase.GetSensorData(accessToken, deviceID)
 	if err != nil {
-		utils.LogError("GetSensorData failed: %v", err)
+		utils.LogError("TuyaSensorController.GetSensorData: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}

@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	scene_dtos "teralux_app/domain/scene/dtos"
 	"teralux_app/domain/scene/entities"
 	"teralux_app/domain/scene/usecases"
@@ -30,7 +31,7 @@ func NewSceneAddController(useCase *usecases.AddSceneUseCase) *SceneAddControlle
 // @Param scene body scene_dtos.CreateSceneRequestDTO true "Scene configuration"
 // @Success 201 {object} dtos.StandardResponse "Scene created"
 // @Failure 400 {object} dtos.StandardResponse "Invalid request"
-// @Failure 500 {object} dtos.StandardResponse "Internal error"
+// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Security BearerAuth
 // @Router /api/teralux/{id}/scenes [post]
 func (c *SceneAddController) AddScene(ctx *gin.Context) {
@@ -39,7 +40,10 @@ func (c *SceneAddController) AddScene(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -51,9 +55,10 @@ func (c *SceneAddController) AddScene(ctx *gin.Context) {
 
 	sceneID, err := c.useCase.AddScene(teraluxID, req.Name, actions)
 	if err != nil {
+		utils.LogError("SceneAddController.AddScene: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: "Internal Server Error",
 		})
 		return
 	}
@@ -61,6 +66,6 @@ func (c *SceneAddController) AddScene(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, dtos.StandardResponse{
 		Status:  true,
 		Message: "Scene created successfully",
-		Data:    gin.H{"scene_id": sceneID},
+		Data:    scene_dtos.SceneIDResponseDTO{SceneID: sceneID},
 	})
 }

@@ -24,7 +24,8 @@ Removes all data from the absolute persistent cache storage (Badger DB). This op
 ```json
 {
   "status": true,
-  "message": "Cache flushed successfully"
+  "message": "Cache flushed successfully",
+  "data": null
 }
 ```
   *(Status: 200 OK)*

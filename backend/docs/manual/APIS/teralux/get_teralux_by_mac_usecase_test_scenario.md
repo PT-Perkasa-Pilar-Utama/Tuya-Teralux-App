@@ -70,7 +70,10 @@ Retrieve a single Teralux device by its MAC address.
 ```json
 {
   "status": false,
-  "message": "Invalid MAC address format"
+  "message": "Validation Error",
+  "details": [
+    { "field": "mac_address", "message": "Invalid MAC address format" }
+  ]
 }
 ```
   *(Status: 400 Bad Request)*

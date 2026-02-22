@@ -24,8 +24,7 @@ func ApiKeyMiddleware() gin.HandlerFunc {
 			utils.LogError("ApiKeyMiddleware: API_KEY is not set in server config!")
 			c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 				Status:  false,
-				Message: "Server misconfiguration: API_KEY not set",
-				Data:    nil,
+				Message: "Internal Server Error",
 			})
 			c.Abort()
 			return
@@ -36,7 +35,6 @@ func ApiKeyMiddleware() gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, dtos.StandardResponse{
 				Status:  false,
 				Message: "Invalid API Key",
-				Data:    nil,
 			})
 			c.Abort()
 			return

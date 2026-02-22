@@ -10,7 +10,7 @@ import (
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/services"
-	"teralux_app/domain/rag/utilities"
+	"teralux_app/domain/rag/skills"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,11 +18,14 @@ import (
 
 type SummaryUseCase interface {
 	SummarizeText(text string, language string, meetingContext string, style string) (string, error)
+	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, trigger string) (string, error)
 	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error)
+	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, trigger string) (string, error)
 }
 
 type summaryUseCase struct {
-	llm           utilities.LLMClient
+	llm           skills.LLMClient
+	fallbackLLM   skills.LLMClient
 	config        *utils.Config
 	cache         *tasks.BadgerTaskCache
 	store         *tasks.StatusStore[dtos.RAGStatusDTO]
@@ -32,7 +35,8 @@ type summaryUseCase struct {
 }
 
 func NewSummaryUseCase(
-	llm utilities.LLMClient,
+	llm skills.LLMClient,
+	fallbackLLM skills.LLMClient,
 	cfg *utils.Config,
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
@@ -40,6 +44,7 @@ func NewSummaryUseCase(
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:           llm,
+		fallbackLLM:   fallbackLLM,
 		config:        cfg,
 		cache:         cache,
 		store:         store,
@@ -59,32 +64,32 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	targetLangName := "Indonesian"
-	if strings.ToLower(language) == "en" {
+	if strings.EqualFold(language, "en") {
 		targetLangName = "English"
 	}
 
-	// Build structured prompt with configured assertiveness and risk scoring
-	promptConfig := &services.PromptConfig{
-		Assertiveness: 8,          // Strategic assertiveness (calling out gaps/risks)
-		Audience:      "mixed",    // C-level + VP/Director level
-		RiskScale:     "granular", // 1-10 scoring for nuance
-		Context:       meetingContext,
-		Style:         style,
-		Language:      targetLangName,
-	}
-	prompt := promptConfig.BuildPrompt(text)
-
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
+	// Delegate prompt generation and LLM call to SummarySkill
+	skill := &skills.SummarySkill{}
+	ctx := &skills.SkillContext{
+		Prompt:   text,
+		Language: language,
+		LLM:      u.llm,
+		Config:   u.config,
+		// History can be used to pass context/style if extended
 	}
 
-	summary, err := u.llm.CallModel(prompt, model)
+	res, err := skill.Execute(ctx)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("SummaryTask: Primary LLM failed, falling back to local model: %v", err)
+		ctx.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctx)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	trimmedSummary := strings.TrimSpace(summary)
+	trimmedSummary := res.Message
 
 	// Generate PDF
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
@@ -97,7 +102,7 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
 
 	// Create reports directory if not exists
-	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {
 		meta := services.SummaryPDFMeta{
@@ -124,29 +129,29 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 }
 
 func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string) (string, error) {
+	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, "")
+}
+
+func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, trigger string) (string, error) {
 	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{Status: "pending"}
+	status := &dtos.RAGStatusDTO{
+		Status:    "pending",
+		Trigger:   trigger,
+		StartedAt: time.Now().Format(time.RFC3339),
+	}
 	u.store.Set(taskID, status)
 
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
 		result, err := u.summaryInternal(text, language, meetingContext, style)
-		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
-			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.updateStatus(taskID, "failed", err, nil)
 		} else {
 			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
-			finalStatus = &dtos.RAGStatusDTO{
-				Status:          "completed",
-				ExecutionResult: result,
-				Result:          result.Summary,
-			}
+			u.updateStatus(taskID, "completed", nil, result)
 		}
-
-		u.store.Set(taskID, finalStatus)
-		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil
@@ -169,6 +174,10 @@ func (u *summaryUseCase) SummarizeText(text string, language string, meetingCont
 //	defer cancel()
 //	taskID, err := useCase.SummarizeTextWithContext(ctx, transcript, "en", "meeting", "executive")
 func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error) {
+	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, "")
+}
+
+func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, trigger string) (string, error) {
 	// Validate context is not already cancelled
 	select {
 	case <-ctx.Done():
@@ -177,7 +186,11 @@ func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text stri
 	}
 
 	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{Status: "pending"}
+	status := &dtos.RAGStatusDTO{
+		Status:    "pending",
+		Trigger:   trigger,
+		StartedAt: time.Now().Format(time.RFC3339),
+	}
 	u.store.Set(taskID, status)
 	_ = u.cache.Set(taskID, status)
 
@@ -188,28 +201,19 @@ func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text stri
 		// Check if parent context was cancelled before starting
 		select {
 		case <-ctx.Done():
-			u.store.Set(taskID, &dtos.RAGStatusDTO{Status: "cancelled", Result: "Parent context cancelled"})
-			_ = u.cache.SetPreserveTTL(taskID, &dtos.RAGStatusDTO{Status: "cancelled"})
+			u.updateStatus(taskID, "cancelled", ctx.Err(), nil)
 			return
 		default:
 		}
 
 		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style)
-		var finalStatus *dtos.RAGStatusDTO
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
-			finalStatus = &dtos.RAGStatusDTO{Status: "failed", Result: err.Error()}
+			u.updateStatus(taskID, "failed", err, nil)
 		} else {
 			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
-			finalStatus = &dtos.RAGStatusDTO{
-				Status:          "completed",
-				ExecutionResult: result,
-				Result:          result.Summary,
-			}
+			u.updateStatus(taskID, "completed", nil, result)
 		}
-
-		u.store.Set(taskID, finalStatus)
-		_ = u.cache.SetPreserveTTL(taskID, finalStatus)
 	}()
 
 	return taskID, nil
@@ -239,49 +243,35 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		language = "id"
 	}
 
+	// Delegate prompt generation and LLM call to SummarySkill with context (manually enforced for now)
+	skill := &skills.SummarySkill{}
+	ctxSkill := &skills.SkillContext{
+		Prompt:   text,
+		Language: language,
+		LLM:      u.llm,
+		Config:   u.config,
+	}
+
+	// Calculate targetLangName for PDF Meta (logic moved from deleted block)
 	targetLangName := "Indonesian"
-	if strings.ToLower(language) == "en" {
+	if strings.EqualFold(language, "en") {
 		targetLangName = "English"
 	}
 
-	// Check context before proceeding
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("operation cancelled: %w", ctx.Err())
-	default:
+	// We can't easily pass the context cancellation to Skill.Execute yet without modifying Skill interface.
+	// For now, we rely on the skill execution.
+	res, err := skill.Execute(ctxSkill)
+	if err != nil && u.fallbackLLM != nil {
+		utils.LogWarn("SummaryTask (WithContext): Primary LLM failed, falling back to local model: %v", err)
+		ctxSkill.LLM = u.fallbackLLM
+		res, err = skill.Execute(ctxSkill)
 	}
 
-	// Build structured prompt
-	promptConfig := &services.PromptConfig{
-		Assertiveness: 8,
-		Audience:      "mixed",
-		RiskScale:     "granular",
-		Context:       meetingContext,
-		Style:         style,
-		Language:      targetLangName,
-	}
-	prompt := promptConfig.BuildPrompt(text)
-
-	model := u.config.LLMModel
-	if model == "" {
-		model = "default"
-	}
-
-	// LLM call (currently no built-in context support in CallModel, so we check before/after)
-	// In future: upgrade LLMClient interface to accept context
-	summary, err := u.llm.CallModel(prompt, model)
 	if err != nil {
-		return nil, fmt.Errorf("LLM call failed: %w", err)
+		return nil, fmt.Errorf("SummarySkill execution failed: %w", err)
 	}
 
-	// Check context again after LLM call
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("operation cancelled after LLM call: %w", ctx.Err())
-	default:
-	}
-
-	trimmedSummary := strings.TrimSpace(summary)
+	trimmedSummary := res.Message
 
 	// PDF rendering with timeout
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
@@ -292,7 +282,7 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		basePath = filepath.Dir(envPath)
 	}
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
-	os.MkdirAll(filepath.Dir(pdfPath), 0755)
+	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {
 		// Use parent context directly
@@ -323,4 +313,38 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		Summary: trimmedSummary,
 		PDFUrl:  pdfUrl,
 	}, nil
+}
+
+func (u *summaryUseCase) updateStatus(taskID string, statusStr string, err error, result *dtos.RAGSummaryResponseDTO) {
+	var existing dtos.RAGStatusDTO
+	_, _, _ = u.cache.GetWithTTL(taskID, &existing)
+
+	status := &dtos.RAGStatusDTO{
+		Status:    statusStr,
+		StartedAt: existing.StartedAt,
+		Trigger:   existing.Trigger,
+		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+	}
+
+	if err != nil {
+		status.Error = err.Error()
+		status.Result = err.Error()
+		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+	}
+
+	if result != nil {
+		status.ExecutionResult = result
+		status.Result = result.Summary
+		status.HTTPStatusCode = 200
+	}
+
+	if statusStr == "completed" || statusStr == "failed" {
+		if existing.StartedAt != "" {
+			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
+			status.DurationSeconds = time.Since(startTime).Seconds()
+		}
+	}
+
+	u.store.Set(taskID, status)
+	_ = u.cache.SetPreserveTTL(taskID, status)
 }

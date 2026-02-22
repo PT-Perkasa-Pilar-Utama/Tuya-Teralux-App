@@ -3,6 +3,16 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("org.jlleitschuh.gradle.ktlint")
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    android = true
+    ignoreFailures = true
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+    }
 }
 
 android {
@@ -50,10 +60,33 @@ android {
     }
 
     defaultConfig {
-        buildConfigField("String", "MQTT_BROKER_URL", "\"${localProperties.getProperty("mqtt.broker_url") ?: ""}\"")
-        buildConfigField("String", "MQTT_USERNAME", "\"${localProperties.getProperty("mqtt.username") ?: ""}\"")
-        buildConfigField("String", "MQTT_PASSWORD", "\"${localProperties.getProperty("mqtt.password") ?: ""}\"")
-        buildConfigField("String", "TERALUX_API_KEY", "\"${localProperties.getProperty("teralux.api_key") ?: ""}\"")
+        val baseUrl = localProperties.getProperty("api.base_url") ?: "https://teralux.farismunir.my.id/"
+        val baseHostname = baseUrl.removePrefix("https://").removePrefix("http://").substringBefore(
+            "/"
+        )
+
+        buildConfigField(
+            "String",
+            "MQTT_BROKER_URL",
+            "\"${localProperties.getProperty("mqtt.broker_url") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "MQTT_USERNAME",
+            "\"${localProperties.getProperty("mqtt.username") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "MQTT_PASSWORD",
+            "\"${localProperties.getProperty("mqtt.password") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "TERALUX_API_KEY",
+            "\"${localProperties.getProperty("teralux.api_key") ?: ""}\""
+        )
+        buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+        buildConfigField("String", "BASE_HOSTNAME", "\"$baseHostname\"")
     }
 }
 
@@ -67,19 +100,19 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
-    
+
     // Required for XML themes referenced in AndroidManifest
     implementation("com.google.android.material:material:1.12.0")
-    
+
     // ViewModel utilities for Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
     implementation(libs.compose.markdown)
-    
+
     // Offline Speech Recognition (Vosk)
     implementation("com.alphacephei:vosk-android:0.3.75")
 

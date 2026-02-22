@@ -24,14 +24,14 @@ func (m *mockLLMForTranslate) CallModel(prompt string, model string) (string, er
 func TestTranslateUseCase_Execute(t *testing.T) {
 	utils.LoadConfig()
 	cfg := utils.GetConfig()
-	cfg.LLMModel = "test-model-v1"
+	cfg.GeminiModelLow = "test-model-v1"
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 
 	t.Run("Success", func(t *testing.T) {
 		mockLLM := &mockLLMForTranslate{
 			ReturnString: "  Hello World  ", // Intentionally padded to test trim
 		}
-		u := NewTranslateUseCase(mockLLM, cfg, nil, store)
+		u := NewTranslateUseCase(mockLLM, nil, cfg, nil, store)
 
 		taskID, err := u.TranslateText("hallo welt", "en")
 		if err != nil {
@@ -44,9 +44,9 @@ func TestTranslateUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("Empty Config Model fallback", func(t *testing.T) {
-		emptyCfg := &utils.Config{LLMModel: ""}
+		emptyCfg := &utils.Config{GeminiModelLow: ""}
 		mockLLM := &mockLLMForTranslate{}
-		u := NewTranslateUseCase(mockLLM, emptyCfg, nil, store)
+		u := NewTranslateUseCase(mockLLM, nil, emptyCfg, nil, store)
 
 		taskID, _ := u.TranslateText("test", "en")
 		if taskID == "" {

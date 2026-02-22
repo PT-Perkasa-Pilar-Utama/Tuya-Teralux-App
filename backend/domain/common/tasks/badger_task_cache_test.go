@@ -120,7 +120,7 @@ func TestBadgerTaskCache_SetPreserveTTL(t *testing.T) {
 
 	// Set initial data with TTL
 	initialStatus := &CacheTestStatus{Status: "pending", Message: "Initial"}
-	cache.Set("task-2", initialStatus)
+	_ = cache.Set("task-2", initialStatus)
 
 	// Store original TTL
 	originalTTL := mockBadger.ttls["test:task:task-2"]
@@ -141,7 +141,7 @@ func TestBadgerTaskCache_SetPreserveTTL(t *testing.T) {
 	// Verify data was updated
 	data := mockBadger.data["test:task:task-2"]
 	var retrieved CacheTestStatus
-	json.Unmarshal(data, &retrieved)
+	_ = json.Unmarshal(data, &retrieved)
 	if retrieved.Status != "completed" {
 		t.Errorf("expected status 'completed', got '%s'", retrieved.Status)
 	}
@@ -153,7 +153,7 @@ func TestBadgerTaskCache_GetWithTTL(t *testing.T) {
 
 	// Set data
 	status := &CacheTestStatus{Status: "running", Message: "In progress"}
-	cache.Set("task-3", status)
+	_ = cache.Set("task-3", status)
 
 	// Get with TTL
 	var retrieved CacheTestStatus

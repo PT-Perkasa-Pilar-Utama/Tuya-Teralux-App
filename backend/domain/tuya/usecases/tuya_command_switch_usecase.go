@@ -139,12 +139,13 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 
 				// Retry call
 				retryResp, retryErr := uc.service.SendCommand(retryFullURL, retryHeaders, retryCommands)
-				if retryErr == nil && retryResp.Success {
+				switch {
+				case retryErr == nil && retryResp.Success:
 					utils.LogInfo("Retry success with corrected commands!")
 					return retryResp.Result, nil
-				} else if retryErr != nil {
+				case retryErr != nil:
 					utils.LogError("Retry failed: %v", retryErr)
-				} else {
+				default:
 					utils.LogError("Retry API failed: %d %s", retryResp.Code, retryResp.Msg)
 				}
 			}

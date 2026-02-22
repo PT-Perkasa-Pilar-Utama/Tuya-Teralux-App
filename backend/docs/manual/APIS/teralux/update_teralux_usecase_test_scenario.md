@@ -107,7 +107,10 @@ Update an existing Teralux device's information.
 ```json
 {
   "status": false,
-  "message": "Invalid room_id: room does not exist"
+  "message": "Validation Error",
+  "details": [
+    { "field": "room_id", "message": "room does not exist" }
+  ]
 }
 ```
   *(Status: 422 Unprocessable Entity)*
@@ -131,7 +134,10 @@ Update an existing Teralux device's information.
 ```json
 {
   "status": false,
-  "message": "Validation Error: name cannot be empty"
+  "message": "Validation Error",
+  "details": [
+    { "field": "name", "message": "name cannot be empty" }
+  ]
 }
 ```
   *(Status: 422 Unprocessable Entity)*

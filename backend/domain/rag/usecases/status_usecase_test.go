@@ -24,7 +24,7 @@ func TestStatusUseCase_Execute(t *testing.T) {
 		t.Fatalf("failed to create badger service: %v", err)
 	}
 	defer func() {
-		badgerSvc.Close()
+		_ = badgerSvc.Close()
 		_ = os.RemoveAll(dbDir)
 	}()
 

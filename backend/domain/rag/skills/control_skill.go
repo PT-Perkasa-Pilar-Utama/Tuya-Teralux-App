@@ -27,7 +27,7 @@ func (s *ControlSkill) Name() string {
 }
 
 func (s *ControlSkill) Description() string {
-	return "Handles requests to control smart home devices, such as turning on lights, setting AC temperature, or checking device status."
+	return "Handles all action requests to control devices, including lights, AC, media/music playback, or checking device status."
 }
 
 func (s *ControlSkill) Execute(ctx *SkillContext) (*SkillResult, error) {
@@ -46,48 +46,35 @@ func (s *ControlSkill) Execute(ctx *SkillContext) (*SkillResult, error) {
 		return nil, fmt.Errorf("failed to unmarshal user devices: %w", err)
 	}
 
-	allowedIDs := make(map[string]tuyaDtos.TuyaDeviceDTO)
+	// 2. Hybrid Device Selection
+	// Try fast-match first (exact/partial name matching in prompt)
+	promptLower := strings.ToLower(ctx.Prompt)
+	var fastMatches []tuyaDtos.TuyaDeviceDTO
 	for _, d := range aggResp.Devices {
-		allowedIDs["tuya:device:"+d.ID] = d
-	}
-
-	// 2. Initial Similarity Search
-	matches, _ := ctx.Vector.Search(ctx.Prompt)
-	var validMatches []tuyaDtos.TuyaDeviceDTO
-	for _, m := range matches {
-		if dev, exists := allowedIDs[m]; exists {
-			validMatches = append(validMatches, dev)
+		nameLower := strings.ToLower(d.Name)
+		// If prompt contains device name OR device name contains prompt words (excluding keywords)
+		if strings.Contains(promptLower, nameLower) || (len(nameLower) > 3 && strings.Contains(nameLower, promptLower)) {
+			fastMatches = append(fastMatches, d)
 		}
 	}
 
-	// 3. Handle Ambiguity logic
-	if len(validMatches) == 0 {
-		return s.handleNoInitialMatches(ctx, aggResp.Devices)
+	// If we have a clear single fast-match, avoid LLM cost and potential hallucination
+	if len(fastMatches) == 1 {
+		fmt.Printf("DEBUG: ControlSkill: Fast-match hit for '%s'\n", fastMatches[0].Name)
+		return s.executeOnTarget(ctx, &fastMatches[0])
 	}
 
-	if len(validMatches) > 1 {
-		var names []string
-		for _, v := range validMatches {
-			names = append(names, fmt.Sprintf("- **%s**", v.Name))
-		}
-		return &SkillResult{
-			Message:        fmt.Sprintf("I found %d matching devices:\n%s\nWhich one would you like to control?", len(validMatches), strings.Join(names, "\n")),
-			HTTPStatusCode: 400,
-		}, nil
-	}
-
-	// 4. Single match found - Execute command
-	target := validMatches[0]
-	return s.executeOnTarget(ctx, &target)
+	// Otherwise, let the LLM decide from the full list (or the narrowed list if helpful)
+	return s.selectDeviceWithLLM(ctx, aggResp.Devices)
 }
 
-func (s *ControlSkill) handleNoInitialMatches(ctx *SkillContext, devices []tuyaDtos.TuyaDeviceDTO) (*SkillResult, error) {
+func (s *ControlSkill) selectDeviceWithLLM(ctx *SkillContext, devices []tuyaDtos.TuyaDeviceDTO) (*SkillResult, error) {
 	var historyContext string
 	if len(ctx.History) > 0 {
 		historyContext = "Previous conversation:\n" + strings.Join(ctx.History, "\n") + "\n"
 	}
 
-	var deviceList []string
+	deviceList := make([]string, 0, len(devices))
 	for _, d := range devices {
 		deviceList = append(deviceList, fmt.Sprintf("- %s (ID: %s)", d.Name, d.ID))
 	}
@@ -104,13 +91,13 @@ User Prompt: "%s"
 %s
 
 PANDUAN:
-1. KAPABILITAS: Jika ditanya apa yang bisa dikontrol atau perangkat apa yang tersedia, sebutkan perangkat dari daftar [Daftar Perangkat Tersedia] di atas.
+1. KOCARKIR (MATCHING): Cocokkan nama perangkat yang diminta dengan nama di [Daftar Perangkat Tersedia]. Nama mungkin tidak sama persis (misal: "Teralux" cocok dengan "Teralux (Receptionist)").
 2. KONTROL: 
-   - Jika pengguna jelas merujuk pada SATU perangkat spesifik dari daftar, kembalikan: "EXECUTE:[Device ID]".
-   - Jika pengguna menjawab pertanyaan tindak lanjut untuk memperjelas perangkat, identifikasi dan kembalikan: "EXECUTE:[Device ID]".
-3. AMBIGUITAS: Jika permintaan samar tetapi berkaitan dengan kontrol rumah pintar, ajukan pertanyaan klarifikasi yang sopan dan profesional.
-4. KEJUJURAN: Hanya bicara tentang perangkat yang ada di daftar [Daftar Perangkat Tersedia]. Jika perangkat tidak ada, katakan dengan jujur bahwa perangkat tidak ditemukan dalam sistem Sensio mereka.
-5. NO HALLUCINATION: Jika prompt tentang identitas Anda, abaikan dan fokus ke perangkat.
+   - Jika pengguna merujuk pada perangkat dari daftar, kembalikan: "EXECUTE:[Device ID]".
+   - Jika pengguna menjawab pertanyaan tindak lanjut, pilih ID-nya dan kembalikan: "EXECUTE:[Device ID]".
+3. AMBIGUITAS: Jika permintaan samar atau ada banyak kemiripan, ajukan pertanyaan klarifikasi yang sopan.
+4. KEJUJURAN: Hanya bicara tentang perangkat yang ada di daftar. Jika BENAR-BENAR tidak ada yang mirip, katakan perangkat tidak ditemukan.
+5. NO HALLUCINATION: Jangan mengarang Device ID. Gunakan hanya ID dari daftar di atas.
 
 Response (Bahasa Indonesia):`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 	} else {
@@ -124,21 +111,18 @@ User Prompt: "%s"
 %s
 
 GUIDELINES:
-1. CAPABILITIES: If asked what you can control or what devices are available, list the devices from the [Available Devices] section above.
+1. MATCHING: Match the requested device name with the names in [Available Devices]. Names might not match exactly (e.g., "Teralux" matches "Teralux (Receptionist)").
 2. CONTROL: 
-   - If the user is clearly referring to ONE specific device from the list, return: "EXECUTE:[Device ID]".
-   - If they are answering a follow-up question to clarify a device, identify it and return: "EXECUTE:[Device ID]".
-3. AMBIGUITY: If the request is vague but relates to smart home control, ask a professional follow-up question.
-4. HONESTY: Only talk about devices present in the [Available Devices] list. If a device isn't there, be direct and honest: tell the user that the device is not found in their Sensio system.
-5. NO HALLUCINATION: If the prompt is about your identity or what you are, the Orchestrator should have routed you to the Identity skill. If you are here, focus on device-related matters.
+   - If the user refers to a device from the list, return: "EXECUTE:[Device ID]".
+   - If they are answering a follow-up question, identify it and return: "EXECUTE:[Device ID]".
+3. AMBIGUITY: If the request is vague or matches multiple devices, ask a professional follow-up question.
+4. HONESTY: Only talk about devices present in the list. If it's CLEARLY not there, say it's not found.
+5. NO HALLUCINATION: Only use Device IDs from the [Available Devices] list.
 
 Response (English):`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 	}
 
-	model := ctx.Config.LLMModel
-	if model == "" {
-		model = "default"
-	}
+	model := "high"
 
 	res, err := ctx.LLM.CallModel(reconcilePrompt, model)
 	if err != nil {
@@ -146,6 +130,8 @@ Response (English):`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n")
 	}
 
 	cleanRes := strings.TrimSpace(res)
+	fmt.Printf("DEBUG: ControlSkill: LLM raw response: '%s'\n", cleanRes)
+
 	if strings.HasPrefix(cleanRes, "EXECUTE:") {
 		deviceID := strings.TrimPrefix(cleanRes, "EXECUTE:")
 		var targetDevice *tuyaDtos.TuyaDeviceDTO
@@ -188,17 +174,42 @@ func (s *ControlSkill) executeOnTarget(ctx *SkillContext, target *tuyaDtos.TuyaD
 
 	return &SkillResult{
 		Message:        res.Message,
+		Data:           map[string]interface{}{"device_id": target.ID},
 		IsControl:      true,
 		HTTPStatusCode: res.HTTPStatusCode,
 	}, nil
+
 }
 
 func (s *ControlSkill) selectDeviceSensor(device *tuyaDtos.TuyaDeviceDTO) sensors.DeviceSensor {
 	category := strings.ToLower(device.Category)
-	// If device has a RemoteID, it's an IR device (AC, TV, Fan, etc.)
+
+	// 1. IR Devices (AC, TV, Fan)
 	if device.RemoteID != "" || category == "rs" || category == "ac" || category == "cl" {
 		return sensors.NewIRACsensor()
 	}
-	// Default to Teralux sensor for other devices
-	return sensors.NewTeraluxSensor()
+
+	// 2. Lights (dj = light, xdd = ceiling light, fwd = floor light, etc)
+	if category == "dj" || category == "xdd" || category == "fwd" || category == "ty" {
+		return sensors.NewLightSensor()
+	}
+
+	// 3. Switches & Sockets (kg = switch, cz = outlet/socket, pc = power strip)
+	if category == "kg" || category == "cz" || category == "pc" {
+		return sensors.NewSwitchSensor()
+	}
+
+	// 4. Sensors (ws = temp/humidity, cs = pir/motion, mcs = door/window)
+	if category == "ws" || category == "cs" || category == "mcs" {
+		return sensors.NewTemperatureSensor()
+	}
+
+	// 5. Teralux Specific (dgnzk = voice/media control panel)
+	if category == "dgnzk" {
+		return sensors.NewTeraluxSensor()
+	}
+
+	// Default fallback: Try to handle as a switch if it has switch capabilities,
+	// otherwise defaults to basic TeraluxSensor which handles generic switches too.
+	return sensors.NewSwitchSensor()
 }

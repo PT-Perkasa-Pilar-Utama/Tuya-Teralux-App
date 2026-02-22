@@ -1,21 +1,28 @@
 package com.example.whisper_android.presentation.components
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,7 +42,8 @@ fun MicButton(
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.35f,
-        animationSpec = infiniteRepeatable(
+        animationSpec =
+        infiniteRepeatable(
             animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
@@ -44,7 +52,8 @@ fun MicButton(
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.5f,
         targetValue = 0f,
-        animationSpec = infiniteRepeatable(
+        animationSpec =
+        infiniteRepeatable(
             animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
@@ -53,15 +62,23 @@ fun MicButton(
 
     // --- Color Selection (Solid as requested) ---
     val primary = MaterialTheme.colorScheme.primary
-    val buttonColor = remember(isRecording, isPaused, isProcessing, hasPermission) {
-        when {
-            !hasPermission -> Color.Gray
-            isProcessing -> primary // Standardized to Primary
-            isPaused -> primary     // Standardized to Primary
-            isRecording -> Color(0xFFEF5350)  // Keep Red for Recording (Safety/Standard)
-            else -> primary        // Standardized to Primary
+    val buttonColor =
+        remember(isRecording, isPaused, isProcessing, hasPermission) {
+            when {
+                !hasPermission -> Color.Gray
+
+                isProcessing -> primary
+
+                // Standardized to Primary
+                isPaused -> primary
+
+                // Standardized to Primary
+                isRecording -> Color(0xFFEF5350)
+
+                // Keep Red for Recording (Safety/Standard)
+                else -> primary // Standardized to Primary
+            }
         }
-    }
 
     Box(
         contentAlignment = Alignment.Center,
@@ -70,22 +87,25 @@ fun MicButton(
         // Outer Pulse Layer
         if ((isRecording && !isPaused) || isProcessing) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .size(size * 1.25f)
                     .scale(pulseScale)
                     .alpha(pulseAlpha)
                     .background(buttonColor.copy(alpha = 0.3f), CircleShape)
             )
-            
+
             // Static Glow Layer for High Focus (Red Glow)
             if (isRecording && !isPaused) {
                 Box(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .size(size * 1.2f)
                         .background(Color(0xFFEF5350).copy(alpha = 0.2f), CircleShape)
                 )
                 Box(
-                    modifier = Modifier
+                    modifier =
+                    Modifier
                         .size(size * 1.1f)
                         .background(Color(0xFFEF5350).copy(alpha = 0.15f), CircleShape)
                 )
@@ -103,9 +123,14 @@ fun MicButton(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = when {
-                        isProcessing -> Icons.Default.PlayArrow // Simple play/forward for thinking
-                        isPaused -> Icons.Default.PlayArrow     // Play to resume
+                    imageVector =
+                    when {
+                        isProcessing -> Icons.Default.PlayArrow
+
+                        // Simple play/forward for thinking
+                        isPaused -> Icons.Default.PlayArrow
+
+                        // Play to resume
                         else -> Icons.Default.Mic
                     },
                     contentDescription = "Microphone",

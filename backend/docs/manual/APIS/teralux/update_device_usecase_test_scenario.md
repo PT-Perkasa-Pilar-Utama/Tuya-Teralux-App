@@ -73,7 +73,10 @@ Update a device's information (Name, Type).
 ```json
 {
   "status": false,
-  "message": "Validation Error: name cannot be empty"
+  "message": "Validation Error",
+  "details": [
+    { "field": "name", "message": "name cannot be empty" }
+  ]
 }
 ```
   *(Status: 422 Unprocessable Entity)*

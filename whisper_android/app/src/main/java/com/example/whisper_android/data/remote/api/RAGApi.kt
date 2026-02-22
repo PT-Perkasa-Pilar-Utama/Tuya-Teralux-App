@@ -3,16 +3,18 @@ package com.example.whisper_android.data.remote.api
 import com.example.whisper_android.data.remote.dto.RAGRequestDto
 import com.example.whisper_android.data.remote.dto.RAGStatusDto
 import com.example.whisper_android.data.remote.dto.RAGSummaryRequestDto
-import com.example.whisper_android.data.remote.dto.RAGSummaryResponseDto
 import com.example.whisper_android.data.remote.dto.SpeechResponseDto
 import com.example.whisper_android.data.remote.dto.TranscriptionSubmissionData
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Path
 
 /**
  * Retrofit interface for RAG (Retrieval-Augmented Generation) services.
  */
 interface RAGApi {
-
     @POST("/api/rag/translate")
     suspend fun translate(
         @Body request: RAGRequestDto,

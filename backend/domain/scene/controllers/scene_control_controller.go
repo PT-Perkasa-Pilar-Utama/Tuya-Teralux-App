@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"teralux_app/domain/common/dtos"
+	"teralux_app/domain/common/utils"
 	"teralux_app/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -34,13 +35,14 @@ func (c *SceneControlController) ControlScene(ctx *gin.Context) {
 	accessToken := ctx.GetString("access_token")
 
 	if err := c.useCase.ControlScene(teraluxID, id, accessToken); err != nil {
+		utils.LogError("SceneControlController.ControlScene: %v", err)
 		statusCode := http.StatusInternalServerError
 		if err.Error() == "record not found" {
 			statusCode = http.StatusNotFound
 		}
 		ctx.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
+			Message: http.StatusText(statusCode),
 		})
 		return
 	}

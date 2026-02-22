@@ -20,9 +20,13 @@ func NewGetTeraluxByMACUseCase(repository *repositories.TeraluxRepository) *GetT
 }
 
 func (uc *GetTeraluxByMACUseCase) GetTeraluxByMAC(macAddress string) (*dtos.TeraluxSingleResponseDTO, error) {
-	validMAC := regexp.MustCompile(`^([0-9a-zA-Z]{2}:){5}[0-9a-zA-Z]{2}$`)
+	// Allow standard MAC (AA:BB:CC:DD:EE:FF) OR Android ID (16 hex chars)
+	// Regex: ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$  <-- MAC
+	//        ^[0-9a-fA-F]{16}$                     <-- Android ID
+	validMAC := regexp.MustCompile(`^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$|^[0-9a-fA-F]{16}$`)
+
 	if !validMAC.MatchString(macAddress) {
-		return nil, errors.New("Invalid MAC address format")
+		return nil, errors.New("invalid mac address or device id format")
 	}
 
 	teralux, err := uc.repository.GetByMacAddress(macAddress)

@@ -14,116 +14,159 @@ import kotlinx.coroutines.flow.flow
 class RagRepositoryImpl(
     private val api: RAGApi
 ) : RagRepository {
-
-    override suspend fun translate(text: String, targetLang: String, token: String): Flow<Resource<String>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = api.translate(
-                RAGRequestDto(text = text, language = targetLang),
-                "Bearer $token"
-            )
-            val taskId = response.data?.taskId
-            
-            if (response.status && taskId != null) {
-                emit(Resource.Success(taskId))
-            } else {
-                emit(Resource.Error(response.message))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error("Translate request failed: ${e.message}"))
-        }
-    }
-
-    override suspend fun pollTranslation(taskId: String, token: String): Flow<Resource<String>> = flow {
-        emit(Resource.Loading())
-        while (true) {
+    override suspend fun translate(
+        text: String,
+        targetLang: String,
+        token: String
+    ): Flow<Resource<String>> =
+        flow {
+            emit(Resource.Loading())
             try {
-                val response = api.getStatus(taskId, "Bearer $token")
-                val statusData = response.data
-                val status = statusData?.status?.lowercase()
+                val response =
+                    api.translate(
+                        RAGRequestDto(text = text, language = targetLang),
+                        "Bearer $token"
+                    )
+                val taskId = response.data?.taskId
 
-                Log.d("RagRepo", "Polling Translation $taskId: $status")
-
-                when (status) {
-                    "completed" -> {
-                        // For translation, the result is likely in 'result' string or similar
-                        // RAGStatusDto(status, result=String?, executionResult=RAGSummaryResponseDto?)
-                        val result = statusData.result
-                        if (result != null) {
-                            emit(Resource.Success(result))
-                            return@flow
-                        } else {
-                             emit(Resource.Error("Completed but no translation result found"))
-                             return@flow
-                        }
-                    }
-                    "failed" -> {
-                        emit(Resource.Error("Translation task failed"))
-                        return@flow
-                    }
-                    else -> {
-                        delay(2000)
-                    }
+                if (response.status && taskId != null) {
+                    emit(Resource.Success(taskId))
+                } else {
+                    emit(Resource.Error(response.message))
                 }
             } catch (e: Exception) {
-                Log.e("RagRepo", "Polling Translation error: ${e.message}")
-                delay(2000)
+                emit(Resource.Error("Translate request failed: ${e.message}"))
             }
         }
-    }
 
-    override suspend fun generateSummary(text: String, style: String, language: String?, context: String?, token: String): Flow<Resource<String>> = flow {
-        emit(Resource.Loading())
-        try {
-            val response = api.summary(
-                RAGSummaryRequestDto(text = text, style = style, language = language, context = context),
-                "Bearer $token"
-            )
-            val taskId = response.data?.taskId
-            
-            if (response.status && taskId != null) {
-                emit(Resource.Success(taskId))
-            } else {
-                emit(Resource.Error(response.message))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error("Summary request failed: ${e.message}"))
-        }
-    }
+    override suspend fun pollTranslation(
+        taskId: String,
+        token: String
+    ): Flow<Resource<String>> =
+        flow {
+            emit(Resource.Loading())
+            while (true) {
+                try {
+                    val response = api.getStatus(taskId, "Bearer $token")
+                    val statusData = response.data
+                    val status = statusData?.status?.lowercase()
 
-    override suspend fun pollSummary(taskId: String, token: String): Flow<Resource<RAGSummaryResponseDto>> = flow {
-        emit(Resource.Loading())
-        while (true) {
-            try {
-                val response = api.getStatus(taskId, "Bearer $token")
-                val statusData = response.data
-                val status = statusData?.status?.lowercase()
+                    Log.d("RagRepo", "Polling Translation $taskId: $status")
 
-                Log.d("RagRepo", "Polling Summary $taskId: $status")
+                    when (status) {
+                        "completed" -> {
+                            // For translation, the result is likely in 'result' string or similar
+                            // RAGStatusDto(status, result=String?, executionResult=RAGSummaryResponseDto?)
+                            val result = statusData.result
+                            if (result != null) {
+                                emit(Resource.Success(result))
+                                return@flow
+                            } else {
+                                emit(Resource.Error("Completed but no translation result found"))
+                                return@flow
+                            }
+                        }
 
-                when (status) {
-                    "completed" -> {
-                        val result = statusData.executionResult
-                        if (result != null) {
-                            emit(Resource.Success<RAGSummaryResponseDto>(result))
-                            return@flow
-                        } else {
-                            emit(Resource.Error("Completed but no summary result found"))
+                        "failed" -> {
+                            emit(Resource.Error("Translation task failed"))
                             return@flow
                         }
+
+                        else -> {
+                            delay(2000)
+                        }
                     }
-                    "failed" -> {
-                        emit(Resource.Error("Summary task failed"))
-                        return@flow
-                    }
-                    else -> {
-                        delay(2000)
-                    }
+                } catch (e: Exception) {
+                    Log.e("RagRepo", "Polling Translation error: ${e.message}")
+                    delay(2000)
                 }
-            } catch (e: Exception) {
-                Log.e("RagRepo", "Polling Summary error: ${e.message}")
-                delay(2000)
             }
         }
-    }
+
+    override suspend fun generateSummary(
+        text: String,
+        style: String,
+        language: String?,
+        context: String?,
+        token: String
+    ): Flow<Resource<String>> =
+        flow {
+            emit(Resource.Loading())
+            try {
+                val response =
+                    api.summary(
+                        RAGSummaryRequestDto(
+                            text = text,
+                            style = style,
+                            language = language,
+                            context = context
+                        ),
+                        "Bearer $token"
+                    )
+                val taskId = response.data?.taskId
+
+                if (response.status && taskId != null) {
+                    emit(Resource.Success(taskId))
+                } else {
+                    emit(Resource.Error(response.message))
+                }
+            } catch (e: Exception) {
+                emit(Resource.Error("Summary request failed: ${e.message}"))
+            }
+        }
+
+    override suspend fun pollSummary(
+        taskId: String,
+        token: String
+    ): Flow<Resource<RAGSummaryResponseDto>> =
+        flow {
+            emit(Resource.Loading())
+            while (true) {
+                try {
+                    val response = api.getStatus(taskId, "Bearer $token")
+                    val statusData = response.data
+                    val status = statusData?.status?.lowercase()
+
+                    Log.d("RagRepo", "Polling Summary $taskId: $status")
+
+                    when (status) {
+                        "completed" -> {
+                            val resultJson = statusData.executionResult
+                            if (resultJson != null) {
+                                try {
+                                    val summaryResult = com.google.gson.Gson().fromJson(
+                                        resultJson,
+                                        RAGSummaryResponseDto::class.java
+                                    )
+                                    emit(Resource.Success(summaryResult))
+                                    return@flow
+                                } catch (e: Exception) {
+                                    emit(
+                                        Resource.Error(
+                                            "Failed to parse summary result: ${e.message}"
+                                        )
+                                    )
+                                    return@flow
+                                }
+                            } else {
+                                emit(Resource.Error("Completed but no summary result found"))
+                                return@flow
+                            }
+                        }
+
+                        "failed" -> {
+                            emit(Resource.Error("Summary task failed"))
+                            return@flow
+                        }
+
+                        else -> {
+                            delay(2000)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("RagRepo", "Polling Summary error: ${e.message}")
+                    delay(2000)
+                }
+            }
+        }
 }

@@ -33,8 +33,10 @@ func (ctrl *TuyaCommandSwitchController) SendSwitchCommand(c *gin.Context) {
 		utils.LogError("Failed to bind command: %v", err)
 		c.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
-			Data:    nil,
+			Message: "Validation Error",
+			Details: []utils.ValidationErrorDetail{
+				{Field: "payload", Message: "Invalid request body: " + err.Error()},
+			},
 		})
 		return
 	}
@@ -42,11 +44,10 @@ func (ctrl *TuyaCommandSwitchController) SendSwitchCommand(c *gin.Context) {
 	commands := []tuya_dtos.TuyaCommandDTO{req}
 	success, err := ctrl.useCase.SendSwitchCommand(accessToken, deviceID, commands)
 	if err != nil {
-		utils.LogError("SendSwitchCommand failed: %v", err)
+		utils.LogError("TuyaCommandSwitchController.SendSwitchCommand: %v", err)
 		c.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: err.Error(),
-			Data:    nil,
+			Message: "Internal Server Error",
 		})
 		return
 	}
