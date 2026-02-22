@@ -4,7 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/mail/dtos"
 	"teralux_app/domain/mail/services"
@@ -29,17 +31,17 @@ func TestMailSendUseCase_SendMail_DefaultTemplate(t *testing.T) {
 	cleanup := createTestTemplate(t, svc, "test")
 	defer cleanup()
 
-	uc := NewMailSendUseCase(svc)
+	store := tasks.NewStatusStore[dtos.MailStatusDTO]()
+	uc := NewMailSendUseCase(svc, store, nil)
 
 	req := &dtos.MailSendRequestDTO{
 		To:      []string{"user@example.com"},
 		Subject: "Default Template Test",
 	}
 	
-	err := uc.SendMail(req)
-	// Expect SMTP error since no server running, but logic should reach SMTP call
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to send email")
+	taskID, err := uc.SendMail(req)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, taskID)
 }
 
 func TestMailSendUseCase_SendMail_SpecificTemplate(t *testing.T) {
@@ -51,7 +53,8 @@ func TestMailSendUseCase_SendMail_SpecificTemplate(t *testing.T) {
 	cleanup := createTestTemplate(t, svc, "summary")
 	defer cleanup()
 
-	uc := NewMailSendUseCase(svc)
+	store := tasks.NewStatusStore[dtos.MailStatusDTO]()
+	uc := NewMailSendUseCase(svc, store, nil)
 
 	req := &dtos.MailSendRequestDTO{
 		To:       []string{"user@example.com"},
@@ -59,47 +62,63 @@ func TestMailSendUseCase_SendMail_SpecificTemplate(t *testing.T) {
 		Template: "summary",
 	}
 	
-	err := uc.SendMail(req)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to send email")
+	taskID, err := uc.SendMail(req)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, taskID)
 }
 
 func TestMailSendUseCase_SendMail_ValidationError_To(t *testing.T) {
-	uc := NewMailSendUseCase(nil)
+	store := tasks.NewStatusStore[dtos.MailStatusDTO]()
+	uc := NewMailSendUseCase(nil, store, nil)
 	req := &dtos.MailSendRequestDTO{
 		To:      []string{},
 		Subject: "Test",
 	}
 	
-	err := uc.SendMail(req)
+	taskID, err := uc.SendMail(req)
 	assert.Error(t, err)
+	assert.Empty(t, taskID)
 	assert.Contains(t, err.Error(), "to field is required")
 }
 
 func TestMailSendUseCase_SendMail_ValidationError_Subject(t *testing.T) {
-	uc := NewMailSendUseCase(nil)
+	store := tasks.NewStatusStore[dtos.MailStatusDTO]()
+	uc := NewMailSendUseCase(nil, store, nil)
 	req := &dtos.MailSendRequestDTO{
 		To:      []string{"user@example.com"},
 		Subject: "",
 	}
 	
-	err := uc.SendMail(req)
+	taskID, err := uc.SendMail(req)
 	assert.Error(t, err)
+	assert.Empty(t, taskID)
 	assert.Contains(t, err.Error(), "subject field is required")
 }
 
 func TestMailSendUseCase_SendMail_TemplateNotFound(t *testing.T) {
 	svc := services.NewMailService(&utils.Config{})
 	svc.SetTemplateDir("/tmp/ghost")
-	uc := NewMailSendUseCase(svc)
+	store := tasks.NewStatusStore[dtos.MailStatusDTO]()
+	uc := NewMailSendUseCase(svc, store, nil)
 
 	req := &dtos.MailSendRequestDTO{
 		To:       []string{"user@example.com"},
 		Subject:  "Test",
 		Template: "ghost",
 	}
-	
-	err := uc.SendMail(req)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "ghost not found")
+
+	// Async design: SendMail always returns taskID immediately (no upfront template check)
+	taskID, err := uc.SendMail(req)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, taskID)
+
+	// Wait briefly for background goroutine to process and mark task as failed
+	time.Sleep(100 * time.Millisecond)
+
+	status, ok := store.Get(taskID)
+	assert.True(t, ok, "task should exist in store")
+	if ok {
+		assert.Equal(t, "failed", status.Status)
+		assert.Contains(t, status.Error, "ghost not found")
+	}
 }

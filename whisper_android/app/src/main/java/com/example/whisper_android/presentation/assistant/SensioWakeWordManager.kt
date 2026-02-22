@@ -4,16 +4,16 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import java.io.IOException
 import org.vosk.Model
 import org.vosk.Recognizer
 import org.vosk.android.RecognitionListener
 import org.vosk.android.SpeechService
 import org.vosk.android.StorageService
-import java.io.IOException
 
 class SensioWakeWordManager(
     private val context: Context,
-    private val onWakeWordDetected: () -> Unit,
+    private val onWakeWordDetected: () -> Unit
 ) : WakeWordListener {
     private var model: Model? = null
     private var speechService: SpeechService? = null
@@ -22,8 +22,8 @@ class SensioWakeWordManager(
     // Key phrases to listen for + noise absorbers
     private val keywords =
         "[" +
-            "\"hey sensio\", \"sensio\", \"sensyo\", \"sensus\", " +
-            "\"essence\", \"hello\", \"hi\", \"yes\", \"no\", " +
+            "\"hey census\", \"hey essence\", \"hey sense\", \"hey essential\", " +
+            "\"census\", \"essence\", \"hello\", \"hi\", \"yes\", \"no\", " +
             "\"computer\", \"assistant\", \"[unk]\"" +
             "]"
 
@@ -42,7 +42,7 @@ class SensioWakeWordManager(
             },
             { exception: IOException ->
                 Log.e("SensioWakeWord", "Failed to unpack Vosk model: ${exception.message}")
-            },
+            }
         )
     }
 
@@ -86,14 +86,13 @@ class SensioWakeWordManager(
 
     private fun containsWakeWord(hypothesis: String): Boolean {
         val lower = hypothesis.lowercase()
-        // If it's just "sensus" without "hey" or other context,
-        // it's more likely to be noise (like ssttttt).
-        // But if the user says "Hey Sensio", Vosk often hears "hey sensus" or "sensyo"
-        return lower.contains("sensio") ||
-            lower.contains("sensyo") ||
-            lower.contains("hey sensus") ||
+        // Since 'sensio' is missing from Vosk's dictionary, it often hears 'census' or 'essence'
+        return lower.contains("hey census") ||
             lower.contains("hey essence") ||
-            (lower.contains("sensus") && lower.contains("hey"))
+            lower.contains("hey sense") ||
+            lower.contains("hey essential") ||
+            (lower.contains("census") && lower.contains("hey")) ||
+            (lower.contains("essence") && lower.contains("hey"))
     }
 
     private fun triggerWakeWord() {

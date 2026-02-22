@@ -34,7 +34,7 @@ func NewMailSendByMacController(useCase usecases.MailSendByMacUseCase) *MailSend
 // @Param mac_address path string true "Teralux MAC Address"
 // @Param request body mail_dtos.SendMailByMacRequestDTO true "Mail Request"
 // @Security BearerAuth
-// @Success 200 {object} dtos.StandardResponse{data=map[string]string} "Email sent successfully, data contains customer_email"
+// @Success 202 {object} dtos.StandardResponse{data=mail_dtos.MailTaskResponseDTO} "Email task submitted successfully"
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 404 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
@@ -69,7 +69,7 @@ func (c *MailSendByMacController) SendMailByMac(ctx *gin.Context) {
 		return
 	}
 
-	recipientEmail, err := c.useCase.SendMailByMac(macAddress, &req)
+	taskID, err := c.useCase.SendMailByMac(macAddress, &req)
 	if err != nil {
 		utils.LogError("MailSendByMacController.SendMailByMac: %v", err)
 		statusCode := utils.GetErrorStatusCode(err)
@@ -93,11 +93,12 @@ func (c *MailSendByMacController) SendMailByMac(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
 		Status:  true,
-		Message: "Email sent successfully to customer",
-		Data: map[string]string{
-			"customer_email": recipientEmail,
+		Message: "Email task submitted successfully",
+		Data: mail_dtos.MailTaskResponseDTO{
+			TaskID:     taskID,
+			TaskStatus: "pending",
 		},
 	})
 }

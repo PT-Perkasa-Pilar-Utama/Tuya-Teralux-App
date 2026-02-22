@@ -25,7 +25,7 @@ object DeviceUtils {
         val androidId =
             android.provider.Settings.Secure.getString(
                 context.contentResolver,
-                android.provider.Settings.Secure.ANDROID_ID,
+                android.provider.Settings.Secure.ANDROID_ID
             )
 
         if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") { // Known broken ID on some emulators

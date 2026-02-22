@@ -3,6 +3,16 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("org.jlleitschuh.gradle.ktlint")
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    android = true
+    ignoreFailures = true
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+    }
 }
 
 android {
@@ -27,7 +37,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "proguard-rules.pro"
             )
         }
     }
@@ -51,12 +61,30 @@ android {
 
     defaultConfig {
         val baseUrl = localProperties.getProperty("api.base_url") ?: "https://teralux.farismunir.my.id/"
-        val baseHostname = baseUrl.removePrefix("https://").removePrefix("http://").substringBefore("/")
+        val baseHostname = baseUrl.removePrefix("https://").removePrefix("http://").substringBefore(
+            "/"
+        )
 
-        buildConfigField("String", "MQTT_BROKER_URL", "\"${localProperties.getProperty("mqtt.broker_url") ?: ""}\"")
-        buildConfigField("String", "MQTT_USERNAME", "\"${localProperties.getProperty("mqtt.username") ?: ""}\"")
-        buildConfigField("String", "MQTT_PASSWORD", "\"${localProperties.getProperty("mqtt.password") ?: ""}\"")
-        buildConfigField("String", "TERALUX_API_KEY", "\"${localProperties.getProperty("teralux.api_key") ?: ""}\"")
+        buildConfigField(
+            "String",
+            "MQTT_BROKER_URL",
+            "\"${localProperties.getProperty("mqtt.broker_url") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "MQTT_USERNAME",
+            "\"${localProperties.getProperty("mqtt.username") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "MQTT_PASSWORD",
+            "\"${localProperties.getProperty("mqtt.password") ?: ""}\""
+        )
+        buildConfigField(
+            "String",
+            "TERALUX_API_KEY",
+            "\"${localProperties.getProperty("teralux.api_key") ?: ""}\""
+        )
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
         buildConfigField("String", "BASE_HOSTNAME", "\"$baseHostname\"")
     }

@@ -2,7 +2,6 @@ package com.example.whisper_android.presentation.assistant
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -33,8 +32,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -71,16 +68,15 @@ import com.example.whisper_android.presentation.components.FeatureBackground
 import com.example.whisper_android.presentation.components.FeatureMainCard
 import com.example.whisper_android.presentation.components.TranscriptionMessage
 import com.example.whisper_android.util.MqttHelper
-import com.example.whisper_android.util.parseMarkdownToText
+import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiAssistantScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AiAssistantViewModel = viewModel(),
+    viewModel: AiAssistantViewModel = viewModel()
 ) {
     val transcriptionResults = viewModel.transcriptionResults
     val isRecording = viewModel.isRecording
@@ -96,7 +92,14 @@ fun AiAssistantScreen(
     LaunchedEffect(transcriptionResults.size, isProcessing) {
         if (transcriptionResults.isNotEmpty() || isProcessing) {
             scrollState.animateScrollToItem(
-                if (isProcessing) transcriptionResults.size else maxOf(0, transcriptionResults.size - 1),
+                if (isProcessing) {
+                    transcriptionResults.size
+                } else {
+                    maxOf(
+                        0,
+                        transcriptionResults.size - 1
+                    )
+                }
             )
         }
     }
@@ -104,13 +107,13 @@ fun AiAssistantScreen(
     val hasPermission =
         ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
 
     // Permission Launcher
     val permissionLauncher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
+            contract = ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             if (isGranted) {
                 // Permission granted
@@ -154,7 +157,7 @@ fun AiAssistantScreen(
                 viewModel.stopRecording()
                 snackbarHostState.showSnackbar(
                     message = "Mic auto-stopped (No command).",
-                    duration = SnackbarDuration.Short,
+                    duration = SnackbarDuration.Short
                 )
             }
         }
@@ -172,8 +175,10 @@ fun AiAssistantScreen(
                     title = {
                         Text(
                             "Whisper Intelligence",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     },
                     navigationIcon = {
@@ -181,25 +186,25 @@ fun AiAssistantScreen(
                             Icon(
                                 imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface,
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
                     actions = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 8.dp),
+                            modifier = Modifier.padding(end = 8.dp)
                         ) {
                             // Language Switcher
                             Row(
                                 modifier =
-                                    Modifier
-                                        .padding(end = 8.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                            RoundedCornerShape(20.dp),
-                                        ).padding(2.dp),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                Modifier
+                                    .padding(end = 8.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        RoundedCornerShape(20.dp)
+                                    ).padding(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 listOf("id", "en").forEach { lang ->
                                     val isSelected = viewModel.selectedLanguage == lang
@@ -207,14 +212,14 @@ fun AiAssistantScreen(
                                         onClick = { viewModel.selectLanguage(lang) },
                                         shape = RoundedCornerShape(16.dp),
                                         color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                        modifier = Modifier.size(width = 36.dp, height = 24.dp),
+                                        modifier = Modifier.size(width = 36.dp, height = 24.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Text(
                                                 text = lang.uppercase(),
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -225,22 +230,22 @@ fun AiAssistantScreen(
                         }
                     },
                     colors =
-                        TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = Color.Transparent,
-                        ),
+                    TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
-            },
+            }
         ) { padding ->
             Column(
                 modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = 4.dp, vertical = 0.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 4.dp, vertical = 0.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 FeatureMainCard(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 ) {
                     if (transcriptionResults.isEmpty() && !isProcessing) {
                         EmptyAssistantState(
@@ -248,23 +253,23 @@ fun AiAssistantScreen(
                             enabled = isMqttOnline,
                             onSuggestedAction = { prompt ->
                                 viewModel.sendChat(prompt)
-                            },
+                            }
                         )
                     } else {
                         ConversationList(
                             scrollState = scrollState,
                             messages = transcriptionResults,
-                            isProcessing = isProcessing,
+                            isProcessing = isProcessing
                         )
                     }
                 }
 
                 Box(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp),
-                    contentAlignment = Alignment.Center,
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     AssistantInputPill(
                         inputValue = userInput,
@@ -292,7 +297,7 @@ fun AiAssistantScreen(
                                 userInput = ""
                             }
                         },
-                        enabled = isMqttOnline,
+                        enabled = isMqttOnline
                     )
                 }
             }
@@ -305,7 +310,7 @@ fun EmptyAssistantState(
     isProcessing: Boolean,
     enabled: Boolean,
     onSuggestedAction: (String) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isWide = maxWidth > 600.dp
@@ -313,26 +318,26 @@ fun EmptyAssistantState(
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.Center
         ) {
             AiMindVisual(isThinking = isProcessing)
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Meeting Index Ready.",
                 style =
-                    MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp,
-                        fontSize = 20.sp,
-                    ),
-                color = MaterialTheme.colorScheme.onSurface,
+                MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                    fontSize = 20.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Ask anything from your captured data.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -340,41 +345,41 @@ fun EmptyAssistantState(
             if (isWide) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     SuggestedActionCard(
                         title = "Introduce Yourself",
                         subtitle = "Learn about my role.",
                         modifier = Modifier.weight(1f),
                         onClick = { onSuggestedAction("Who are you?") },
-                        enabled = enabled,
+                        enabled = enabled
                     )
                     SuggestedActionCard(
                         title = "Explore Controls",
                         subtitle = "What devices can I control?",
                         modifier = Modifier.weight(1f),
                         onClick = { onSuggestedAction("What devices can I control?") },
-                        enabled = enabled,
+                        enabled = enabled
                     )
                 }
             } else {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SuggestedActionCard(
                         title = "Introduce Yourself",
                         subtitle = "Learn about my role.",
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { onSuggestedAction("Who are you?") },
-                        enabled = enabled,
+                        enabled = enabled
                     )
                     SuggestedActionCard(
                         title = "Explore Controls",
                         subtitle = "What devices can I control?",
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { onSuggestedAction("What devices can I control?") },
-                        enabled = enabled,
+                        enabled = enabled
                     )
                 }
             }
@@ -386,13 +391,13 @@ fun EmptyAssistantState(
 private fun ConversationList(
     scrollState: androidx.compose.foundation.lazy.LazyListState,
     messages: List<TranscriptionMessage>,
-    isProcessing: Boolean,
+    isProcessing: Boolean
 ) {
     LazyColumn(
         state = scrollState,
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = 16.dp),
+        contentPadding = PaddingValues(bottom = 16.dp)
     ) {
         items(messages) { message ->
             AssistantChatBubble(message)
@@ -401,41 +406,41 @@ private fun ConversationList(
             AnimatedVisibility(
                 visible = isProcessing,
                 enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
+                exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalAlignment = Alignment.Start,
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
                     Surface(
                         shape =
-                            RoundedCornerShape(
-                                topStart = 4.dp,
-                                topEnd = 24.dp,
-                                bottomStart = 24.dp,
-                                bottomEnd = 24.dp,
-                            ),
+                        RoundedCornerShape(
+                            topStart = 4.dp,
+                            topEnd = 24.dp,
+                            bottomStart = 24.dp,
+                            bottomEnd = 24.dp
+                        ),
                         color = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.widthIn(max = 300.dp),
                         border =
-                            androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            ),
+                        androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        ),
                         shadowElevation = 8.dp,
-                        tonalElevation = 4.dp,
+                        tonalElevation = 4.dp
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 4.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         ) {
                             AiMindVisual(
                                 isThinking = true,
                                 size = 28.dp,
-                                modifier = Modifier.padding(start = 12.dp),
+                                modifier = Modifier.padding(start = 12.dp)
                             )
                             TypingIndicator()
                         }
@@ -467,23 +472,23 @@ private fun MqttStatusBadge(status: MqttHelper.MqttConnectionStatus) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier =
-            Modifier
-                .padding(start = 4.dp)
-                .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+        Modifier
+            .padding(start = 4.dp)
+            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Box(
             modifier =
-                Modifier
-                    .size(8.dp)
-                    .background(color, androidx.compose.foundation.shape.CircleShape),
+            Modifier
+                .size(8.dp)
+                .background(color, androidx.compose.foundation.shape.CircleShape)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = text,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
-            color = color,
+            color = color
         )
     }
 }

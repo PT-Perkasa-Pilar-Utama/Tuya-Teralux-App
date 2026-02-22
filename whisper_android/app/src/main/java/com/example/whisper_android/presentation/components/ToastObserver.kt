@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 fun ToastObserver(
     message: String?,
     onToastShown: () -> Unit,
-    context: Context = LocalContext.current,
+    context: Context = LocalContext.current
 ) {
     LaunchedEffect(message) {
         message?.let {

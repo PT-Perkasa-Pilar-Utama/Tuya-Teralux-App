@@ -4,18 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.whisper_android.presentation.dashboard.DashboardScreen
@@ -38,11 +33,11 @@ class MainActivity : ComponentActivity() {
 
         // Dynamic Orientation Locking
         if (com.example.whisper_android.util.DeviceUtils
-                .isTeralux()
+            .isTeralux()
         ) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else if (com.example.whisper_android.util.DeviceUtils
-                .isPhone(this)
+            .isPhone(this)
         ) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         } else {
@@ -61,8 +56,8 @@ class MainActivity : ComponentActivity() {
                 val launcher =
                     androidx.activity.compose.rememberLauncherForActivityResult(
                         contract =
-                            androidx.activity.result.contract.ActivityResultContracts
-                                .RequestMultiplePermissions(),
+                        androidx.activity.result.contract.ActivityResultContracts
+                            .RequestMultiplePermissions()
                     ) { permissions ->
                         // Check if all permissions are granted
                         val allGranted = permissions.entries.all { it.value }
@@ -72,7 +67,7 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.runtime.LaunchedEffect(Unit) {
                     val permissionsToRequest =
                         mutableListOf(
-                            android.Manifest.permission.RECORD_AUDIO,
+                            android.Manifest.permission.RECORD_AUDIO
                         )
 
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -98,19 +93,19 @@ class MainActivity : ComponentActivity() {
                             onNavigateToRegister = { currentScreen = "register" },
                             onNavigateToUpload = { /* Deprecated */ },
                             onNavigateToStreaming = { currentScreen = "meeting" },
-                            onNavigateToEdge = { currentScreen = "assistant" },
+                            onNavigateToEdge = { currentScreen = "assistant" }
                         )
                     }
 
                     "meeting" -> {
                         com.example.whisper_android.presentation.meeting.MeetingTranscriberScreen(
-                            onNavigateBack = { currentScreen = "dashboard" },
+                            onNavigateBack = { currentScreen = "dashboard" }
                         )
                     }
 
                     "assistant" -> {
                         com.example.whisper_android.presentation.assistant.AiAssistantScreen(
-                            onNavigateBack = { currentScreen = "dashboard" },
+                            onNavigateBack = { currentScreen = "dashboard" }
                         )
                     }
                 }
@@ -122,12 +117,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(
     name: String,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Text(
         text = "Hello $name!",
         style = MaterialTheme.typography.displayMedium,
-        modifier = modifier,
+        modifier = modifier
     )
 }
 

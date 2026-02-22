@@ -11,11 +11,11 @@ import kotlinx.coroutines.launch
 data class DashboardUiState(
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
-    val error: String? = null,
+    val error: String? = null
 )
 
 class DashboardViewModel(
-    private val authenticateUseCase: AuthenticateUseCase,
+    private val authenticateUseCase: AuthenticateUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState(isLoading = true))
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -40,7 +40,7 @@ class DashboardViewModel(
                     _uiState.value =
                         DashboardUiState(
                             isAuthenticated = false,
-                            error = e.message ?: "Authentication failed",
+                            error = e.message ?: "Authentication failed"
                         )
                 }
         }

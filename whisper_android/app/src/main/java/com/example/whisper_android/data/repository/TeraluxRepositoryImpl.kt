@@ -8,15 +8,21 @@ import com.example.whisper_android.domain.repository.TeraluxRepository
 
 class TeraluxRepositoryImpl(
     private val api: TeraluxApi,
-    private val apiKey: String,
+    private val apiKey: String
 ) : TeraluxRepository {
     override suspend fun registerTeralux(
         name: String,
         roomId: String,
         macAddress: String,
+        deviceTypeId: String
     ): Result<TeraluxRegistration> =
         try {
-            val request = TeraluxRequestDto(name = name, roomId = roomId, macAddress = macAddress)
+            val request = TeraluxRequestDto(
+                name = name,
+                roomId = roomId,
+                macAddress = macAddress,
+                deviceTypeId = deviceTypeId
+            )
             val response = api.registerTeralux(apiKey, request)
 
             if (response.status && response.data?.teraluxId != null) {
@@ -25,8 +31,8 @@ class TeraluxRepositoryImpl(
                         id = response.data.teraluxId,
                         name = name,
                         roomId = roomId,
-                        macAddress = macAddress,
-                    ),
+                        macAddress = macAddress
+                    )
                 )
             } else {
                 Result.failure(Exception(response.message))
@@ -43,13 +49,14 @@ class TeraluxRepositoryImpl(
 
             if (response.status && response.data != null) {
                 // Success - Found
+                val teraluxItem = response.data.teralux
                 Result.success(
                     TeraluxRegistration(
-                        id = response.data.id ?: "",
-                        name = response.data.name ?: "",
-                        roomId = response.data.roomId ?: "",
-                        macAddress = response.data.macAddress ?: macAddress,
-                    ),
+                        id = teraluxItem?.id ?: response.data.id ?: "",
+                        name = teraluxItem?.name ?: response.data.name ?: "",
+                        roomId = teraluxItem?.roomId ?: response.data.roomId ?: "",
+                        macAddress = teraluxItem?.macAddress ?: response.data.macAddress ?: macAddress
+                    )
                 )
             } else {
                 // 404 or other error - Not Found (or API specific error)

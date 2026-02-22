@@ -38,59 +38,59 @@ fun MeetingControlPill(
     onUploadClick: () -> Unit,
     onStopClick: () -> Unit,
     onClearClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Box(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-        contentAlignment = Alignment.Center,
+        modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
         Surface(
             modifier =
-                Modifier
-                    .height(48.dp)
-                    .widthIn(min = 220.dp),
+            Modifier
+                .height(48.dp)
+                .widthIn(min = 220.dp),
             shape = RoundedCornerShape(24.dp),
             color = Color.White.copy(alpha = 0.85f),
             tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
+            shadowElevation = 8.dp
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 MicButton(
                     isRecording = isRecording,
                     hasPermission = hasPermission,
                     isProcessing =
-                        uiState !is MeetingProcessState.Idle &&
-                            uiState !is MeetingProcessState.Success &&
-                            uiState !is MeetingProcessState.Error &&
-                            uiState !is MeetingProcessState.Recording,
+                    uiState !is MeetingProcessState.Idle &&
+                        uiState !is MeetingProcessState.Success &&
+                        uiState !is MeetingProcessState.Error &&
+                        uiState !is MeetingProcessState.Recording,
                     onClick = onMicClick,
                     size = 36.dp,
                     modifier =
-                        Modifier.graphicsLayer {
-                            if (isRecording) {
-                                scaleX = pulseScale
-                                scaleY = pulseScale
-                            }
-                        },
+                    Modifier.graphicsLayer {
+                        if (isRecording) {
+                            scaleX = pulseScale
+                            scaleY = pulseScale
+                        }
+                    }
                 )
 
                 if (!isRecording) {
                     IconButton(
                         onClick = onUploadClick,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.FolderOpen,
                             contentDescription = "Upload Audio",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
@@ -98,44 +98,44 @@ fun MeetingControlPill(
                 if (isRecording) {
                     IconButton(
                         onClick = onStopClick,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Surface(
                             modifier = Modifier.size(16.dp),
                             color = Color(0xFFEF5350),
-                            shape = RoundedCornerShape(2.dp),
+                            shape = RoundedCornerShape(2.dp)
                         ) {}
                     }
                 }
 
                 IconButton(
                     onClick = onClearClick,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Clear",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
                 Text(
                     text =
-                        when {
-                            isRecording -> "Live"
+                    when {
+                        isRecording -> "Live"
 
-                            uiState !is MeetingProcessState.Idle &&
-                                uiState !is MeetingProcessState.Success &&
-                                uiState !is MeetingProcessState.Error -> "AI Active"
+                        uiState !is MeetingProcessState.Idle &&
+                            uiState !is MeetingProcessState.Success &&
+                            uiState !is MeetingProcessState.Error -> "AI Active"
 
-                            else -> "Ready"
-                        },
+                        else -> "Ready"
+                    },
                     fontSize = 12.sp,
                     color = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp,
-                    modifier = Modifier.padding(end = 4.dp),
+                    modifier = Modifier.padding(end = 4.dp)
                 )
             }
         }

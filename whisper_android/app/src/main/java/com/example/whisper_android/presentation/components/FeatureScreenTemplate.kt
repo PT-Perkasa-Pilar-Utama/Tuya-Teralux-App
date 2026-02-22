@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
@@ -47,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,7 +53,7 @@ enum class MessageRole { USER, ASSISTANT }
 
 data class TranscriptionMessage(
     val text: String,
-    val role: MessageRole,
+    val role: MessageRole
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +75,7 @@ fun FeatureScreenTemplate(
     onLongMicClick: (() -> Unit)? = null,
     onDoubleMicClick: (() -> Unit)? = null,
     customContent: @Composable (ColumnScope.() -> Unit)? = null,
-    extraActions: @Composable RowScope.() -> Unit = {},
+    extraActions: @Composable RowScope.() -> Unit = {}
 ) {
     var showWalkthrough by remember { mutableStateOf(false) } // Default to false for manual trigger
     val scrollState = rememberLazyListState()
@@ -87,7 +84,14 @@ fun FeatureScreenTemplate(
     LaunchedEffect(transcriptionResults.size, isProcessing) {
         if (transcriptionResults.isNotEmpty() || isProcessing) {
             scrollState.animateScrollToItem(
-                if (isProcessing) transcriptionResults.size else maxOf(0, transcriptionResults.size - 1),
+                if (isProcessing) {
+                    transcriptionResults.size
+                } else {
+                    maxOf(
+                        0,
+                        transcriptionResults.size - 1
+                    )
+                }
             )
         }
     }
@@ -97,7 +101,7 @@ fun FeatureScreenTemplate(
         title = title,
         showDialog = showWalkthrough,
         onDismiss = { showWalkthrough = false },
-        content = walkthroughContent,
+        content = walkthroughContent
     )
 
     Scaffold(
@@ -106,7 +110,10 @@ fun FeatureScreenTemplate(
                 title = { Text(title, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 },
                 actions = {
@@ -115,7 +122,7 @@ fun FeatureScreenTemplate(
                             Icon(
                                 imageVector = Icons.Default.DeleteSweep,
                                 contentDescription = "Clear Chat",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -124,43 +131,43 @@ fun FeatureScreenTemplate(
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
                             contentDescription = "Help",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        modifier = modifier,
+        modifier = modifier
     ) { paddingValues ->
         Box(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors =
-                                listOf(
-                                    MaterialTheme.colorScheme.surface,
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
-                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.05f),
-                                ),
-                        ),
-                    ).padding(paddingValues),
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors =
+                        listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.05f)
+                        )
+                    )
+                ).padding(paddingValues)
         ) {
             Column(
                 modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
             ) {
                 // --- Top Area: Strategic Insights / Insights Area ---
                 Column(
                     modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(top = 16.dp, bottom = 8.dp),
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 8.dp)
                 ) {
                     if (customContent != null) {
                         customContent()
@@ -169,14 +176,16 @@ fun FeatureScreenTemplate(
                         Surface(
                             modifier = Modifier.fillMaxSize(),
                             color = Color.Transparent, // Let the background show
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             if (transcriptionResults.isEmpty() && !isProcessing) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
                                         text = "Strategic Insights will appear here...",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.4f
+                                        )
                                     )
                                 }
                             } else {
@@ -184,7 +193,7 @@ fun FeatureScreenTemplate(
                                     state = scrollState,
                                     modifier = Modifier.fillMaxSize(),
                                     contentPadding = PaddingValues(bottom = 16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     items(transcriptionResults) { message ->
                                         TemplateChatBubble(message)
@@ -195,7 +204,7 @@ fun FeatureScreenTemplate(
                                                 text = "Analyzing...",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.padding(start = 8.dp),
+                                                modifier = Modifier.padding(start = 8.dp)
                                             )
                                         }
                                     }
@@ -208,38 +217,45 @@ fun FeatureScreenTemplate(
                 // --- Bottom Area: Sleek Control Panel ---
                 Card(
                     modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 24.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                        ),
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
                 ) {
                     Row(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         // Left: Action Icons
                         IconButton(
                             onClick = onClearChat,
-                            enabled = transcriptionResults.isNotEmpty() || customContent != null,
+                            enabled = transcriptionResults.isNotEmpty() || customContent != null
                         ) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(
+                                Icons.Default.DeleteSweep,
+                                contentDescription = "Clear",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
 
                         // Center: Primary Actions (Mic & Stop)
                         Box(contentAlignment = Alignment.Center) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 MicButton(
                                     isRecording = isRecording,
@@ -247,7 +263,7 @@ fun FeatureScreenTemplate(
                                     isPaused = isPaused,
                                     hasPermission = hasPermission,
                                     size = if (isRecording) 64.dp else 80.dp, // Shrink a bit when stop is shown
-                                    onClick = onMicClick,
+                                    onClick = onMicClick
                                 )
 
                                 if (isRecording && onStopClick != null) {
@@ -260,22 +276,24 @@ fun FeatureScreenTemplate(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text =
-                                    when {
-                                        !hasPermission -> "No Mic"
-                                        isProcessing || thinkingState -> "Thinking"
-                                        isPaused -> "Paused"
-                                        isRecording -> "Recording"
-                                        else -> "Ready"
-                                    },
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                when {
+                                    !hasPermission -> "No Mic"
+                                    isProcessing || thinkingState -> "Thinking"
+                                    isPaused -> "Paused"
+                                    isRecording -> "Recording"
+                                    else -> "Ready"
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
                                 color =
-                                    when {
-                                        !hasPermission -> Color.Gray
-                                        isProcessing || thinkingState -> Color(0xFFFF9800)
-                                        isPaused -> Color(0xFF2196F3)
-                                        isRecording -> MaterialTheme.colorScheme.error
-                                        else -> Color(0xFF4CAF50)
-                                    },
+                                when {
+                                    !hasPermission -> Color.Gray
+                                    isProcessing || thinkingState -> Color(0xFFFF9800)
+                                    isPaused -> Color(0xFF2196F3)
+                                    isRecording -> MaterialTheme.colorScheme.error
+                                    else -> Color(0xFF4CAF50)
+                                }
                             )
                         }
                     }
@@ -288,7 +306,7 @@ fun FeatureScreenTemplate(
 @Composable
 fun StopButton(
     onClick: () -> Unit,
-    size: Dp = 64.dp,
+    size: Dp = 64.dp
 ) {
     Surface(
         onClick = onClick,
@@ -296,14 +314,14 @@ fun StopButton(
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
         modifier = Modifier.size(size),
-        tonalElevation = 2.dp,
+        tonalElevation = 2.dp
     ) {
         Box(contentAlignment = Alignment.Center) {
             Box(
                 modifier =
-                    Modifier
-                        .size(size / 2.5f)
-                        .background(MaterialTheme.colorScheme.error, RoundedCornerShape(4.dp)),
+                Modifier
+                    .size(size / 2.5f)
+                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(4.dp))
             )
         }
     }
@@ -314,37 +332,37 @@ fun TemplateChatBubble(message: TranscriptionMessage) {
     val isUser = message.role == MessageRole.USER
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Card(
             shape =
-                RoundedCornerShape(
-                    topStart = 12.dp,
-                    topEnd = 12.dp,
-                    bottomStart = if (isUser) 12.dp else 2.dp,
-                    bottomEnd = if (isUser) 2.dp else 12.dp,
-                ),
+            RoundedCornerShape(
+                topStart = 12.dp,
+                topEnd = 12.dp,
+                bottomStart = if (isUser) 12.dp else 2.dp,
+                bottomEnd = if (isUser) 2.dp else 12.dp
+            ),
             colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        if (isUser) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
-                        },
-                ),
-            modifier = Modifier.widthIn(max = 220.dp),
+            CardDefaults.cardColors(
+                containerColor =
+                if (isUser) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
+                }
+            ),
+            modifier = Modifier.widthIn(max = 220.dp)
         ) {
             Text(
                 text = message.text,
                 modifier = Modifier.padding(10.dp),
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp),
                 color =
-                    if (isUser) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    },
+                if (isUser) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
             )
         }
     }

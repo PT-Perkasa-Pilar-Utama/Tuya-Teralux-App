@@ -7,13 +7,11 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -38,7 +35,7 @@ fun MicButton(
     modifier: Modifier = Modifier,
     isProcessing: Boolean = false,
     isPaused: Boolean = false,
-    size: Dp = 120.dp,
+    size: Dp = 120.dp
 ) {
     // --- Pulse Animation for Active States ---
     val infiniteTransition = rememberInfiniteTransition(label = "Pulse")
@@ -46,21 +43,21 @@ fun MicButton(
         initialValue = 1f,
         targetValue = 1.35f,
         animationSpec =
-            infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-        label = "PulseScale",
+        infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "PulseScale"
     )
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.5f,
         targetValue = 0f,
         animationSpec =
-            infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Restart,
-            ),
-        label = "PulseAlpha",
+        infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "PulseAlpha"
     )
 
     // --- Color Selection (Solid as requested) ---
@@ -85,32 +82,32 @@ fun MicButton(
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier,
+        modifier = modifier
     ) {
         // Outer Pulse Layer
         if ((isRecording && !isPaused) || isProcessing) {
             Box(
                 modifier =
-                    Modifier
-                        .size(size * 1.25f)
-                        .scale(pulseScale)
-                        .alpha(pulseAlpha)
-                        .background(buttonColor.copy(alpha = 0.3f), CircleShape),
+                Modifier
+                    .size(size * 1.25f)
+                    .scale(pulseScale)
+                    .alpha(pulseAlpha)
+                    .background(buttonColor.copy(alpha = 0.3f), CircleShape)
             )
 
             // Static Glow Layer for High Focus (Red Glow)
             if (isRecording && !isPaused) {
                 Box(
                     modifier =
-                        Modifier
-                            .size(size * 1.2f)
-                            .background(Color(0xFFEF5350).copy(alpha = 0.2f), CircleShape),
+                    Modifier
+                        .size(size * 1.2f)
+                        .background(Color(0xFFEF5350).copy(alpha = 0.2f), CircleShape)
                 )
                 Box(
                     modifier =
-                        Modifier
-                            .size(size * 1.1f)
-                            .background(Color(0xFFEF5350).copy(alpha = 0.15f), CircleShape),
+                    Modifier
+                        .size(size * 1.1f)
+                        .background(Color(0xFFEF5350).copy(alpha = 0.15f), CircleShape)
                 )
             }
         }
@@ -122,23 +119,23 @@ fun MicButton(
             shape = CircleShape,
             color = buttonColor,
             shadowElevation = if (isRecording || isProcessing) 12.dp else 4.dp,
-            modifier = Modifier.size(size),
+            modifier = Modifier.size(size)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector =
-                        when {
-                            isProcessing -> Icons.Default.PlayArrow
+                    when {
+                        isProcessing -> Icons.Default.PlayArrow
 
-                            // Simple play/forward for thinking
-                            isPaused -> Icons.Default.PlayArrow
+                        // Simple play/forward for thinking
+                        isPaused -> Icons.Default.PlayArrow
 
-                            // Play to resume
-                            else -> Icons.Default.Mic
-                        },
+                        // Play to resume
+                        else -> Icons.Default.Mic
+                    },
                     contentDescription = "Microphone",
                     tint = Color.White,
-                    modifier = Modifier.size(size / 2.3f),
+                    modifier = Modifier.size(size / 2.3f)
                 )
             }
         }

@@ -3,7 +3,6 @@ package com.example.whisper_android.data.remote.api
 import com.example.whisper_android.data.remote.dto.RAGRequestDto
 import com.example.whisper_android.data.remote.dto.RAGStatusDto
 import com.example.whisper_android.data.remote.dto.RAGSummaryRequestDto
-import com.example.whisper_android.data.remote.dto.RAGSummaryResponseDto
 import com.example.whisper_android.data.remote.dto.SpeechResponseDto
 import com.example.whisper_android.data.remote.dto.TranscriptionSubmissionData
 import retrofit2.http.Body
@@ -20,20 +19,20 @@ interface RAGApi {
     suspend fun translate(
         @Body request: RAGRequestDto,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET",
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @POST("/api/rag/summary")
     suspend fun summary(
         @Body request: RAGSummaryRequestDto,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET",
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/rag/{task_id}")
     suspend fun getStatus(
         @Path("task_id") taskId: String,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET",
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<RAGStatusDto>
 }

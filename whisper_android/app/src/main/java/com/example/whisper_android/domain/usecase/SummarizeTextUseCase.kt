@@ -7,13 +7,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class SummarizeTextUseCase(
-    private val ragRepository: RagRepository,
+    private val ragRepository: RagRepository
 ) {
     suspend operator fun invoke(
         text: String,
         language: String?,
         style: String,
-        token: String,
+        token: String
     ): Flow<Resource<RAGSummaryResponseDto>> =
         flow {
             emit(Resource.Loading())

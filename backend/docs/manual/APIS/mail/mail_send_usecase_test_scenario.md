@@ -1,7 +1,7 @@
-# ENDPOINT: POST /api/mail/send
+# ENDPOINT: POST /api/email/send
 
 ## Description
-Sends an email using a server-side HTML template. This endpoint allows specifying recipients and the subject, while the content is rendered from predefined templates.
+Submits an email sending task asynchronously. Returns a `task_id` immediately (HTTP 202 Accepted). The actual email is sent in the background. Use the status endpoint to poll for completion.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -14,12 +14,13 @@ Sends an email using a server-side HTML template. This endpoint allows specifyin
   - `to` ([]string): List of recipient email addresses.
   - `subject` (string): The subject line of the email.
 - **Optional Fields**:
-  - `template` (string): The name of the server-side template to use (defaults to "test").
+  - `template` (string): The name of the server-side template to use (defaults to `"test"`).
+  - `attachment_path` (string): Server-side path to a PDF file to attach (e.g. `/uploads/reports/summary_123.pdf`).
 
 ## Test Scenarios
 
-### 1. Success - Send with Default Template
-- **URL**: `http://localhost:8080/api/mail/send`
+### 1. Success - Submit Task with Default Template
+- **URL**: `http://localhost:8080/api/email/send`
 - **Method**: `POST`
 - **Headers**:
 ```json
@@ -30,7 +31,7 @@ Sends an email using a server-side HTML template. This endpoint allows specifyin
 ```
 - **Pre-conditions**:
   - Valid SMTP configuration in `.env`.
-  - "test.html" template exists in `domain/mail/templates`.
+  - `test.html` template exists in `domain/mail/templates`.
 - **Request Body**:
 ```json
 {
@@ -38,56 +39,44 @@ Sends an email using a server-side HTML template. This endpoint allows specifyin
   "subject": "System Notification"
 }
 ```
-- **Expected Response**:
+- **Expected Response** *(Status: 202 Accepted)*:
 ```json
 {
   "status": true,
-  "message": "Email sent successfully"
+  "message": "Email task submitted successfully",
+  "data": {
+    "task_id": "mail-abc-123xyz",
+    "task_status": "pending"
+  }
 }
 ```
-  *(Status: 200 OK)*
-- **Side Effects**: Email sent to recipient.
+- **Side Effects**: Task is queued. Poll `/api/email/status/{task_id}` for the result.
 
-### 2. Success - Send with Specific Template
-- **URL**: `http://localhost:8080/api/mail/send`
+### 2. Success - Submit Task with PDF Attachment
+- **URL**: `http://localhost:8080/api/email/send`
 - **Method**: `POST`
-- **Headers**:
-```json
-{
-  "Content-Type": "application/json",
-  "Authorization": "Bearer <valid_token>"
-}
-```
-- **Pre-conditions**:
-  - "summary.html" template exists in `domain/mail/templates`.
 - **Request Body**:
 ```json
 {
   "to": ["boss@example.com"],
   "subject": "Weekly Progress Summary",
-  "template": "summary"
+  "template": "summary",
+  "attachment_path": "/uploads/reports/summary_abc.pdf"
 }
 ```
-- **Expected Response**:
+- **Expected Response** *(Status: 202 Accepted)*:
 ```json
 {
   "status": true,
-  "message": "Email sent successfully"
+  "message": "Email task submitted successfully",
+  "data": {
+    "task_id": "mail-xyz-456abc",
+    "task_status": "pending"
+  }
 }
 ```
-  *(Status: 200 OK)*
 
 ### 3. Validation: Missing Required Fields
-- **URL**: `http://localhost:8080/api/mail/send`
-- **Method**: `POST`
-- **Headers**:
-```json
-{
-  "Content-Type": "application/json",
-  "Authorization": "Bearer <valid_token>"
-}
-```
-- **Pre-conditions**: Missing `to` or `subject` field.
 - **Request Body**:
 ```json
 {
@@ -95,7 +84,7 @@ Sends an email using a server-side HTML template. This endpoint allows specifyin
   "subject": ""
 }
 ```
-- **Expected Response**:
+- **Expected Response** *(Status: 400 Bad Request)*:
 ```json
 {
   "status": false,
@@ -105,19 +94,8 @@ Sends an email using a server-side HTML template. This endpoint allows specifyin
   ]
 }
 ```
-  *(Status: 400 Bad Request)*
 
 ### 4. Error: Template Not Found
-- **URL**: `http://localhost:8080/api/mail/send`
-- **Method**: `POST`
-- **Headers**:
-```json
-{
-  "Content-Type": "application/json",
-  "Authorization": "Bearer <valid_token>"
-}
-```
-- **Pre-conditions**: Template file does not exist on disk.
 - **Request Body**:
 ```json
 {
@@ -126,23 +104,20 @@ Sends an email using a server-side HTML template. This endpoint allows specifyin
   "template": "ghost_template"
 }
 ```
-- **Expected Response**:
+- **Expected Response** *(Status: 500 Internal Server Error)*:
 ```json
 {
   "status": false,
   "message": "Internal Server Error"
 }
 ```
-  *(Status: 500 Internal Server Error)*
 
 ### 5. Security: Unauthorized
-- **URL**: `http://localhost:8080/api/mail/send`
 - **Headers**: No Bearer token provided.
-- **Expected Response**:
+- **Expected Response** *(Status: 401 Unauthorized)*:
 ```json
 {
   "status": false,
   "message": "Unauthorized"
 }
 ```
-*(Status: 401 Unauthorized)*

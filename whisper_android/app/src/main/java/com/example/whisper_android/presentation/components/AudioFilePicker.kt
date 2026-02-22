@@ -21,12 +21,12 @@ fun AudioFilePicker(
     onPermissionDenied: () -> Unit = {},
     onFallbackNeeded: () -> Unit = {},
     tint: Color = MaterialTheme.colorScheme.primary,
-    disabledTint: Color = Color.Gray,
+    disabledTint: Color = Color.Gray
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val launcher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent(),
+            contract = ActivityResultContracts.GetContent()
         ) { uri ->
             uri?.let { onFileSelected(it) }
         }
@@ -46,17 +46,17 @@ fun AudioFilePicker(
             }
         },
         enabled = enabled,
-        modifier = modifier,
+        modifier = modifier
     ) {
         Icon(
             imageVector = Icons.Default.UploadFile,
             contentDescription = "Upload Audio File",
             tint =
-                if (enabled) {
-                    if (hasPermission) tint else MaterialTheme.colorScheme.error // Red if permission missing
-                } else {
-                    disabledTint
-                },
+            if (enabled) {
+                if (hasPermission) tint else MaterialTheme.colorScheme.error // Red if permission missing
+            } else {
+                disabledTint
+            }
         )
     }
 }

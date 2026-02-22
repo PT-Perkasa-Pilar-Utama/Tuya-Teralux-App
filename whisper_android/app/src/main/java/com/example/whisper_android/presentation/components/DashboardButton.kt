@@ -32,47 +32,47 @@ fun DashboardButton(
     subtitle: String,
     icon: ImageVector,
     color: Color,
-    onClick: () -> Unit,
+    onClick: () -> Unit
 ) {
     ElevatedButton(
         onClick = onClick,
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(100.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(100.dp),
         shape = RoundedCornerShape(24.dp),
         colors =
-            ButtonDefaults.elevatedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = color,
-            ),
+        ButtonDefaults.elevatedButtonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = color
+        ),
         elevation =
-            ButtonDefaults.elevatedButtonElevation(
-                defaultElevation = 2.dp,
-                pressedElevation = 6.dp,
-            ),
-        contentPadding = PaddingValues(horizontal = 24.dp),
+        ButtonDefaults.elevatedButtonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 6.dp
+        ),
+        contentPadding = PaddingValues(horizontal = 24.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Box(
                 modifier =
-                    Modifier
-                        .size(52.dp)
-                        .background(
-                            color.copy(alpha = 0.1f),
-                            RoundedCornerShape(16.dp),
-                        ),
-                contentAlignment = Alignment.Center,
+                Modifier
+                    .size(52.dp)
+                    .background(
+                        color.copy(alpha = 0.1f),
+                        RoundedCornerShape(16.dp)
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(28.dp),
-                    tint = color,
+                    tint = color
                 )
             }
             Spacer(modifier = Modifier.size(20.dp))
@@ -80,15 +80,15 @@ fun DashboardButton(
                 Text(
                     text = text,
                     style =
-                        MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -96,7 +96,7 @@ fun DashboardButton(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.outline,
+                tint = MaterialTheme.colorScheme.outline
             )
         }
     }

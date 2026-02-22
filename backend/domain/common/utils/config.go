@@ -97,6 +97,8 @@ func LoadConfig() {
 			for k, v := range m {
 				if os.Getenv(k) == "" {
 					_ = os.Setenv(k, v)
+				} else if os.Getenv(k) != v {
+					log.Printf("Config: Environment variable '%s' already set to '%s', ignoring .env value '%s'", k, os.Getenv(k), v)
 				}
 			}
 			log.Printf("Loaded env file: %s", envPath)

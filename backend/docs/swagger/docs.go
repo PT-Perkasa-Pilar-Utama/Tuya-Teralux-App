@@ -114,10 +114,22 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.MailTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -172,8 +184,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Email sent successfully, data contains customer_email",
+                    "202": {
+                        "description": "Email task submitted successfully",
                         "schema": {
                             "allOf": [
                                 {
@@ -183,10 +195,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "additionalProperties": {
-                                                "type": "string"
-                                            }
+                                            "$ref": "#/definitions/dtos.MailTaskResponseDTO"
                                         }
                                     }
                                 }
@@ -197,6 +206,64 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mail/status/{task_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the status and result of an email sending task.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Mail"
+                ],
+                "summary": "Get email task status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.MailStatusDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -1080,6 +1147,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/scenes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all configured scenes grouped under each Teralux device",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "List all scenes across all Teralux devices",
+                "responses": {
+                    "200": {
+                        "description": "All scenes grouped by Teralux",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dtos.TeraluxScenesWrapperDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/speech/models/gemini": {
             "post": {
                 "security": [
@@ -1619,7 +1726,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of all configured scenes for a specific Teralux device",
+                "description": "Retrieve a list of all configured scenes for a specific Teralux device, including all actions for each scene.",
                 "produces": [
                     "application/json"
                 ],
@@ -1638,7 +1745,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of scenes",
+                        "description": "List of scenes with actions",
                         "schema": {
                             "allOf": [
                                 {
@@ -1650,7 +1757,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dtos.SceneListResponseDTO"
+                                                "$ref": "#/definitions/dtos.SceneResponseDTO"
                                             }
                                         }
                                     }
@@ -2249,6 +2356,10 @@ const docTemplate = `{
                 "to"
             ],
             "properties": {
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/summary_123.pdf"
+                },
                 "subject": {
                     "type": "string",
                     "example": "Notification"
@@ -2265,6 +2376,51 @@ const docTemplate = `{
                     "example": [
                         "user@example.com"
                     ]
+                }
+            }
+        },
+        "dtos.MailStatusDTO": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {
+                    "type": "number"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "smtp auth failed"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                },
+                "result": {
+                    "type": "string",
+                    "example": "Email sent to user@example.com"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                },
+                "trigger": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.MailTaskResponseDTO": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string",
+                    "example": "mail-abc-123"
+                },
+                "task_status": {
+                    "type": "string",
+                    "example": "pending"
                 }
             }
         },
@@ -2436,9 +2592,32 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.SceneListResponseDTO": {
+        "dtos.SceneItemDTO": {
             "type": "object",
             "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionDTO"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.SceneResponseDTO": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionDTO"
+                    }
+                },
                 "id": {
                     "type": "string"
                 },
@@ -2456,6 +2635,10 @@ const docTemplate = `{
                 "subject"
             ],
             "properties": {
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/summary_123.pdf"
+                },
                 "subject": {
                     "type": "string",
                     "example": "Booking Confirmation"
@@ -2483,6 +2666,28 @@ const docTemplate = `{
                 },
                 "temperature": {
                     "type": "number"
+                }
+            }
+        },
+        "dtos.TeraluxScenesDTO": {
+            "type": "object",
+            "properties": {
+                "scenes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.SceneItemDTO"
+                    }
+                },
+                "teralux_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.TeraluxScenesWrapperDTO": {
+            "type": "object",
+            "properties": {
+                "teralux": {
+                    "$ref": "#/definitions/dtos.TeraluxScenesDTO"
                 }
             }
         },

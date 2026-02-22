@@ -60,7 +60,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                 application,
                 NetworkModule.registerUseCase,
                 NetworkModule.getTeraluxByMacUseCase,
-                NetworkModule.authenticateUseCase,
+                NetworkModule.authenticateUseCase
             )
         }
     val uiState by viewModel.uiState.collectAsState()
@@ -70,7 +70,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
     // Permission Launcher
     val permissionLauncher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestMultiplePermissions(),
+            contract = ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             val recordGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
             val storageGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
@@ -95,7 +95,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
     // Reusable Toast Observer
     ToastObserver(
         message = uiState.message,
-        onToastShown = { viewModel.clearMessage() },
+        onToastShown = { viewModel.clearMessage() }
     )
 
     // Side effect for navigation on success
@@ -112,48 +112,48 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
     val bgGradient =
         Brush.linearGradient(
             colors =
-                listOf(
-                    MaterialTheme.colorScheme.background,
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                    MaterialTheme.colorScheme.background,
-                ),
+            listOf(
+                MaterialTheme.colorScheme.background,
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                MaterialTheme.colorScheme.background
+            ),
             start =
-                androidx.compose.ui.geometry
-                    .Offset(0f, 0f),
+            androidx.compose.ui.geometry
+                .Offset(0f, 0f),
             end =
-                androidx.compose.ui.geometry
-                    .Offset(2000f, 2000f),
+            androidx.compose.ui.geometry
+                .Offset(2000f, 2000f)
         )
 
     Box(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .background(bgGradient),
+        Modifier
+            .fillMaxSize()
+            .background(bgGradient)
     ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
+            contentAlignment = Alignment.Center
         ) {
             val isTablet = maxWidth > 600.dp
 
             if (isTablet) {
                 Row(
                     modifier =
-                        Modifier
-                            .padding(32.dp)
-                            .fillMaxWidth(0.9f),
+                    Modifier
+                        .padding(32.dp)
+                        .fillMaxWidth(0.9f),
                     horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Left Side: Branding & Microcopy
                     Column(
                         modifier =
-                            Modifier
-                                .weight(1.2f)
-                                .padding(end = 48.dp),
+                        Modifier
+                            .weight(1.2f)
+                            .padding(end = 48.dp),
                         horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.Center,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         // Logo is clickable
                         Box(modifier = Modifier.clickable { viewModel.checkRegistration() }) {
@@ -169,16 +169,16 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onBackground,
                             style =
-                                androidx.compose.ui.text.TextStyle(
-                                    shadow =
-                                        androidx.compose.ui.graphics.Shadow(
-                                            color = Color.Black.copy(alpha = 0.3f),
-                                            offset =
-                                                androidx.compose.ui.geometry
-                                                    .Offset(2f, 2f),
-                                            blurRadius = 8f,
-                                        ),
-                                ),
+                            androidx.compose.ui.text.TextStyle(
+                                shadow =
+                                androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black.copy(alpha = 0.3f),
+                                    offset =
+                                    androidx.compose.ui.geometry
+                                        .Offset(2f, 2f),
+                                    blurRadius = 8f
+                                )
+                            )
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
@@ -186,7 +186,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                             lineHeight = 26.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
@@ -205,25 +205,25 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         isLoading = uiState.isLoading,
                         error = uiState.error,
                         onRegisterClick = { viewModel.register(name, roomId) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f)
                     )
                 }
             } else {
                 // Mobile Layout (Vertical Stack)
                 Column(
                     modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
-                            .padding(WindowInsets.statusBars.asPaddingValues()),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                        .padding(WindowInsets.statusBars.asPaddingValues()),
                     // Add status bar padding
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     // Wrapper for Logo (Clickable)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { viewModel.checkRegistration() },
+                        modifier = Modifier.clickable { viewModel.checkRegistration() }
                     ) {
                         WhisperLogo()
                     }
@@ -233,7 +233,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                     // Text (Not Clickable)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Secure Your Conversation",
@@ -242,16 +242,16 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                             color = MaterialTheme.colorScheme.onBackground,
                             textAlign = TextAlign.Center, // Explicitly center text
                             style =
-                                androidx.compose.ui.text.TextStyle(
-                                    shadow =
-                                        androidx.compose.ui.graphics.Shadow(
-                                            color = Color.Black.copy(alpha = 0.2f),
-                                            offset =
-                                                androidx.compose.ui.geometry
-                                                    .Offset(1f, 1f),
-                                            blurRadius = 4f,
-                                        ),
-                                ),
+                            androidx.compose.ui.text.TextStyle(
+                                shadow =
+                                androidx.compose.ui.graphics.Shadow(
+                                    color = Color.Black.copy(alpha = 0.2f),
+                                    offset =
+                                    androidx.compose.ui.geometry
+                                        .Offset(1f, 1f),
+                                    blurRadius = 4f
+                                )
+                            )
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -259,7 +259,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                             fontSize = 16.sp,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                             fontWeight = FontWeight.Normal,
-                            textAlign = TextAlign.Center, // Explicitly center text
+                            textAlign = TextAlign.Center // Explicitly center text
                         )
                     }
                     Spacer(modifier = Modifier.height(48.dp))
@@ -276,7 +276,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         },
                         isLoading = uiState.isLoading,
                         error = uiState.error,
-                        onRegisterClick = { viewModel.register(name, roomId) },
+                        onRegisterClick = { viewModel.register(name, roomId) }
                     )
                 }
             }
@@ -293,40 +293,40 @@ fun RegisterCard(
     isLoading: Boolean,
     error: String?,
     onRegisterClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     OutlinedCard(
         modifier =
-            modifier
-                .padding(8.dp)
-                .wrapContentHeight(),
+        modifier
+            .padding(8.dp)
+            .wrapContentHeight(),
         shape = RoundedCornerShape(32.dp),
         colors =
-            CardDefaults.outlinedCardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-            ),
+        CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+        ),
         border =
-            androidx.compose.foundation.BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-            ),
+        androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        )
     ) {
         Column(
             modifier = Modifier.padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             WhisperTextField(
                 value = name,
                 onValueChange = onNameChange,
-                label = "Name",
+                label = "Name"
             )
 
             WhisperTextField(
                 value = roomId,
                 onValueChange = onRoomIdChange,
                 label = "Room ID",
-                isRoomId = true,
+                isRoomId = true
             )
 
             if (isLoading) {
@@ -335,7 +335,7 @@ fun RegisterCard(
                 WhisperButton(
                     text = "Register",
                     onClick = onRegisterClick,
-                    enabled = name.isNotBlank() && roomId.isNotBlank(),
+                    enabled = name.isNotBlank() && roomId.isNotBlank()
                 )
             }
 
@@ -343,7 +343,7 @@ fun RegisterCard(
                 Text(
                     text = error,
                     color = Color.Red.copy(alpha = 0.7f),
-                    fontSize = 14.sp,
+                    fontSize = 14.sp
                 )
             }
         }

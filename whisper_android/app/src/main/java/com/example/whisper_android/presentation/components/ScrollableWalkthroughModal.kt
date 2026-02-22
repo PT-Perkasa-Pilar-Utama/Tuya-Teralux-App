@@ -28,7 +28,7 @@ fun ScrollableWalkthroughModal(
     title: String,
     showDialog: Boolean,
     onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     if (showDialog) {
         AlertDialog(
@@ -36,7 +36,9 @@ fun ScrollableWalkthroughModal(
             title = {
                 Text(
                     text = "$title Walkthrough",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 )
             },
             text = {
@@ -44,19 +46,19 @@ fun ScrollableWalkthroughModal(
                 Box(modifier = Modifier.heightIn(max = 450.dp)) {
                     Column(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(scrollState)
-                                .padding(end = 12.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(scrollState)
+                            .padding(end = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        content = content,
+                        content = content
                     )
                     VerticalScrollbar(
                         modifier =
-                            Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(vertical = 4.dp),
-                        scrollState = scrollState,
+                        Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(vertical = 4.dp),
+                        scrollState = scrollState
                     )
                 }
             },
@@ -65,7 +67,7 @@ fun ScrollableWalkthroughModal(
                     Text("Got it", fontWeight = FontWeight.Bold)
                 }
             },
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(28.dp)
         )
     }
 }

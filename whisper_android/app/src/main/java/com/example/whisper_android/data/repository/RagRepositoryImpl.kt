@@ -12,12 +12,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class RagRepositoryImpl(
-    private val api: RAGApi,
+    private val api: RAGApi
 ) : RagRepository {
     override suspend fun translate(
         text: String,
         targetLang: String,
-        token: String,
+        token: String
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
@@ -25,7 +25,7 @@ class RagRepositoryImpl(
                 val response =
                     api.translate(
                         RAGRequestDto(text = text, language = targetLang),
-                        "Bearer $token",
+                        "Bearer $token"
                     )
                 val taskId = response.data?.taskId
 
@@ -41,7 +41,7 @@ class RagRepositoryImpl(
 
     override suspend fun pollTranslation(
         taskId: String,
-        token: String,
+        token: String
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
@@ -88,15 +88,20 @@ class RagRepositoryImpl(
         style: String,
         language: String?,
         context: String?,
-        token: String,
+        token: String
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
             try {
                 val response =
                     api.summary(
-                        RAGSummaryRequestDto(text = text, style = style, language = language, context = context),
-                        "Bearer $token",
+                        RAGSummaryRequestDto(
+                            text = text,
+                            style = style,
+                            language = language,
+                            context = context
+                        ),
+                        "Bearer $token"
                     )
                 val taskId = response.data?.taskId
 
@@ -112,7 +117,7 @@ class RagRepositoryImpl(
 
     override suspend fun pollSummary(
         taskId: String,
-        token: String,
+        token: String
     ): Flow<Resource<RAGSummaryResponseDto>> =
         flow {
             emit(Resource.Loading())
@@ -126,10 +131,23 @@ class RagRepositoryImpl(
 
                     when (status) {
                         "completed" -> {
-                            val result = statusData.executionResult
-                            if (result != null) {
-                                emit(Resource.Success<RAGSummaryResponseDto>(result))
-                                return@flow
+                            val resultJson = statusData.executionResult
+                            if (resultJson != null) {
+                                try {
+                                    val summaryResult = com.google.gson.Gson().fromJson(
+                                        resultJson,
+                                        RAGSummaryResponseDto::class.java
+                                    )
+                                    emit(Resource.Success(summaryResult))
+                                    return@flow
+                                } catch (e: Exception) {
+                                    emit(
+                                        Resource.Error(
+                                            "Failed to parse summary result: ${e.message}"
+                                        )
+                                    )
+                                    return@flow
+                                }
                             } else {
                                 emit(Resource.Error("Completed but no summary result found"))
                                 return@flow

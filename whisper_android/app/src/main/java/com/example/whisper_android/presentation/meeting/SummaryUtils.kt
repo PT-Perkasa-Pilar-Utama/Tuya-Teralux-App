@@ -5,7 +5,7 @@ import android.content.Context
 object SummaryUtils {
     fun loadAndFormatSummary(
         context: Context,
-        language: String,
+        language: String
     ): String {
         return try {
             val content =

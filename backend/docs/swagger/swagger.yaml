@@ -61,6 +61,9 @@ definitions:
     type: object
   dtos.MailSendRequestDTO:
     properties:
+      attachment_path:
+        example: /uploads/reports/summary_123.pdf
+        type: string
       subject:
         example: Notification
         type: string
@@ -76,6 +79,37 @@ definitions:
     required:
     - subject
     - to
+    type: object
+  dtos.MailStatusDTO:
+    properties:
+      duration_seconds:
+        type: number
+      error:
+        example: smtp auth failed
+        type: string
+      expires_at:
+        type: string
+      expires_in_seconds:
+        type: integer
+      result:
+        example: Email sent to user@example.com
+        type: string
+      started_at:
+        type: string
+      status:
+        example: completed
+        type: string
+      trigger:
+        type: string
+    type: object
+  dtos.MailTaskResponseDTO:
+    properties:
+      task_id:
+        example: mail-abc-123
+        type: string
+      task_status:
+        example: pending
+        type: string
     type: object
   dtos.RAGChatRequestDTO:
     properties:
@@ -194,8 +228,23 @@ definitions:
     required:
     - text
     type: object
-  dtos.SceneListResponseDTO:
+  dtos.SceneItemDTO:
     properties:
+      actions:
+        items:
+          $ref: '#/definitions/dtos.ActionDTO'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  dtos.SceneResponseDTO:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/dtos.ActionDTO'
+        type: array
       id:
         type: string
       name:
@@ -205,6 +254,9 @@ definitions:
     type: object
   dtos.SendMailByMacRequestDTO:
     properties:
+      attachment_path:
+        example: /uploads/reports/summary_123.pdf
+        type: string
       subject:
         example: Booking Confirmation
         type: string
@@ -226,6 +278,20 @@ definitions:
         type: string
       temperature:
         type: number
+    type: object
+  dtos.TeraluxScenesDTO:
+    properties:
+      scenes:
+        items:
+          $ref: '#/definitions/dtos.SceneItemDTO'
+        type: array
+      teralux_id:
+        type: string
+    type: object
+  dtos.TeraluxScenesWrapperDTO:
+    properties:
+      teralux:
+        $ref: '#/definitions/dtos.TeraluxScenesDTO'
     type: object
   dtos.TranscriptionTaskResponseDTO:
     properties:
@@ -484,10 +550,15 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "202":
+          description: Accepted
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.MailTaskResponseDTO'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -522,16 +593,14 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: Email sent successfully, data contains customer_email
+        "202":
+          description: Email task submitted successfully
           schema:
             allOf:
             - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
-                  additionalProperties:
-                    type: string
-                  type: object
+                  $ref: '#/definitions/dtos.MailTaskResponseDTO'
               type: object
         "400":
           description: Bad Request
@@ -548,6 +617,40 @@ paths:
       security:
       - BearerAuth: []
       summary: Send an email by Teralux MAC Address
+      tags:
+      - 09. Mail
+  /api/mail/status/{task_id}:
+    get:
+      description: Get the status and result of an email sending task.
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.MailStatusDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get email task status
       tags:
       - 09. Mail
   /api/models/gemini:
@@ -1074,6 +1177,28 @@ paths:
       summary: Get recording by ID
       tags:
       - 07. Recordings
+  /api/scenes:
+    get:
+      description: Retrieve all configured scenes grouped under each Teralux device
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All scenes grouped by Teralux
+          schema:
+            allOf:
+            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dtos.TeraluxScenesWrapperDTO'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List all scenes across all Teralux devices
+      tags:
+      - 03. Scenes
   /api/speech/models/gemini:
     post:
       consumes:
@@ -1403,7 +1528,7 @@ paths:
   /api/teralux/{id}/scenes:
     get:
       description: Retrieve a list of all configured scenes for a specific Teralux
-        device
+        device, including all actions for each scene.
       parameters:
       - description: Teralux UUID
         in: path
@@ -1414,14 +1539,14 @@ paths:
       - application/json
       responses:
         "200":
-          description: List of scenes
+          description: List of scenes with actions
           schema:
             allOf:
             - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/dtos.SceneListResponseDTO'
+                    $ref: '#/definitions/dtos.SceneResponseDTO'
                   type: array
               type: object
       security:

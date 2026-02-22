@@ -3,17 +3,19 @@ package com.example.whisper_android.presentation.meeting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisper_android.data.di.NetworkModule
+import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.domain.usecase.MeetingProcessState
 import com.example.whisper_android.domain.usecase.ProcessMeetingUseCase
 import com.example.whisper_android.presentation.components.UiState
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.io.File
 
 class MeetingViewModel(
-    private val processMeetingUseCase: ProcessMeetingUseCase,
+    private val processMeetingUseCase: ProcessMeetingUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<MeetingProcessState>(MeetingProcessState.Idle)
     val uiState: StateFlow<MeetingProcessState> = _uiState.asStateFlow()
@@ -24,7 +26,7 @@ class MeetingViewModel(
     fun processRecording(
         audioFile: File,
         token: String,
-        targetLang: String = "Indonesian",
+        targetLang: String = "Indonesian"
     ) {
         viewModelScope.launch {
             processMeetingUseCase(audioFile, token, targetLang).collect { state ->
@@ -36,12 +38,11 @@ class MeetingViewModel(
     fun sendEmailSummary(
         email: String,
         subject: String,
-        targetLang: String = "id",
+        targetLang: String = "id"
     ) {
         val state = _uiState.value
         if (state !is MeetingProcessState.Success) return
 
-        val summaryContent = state.summary
         val token = NetworkModule.tokenManager.getAccessToken() ?: ""
 
         if (token.isEmpty()) {
@@ -50,13 +51,25 @@ class MeetingViewModel(
         }
 
         viewModelScope.launch {
-            _emailState.value = UiState.Loading
             NetworkModule
-                .sendEmailUseCase(email, subject, summaryContent, token)
-                .onSuccess {
-                    _emailState.value = UiState.Success(true)
-                }.onFailure { e ->
-                    _emailState.value = UiState.Error(e.message ?: "Failed to send email")
+                .sendEmailUseCase(
+                    to = email,
+                    subject = subject,
+                    template = "summary",
+                    token = token,
+                    attachmentPath = state.pdfUrl
+                ).collectLatest { resource ->
+                    when (resource) {
+                        is Resource.Loading -> {
+                            _emailState.value = UiState.Loading
+                        }
+                        is Resource.Success -> {
+                            _emailState.value = UiState.Success(true)
+                        }
+                        is Resource.Error -> {
+                            _emailState.value = UiState.Error(resource.message ?: "Failed to send email")
+                        }
+                    }
                 }
         }
     }

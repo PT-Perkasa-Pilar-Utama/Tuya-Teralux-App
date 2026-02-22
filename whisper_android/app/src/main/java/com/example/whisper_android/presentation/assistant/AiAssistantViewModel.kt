@@ -11,11 +11,11 @@ import com.example.whisper_android.presentation.components.TranscriptionMessage
 import com.example.whisper_android.presentation.meeting.AudioRecorder
 import com.example.whisper_android.util.MqttHelper
 import com.example.whisper_android.util.parseMarkdownToText
-import kotlinx.coroutines.launch
 import java.io.File
+import kotlinx.coroutines.launch
 
 class AiAssistantViewModel(
-    application: Application,
+    application: Application
 ) : AndroidViewModel(application) {
     var transcriptionResults by mutableStateOf(listOf<TranscriptionMessage>())
         private set
@@ -39,27 +39,39 @@ class AiAssistantViewModel(
     init {
         mqttHelper.onMessageReceived = { topic, message ->
             viewModelScope.launch {
-                android.util.Log.d("AiAssistantViewModel", "MQTT Message: topic=$topic, message=$message")
+                android.util.Log.d(
+                    "AiAssistantViewModel",
+                    "MQTT Message: topic=$topic, message=$message"
+                )
                 try {
                     when {
                         topic.endsWith("chat/answer") -> {
-                            android.util.Log.d("AiAssistantViewModel", "Received chat/answer: $message")
+                            android.util.Log.d(
+                                "AiAssistantViewModel",
+                                "Received chat/answer: $message"
+                            )
                             val json = org.json.JSONObject(message)
                             val data = json.optJSONObject("data")
-                            val responseText = data?.optString("response") ?: json.optString("message", message)
+                            val responseText = data?.optString("response") ?: json.optString(
+                                "message",
+                                message
+                            )
 
                             val cleanMessage = parseMarkdownToText(responseText)
                             transcriptionResults = transcriptionResults +
                                 TranscriptionMessage(
                                     text = cleanMessage,
-                                    role = MessageRole.ASSISTANT,
+                                    role = MessageRole.ASSISTANT
                                 )
                             isProcessing = false
                             android.util.Log.d("AiAssistantViewModel", "isProcessing set to false")
                         }
 
                         topic.endsWith("chat") -> {
-                            android.util.Log.d("AiAssistantViewModel", "Received chat (sync): $message")
+                            android.util.Log.d(
+                                "AiAssistantViewModel",
+                                "Received chat (sync): $message"
+                            )
                             // Extract prompt if it's JSON, otherwise use raw message
                             val prompt =
                                 try {
@@ -82,7 +94,7 @@ class AiAssistantViewModel(
                                 transcriptionResults = transcriptionResults +
                                     TranscriptionMessage(
                                         text = prompt,
-                                        role = MessageRole.USER,
+                                        role = MessageRole.USER
                                     )
                             }
                         }
@@ -135,7 +147,10 @@ class AiAssistantViewModel(
                     it.role == MessageRole.USER && it.text == text
                 }
             if (!alreadyExists) {
-                transcriptionResults = transcriptionResults + TranscriptionMessage(text, MessageRole.USER)
+                transcriptionResults = transcriptionResults + TranscriptionMessage(
+                    text,
+                    MessageRole.USER
+                )
             }
             isProcessing = true
             viewModelScope.launch {

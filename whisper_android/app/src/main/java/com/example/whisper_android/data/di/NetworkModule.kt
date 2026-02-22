@@ -115,7 +115,7 @@ object NetworkModule {
         com.example.whisper_android.domain.usecase.ProcessMeetingUseCase(
             transcribeAudioUseCase,
             translateTextUseCase,
-            summarizeTextUseCase,
+            summarizeTextUseCase
         )
     }
 

@@ -8,7 +8,7 @@ import com.example.whisper_android.domain.repository.TuyaRepository
 class TuyaRepositoryImpl(
     private val api: TuyaApi,
     private val apiKey: String,
-    private val tokenManager: TokenManager,
+    private val tokenManager: TokenManager
 ) : TuyaRepository {
     override suspend fun authenticate(): Result<String> =
         try {

@@ -13,11 +13,11 @@ interface RagRepository {
         style: String,
         language: String?,
         context: String?,
-        token: String,
+        token: String
     ): Flow<Resource<String>> // Returns Task ID
 
     suspend fun pollSummary(
         taskId: String,
-        token: String,
+        token: String
     ): Flow<Resource<RAGSummaryResponseDto>> // Returns Summary & PDF URL
 }

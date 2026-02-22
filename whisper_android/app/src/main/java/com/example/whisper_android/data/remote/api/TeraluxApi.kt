@@ -10,12 +10,12 @@ interface TeraluxApi {
     @POST("/api/teralux")
     suspend fun registerTeralux(
         @Header("X-API-KEY") apiKey: String,
-        @Body request: TeraluxRequestDto,
+        @Body request: TeraluxRequestDto
     ): TeraluxResponseDto
 
     @retrofit2.http.GET("/api/teralux/mac/{mac}")
     suspend fun getTeraluxByMac(
         @Header("X-API-KEY") apiKey: String,
-        @retrofit2.http.Path("mac") mac: String,
+        @retrofit2.http.Path("mac") mac: String
     ): TeraluxResponseDto
 }

@@ -1,17 +1,34 @@
 .PHONY: build deploy clean logs
 
-# Build APK only
+# Build DEBUG APK
 build:
+	@chmod +x gradlew
 	@echo "🔨 Building Whisper Android APK..."
 	./gradlew assembleDebug --quiet
 	@echo "✅ Build complete: app/build/outputs/apk/debug/app-debug.apk"
 
+# Run Linter (ktlint)
+lint:
+	@chmod +x gradlew
+	@echo "🔍 Running Kotlin Linter..."
+	@./gradlew ktlintCheck
+	@echo "✅ Lint check complete"
+
+# Fix Lint issues automatically
+lint-fix:
+	@chmod +x gradlew
+	@echo "🔧 Fixing Kotlin Lint issues..."
+	@./gradlew ktlintFormat
+	@echo "✅ Lint fix complete"
+
 # Build and deploy to device
 deploy:
+	@chmod +x deploy.sh gradlew
 	@./deploy.sh
 
 # Deploy to specific device
 deploy-%:
+	@chmod +x deploy.sh gradlew
 	@./deploy.sh $*
 
 # Clean build artifacts

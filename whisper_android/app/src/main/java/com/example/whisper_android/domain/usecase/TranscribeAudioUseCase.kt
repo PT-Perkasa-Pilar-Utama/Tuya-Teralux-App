@@ -2,17 +2,17 @@ package com.example.whisper_android.domain.usecase
 
 import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.domain.repository.SpeechRepository
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.io.File
 
 class TranscribeAudioUseCase(
-    private val speechRepository: SpeechRepository,
+    private val speechRepository: SpeechRepository
 ) {
     suspend operator fun invoke(
         audioFile: File,
         token: String,
-        language: String,
+        language: String
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())

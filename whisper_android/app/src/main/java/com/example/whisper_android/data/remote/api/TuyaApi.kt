@@ -7,6 +7,6 @@ import retrofit2.http.Header
 interface TuyaApi {
     @GET("/api/tuya/auth")
     suspend fun authenticate(
-        @Header("X-API-KEY") apiKey: String,
+        @Header("X-API-KEY") apiKey: String
     ): TuyaAuthResponseDto
 }

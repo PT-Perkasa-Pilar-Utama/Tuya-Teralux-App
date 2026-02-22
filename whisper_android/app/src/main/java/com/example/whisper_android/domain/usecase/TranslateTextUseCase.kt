@@ -6,12 +6,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class TranslateTextUseCase(
-    private val ragRepository: RagRepository,
+    private val ragRepository: RagRepository
 ) {
     suspend operator fun invoke(
         text: String,
         targetLang: String,
-        token: String,
+        token: String
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())

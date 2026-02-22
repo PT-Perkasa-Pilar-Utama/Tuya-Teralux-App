@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.whisper_android.BuildConfig
 import info.mqtt.android.service.MqttAndroidClient
+import java.util.UUID
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
@@ -12,10 +13,9 @@ import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttException
 import org.eclipse.paho.client.mqttv3.MqttMessage
-import java.util.UUID
 
 class MqttHelper(
-    context: Context,
+    context: Context
 ) {
     private var mqttAndroidClient: MqttAndroidClient
     private val serverUri = BuildConfig.MQTT_BROKER_URL
@@ -30,7 +30,7 @@ class MqttHelper(
         DISCONNECTED,
         CONNECTING,
         CONNECTED,
-        FAILED,
+        FAILED
     }
 
     init {
@@ -45,14 +45,14 @@ class MqttHelper(
 
                 override fun messageArrived(
                     topic: String,
-                    message: MqttMessage,
+                    message: MqttMessage
                 ) {
                     Log.d(tag, "Message arrived: $topic -> $message")
                     onMessageReceived?.invoke(topic, message.toString())
                 }
 
                 override fun deliveryComplete(token: IMqttDeliveryToken?) {}
-            },
+            }
         )
     }
 
@@ -90,13 +90,13 @@ class MqttHelper(
 
                     override fun onFailure(
                         asyncActionToken: IMqttToken,
-                        exception: Throwable,
+                        exception: Throwable
                     ) {
                         Log.w(tag, "Failed to connect to: $serverUri")
                         exception.printStackTrace()
                         onConnectionStatusChanged?.invoke(MqttConnectionStatus.FAILED)
                     }
-                },
+                }
             )
         } catch (ex: MqttException) {
             ex.printStackTrace()
@@ -116,11 +116,11 @@ class MqttHelper(
 
                     override fun onFailure(
                         asyncActionToken: IMqttToken,
-                        exception: Throwable,
+                        exception: Throwable
                     ) {
                         Log.e(tag, "Failed to subscribe to $topic")
                     }
-                },
+                }
             )
         } catch (e: MqttException) {
             e.printStackTrace()
@@ -140,7 +140,7 @@ class MqttHelper(
 
     fun publishAudio(
         payload: ByteArray,
-        language: String = "id",
+        language: String = "id"
     ) {
         val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
         val json =
@@ -156,7 +156,7 @@ class MqttHelper(
 
     fun publishChat(
         text: String,
-        language: String = "id",
+        language: String = "id"
     ) {
         val json =
             """
@@ -171,7 +171,7 @@ class MqttHelper(
 
     private fun publish(
         topic: String,
-        payload: ByteArray,
+        payload: ByteArray
     ) {
         val isConnected = mqttAndroidClient.isConnected
         Log.d(tag, "Attempting to publish to $topic. Client connected state: $isConnected")

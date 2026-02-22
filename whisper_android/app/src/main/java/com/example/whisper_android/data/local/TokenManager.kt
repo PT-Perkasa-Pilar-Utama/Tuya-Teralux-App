@@ -5,9 +5,12 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 
 class TokenManager(
-    context: Context,
+    context: Context
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("teralux_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences(
+        "teralux_prefs",
+        Context.MODE_PRIVATE
+    )
 
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"

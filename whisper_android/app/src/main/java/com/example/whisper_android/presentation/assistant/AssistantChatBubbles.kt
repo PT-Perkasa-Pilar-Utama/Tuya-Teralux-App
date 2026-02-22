@@ -1,6 +1,5 @@
 package com.example.whisper_android.presentation.assistant
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,55 +25,55 @@ fun AssistantChatBubble(message: TranscriptionMessage) {
 
     Column(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp),
-        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Surface(
             shape =
-                RoundedCornerShape(
-                    topStart = if (isUser) 24.dp else 4.dp,
-                    topEnd = if (isUser) 4.dp else 24.dp,
-                    bottomStart = 24.dp,
-                    bottomEnd = 24.dp,
-                ),
+            RoundedCornerShape(
+                topStart = if (isUser) 24.dp else 4.dp,
+                topEnd = if (isUser) 4.dp else 24.dp,
+                bottomStart = 24.dp,
+                bottomEnd = 24.dp
+            ),
             color =
-                if (isUser) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    Color.White.copy(alpha = 0.9f)
-                },
+            if (isUser) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                Color.White.copy(alpha = 0.9f)
+            },
             modifier =
-                Modifier
-                    .widthIn(max = 300.dp),
+            Modifier
+                .widthIn(max = 300.dp),
             border =
-                if (!isUser) {
-                    androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                    )
-                } else {
-                    null
-                },
+            if (!isUser) {
+                androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                )
+            } else {
+                null
+            },
             shadowElevation = if (isUser) 6.dp else 8.dp,
-            tonalElevation = if (isUser) 0.dp else 4.dp,
+            tonalElevation = if (isUser) 0.dp else 4.dp
         ) {
             Text(
                 text = message.text,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
                 style =
-                    MaterialTheme.typography.bodyLarge.copy(
-                        lineHeight = 24.sp,
-                        fontSize = 15.sp,
-                        fontWeight = if (isUser) FontWeight.Medium else FontWeight.Normal,
-                    ),
+                MaterialTheme.typography.bodyLarge.copy(
+                    lineHeight = 24.sp,
+                    fontSize = 15.sp,
+                    fontWeight = if (isUser) FontWeight.Medium else FontWeight.Normal
+                ),
                 color =
-                    if (isUser) {
-                        Color.White
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                if (isUser) {
+                    Color.White
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
             )
         }
     }

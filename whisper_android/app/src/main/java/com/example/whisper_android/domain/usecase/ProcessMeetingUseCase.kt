@@ -1,13 +1,9 @@
 package com.example.whisper_android.domain.usecase
 
-import com.example.whisper_android.data.remote.dto.SpeechResponseDto
-import com.example.whisper_android.data.remote.dto.TranscriptionResultText
-import com.example.whisper_android.domain.repository.RagRepository
 import com.example.whisper_android.domain.repository.Resource
-import com.example.whisper_android.domain.repository.SpeechRepository
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.io.File
 
 sealed class MeetingProcessState {
     object Idle : MeetingProcessState()
@@ -24,23 +20,23 @@ sealed class MeetingProcessState {
 
     data class Success(
         val summary: String,
-        val pdfUrl: String?,
+        val pdfUrl: String?
     ) : MeetingProcessState()
 
     data class Error(
-        val message: String,
+        val message: String
     ) : MeetingProcessState()
 }
 
 class ProcessMeetingUseCase(
     private val transcribeAudioUseCase: TranscribeAudioUseCase,
     private val translateTextUseCase: TranslateTextUseCase,
-    private val summarizeTextUseCase: SummarizeTextUseCase,
+    private val summarizeTextUseCase: SummarizeTextUseCase
 ) {
     suspend operator fun invoke(
         audioFile: File,
         token: String,
-        targetLang: String = "English",
+        targetLang: String = "English"
     ): Flow<MeetingProcessState> =
         flow {
             emit(MeetingProcessState.Uploading)
@@ -105,7 +101,9 @@ class ProcessMeetingUseCase(
                     is Resource.Success -> {
                         val summaryData = result.data
                         if (summaryData != null) {
-                            emit(MeetingProcessState.Success(summaryData.summary, summaryData.pdfUrl))
+                            emit(
+                                MeetingProcessState.Success(summaryData.summary, summaryData.pdfUrl)
+                            )
                         }
                     }
 

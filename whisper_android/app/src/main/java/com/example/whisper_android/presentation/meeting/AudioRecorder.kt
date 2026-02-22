@@ -12,7 +12,7 @@ import java.io.RandomAccessFile
 import java.util.concurrent.atomic.AtomicBoolean
 
 class AudioRecorder(
-    private val context: Context,
+    private val context: Context
 ) {
     private var audioRecord: AudioRecord? = null
     private var recordingThread: Thread? = null
@@ -36,7 +36,7 @@ class AudioRecorder(
                 sampleRate,
                 channelConfig,
                 audioFormat,
-                bufferSize,
+                bufferSize
             )
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
@@ -119,7 +119,7 @@ class AudioRecorder(
         channels: Int,
         sampleRate: Int,
         bitsPerSample: Int,
-        dataSize: Long,
+        dataSize: Long
     ) {
         val byteRate = sampleRate * channels * bitsPerSample / 8
         val blockAlign = (channels * bitsPerSample / 8).toShort()
@@ -142,7 +142,7 @@ class AudioRecorder(
 
     private fun writeIntLE(
         output: java.io.DataOutput,
-        value: Int,
+        value: Int
     ) {
         output.writeByte(value and 0xFF)
         output.writeByte((value shr 8) and 0xFF)
@@ -152,7 +152,7 @@ class AudioRecorder(
 
     private fun writeShortLE(
         output: java.io.DataOutput,
-        value: Short,
+        value: Short
     ) {
         output.writeByte(value.toInt() and 0xFF)
         output.writeByte((value.toInt() shr 8) and 0xFF)

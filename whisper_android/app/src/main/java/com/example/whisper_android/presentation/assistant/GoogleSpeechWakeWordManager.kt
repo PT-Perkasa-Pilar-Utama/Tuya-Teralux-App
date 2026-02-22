@@ -13,7 +13,7 @@ import android.util.Log
 
 class GoogleSpeechWakeWordManager(
     private val context: Context,
-    private val onWakeWordDetected: () -> Unit,
+    private val onWakeWordDetected: () -> Unit
 ) : WakeWordListener {
     private var speechRecognizer: SpeechRecognizer? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -21,7 +21,14 @@ class GoogleSpeechWakeWordManager(
     private var isDestroyed = false
 
     // Similar keywords to Vosk to maintain consistency
-    private val wakeWords = listOf("hey sensio", "sensio", "sensyo", "sensus", "essence", "hi sensio")
+    private val wakeWords = listOf(
+        "hey sensio",
+        "sensio",
+        "sensyo",
+        "sensus",
+        "essence",
+        "hi sensio"
+    )
 
     private val recognitionListener =
         object : RecognitionListener {
@@ -74,13 +81,15 @@ class GoogleSpeechWakeWordManager(
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
-                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val matches = partialResults?.getStringArrayList(
+                    SpeechRecognizer.RESULTS_RECOGNITION
+                )
                 processResults(matches)
             }
 
             override fun onEvent(
                 eventType: Int,
-                params: Bundle?,
+                params: Bundle?
             ) {}
         }
 
@@ -130,7 +139,10 @@ class GoogleSpeechWakeWordManager(
 
         val intent =
             Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
                 // Optional: Request offline if possible to save battery/data, though accuracy might drop

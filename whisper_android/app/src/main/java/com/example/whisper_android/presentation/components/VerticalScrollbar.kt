@@ -33,7 +33,7 @@ fun VerticalScrollbar(
     modifier: Modifier = Modifier,
     lazyListState: LazyListState,
     width: Dp = 4.dp,
-    color: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+    color: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
 ) {
     val showScrollbar by remember {
         derivedStateOf {
@@ -45,7 +45,7 @@ fun VerticalScrollbar(
         val alpha by animateFloatAsState(
             targetValue = if (lazyListState.isScrollInProgress) 1f else 0.4f,
             animationSpec = tween(durationMillis = 500),
-            label = "ScrollbarAlpha",
+            label = "ScrollbarAlpha"
         )
 
         val visibleItemsInfo = lazyListState.layoutInfo.visibleItemsInfo
@@ -63,21 +63,27 @@ fun VerticalScrollbar(
                 (lazyListState.firstVisibleItemIndex * averageItemHeight) + lazyListState.firstVisibleItemScrollOffset
 
             // Calculate ratios
-            val thumbHeightRatio = (viewportHeight.toFloat() / estimatedTotalHeight).coerceIn(0.1f, 1f)
-            val thumbOffsetRatio = (currentScrollPosition / estimatedTotalHeight).coerceIn(0f, 1f - thumbHeightRatio)
+            val thumbHeightRatio = (viewportHeight.toFloat() / estimatedTotalHeight).coerceIn(
+                0.1f,
+                1f
+            )
+            val thumbOffsetRatio = (currentScrollPosition / estimatedTotalHeight).coerceIn(
+                0f,
+                1f - thumbHeightRatio
+            )
 
             val thumbHeight = maxHeight * thumbHeightRatio
             val thumbOffset = maxHeight * thumbOffsetRatio
 
             Box(
                 modifier =
-                    Modifier
-                        .offset(y = thumbOffset)
-                        .height(thumbHeight)
-                        .fillMaxWidth()
-                        .alpha(alpha)
-                        .clip(CircleShape)
-                        .background(color),
+                Modifier
+                    .offset(y = thumbOffset)
+                    .height(thumbHeight)
+                    .fillMaxWidth()
+                    .alpha(alpha)
+                    .clip(CircleShape)
+                    .background(color)
             )
         }
     }
@@ -91,7 +97,7 @@ fun VerticalScrollbar(
     modifier: Modifier = Modifier,
     scrollState: ScrollState,
     width: Dp = 4.dp,
-    color: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+    color: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
 ) {
     val showScrollbar by remember {
         derivedStateOf {
@@ -103,7 +109,7 @@ fun VerticalScrollbar(
         val alpha by animateFloatAsState(
             targetValue = if (scrollState.isScrollInProgress) 1f else 0.4f,
             animationSpec = tween(durationMillis = 500),
-            label = "ScrollbarAlpha",
+            label = "ScrollbarAlpha"
         )
 
         BoxWithConstraints(modifier = modifier.fillMaxHeight().width(width)) {
@@ -111,18 +117,20 @@ fun VerticalScrollbar(
 
             // Calculate thumb height and offset
             val totalContentHeight = scrollState.maxValue + maxHeight.value
-            val thumbHeight = (maxHeight.value / totalContentHeight * maxHeight.value).dp.coerceAtLeast(40.dp)
+            val thumbHeight = (maxHeight.value / totalContentHeight * maxHeight.value).dp.coerceAtLeast(
+                40.dp
+            )
             val thumbOffset = (scrollState.value.toFloat() / scrollState.maxValue * (maxHeight.value - thumbHeight.value)).dp
 
             Box(
                 modifier =
-                    Modifier
-                        .offset(y = thumbOffset)
-                        .height(thumbHeight)
-                        .fillMaxWidth()
-                        .alpha(alpha)
-                        .clip(CircleShape)
-                        .background(color),
+                Modifier
+                    .offset(y = thumbOffset)
+                    .height(thumbHeight)
+                    .fillMaxWidth()
+                    .alpha(alpha)
+                    .clip(CircleShape)
+                    .background(color)
             )
         }
     }

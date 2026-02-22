@@ -34,23 +34,23 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 fun MeetingIdleContent() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Center
     ) {
         Row(
             modifier = Modifier.height(40.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             repeat(5) { index ->
                 Box(
                     modifier =
-                        Modifier
-                            .width(4.dp)
-                            .height(if (index % 2 == 0) 24.dp else 16.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                RoundedCornerShape(2.dp),
-                            ),
+                    Modifier
+                        .width(4.dp)
+                        .height(if (index % 2 == 0) 24.dp else 16.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            RoundedCornerShape(2.dp)
+                        )
                 )
             }
         }
@@ -60,14 +60,14 @@ fun MeetingIdleContent() {
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Tap the mic to start recording your meeting.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -79,7 +79,7 @@ fun MeetingRecordingContent() {
         style = MaterialTheme.typography.headlineSmall,
         color = MaterialTheme.colorScheme.error,
         fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
+        textAlign = TextAlign.Center
     )
 }
 
@@ -87,33 +87,33 @@ fun MeetingRecordingContent() {
 fun MeetingSuccessContent(state: MeetingProcessState.Success) {
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
     ) {
         Text(
             text = "Meeting Summary",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 2.dp),
+            modifier = Modifier.padding(bottom = 2.dp)
         )
 
         MarkdownText(
             markdown =
-                state.summary
-                    .replace(Regex("^-+\\s*$", RegexOption.MULTILINE), "")
-                    .replace(Regex("^.*–.*$", RegexOption.MULTILINE), "")
-                    .replace("\n\n\n", "\n\n")
-                    .replace(Regex("\n{3,}"), "\n\n")
-                    .trim(),
+            state.summary
+                .replace(Regex("^-+\\s*$", RegexOption.MULTILINE), "")
+                .replace(Regex("^.*–.*$", RegexOption.MULTILINE), "")
+                .replace("\n\n\n", "\n\n")
+                .replace(Regex("\n{3,}"), "\n\n")
+                .trim(),
             style =
-                MaterialTheme.typography.bodyLarge.copy(
-                    color = Color.DarkGray,
-                    fontSize = 13.sp,
-                    lineHeight = 16.sp,
-                ),
-            modifier = Modifier.fillMaxWidth(),
+            MaterialTheme.typography.bodyLarge.copy(
+                color = Color.DarkGray,
+                fontSize = 13.sp,
+                lineHeight = 16.sp
+            ),
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
     }
@@ -125,14 +125,14 @@ fun MeetingErrorContent(state: MeetingProcessState.Error) {
         text = "Error: ${state.message}",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.error,
-        textAlign = TextAlign.Center,
+        textAlign = TextAlign.Center
     )
 }
 
 @Composable
 fun MeetingLoadingContent(
     uiState: MeetingProcessState,
-    glowAlpha: Float,
+    glowAlpha: Float
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -141,29 +141,29 @@ fun MeetingLoadingContent(
                 drawCircle(
                     color = primaryColor,
                     alpha = glowAlpha * 0.15f,
-                    radius = size.minDimension / 2,
+                    radius = size.minDimension / 2
                 )
             }
             CircularProgressIndicator(
                 color = primaryColor,
                 strokeWidth = 3.dp,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(56.dp)
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text =
-                when (uiState) {
-                    is MeetingProcessState.Uploading -> "Securely Uploading..."
-                    is MeetingProcessState.Transcribing -> "AI Transcribing..."
-                    is MeetingProcessState.Translating -> "Translating Context..."
-                    is MeetingProcessState.Summarizing -> "Generating Insights..."
-                    else -> "Thinking..."
-                },
+            when (uiState) {
+                is MeetingProcessState.Uploading -> "Securely Uploading..."
+                is MeetingProcessState.Transcribing -> "AI Transcribing..."
+                is MeetingProcessState.Translating -> "Translating Context..."
+                is MeetingProcessState.Summarizing -> "Generating Insights..."
+                else -> "Thinking..."
+            },
             style = MaterialTheme.typography.titleMedium,
             color = primaryColor,
             fontWeight = FontWeight.Black,
-            letterSpacing = 0.5.sp,
+            letterSpacing = 0.5.sp
         )
     }
 }

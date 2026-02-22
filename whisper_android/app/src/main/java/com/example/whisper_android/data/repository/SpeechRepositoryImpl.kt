@@ -6,21 +6,21 @@ import com.example.whisper_android.data.remote.api.SpeechApi
 import com.example.whisper_android.data.remote.dto.TranscriptionResultText
 import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.domain.repository.SpeechRepository
+import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
 
 class SpeechRepositoryImpl(
-    private val api: SpeechApi,
+    private val api: SpeechApi
 ) : SpeechRepository {
     override suspend fun transcribeAudio(
         file: File,
         token: String,
-        language: String,
+        language: String
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
@@ -57,21 +57,21 @@ class SpeechRepositoryImpl(
 
     override suspend fun pollTranscription(
         taskId: String,
-        token: String,
+        token: String
     ): Flow<Resource<TranscriptionResultText>> =
         flow {
             emit(Resource.Loading())
             while (true) {
                 try {
                     val response = api.getTranscriptionStatus(taskId, "Bearer $token")
-                    val statusWrapper = response.data?.taskStatus
-                    val status = statusWrapper?.status?.lowercase()
+                    val statusDto = response.data
+                    val status = statusDto?.status?.lowercase()
 
                     Log.d("SpeechRepo", "Polling Task $taskId: $status")
 
                     when (status) {
                         "completed" -> {
-                            val result = statusWrapper.result
+                            val result = statusDto.result
                             if (result != null) {
                                 emit(Resource.Success(result))
                                 return@flow

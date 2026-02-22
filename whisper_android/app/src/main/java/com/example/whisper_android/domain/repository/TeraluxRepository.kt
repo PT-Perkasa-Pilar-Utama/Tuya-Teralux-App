@@ -7,6 +7,7 @@ interface TeraluxRepository {
         name: String,
         roomId: String,
         macAddress: String,
+        deviceTypeId: String
     ): Result<TeraluxRegistration>
 
     suspend fun getTeraluxByMac(macAddress: String): Result<TeraluxRegistration?>

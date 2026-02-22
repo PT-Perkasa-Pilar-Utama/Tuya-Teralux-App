@@ -7,7 +7,7 @@ import android.speech.SpeechRecognizer
 object WakeWordFactory {
     fun getManager(
         context: Context,
-        onDetected: () -> Unit,
+        onDetected: () -> Unit
     ): WakeWordListener =
         if (SpeechRecognizer.isRecognitionAvailable(context)) {
             GoogleSpeechWakeWordManager(context, onDetected)

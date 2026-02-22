@@ -2,14 +2,16 @@ package com.example.whisper_android.presentation.summary
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.presentation.components.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 data class SummariesData(
     val idSummary: String = "",
-    val enSummary: String = "",
+    val enSummary: String = ""
 )
 
 class SummaryViewModel : ViewModel() {
@@ -67,9 +69,8 @@ class SummaryViewModel : ViewModel() {
 
     fun sendEmail(
         email: String,
-        subject: String,
+        subject: String
     ) {
-        val currentSummary = if (_selectedLanguage.value == "id") _summaries.value.idSummary else _summaries.value.enSummary
         val token =
             com.example.whisper_android.data.di.NetworkModule.tokenManager
                 .getAccessToken() ?: ""
@@ -80,15 +81,32 @@ class SummaryViewModel : ViewModel() {
         }
 
         viewModelScope.launch {
-            _emailState.value = UiState.Loading
-            val sendEmailUseCase = com.example.whisper_android.data.di.NetworkModule.sendEmailUseCase
+            val sendEmailUseCase =
+                com.example.whisper_android.data.di.NetworkModule.sendEmailUseCase
 
-            sendEmailUseCase(email, subject, currentSummary, token)
-                .onSuccess {
-                    _emailState.value = UiState.Success(true)
-                }.onFailure { e ->
-                    _emailState.value = UiState.Error(e.message ?: "Failed to send email")
+            sendEmailUseCase(
+                to = email,
+                subject = subject,
+                template = "summary",
+                token = token,
+                attachmentPath = null // SummaryViewModel currently doesn't track PDF URL
+            ).collectLatest { resource ->
+                when (resource) {
+                    is Resource.Loading -> {
+                        _emailState.value = UiState.Loading
+                    }
+
+                    is Resource.Success -> {
+                        _emailState.value = UiState.Success(true)
+                    }
+
+                    is Resource.Error -> {
+                        _emailState.value = UiState.Error(
+                            resource.message ?: "Failed to send email"
+                        )
+                    }
                 }
+            }
         }
     }
 

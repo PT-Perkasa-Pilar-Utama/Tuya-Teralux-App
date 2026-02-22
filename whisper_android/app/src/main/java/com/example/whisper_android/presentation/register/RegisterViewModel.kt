@@ -10,20 +10,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 data class RegisterUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val message: String? = null, // Added message field
-    val isSuccess: Boolean = false,
+    val isSuccess: Boolean = false
 )
 
 class RegisterViewModel(
     application: Application,
     private val registerTeraluxUseCase: RegisterTeraluxUseCase,
     private val getTeraluxByMacUseCase: com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase,
-    private val authenticateUseCase: AuthenticateUseCase,
+    private val authenticateUseCase: AuthenticateUseCase
 ) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(RegisterUiState(isLoading = true)) // Start with loading
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
@@ -51,7 +50,7 @@ class RegisterViewModel(
                                     it.copy(
                                         isLoading = false,
                                         isSuccess = true,
-                                        message = "Logged in successfully. Redirecting...",
+                                        message = "Logged in successfully. Redirecting..."
                                     )
                                 }
                             }.onFailure { e ->
@@ -62,8 +61,8 @@ class RegisterViewModel(
                                         isLoading = false,
                                         isSuccess = false,
                                         error =
-                                            "Device registered but authentication failed: ${e.message}. " +
-                                                "Please check your connection or try again.",
+                                        "Device registered but authentication failed: ${e.message}. " +
+                                            "Please check your connection or try again."
                                     )
                                 }
                             }
@@ -72,14 +71,19 @@ class RegisterViewModel(
                         _uiState.update { it.copy(isLoading = false, isSuccess = false) }
                     }
                 }.onFailure { e ->
-                    _uiState.update { it.copy(isLoading = false, error = "Failed to check registration: ${e.message}") }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Failed to check registration: ${e.message}"
+                        )
+                    }
                 }
         }
     }
 
     fun register(
         name: String,
-        roomId: String,
+        roomId: String
     ) {
         if (name.isBlank() || roomId.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Name and Room ID are required")
@@ -92,7 +96,7 @@ class RegisterViewModel(
                 com.example.whisper_android.util.DeviceUtils
                     .getDeviceId(getApplication())
 
-            val result = registerTeraluxUseCase(name, roomId, deviceId)
+            val result = registerTeraluxUseCase(name, roomId, deviceId, "1")
 
             result
                 .onSuccess {
@@ -104,17 +108,20 @@ class RegisterViewModel(
                             _uiState.value =
                                 RegisterUiState(
                                     isSuccess = true,
-                                    message = "Registration & Login successful! Welcome.",
+                                    message = "Registration & Login successful! Welcome."
                                 )
                         }.onFailure { e ->
                             _uiState.value =
                                 RegisterUiState(
                                     isSuccess = true, // Still success registration, but auth failed. Dashboard will retry auth.
-                                    message = "Registration successful. Login failed: ${e.message}",
+                                    message = "Registration successful. Login failed: ${e.message}"
                                 )
                         }
                 }.onFailure { e ->
-                    _uiState.value = RegisterUiState(error = e.message ?: "Unknown error", isLoading = false)
+                    _uiState.value = RegisterUiState(
+                        error = e.message ?: "Unknown error",
+                        isLoading = false
+                    )
                 }
         }
     }

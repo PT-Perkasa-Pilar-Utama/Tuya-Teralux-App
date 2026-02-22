@@ -1,7 +1,7 @@
-# ENDPOINT: POST /api/mail/send/mac/:mac_address
+# ENDPOINT: POST /api/email/send/mac/:mac_address
 
 ## Description
-Looks up customer information (including their email address) based on the provided Teralux MAC address and sends an email using a server-side HTML template.
+Looks up customer information via MAC address and submits an email task asynchronously. Returns a `task_id` immediately (HTTP 202 Accepted). Poll `/api/email/status/{task_id}` to track completion.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -9,22 +9,22 @@ Looks up customer information (including their email address) based on the provi
 
 ## Parameters
 - **Path Parameter**:
-  - `mac_address` (string): The MAC address of the Teralux device. (Any valid identifier used by the external system).
+  - `mac_address` (string): The MAC address (or UUID) of the Teralux device.
 
 ## Request Body
 - **Content-Type**: `application/json`
 - **Required Fields**:
   - `subject` (string): The subject line of the email.
 - **Optional Fields**:
-  - `template` (string): The name of the server-side template to use (defaults to "test").
+  - `template` (string): The name of the server-side template (defaults to `"test"`).
+  - `attachment_path` (string): Server-side path to a PDF file to attach.
 
 ## Test Scenarios
 
-### 1. Success - Send Email to Customer
-- **URL**: `http://localhost:8080/api/mail/send/mac/db329671-96bb-368b-95d3-53a3a3712563`
+### 1. Success - Submit Task for Valid Device
+- **URL**: `http://localhost:8080/api/email/send/mac/db329671-96bb-368b-95d3-53a3a3712563`
 - **Method**: `POST`
-- **Pre-conditions**:
-  - Device with MAC `db329671-96bb-368b-95d3-53a3a3712563` exists in the external system with a valid customer email.
+- **Pre-conditions**: Device with that MAC exists in the external system with a valid customer email.
 - **Request Body**:
 ```json
 {
@@ -32,45 +32,45 @@ Looks up customer information (including their email address) based on the provi
   "template": "test"
 }
 ```
-- **Expected Response**:
+- **Expected Response** *(Status: 202 Accepted)*:
 ```json
 {
   "status": true,
-  "message": "Email sent successfully to customer",
+  "message": "Email task submitted successfully",
   "data": {
-    "customer_email": "customer@example.com"
+    "task_id": "mail-mac-abc123",
+    "task_status": "pending"
   }
 }
 ```
-*(Status: 200 OK)*
 
 ### 2. Error: Customer Email Not Found
-- **URL**: `http://localhost:8080/api/mail/send/mac/NON_EXISTENT_MAC`
-- **Method**: `POST`
-- **Pre-conditions**: Device exists but has no associated customer email or MAC doesn't exist.
-- **Request Body**:
-```json
-{
-  "subject": "Test"
-}
-```
-- **Expected Response**:
+- **URL**: `http://localhost:8080/api/email/send/mac/NON_EXISTENT_MAC`
+- **Request Body**: `{ "subject": "Test" }`
+- **Expected Response** *(Status: 404 Not Found)*:
 ```json
 {
   "status": false,
   "message": "Customer email not found for this device"
 }
 ```
-*(Status: 404 Not Found)*
+
+### 3. Validation: Empty MAC Address
+- **URL**: `http://localhost:8080/api/email/send/mac/`
+- **Expected Response** *(Status: 400 Bad Request)*:
+```json
+{
+  "status": false,
+  "message": "mac_address is required"
+}
+```
 
 ### 4. Security: Unauthorized
-- **URL**: `http://localhost:8080/api/mail/send/mac/db329671-96bb-368b-95d3-53a3a3712563`
 - **Headers**: No Bearer token.
-- **Expected Response**:
+- **Expected Response** *(Status: 401 Unauthorized)*:
 ```json
 {
   "status": false,
   "message": "Unauthorized"
 }
 ```
-*(Status: 401 Unauthorized)*

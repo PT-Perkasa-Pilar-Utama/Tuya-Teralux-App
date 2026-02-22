@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun EmailInputDialog(
     onDismiss: () -> Unit,
-    onSend: (String, String) -> Unit,
+    onSend: (String, String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("Meeting Summary") }
@@ -41,7 +41,7 @@ fun EmailInputDialog(
                     singleLine = true,
                     isError = emailError != null,
                     supportingText = { if (emailError != null) Text(emailError!!) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
@@ -54,7 +54,7 @@ fun EmailInputDialog(
                     singleLine = true,
                     isError = subjectError != null,
                     supportingText = { if (subjectError != null) Text(subjectError!!) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         },
@@ -74,7 +74,7 @@ fun EmailInputDialog(
                     if (isValid) {
                         onSend(email, subject)
                     }
-                },
+                }
             ) {
                 Text("Send")
             }
@@ -83,6 +83,6 @@ fun EmailInputDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        },
+        }
     )
 }

@@ -151,7 +151,7 @@ func run() error {
 	// Initialize Modules
 	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService)
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, teraluxRepo)
-	mailModule := mail.NewMailModule(utils.GetConfig())
+	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
 	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
@@ -181,8 +181,9 @@ func run() error {
 
 	// 5. Speech & RAG Modules (migrated from stt-service)
 	scfg := utils.GetConfig()
-	// Log current log level for diagnostic purposes
-	fmt.Printf("Application log level: %s\n", utils.GetCurrentLogLevelName())
+	// Log current configuration for diagnostic purposes
+	utils.LogInfo("Startup: LLM Provider is set to '%s'", scfg.LLMProvider)
+	utils.LogInfo("Startup: Application log level is '%s'", utils.GetCurrentLogLevelName())
 	missing := []string{}
 	// Validate mandatory config based on provider
 	switch scfg.LLMProvider {
