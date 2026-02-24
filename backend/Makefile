@@ -35,7 +35,7 @@ stop-mysql-dev:
 	docker compose -f docker-compose.dev.yml down
 
 # Run development server with hot reload (requires air)
-dev:
+dev: kill
 	@trap 'make stop-mysql-dev' EXIT INT TERM; \
 	set -e; \
 	make start-mysql-dev; \
@@ -45,6 +45,7 @@ dev:
 		echo "🛠️ Some AI binaries missing. Running setup..."; \
 		make setup-dev; \
 	fi; \
+	mkdir -p .air && \
 	$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
 
 # Run development server without hot reload
@@ -208,14 +209,23 @@ lint:
 # Clean build artifacts
 clean:
 	@echo "🧹 Cleaning build artifacts..."
-	go clean
 	rm -f main
+	rm -rf .air
 	@echo "✅ Clean completed"
 
 # Kill process running on port 8081 (server's default port)
 kill:
 	@echo "🔪 Killing processes on port 8081..."
-	@lsof -ti:8081 | xargs -r kill -9 || echo "✅ No process running on port 8081"
+	@# Kill local processes
+	@lsof -ti:8081 | xargs -r kill -9 || true
+	@fuser -k 8081/tcp 2>/dev/null || true
+	@# Kill Docker processes/containers
+	@echo "🐳 Cleaning up Docker containers..."
+	@docker compose down --remove-orphans 2>/dev/null || true
+	@docker compose -f docker-compose.dev.yml down --remove-orphans 2>/dev/null || true
+	@docker stop teralux-backend teralux-db dev-mysql 2>/dev/null || true
+	@docker rm teralux-backend teralux-db dev-mysql 2>/dev/null || true
+	@echo "✅ Kill completed"
 
 # --- Database Migration Configuration ---
 # Note: We build from source to include required support

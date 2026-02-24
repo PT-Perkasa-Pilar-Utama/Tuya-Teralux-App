@@ -73,7 +73,7 @@ func (uc *mailSendUseCase) processAsync(taskID string, req *dtos.MailSendRequest
 	}
 
 	attachmentPath := req.AttachmentPath
-	if attachmentPath != "" && strings.HasPrefix(attachmentPath, "/uploads") {
+	if attachmentPath != nil && *attachmentPath != "" && strings.HasPrefix(*attachmentPath, "/uploads") {
 		// Resolve relative path to local disk path
 		wd, _ := os.Getwd()
 		baseDir := wd
@@ -83,19 +83,25 @@ func (uc *mailSendUseCase) processAsync(taskID string, req *dtos.MailSendRequest
 			}
 		}
 
-		relPath := strings.TrimPrefix(attachmentPath, "/")
+		relPath := strings.TrimPrefix(*attachmentPath, "/")
 		fullPath := filepath.Join(baseDir, relPath)
 
 		if _, err := os.Stat(fullPath); err == nil {
-			attachmentPath = fullPath
-			utils.LogDebug("MailSendUseCase: Resolved attachment path to %s", attachmentPath)
+			attachmentPath = &fullPath
+			utils.LogDebug("MailSendUseCase: Resolved attachment path to %s", *attachmentPath)
 		} else {
 			utils.LogWarn("MailSendUseCase: Attachment file not found at %s", fullPath)
-			attachmentPath = ""
+			attachmentPath = nil
 		}
 	}
 
-	err := uc.mailService.SendEmailWithTemplate(req.To, req.Subject, templateName, nil, attachmentPath)
+	// Add has_attachment to data if it's a map
+	if req.Data == nil {
+		req.Data = make(map[string]interface{})
+	}
+	req.Data["has_attachment"] = attachmentPath != nil && *attachmentPath != ""
+
+	err := uc.mailService.SendEmailWithTemplate(req.To, req.Subject, templateName, req.Data, attachmentPath)
 	if err != nil {
 		utils.LogError("Mail Task %s: Failed to send email: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", err, "")

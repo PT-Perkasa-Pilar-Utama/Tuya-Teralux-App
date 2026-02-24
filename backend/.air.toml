@@ -3,15 +3,15 @@
 # Working directory
 # . or absolute path, please note that the directories following must be under root.
 root = "."
-tmp_dir = "tmp"
+tmp_dir = ".air"
 
 [build]
   # Just plain old go build command. You can use dynamic variables with $variableName.
-  cmd = "CGO_CFLAGS='-w' go build -o ./tmp/main ."
+  cmd = "rm -f ./.air/main && CGO_CFLAGS='-w' go build -o ./.air/main ."
   # Binary file yields from `cmd`.
-  bin = "./tmp/main"
+  bin = "./.air/main"
   # Customize binary, can setup environment variables when run.
-  full_bin = "./tmp/main"
+  full_bin = "./.air/main"
   # Watch these filename extensions.
   include_ext = ["go", "tpl", "tmpl", "html", "json", "yaml"]
   # Ignore these filename extensions or directories.

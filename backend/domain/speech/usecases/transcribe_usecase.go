@@ -21,10 +21,11 @@ type WhisperClient interface {
 }
 
 type TranscriptionMetadata struct {
-	UID       string
-	TeraluxID string
-	Source    string // "mqtt", "rest", etc.
-	Trigger   string // e.g., "/api/speech/transcribe"
+	UID         string
+	TeraluxID   string
+	Source      string // "mqtt", "rest", etc.
+	Trigger     string // e.g., "/api/speech/transcribe"
+	DeleteAfter bool   // Whether to delete the audio file after processing
 }
 
 type TranscribeUseCase interface {
@@ -113,10 +114,22 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	if err != nil {
 		utils.LogError("Transcribe Task %s: All transcription methods failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil, err)
+
+		// Clean up on failure if needed
+		if metadata != nil && metadata.DeleteAfter {
+			_ = os.Remove(inputPath)
+			utils.LogDebug("Transcribe Task %s: Deleted temporary file %s after failure", taskID, inputPath)
+		}
 		return
 	}
 
 	utils.LogInfo("Transcribe Task %s: Finished using %s", taskID, result.Source)
+
+	// Clean up permanent file if requested
+	if metadata != nil && metadata.DeleteAfter {
+		_ = os.Remove(inputPath)
+		utils.LogDebug("Transcribe Task %s: Deleted temporary file %s after completion", taskID, inputPath)
+	}
 
 	// Refine (Grammar/Spelling)
 	// Priority: Use requested language if explicitly provided (e.g. from App), otherwise fallback to detected.

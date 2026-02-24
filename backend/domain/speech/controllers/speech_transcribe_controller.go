@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -78,44 +79,44 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			language = "id"
 		}
 
-		// Generate a descriptive original name for logging
-		filename := fmt.Sprintf("mqtt_%s_%d.wav", req.TeraluxID, time.Now().UnixNano())
+		// Generate a descriptive temporary filename
+		tempFilename := fmt.Sprintf("mqtt_temp_%s_%d.wav", req.TeraluxID, time.Now().UnixNano())
+		tempPath := filepath.Join("uploads", "audio", tempFilename)
 
-		// Save recording (File + DB) - Same as REST
-		recording, err := c.saveRecordingUC.SaveRecordingFromBytes(audioBytes, filename)
-		if err != nil {
-			utils.LogError("SpeechTranscribe MQTT: Failed to save recording: %v", err)
-			c.publishMqttError("Failed to save recording: " + err.Error())
+		// Save audio bytes to disk manually (without DB entry)
+		if err := os.WriteFile(tempPath, audioBytes, 0644); err != nil {
+			utils.LogError("SpeechTranscribe MQTT: Failed to save temporary audio: %v", err)
+			c.publishMqttError("Failed to process audio")
 			return
 		}
 
-		finalPath := filepath.Join("uploads", "audio", recording.Filename)
-
-		// Start transcription task using usecase - Same metadata logic
-		taskID, err := c.transcribeUC.TranscribeAudio(finalPath, filename, language, usecases.TranscriptionMetadata{
-			UID:       req.UID,
-			TeraluxID: req.TeraluxID,
-			Source:    "mqtt",
-			Trigger:   "mqtt:tera/transcribe", // Assuming this is the topic or some descriptive name
+		// Start transcription task using usecase
+		taskID, err := c.transcribeUC.TranscribeAudio(tempPath, tempFilename, language, usecases.TranscriptionMetadata{
+			UID:         req.UID,
+			TeraluxID:   req.TeraluxID,
+			Source:      "mqtt",
+			Trigger:     "mqtt:tera/transcribe",
+			DeleteAfter: true, // Delete file after transcription
 		})
 		if err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to start transcription: %v", err)
 			c.publishMqttError("Failed to start transcription task: " + err.Error())
+			_ = os.Remove(tempPath) // Clean up immediately on error
 			return
 		}
 
-		// Publish success status with RecordingID - Same as REST
+		// Publish success status with empty RecordingID (since not saved in DB)
 		c.publishMqttResponse(dtos.StandardResponse{
 			Status:  true,
-			Message: "Transcription task submitted successfully",
+			Message: "Transcription task submitted successfully (Ephemeral)",
 			Data: dtos.TranscriptionTaskResponseDTO{
 				TaskID:      taskID,
 				TaskStatus:  "pending",
-				RecordingID: recording.ID,
+				RecordingID: "", // No DB entry
 			},
 		})
 
-		utils.LogInfo("SpeechTranscribe MQTT: Started task %s for file %s", taskID, filename)
+		utils.LogInfo("SpeechTranscribe MQTT: Started ephemeral task %s for file %s", taskID, tempFilename)
 	})
 
 	if err != nil {

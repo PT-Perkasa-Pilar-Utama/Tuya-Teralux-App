@@ -25,9 +25,15 @@ func NewMailExternalService() *MailExternalService {
 
 // GetDeviceInfoByMac fetches device and booking info by MAC address
 func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]interface{}, error) {
-	url := "https://aplikasi-big.com/SmartMeetingRoomJavaMySQL/rest/ProcGetDeviceTeralux"
+	// New API endpoint
+	url := "https://aplikasi-big.com/IOTAN5JavaDasboard/rest/ProcGetDeviceByMacAddressCurrentpied"
 
+	// New payload structure
 	payload := map[string]interface{}{
+		"host":       "aplikasi-big.com",
+		"port":       "",
+		"baseUrl":    "SmartMeetingRoomJavaMySQL/rest",
+		"secure":     "1",
 		"MacAddress": macAddress,
 	}
 
@@ -62,8 +68,8 @@ func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Based on investigation, results are in "SDTGetRoomTeralux" array
-	items, ok := result["SDTGetRoomTeralux"].([]interface{})
+	// New API returns structure: {"GetRoomByMacAddressCurrent": [...]}
+	items, ok := result["GetRoomByMacAddressCurrent"].([]interface{})
 	if !ok || len(items) == 0 {
 		return nil, utils.NewAPIError(http.StatusNotFound, "Device information not found for given MAC address")
 	}

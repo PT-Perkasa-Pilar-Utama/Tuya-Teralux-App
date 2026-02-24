@@ -104,18 +104,51 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 		templateName = "test"
 	}
 
+	// Extract brand name from config or default
+	brandName := "Sensio"
+
+	// Parsing booking time start/stop if possible
+	bookingTime := fmt.Sprintf("%v", info["SDTGetRoomTeraluxBookingtimeChar"])
+	timeStart := ""
+	timeStop := ""
+	if strings.Contains(bookingTime, "–") {
+		parts := strings.Split(bookingTime, "–")
+		if len(parts) == 2 {
+			timeStart = strings.TrimSpace(parts[0])
+			timeStop = strings.TrimSpace(parts[1])
+		}
+	} else if strings.Contains(bookingTime, "-") {
+		parts := strings.Split(bookingTime, "-")
+		if len(parts) == 2 {
+			timeStart = strings.TrimSpace(parts[0])
+			timeStop = strings.TrimSpace(parts[1])
+		}
+	}
+
+	if timeStart == "" {
+		timeStart = bookingTime // Fallback
+	}
+
 	// Map external data to template variables
 	templateData := map[string]interface{}{
-		"CustomerName": info["SDTGetRoomTeraluxCustomerName"],
-		"RoomName":     info["SDTGetRoomTeraluxRoomName"],
-		"RoomPassword": info["SDTGetRoomTeraluxItemRoomPassword"],
-		"BookingTime":  info["SDTGetRoomTeraluxBookingtimeChar"],
-		"Date":         info["SDTGetRoomTeraluxItemDate"],
-		"Status":       info["SDTGetRoomTeraluxItemStatus"],
+		"brand_name":         brandName,
+		"customer_name":      info["SDTGetRoomTeraluxCustomerName"],
+		"customer_company":   info["SDTGetRoomTeraluxItemCompanyName"],
+		"booking_date":       info["SDTGetRoomTeraluxtimeendDate"],
+		"booking_time_start": timeStart,
+		"booking_time_stop":  timeStop,
+		"booking_place":      info["SDTGetRoomTeraluxRoomName"], // Mapping room name to place as building name is missing in new API
+		"booking_room":       info["SDTGetRoomTeraluxRoomName"],
+		"has_attachment":     req.AttachmentPath != nil && *req.AttachmentPath != "",
+	}
+
+	// Merge with custom data from request (request data takes precedence)
+	for k, v := range req.Data {
+		templateData[k] = v
 	}
 
 	attachmentPath := req.AttachmentPath
-	if attachmentPath != "" && strings.HasPrefix(attachmentPath, "/uploads") {
+	if attachmentPath != nil && *attachmentPath != "" && strings.HasPrefix(*attachmentPath, "/uploads") {
 		// Resolve relative path to local disk path
 		wd, _ := os.Getwd()
 		baseDir := wd
@@ -125,15 +158,15 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 			}
 		}
 
-		relPath := strings.TrimPrefix(attachmentPath, "/")
+		relPath := strings.TrimPrefix(*attachmentPath, "/")
 		fullPath := filepath.Join(baseDir, relPath)
 
 		if _, err := os.Stat(fullPath); err == nil {
-			attachmentPath = fullPath
-			utils.LogDebug("MailSendByMacUseCase: Resolved attachment path to %s", attachmentPath)
+			attachmentPath = &fullPath
+			utils.LogDebug("MailSendByMacUseCase: Resolved attachment path to %s", *attachmentPath)
 		} else {
 			utils.LogWarn("MailSendByMacUseCase: Attachment file not found at %s", fullPath)
-			attachmentPath = ""
+			attachmentPath = nil
 		}
 	}
 
