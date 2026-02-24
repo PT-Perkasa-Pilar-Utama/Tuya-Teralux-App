@@ -1,0 +1,34 @@
+services:
+  teralux-backend:
+    image: ghcr.io/farismnrr/teralux-backend:latest
+    container_name: teralux-backend
+    ports:
+      - "8081:8080"
+    env_file:
+      - .env.prod
+    depends_on:
+      teralux-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./bin:/app/models
+
+  teralux-db:
+    image: mysql:8.0
+    container_name: teralux-db
+    env_file:
+      - .env.prod
+    volumes:
+      - ./tmp/mysql_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+

@@ -1,0 +1,35 @@
+.idea/
+
+# Ignore whisper models & build artifacts
+/backend/services/whisper/models/
+/backend/services/whisper/build/
+/backend/services/whisper/*.o
+/backend/services/whisper/*.so
+/backend/services/whisper/*.a
+
+# Backups / local copies
+# Note: stt-service was migrated into `backend/` and removed from the repo.
+# If you had local backups for stt-service, handle them manually.
+
+# Common
+*.pyc
+*.log
+.DS_Store
+
+# Backend
+/backend/main
+/backend/main.exe
+/backend/app
+/backend/app_arm64
+/backend/*.db
+/backend/sqlite3:
+/backend/tmp/
+/backend/docs/swagger/
+
+# Environment files (do not commit secrets)
+/.env
+/backend/.env
+
+.kotlin/
+.vscode/
+*.log

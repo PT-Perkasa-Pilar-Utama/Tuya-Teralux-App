@@ -1,0 +1,30 @@
+# Binaries
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Directories
+.git/
+.vscode/
+tmp/
+tmp_build/
+test/
+vendor/
+services/
+bin/
+uploads/
+models/
+node_modules/
+
+# Logs
+*.log
+
+# Environment files (optional, depending on security preference)
+# .env
+
+# Docker
+Dockerfile
+docker-compose.yml
