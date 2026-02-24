@@ -64,7 +64,8 @@ func (u *transcribeWhisperCppModelUseCase) TranscribeAsync(filePath, fileName, l
 			}
 		}()
 
-		result, err := u.client.Transcribe(filePath, language)
+		// Step 2: Transcribe
+		result, err := u.client.Transcribe(filePath, language, false)
 		if err != nil {
 			utils.LogError("WhisperCpp Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

@@ -32,7 +32,7 @@ func (u *queryGroqModelUseCase) Query(prompt string, trigger string) (*dtos.RAGR
 	}
 
 	result, err := u.llm.CallModel(prompt, "low")
-	
+
 	duration := time.Since(startTime).Seconds()
 	response.DurationSeconds = duration
 

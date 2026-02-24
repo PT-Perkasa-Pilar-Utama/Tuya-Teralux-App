@@ -30,7 +30,7 @@ func NewMailSendController(useCase usecases.MailSendUseCase) *MailSendController
 // @Tags 09. Mail
 // @Accept json
 // @Produce json
-// @Param request body mail_dtos.MailSendRequestDTO true "Mail Request"
+// @Param request body mail_dtos.SwaggerMailSendRequestDTO true "Mail Request"
 // @Security BearerAuth
 // @Success 202 {object} dtos.StandardResponse{data=mail_dtos.MailTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse

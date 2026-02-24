@@ -5,6 +5,7 @@ type WhisperResult struct {
 	Transcription    string
 	DetectedLanguage string
 	Source           string // Which service was used: "Orion", "Local", "Gemini"
+	Diarized         bool   // Whether diarization was performed
 }
 
 type WhisperMqttRequestDTO struct {
@@ -12,8 +13,13 @@ type WhisperMqttRequestDTO struct {
 	Language  string `json:"language,omitempty"`
 	TeraluxID string `json:"teralux_id" binding:"required"`
 	UID       string `json:"uid,omitempty"`
+	Diarize   bool   `json:"diarize,omitempty"`
 }
 
+type TranscriptionRequestDTO struct {
+	Language string `form:"language" json:"language"`
+	Diarize  bool   `form:"diarize" json:"diarize"`
+}
 
 // OutsystemsTranscriptionResultDTO represents the structured response from Outsystems
 type OutsystemsTranscriptionResultDTO struct {
@@ -22,13 +28,11 @@ type OutsystemsTranscriptionResultDTO struct {
 	DetectedLanguage string `json:"detected_language" example:"id"`
 }
 
-
 type TranscriptionTaskResponseDTO struct {
 	TaskID      string `json:"task_id" example:"abc-123"`
 	TaskStatus  string `json:"task_status" example:"pending"`
 	RecordingID string `json:"recording_id,omitempty" example:"uuid-v4"`
 }
-
 
 type StandardResponse struct {
 	Status  bool        `json:"status"`
@@ -70,7 +74,6 @@ type AsyncTranscriptionProcessStatusResponseDTO struct {
 	TaskID     string                       `json:"task_id"`
 	TaskStatus *AsyncTranscriptionStatusDTO `json:"task_status,omitempty"`
 }
-
 
 type AsyncTranscriptionProcessResponseDTO = TranscriptionTaskResponseDTO
 

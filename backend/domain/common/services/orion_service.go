@@ -186,7 +186,7 @@ func (s *OrionService) WhisperHealthCheck() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func (s *OrionService) Transcribe(audioPath string, lang string) (*dtos.WhisperResult, error) {
+func (s *OrionService) Transcribe(audioPath string, lang string, diarize bool) (*dtos.WhisperResult, error) {
 	outsystemsURL := s.config.OrionWhisperBaseURL
 	if outsystemsURL == "" {
 		return nil, fmt.Errorf("ORION_WHISPER_BASE_URL not configured")
@@ -263,6 +263,7 @@ func (s *OrionService) Transcribe(audioPath string, lang string) (*dtos.WhisperR
 	return &dtos.WhisperResult{
 		Transcription:    result.Transcription,
 		DetectedLanguage: detectedLang,
+		Diarized:         false,
 		Source:           "Orion (Outsystems)",
 	}, nil
 }

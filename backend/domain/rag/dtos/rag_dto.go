@@ -6,10 +6,13 @@ type RAGRequestDTO struct {
 }
 
 type RAGSummaryRequestDTO struct {
-	Text     string `json:"text" binding:"required" example:"This is a long transcript of a technical meeting..."`
-	Language string `json:"language,omitempty" example:"id"` // "id" or "en"
-	Context  string `json:"context,omitempty" example:"technical meeting"`
-	Style    string `json:"style,omitempty" example:"professional"`
+	Text         string   `json:"text" binding:"required" example:"This is a long transcript of a technical meeting..."`
+	Language     string   `json:"language,omitempty" example:"id"` // "id" or "en"
+	Context      string   `json:"context,omitempty" example:"technical meeting"`
+	Style        string   `json:"style,omitempty" example:"minutes"` // e.g., "minutes", "executive"
+	Location     string   `json:"location,omitempty" example:"Meeting Room A"`
+	Date         string   `json:"date"`
+	Participants []string `json:"participants,omitempty" example:"[\"Alice\", \"Bob\"]"`
 }
 
 type RAGStatusDTO struct {

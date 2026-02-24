@@ -109,7 +109,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtos.MailSendRequestDTO"
+                            "$ref": "#/definitions/dtos.SwaggerMailSendRequestDTO"
                         }
                     }
                 ],
@@ -179,7 +179,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtos.SendMailByMacRequestDTO"
+                            "$ref": "#/definitions/dtos.SwaggerSendMailByMacRequestDTO"
                         }
                     }
                 ],
@@ -1613,6 +1613,12 @@ const docTemplate = `{
                         "description": "Language code (e.g. id, en)",
                         "name": "language",
                         "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Identify speakers in transcription",
+                        "name": "diarize",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -2349,36 +2355,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.MailSendRequestDTO": {
-            "type": "object",
-            "required": [
-                "subject",
-                "to"
-            ],
-            "properties": {
-                "attachment_path": {
-                    "type": "string",
-                    "example": "/uploads/reports/summary_123.pdf"
-                },
-                "subject": {
-                    "type": "string",
-                    "example": "Notification"
-                },
-                "template": {
-                    "type": "string",
-                    "example": "test"
-                },
-                "to": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "user@example.com"
-                    ]
-                }
-            }
-        },
         "dtos.MailStatusDTO": {
             "type": "object",
             "properties": {
@@ -2577,14 +2553,32 @@ const docTemplate = `{
                     "type": "string",
                     "example": "technical meeting"
                 },
+                "date": {
+                    "type": "string"
+                },
                 "language": {
                     "description": "\"id\" or \"en\"",
                     "type": "string",
                     "example": "id"
                 },
-                "style": {
+                "location": {
                     "type": "string",
-                    "example": "professional"
+                    "example": "Meeting Room A"
+                },
+                "participants": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"Alice\"",
+                        " \"Bob\"]"
+                    ]
+                },
+                "style": {
+                    "description": "e.g., \"minutes\", \"executive\"",
+                    "type": "string",
+                    "example": "minutes"
                 },
                 "text": {
                     "type": "string",
@@ -2629,26 +2623,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.SendMailByMacRequestDTO": {
-            "type": "object",
-            "required": [
-                "subject"
-            ],
-            "properties": {
-                "attachment_path": {
-                    "type": "string",
-                    "example": "/uploads/reports/summary_123.pdf"
-                },
-                "subject": {
-                    "type": "string",
-                    "example": "Booking Confirmation"
-                },
-                "template": {
-                    "type": "string",
-                    "example": "test"
-                }
-            }
-        },
         "dtos.SensorDataDTO": {
             "type": "object",
             "properties": {
@@ -2666,6 +2640,99 @@ const docTemplate = `{
                 },
                 "temperature": {
                     "type": "number"
+                }
+            }
+        },
+        "dtos.SwaggerEmailTemplateData": {
+            "type": "object",
+            "properties": {
+                "booking_date": {
+                    "type": "string",
+                    "example": "24 Februari 2026"
+                },
+                "booking_place": {
+                    "type": "string",
+                    "example": "Lt. 3"
+                },
+                "booking_room": {
+                    "type": "string",
+                    "example": "Ruang Cendrawasih"
+                },
+                "booking_time_start": {
+                    "type": "string",
+                    "example": "10:00"
+                },
+                "booking_time_stop": {
+                    "type": "string",
+                    "example": "12:00"
+                },
+                "customer_company": {
+                    "type": "string",
+                    "example": "PT Perkasa Pilar Utama"
+                },
+                "customer_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "override@example.com"
+                }
+            }
+        },
+        "dtos.SwaggerMailSendRequestDTO": {
+            "type": "object",
+            "required": [
+                "subject",
+                "to"
+            ],
+            "properties": {
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/summary_123.pdf"
+                },
+                "data": {
+                    "$ref": "#/definitions/dtos.SwaggerEmailTemplateData"
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Notification"
+                },
+                "template": {
+                    "type": "string",
+                    "example": "summary"
+                },
+                "to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "user@example.com"
+                    ]
+                }
+            }
+        },
+        "dtos.SwaggerSendMailByMacRequestDTO": {
+            "type": "object",
+            "required": [
+                "subject"
+            ],
+            "properties": {
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/summary_123.pdf"
+                },
+                "data": {
+                    "$ref": "#/definitions/dtos.SwaggerEmailTemplateData"
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Booking Confirmation"
+                },
+                "template": {
+                    "type": "string",
+                    "example": "summary"
                 }
             }
         },

@@ -140,7 +140,7 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 
 // Whisper Implementation
 
-func (s *OpenAIService) Transcribe(audioPath string, language string) (*dtos.WhisperResult, error) {
+func (s *OpenAIService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.config.OpenAIApiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY is not configured")
 	}
@@ -212,6 +212,7 @@ func (s *OpenAIService) Transcribe(audioPath string, language string) (*dtos.Whi
 	return &dtos.WhisperResult{
 		Transcription:    strings.TrimSpace(result.Text),
 		DetectedLanguage: language,
+		Diarized:         false,
 		Source:           "OpenAI Whisper",
 	}, nil
 }

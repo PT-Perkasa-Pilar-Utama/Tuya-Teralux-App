@@ -95,13 +95,11 @@ func LoadConfig() {
 			log.Println("Warning: Error reading .env file")
 		} else {
 			for k, v := range m {
-				if os.Getenv(k) == "" {
-					_ = os.Setenv(k, v)
-				} else if os.Getenv(k) != v {
-					log.Printf("Config: Environment variable '%s' already set to '%s', ignoring .env value '%s'", k, os.Getenv(k), v)
+				if err := os.Setenv(k, v); err != nil {
+					log.Printf("Warning: failed to set environment variable %s", k)
 				}
 			}
-			log.Printf("Loaded env file: %s", envPath)
+			log.Printf("Loaded env file and overwrote environment variables: %s", envPath)
 		}
 	}
 

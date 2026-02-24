@@ -27,7 +27,7 @@ func SetupRAGRoutes(
 		api.POST("/chat", chatController.Chat)
 		api.POST("/control", controlController.Control)
 		api.GET("/:task_id", statusController.GetStatus)
-		
+
 		models := rg.Group("/api/models")
 		{
 			models.POST("/gemini", geminiModelCtrl.Query)

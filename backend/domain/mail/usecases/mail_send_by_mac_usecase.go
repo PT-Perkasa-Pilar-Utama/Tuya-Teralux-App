@@ -91,10 +91,15 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 		return
 	}
 
-	// Extract email
+	// Extract email from external API
 	recipientEmail, ok := info["SDTGetRoomTeraluxItemCustomerEmail"].(string)
-	if !ok || strings.TrimSpace(recipientEmail) == "" {
-		utils.LogError("Mail Task %s (MAC): Customer email not found", taskID)
+
+	// Override email if provided in req.Data
+	if overrideEmail, hasOverride := req.Data["email"].(string); hasOverride && strings.TrimSpace(overrideEmail) != "" {
+		recipientEmail = strings.TrimSpace(overrideEmail)
+		utils.LogDebug("Mail Task %s (MAC): Overriding recipient email with %s", taskID, recipientEmail)
+	} else if !ok || strings.TrimSpace(recipientEmail) == "" {
+		utils.LogError("Mail Task %s (MAC): Customer email not found in external API and no override provided", taskID)
 		uc.updateStatus(taskID, "failed", fmt.Errorf("customer email not found for this device"), "")
 		return
 	}

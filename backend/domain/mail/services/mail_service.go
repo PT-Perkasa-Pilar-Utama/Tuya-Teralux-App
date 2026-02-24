@@ -6,9 +6,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html/template"
-	"io"
 	"mime"
 	"mime/multipart"
+	"mime/quotedprintable"
 	"net"
 	"net/smtp"
 	"net/textproto"
@@ -75,70 +75,56 @@ func (s *MailService) SendEmail(to []string, subject string, body string, attach
 		return fmt.Errorf("failed to build multipart message: %w", err)
 	}
 
-	return s.sendWithTimeout(addr, auth, s.config.SMTPFrom, to, msg)
+	host, _, _ := net.SplitHostPort(addr)
+	return s.sendEmailDirect(addr, host, auth, s.config.SMTPFrom, to, msg)
 }
 
-// sendWithTimeout dials SMTP manually so we can set TCP-level deadlines.
-// smtp.SendMail has no timeout; Hostinger resets connections on long transfers.
-func (s *MailService) sendWithTimeout(addr string, auth smtp.Auth, from string, to []string, msg []byte) error {
-	// 1. TCP dial with timeout - Force IPv4 (tcp4) to avoid instability
-	conn, err := net.DialTimeout("tcp4", addr, smtpDialTimeout)
+func (s *MailService) sendEmailDirect(addr string, host string, auth smtp.Auth, from string, to []string, msg []byte) error {
+	client, err := smtp.Dial(addr)
 	if err != nil {
-		return fmt.Errorf("smtp dial failed (IPv4): %w", err)
+		return fmt.Errorf("smtp dial failed: %w", err)
 	}
-	// Set overall deadline for the entire exchange (dial + auth + DATA)
-	if err := conn.SetDeadline(time.Now().Add(smtpDialTimeout)); err != nil {
-		conn.Close()
-		return fmt.Errorf("failed to set SMTP deadline: %w", err)
-	}
-
-	host, _, _ := net.SplitHostPort(addr)
-
-	// 2. Upgrade to TLS (STARTTLS) - required by Hostinger port 587
-	c, err := smtp.NewClient(conn, host)
-	if err != nil {
-		conn.Close()
-		return fmt.Errorf("smtp NewClient failed: %w", err)
-	}
-	defer c.Close()
+	defer client.Close()
 
 	tlsConfig := &tls.Config{
-		ServerName: host,
-		MinVersion: tls.VersionTLS12,
+		InsecureSkipVerify: true,
+		ServerName:         host,
 	}
-	if err := c.StartTLS(tlsConfig); err != nil {
+	if err := client.StartTLS(tlsConfig); err != nil {
 		return fmt.Errorf("smtp StartTLS failed: %w", err)
 	}
 
-	// 3. Authenticate
-	if err := c.Auth(auth); err != nil {
-		return fmt.Errorf("smtp auth failed: %w", err)
+	// Try PlainAuth first, fallback to LoginAuth
+	plainAuth := smtp.PlainAuth("", s.config.SMTPUsername, s.config.SMTPPassword, host)
+	if err := client.Auth(plainAuth); err != nil {
+		utils.LogWarn("smtp PlainAuth failed (falling back to LoginAuth): %v", err)
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("smtp auth failed (both Plain and Login): %w", err)
+		}
 	}
 
-	// 4. Set sender and recipients
-	if err := c.Mail(from); err != nil {
+	if err := client.Mail(from); err != nil {
 		return fmt.Errorf("smtp MAIL FROM failed: %w", err)
 	}
 	for _, rcpt := range to {
-		if err := c.Rcpt(rcpt); err != nil {
+		if err := client.Rcpt(rcpt); err != nil {
 			return fmt.Errorf("smtp RCPT TO %s failed: %w", rcpt, err)
 		}
 	}
 
-	// 5. Write message body
-	wc, err := c.Data()
+	w, err := client.Data()
 	if err != nil {
 		return fmt.Errorf("smtp DATA failed: %w", err)
 	}
-	if n, err := io.Copy(wc, bytes.NewReader(msg)); err != nil {
-		wc.Close()
-		return fmt.Errorf("smtp write body failed (sent %d bytes): %w", n, err)
+	_, err = w.Write(msg)
+	if err != nil {
+		return fmt.Errorf("smtp write body failed: %w", err)
 	}
-	if err := wc.Close(); err != nil {
+	if err := w.Close(); err != nil {
 		return fmt.Errorf("smtp body close failed: %w", err)
 	}
 
-	return c.Quit()
+	return client.Quit()
 }
 
 func (s *MailService) buildMultipartMessage(to []string, subject string, body string, attachmentPath string) ([]byte, error) {
@@ -146,25 +132,30 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 	writer := multipart.NewWriter(buf)
 
 	// Headers
-	fmt.Fprintf(buf, "Subject: %s\r\n", subject)
+	// Headers
+	fmt.Fprintf(buf, "From: %s\r\n", s.config.SMTPFrom)
 	fmt.Fprintf(buf, "To: %s\r\n", strings.Join(to, ","))
+	fmt.Fprintf(buf, "Subject: %s\r\n", subject)
+	fmt.Fprintf(buf, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
+	fmt.Fprintf(buf, "Message-ID: <%d.%d@teralux.app>\r\n", time.Now().UnixNano(), os.Getpid())
 	fmt.Fprintf(buf, "MIME-Version: 1.0\r\n")
 
 	// If we have an attachment, we use multipart/mixed.
-	// If we ONLY have inline images, we could use multipart/related.
-	// For simplicity and compatibility, multipart/mixed with a nested multipart/related is best,
-	// but here we'll just use multipart/mixed and put the logo in it.
 	fmt.Fprintf(buf, "Content-Type: multipart/mixed; boundary=%s\r\n", writer.Boundary())
-	fmt.Fprintf(buf, "\r\n")
+	fmt.Fprintf(buf, "\r\n") // Empty line indicates end of headers
 
 	// 1. Text/HTML Body Part
 	bodyPartHeader := make(textproto.MIMEHeader)
 	bodyPartHeader.Set("Content-Type", "text/html; charset=\"UTF-8\"")
+	bodyPartHeader.Set("Content-Transfer-Encoding", "quoted-printable")
 	bodyPartWriter, err := writer.CreatePart(bodyPartHeader)
 	if err != nil {
 		return nil, err
 	}
-	bodyPartWriter.Write([]byte(body))
+	
+	qp := quotedprintable.NewWriter(bodyPartWriter)
+	qp.Write([]byte(body))
+	qp.Close()
 
 	// 2. Logo Part (CID embedding)
 	// Try to find logo in assets/images/logo.png
@@ -189,9 +180,8 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 
 			logoWriter, err := writer.CreatePart(logoHeader)
 			if err == nil {
-				encoder := base64.NewEncoder(base64.StdEncoding, logoWriter)
-				encoder.Write(logoData)
-				encoder.Close()
+				encoded := base64.StdEncoding.EncodeToString(logoData)
+				logoWriter.Write([]byte(chunkBase64(encoded)))
 			}
 		}
 	}
@@ -215,15 +205,30 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 			return nil, err
 		}
 
-		encoder := base64.NewEncoder(base64.StdEncoding, attachmentWriter)
-		if _, err := io.Copy(encoder, file); err != nil {
-			return nil, fmt.Errorf("failed to copy attachment content: %w", err)
+		attachmentData, err := os.ReadFile(attachmentPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read attachment: %w", err)
 		}
-		encoder.Close()
+		
+		encoded := base64.StdEncoding.EncodeToString(attachmentData)
+		attachmentWriter.Write([]byte(chunkBase64(encoded)))
 	}
 
 	writer.Close()
 	return buf.Bytes(), nil
+}
+
+func chunkBase64(s string) string {
+	var buf strings.Builder
+	for i := 0; i < len(s); i += 76 {
+		end := i + 76
+		if end > len(s) {
+			end = len(s)
+		}
+		buf.WriteString(s[i:end])
+		buf.WriteString("\r\n")
+	}
+	return buf.String()
 }
 
 // loginAuth matches the loginAuth pattern used in diagnostics
@@ -237,11 +242,19 @@ func LoginAuth(username, password string) smtp.Auth {
 }
 
 func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
-	return "LOGIN", []byte{}, nil
+	return "LOGIN", []byte(a.username), nil
 }
 
 func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
+		serverMsg := strings.ToLower(string(fromServer))
+		if strings.Contains(serverMsg, "user") || strings.Contains(serverMsg, "username") {
+			return []byte(a.username), nil
+		}
+		if strings.Contains(serverMsg, "pass") || strings.Contains(serverMsg, "password") {
+			return []byte(a.password), nil
+		}
+		// Fallback to step-based if server message is unclear
 		switch a.step {
 		case 0:
 			a.step++

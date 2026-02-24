@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"teralux_app/domain/common/utils"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/usecases"
@@ -45,7 +46,8 @@ func (c *RAGSummaryController) Summary(ctx *gin.Context) {
 		return
 	}
 
-	taskID, err := c.summaryUC.SummarizeTextWithTrigger(req.Text, req.Language, req.Context, req.Style, ctx.Request.URL.Path)
+	participantsStr := strings.Join(req.Participants, ", ")
+	taskID, err := c.summaryUC.SummarizeTextWithTrigger(req.Text, req.Language, req.Context, req.Style, req.Date, req.Location, participantsStr, ctx.Request.URL.Path)
 	if err != nil {
 		utils.LogError("RAGSummaryController.Summary: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

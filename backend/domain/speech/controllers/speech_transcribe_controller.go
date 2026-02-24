@@ -97,6 +97,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			Source:      "mqtt",
 			Trigger:     "mqtt:tera/transcribe",
 			DeleteAfter: true, // Delete file after transcription
+			Diarize:     req.Diarize,
 		})
 		if err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to start transcription: %v", err)
@@ -162,6 +163,7 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
 // @Param language formData string false "Language code (e.g. id, en)"
+// @Param diarize formData boolean false "Identify speakers in transcription"
 // @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
 // @Failure 413 {object} dtos.StandardResponse
@@ -224,10 +226,14 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 		language = "id"
 	}
 
+	diarizeStr := ctx.PostForm("diarize")
+	diarize := diarizeStr == "true" || diarizeStr == "1"
+
 	// Use the same TranscribeAudio with REST metadata
 	taskID, err := c.transcribeUC.TranscribeAudio(finalInputPath, file.Filename, language, usecases.TranscriptionMetadata{
 		Source:  "rest",
 		Trigger: ctx.Request.URL.Path,
+		Diarize: diarize,
 	})
 	if err != nil {
 		utils.LogError("Transcribe.TranscribeAudio: %v", err)

@@ -32,7 +32,7 @@ func (u *queryOrionModelUseCase) Query(prompt string, trigger string) (*dtos.RAG
 	}
 
 	result, err := u.llm.CallModel(prompt, "low")
-	
+
 	duration := time.Since(startTime).Seconds()
 	response.DurationSeconds = duration
 

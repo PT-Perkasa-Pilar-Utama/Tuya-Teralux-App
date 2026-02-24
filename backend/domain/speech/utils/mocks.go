@@ -42,8 +42,8 @@ func (m *GenericMockClient) WhisperHealthCheck() bool {
 	return m.Called().Bool(0)
 }
 
-func (m *GenericMockClient) Transcribe(audioPath string, language string) (*dtos.WhisperResult, error) {
-	args := m.Called(audioPath, language)
+func (m *GenericMockClient) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+	args := m.Called(audioPath, language, diarize)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

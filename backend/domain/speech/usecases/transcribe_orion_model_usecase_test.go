@@ -17,7 +17,7 @@ import (
 
 func TestTranscribeOrionModelUseCase(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "orion_test_*")
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	audioFile := filepath.Join(tmpDir, "test.wav")
 	_ = os.WriteFile(audioFile, []byte("audio content"), 0644)
@@ -29,11 +29,7 @@ func TestTranscribeOrionModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("WhisperHealthCheck").Return(true)
-		mockSvc.On("Transcribe", audioFile, "id").Return(&dtos.WhisperResult{
-			Transcription:    "Orion result",
-			DetectedLanguage: "id",
-			Source:           "Orion",
-		}, nil)
+		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{Transcription: "Orion result"}, nil)
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)

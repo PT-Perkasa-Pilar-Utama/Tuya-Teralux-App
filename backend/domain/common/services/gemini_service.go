@@ -136,7 +136,7 @@ func (s *GeminiService) CallModel(prompt string, model string) (string, error) {
 
 // Whisper Implementation
 
-func (s *GeminiService) Transcribe(audioPath string, language string) (*dtos.WhisperResult, error) {
+func (s *GeminiService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.apiKey == "" {
 		return nil, fmt.Errorf("GEMINI_API_KEY is not configured")
 	}
@@ -161,6 +161,10 @@ func (s *GeminiService) Transcribe(audioPath string, language string) (*dtos.Whi
 
 	// Build prompt
 	promptText := "Transcribe this audio file exactly as spoken."
+	if diarize {
+		promptText = "Transcribe this audio file exactly as spoken, and perform speaker diarization. Identify different speakers as [Speaker 1], [Speaker 2], etc. Format the output as a dialogue."
+	}
+
 	if language != "" {
 		promptText += fmt.Sprintf(" The language is %s.", language)
 	}

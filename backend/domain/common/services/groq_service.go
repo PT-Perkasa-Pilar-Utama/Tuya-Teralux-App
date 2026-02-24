@@ -128,7 +128,7 @@ func (s *GroqService) CallModel(prompt string, model string) (string, error) {
 
 // Whisper Implementation
 
-func (s *GroqService) Transcribe(audioPath string, language string) (*dtos.WhisperResult, error) {
+func (s *GroqService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.config.GroqApiKey == "" {
 		return nil, fmt.Errorf("GROQ_API_KEY is not configured")
 	}
@@ -200,6 +200,7 @@ func (s *GroqService) Transcribe(audioPath string, language string) (*dtos.Whisp
 	return &dtos.WhisperResult{
 		Transcription:    strings.TrimSpace(result.Text),
 		DetectedLanguage: language,
+		Diarized:         false,
 		Source:           "Groq Whisper",
 	}, nil
 }

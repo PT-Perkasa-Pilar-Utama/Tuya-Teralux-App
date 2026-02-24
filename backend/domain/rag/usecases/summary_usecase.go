@@ -17,10 +17,10 @@ import (
 )
 
 type SummaryUseCase interface {
-	SummarizeText(text string, language string, meetingContext string, style string) (string, error)
-	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, trigger string) (string, error)
-	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error)
-	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, trigger string) (string, error)
+	SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error)
+	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error)
+	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error)
+	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error)
 }
 
 type summaryUseCase struct {
@@ -54,7 +54,7 @@ func NewSummaryUseCase(
 	}
 }
 
-func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string, date string, location string, participants string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -71,11 +71,15 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	// Delegate prompt generation and LLM call to SummarySkill
 	skill := &skills.SummarySkill{}
 	ctx := &skills.SkillContext{
-		Prompt:   text,
-		Language: language,
-		LLM:      u.llm,
-		Config:   u.config,
-		// History can be used to pass context/style if extended
+		Prompt:       text,
+		Language:     language,
+		LLM:          u.llm,
+		Config:       u.config,
+		Date:         date,
+		Location:     location,
+		Participants: participants,
+		Style:        style,
+		Context:      meetingContext,
 	}
 
 	res, err := skill.Execute(ctx)
@@ -106,9 +110,14 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 
 	if u.renderer != nil {
 		meta := services.SummaryPDFMeta{
-			Language: targetLangName,
-			Context:  meetingContext,
-			Style:    style,
+			Language:     targetLangName,
+			Context:      meetingContext,
+			Style:        style,
+			Date:         date,
+			Location:     location,
+			Participants: participants,
+			CustomerName: "Internal User", // Default or fetch from somewhere if available
+			CompanyName:  "Sensio",        // Matching mail domain default
 		}
 		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
 			utils.LogWarn("Warning: Failed to generate PDF: %v", err)
@@ -128,11 +137,11 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}, nil
 }
 
-func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string) (string, error) {
-	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, "")
+func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error) {
+	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, date, location, participants, "")
 }
 
-func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, trigger string) (string, error) {
+func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error) {
 	taskID := uuid.New().String()
 	status := &dtos.RAGStatusDTO{
 		Status:    "pending",
@@ -144,7 +153,7 @@ func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, 
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
-		result, err := u.summaryInternal(text, language, meetingContext, style)
+		result, err := u.summaryInternal(text, language, meetingContext, style, date, location, participants)
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
 			u.updateStatus(taskID, "failed", err, nil)
@@ -173,11 +182,11 @@ func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, 
 //	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 //	defer cancel()
 //	taskID, err := useCase.SummarizeTextWithContext(ctx, transcript, "en", "meeting", "executive")
-func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (string, error) {
-	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, "")
+func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error) {
+	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, date, location, participants, "")
 }
 
-func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, trigger string) (string, error) {
+func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error) {
 	// Validate context is not already cancelled
 	select {
 	case <-ctx.Done():
@@ -206,7 +215,7 @@ func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context,
 		default:
 		}
 
-		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style)
+		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style, date, location, participants)
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
 			u.updateStatus(taskID, "failed", err, nil)
@@ -234,7 +243,7 @@ func (u *summaryUseCase) SetRenderTimeout(d time.Duration) {
 }
 
 // summaryInternalWithContext adds context-aware timeout enforcement to PDF rendering and LLM calls.
-func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -246,10 +255,15 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	// Delegate prompt generation and LLM call to SummarySkill with context (manually enforced for now)
 	skill := &skills.SummarySkill{}
 	ctxSkill := &skills.SkillContext{
-		Prompt:   text,
-		Language: language,
-		LLM:      u.llm,
-		Config:   u.config,
+		Prompt:       text,
+		Language:     language,
+		LLM:          u.llm,
+		Config:       u.config,
+		Date:         date,
+		Location:     location,
+		Participants: participants,
+		Style:        style,
+		Context:      meetingContext,
 	}
 
 	// Calculate targetLangName for PDF Meta (logic moved from deleted block)
@@ -296,9 +310,14 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		}
 
 		meta := services.SummaryPDFMeta{
-			Language: targetLangName,
-			Context:  meetingContext,
-			Style:    style,
+			Language:     targetLangName,
+			Context:      meetingContext,
+			Style:        style,
+			Date:         date,
+			Location:     location,
+			Participants: participants,
+			CustomerName: "Internal User",
+			CompanyName:  "Sensio",
 		}
 
 		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {

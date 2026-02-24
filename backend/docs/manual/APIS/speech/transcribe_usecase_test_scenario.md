@@ -17,6 +17,7 @@ Processing is **asynchronous** and results can be tracked via the transcription 
 - **Content-Type**: `multipart/form-data`
 - **Parameters**:
   - `audio` (file, required): Audio file. Supported formats: `.mp3`, `.wav`, `.m4a`, `.aac`, `.ogg`, `.flac`.
+  - `diarize` (boolean, optional): Set to `true` to identify speakers. Default: `false`.
 
 ## Test Scenarios
 
@@ -121,3 +122,10 @@ Processing is **asynchronous** and results can be tracked via the transcription 
 }
 ```
 *(Status: 500 Internal Server Error)*
+### 9. Transcribe with Speaker Diarization
+- **Method**: `POST`
+- **Request Parameters**:
+  - `audio`: Valid audio file.
+  - `diarize`: `true`
+- **Expected Behavior**: The transcription result will include speaker identifiers like `[Speaker 1]`, `[Speaker 2]`, etc.
+- **Note**: Currently primarily supported by the Gemini provider.
