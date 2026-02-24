@@ -53,7 +53,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	}
 
 	shortCacheStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
-	
+
 	// Feature Usecases (1 Route 1 Usecase)
 	transcribeUC := speechUsecases.NewTranscribeUseCase(whisperClient, localService, ragRefineUC, shortCacheStore, shortCache, cfg, mqttSvc)
 

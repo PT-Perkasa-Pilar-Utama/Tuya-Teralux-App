@@ -32,7 +32,7 @@ func (u *queryGeminiModelUseCase) Query(prompt string, trigger string) (*dtos.RA
 	}
 
 	result, err := u.llm.CallModel(prompt, "low")
-	
+
 	duration := time.Since(startTime).Seconds()
 	response.DurationSeconds = duration
 

@@ -32,7 +32,7 @@ func NewMailSendByMacController(useCase usecases.MailSendByMacUseCase) *MailSend
 // @Accept json
 // @Produce json
 // @Param mac_address path string true "Teralux MAC Address"
-// @Param request body mail_dtos.SendMailByMacRequestDTO true "Mail Request"
+// @Param request body mail_dtos.SwaggerSendMailByMacRequestDTO true "Mail Request"
 // @Security BearerAuth
 // @Success 202 {object} dtos.StandardResponse{data=mail_dtos.MailTaskResponseDTO} "Email task submitted successfully"
 // @Failure 400 {object} dtos.StandardResponse

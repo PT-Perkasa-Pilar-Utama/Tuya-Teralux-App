@@ -22,7 +22,7 @@ func NewWhisperLocalService(cfg *utils.Config) *WhisperLocalService {
 }
 
 // Transcribe implements the usecases.WhisperClient interface
-func (s *WhisperLocalService) Transcribe(audioPath string, language string) (*dtos.WhisperResult, error) {
+func (s *WhisperLocalService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	text, err := s.transcribeFull(audioPath, s.modelPath, language)
 	if err != nil {
 		return nil, err
@@ -31,6 +31,7 @@ func (s *WhisperLocalService) Transcribe(audioPath string, language string) (*dt
 	return &dtos.WhisperResult{
 		Transcription:    text,
 		DetectedLanguage: language,
+		Diarized:         false,
 		Source:           "Local Whisper (whisper.cpp)",
 	}, nil
 }

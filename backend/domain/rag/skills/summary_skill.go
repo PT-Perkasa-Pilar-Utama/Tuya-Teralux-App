@@ -29,10 +29,18 @@ func (s *SummarySkill) Execute(ctx *SkillContext) (*SkillResult, error) {
 		targetLangName = "English"
 	}
 
-	// Extract meeting context and style from history or context if available
-	// For now, we use defaults or potential future extensions to SkillContext
-	meetingContext := "meeting" // Default context
-	style := "executive"        // Default style
+	// Metadata for MoM
+	date := ctx.Date
+	location := ctx.Location
+	participants := ctx.Participants
+	meetingContext := ctx.Context
+	if meetingContext == "" {
+		meetingContext = "meeting"
+	}
+	style := ctx.Style
+	if style == "" {
+		style = "executive"
+	}
 
 	// Build structured prompt using the configuration service
 	promptConfig := &services.PromptConfig{
@@ -42,6 +50,9 @@ func (s *SummarySkill) Execute(ctx *SkillContext) (*SkillResult, error) {
 		Context:       meetingContext,
 		Style:         style,
 		Language:      targetLangName,
+		Date:          date,
+		Location:      location,
+		Participants:  participants,
 	}
 
 	prompt := promptConfig.BuildPrompt(text)

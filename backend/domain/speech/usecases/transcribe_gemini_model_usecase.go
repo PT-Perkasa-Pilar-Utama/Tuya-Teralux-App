@@ -13,7 +13,7 @@ import (
 
 type geminiServiceClient interface {
 	HealthCheck() bool
-	Transcribe(audioPath string, language string) (*dtos.WhisperResult, error)
+	Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
 }
 
 type TranscribeGeminiModelUseCase interface {
@@ -76,7 +76,7 @@ func (u *transcribeGeminiModelUseCase) TranscribeAsync(filePath, fileName, langu
 		}
 
 		// Step 2: Transcribe
-		result, err := u.service.Transcribe(filePath, language)
+		result, err := u.service.Transcribe(filePath, language, false) // Default false for specialized model usecase
 		if err != nil {
 			utils.LogError("Gemini Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

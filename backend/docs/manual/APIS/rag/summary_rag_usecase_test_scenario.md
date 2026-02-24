@@ -14,7 +14,10 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
 - **Optional Fields**:
   - `language` (string): Target language ("id" or "en"). Default: "id".
   - `context` (string): Context of the meeting (e.g., "Technical", "Marketing").
-  - `style` (string): Professional style (e.g., "formal", "bulleted").
+  - `style` (string): Professional style (e.g., "minutes", "formal").
+  - `date` (string): Meeting date (e.g., "2024-05-20").
+  - `location` (string): Meeting location (e.g., "HQ Room 1").
+  - `participants` (array of strings): List of participants (e.g., ["Alice", "Bob"]).
 
 ## Test Scenarios
 
@@ -99,5 +102,19 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
 - **Expected Behavior**: The system internally defaults to "id" (Indonesian) for the prompt generation.
 - **Expected Response**: `200 OK` with summary in Indonesian.
 
-### 5. Technical Note: Maximum Length
+### 5. Generate Formal Minutes of Meeting (MoM)
+- **Method**: `POST`
+- **Request Body**:
+```json
+{
+  "text": "budi bilang kita harus deploy besok jam 9. andi setuju.",
+  "style": "minutes",
+  "date": "2024-05-20",
+  "location": "Meeting Room A",
+  "participants": ["Budi", "Andi"]
+}
+```
+- **Expected Behavior**: The output will include a formal MoM header with the provided metadata and specialized sections like decision tables.
+
+### 6. Technical Note: Maximum Length
 - **Recommendation**: For transcriptions exceeding 100,000 characters (~15,000 words), it is recommended to chunk the text manually to ensure LLM prompt limits are not exceeded, though the system attempts to process long texts via internal optimization.

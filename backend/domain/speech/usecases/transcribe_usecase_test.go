@@ -29,7 +29,7 @@ func (m *MockRefineUseCase) RefineText(text string, lang string) (string, error)
 
 func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "transcribe_usecase_test_*")
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	audioFile := filepath.Join(tmpDir, "test.wav")
 	_ = os.WriteFile(audioFile, []byte("audio content"), 0644)
@@ -40,7 +40,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore := new(speechUtils.MockBadgerStore)
 		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 
-		mockClient.On("Transcribe", audioFile, "id").Return(&speechdtos.WhisperResult{
+		mockClient.On("Transcribe", audioFile, "id", mock.Anything).Return(&speechdtos.WhisperResult{
 			Transcription:    "Raw text",
 			DetectedLanguage: "id",
 			Source:           "Gemini",
@@ -64,7 +64,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		// We can't easily check StatusStore here because it's internal to TranscribeUseCase and not exposed or passed in.
 		// Wait, TranscribeUseCase uses cache (BadgerTaskCache).
-		
+
 		mockStore.AssertCalled(t, "SetPreserveTTL", mock.Anything, mock.Anything)
 	})
 
@@ -81,7 +81,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore := new(speechUtils.MockBadgerStore)
 		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 
-		mockClient.On("Transcribe", audioFile, "id").Return(nil, errors.New("total failure"))
+		mockClient.On("Transcribe", audioFile, "id", mock.Anything).Return(nil, errors.New("total failure"))
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
@@ -102,7 +102,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore := new(speechUtils.MockBadgerStore)
 		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 
-		mockClient.On("Transcribe", audioFile, "id").Return(&speechdtos.WhisperResult{
+		mockClient.On("Transcribe", audioFile, "id", mock.Anything).Return(&speechdtos.WhisperResult{
 			Transcription:    "Mqtt text",
 			DetectedLanguage: "id",
 			Source:           "OpenAI",

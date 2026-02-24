@@ -68,7 +68,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	translateUC := usecases.NewTranslateUseCase(llmClient, llamaService, cfg, cache, store)
 
 	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
-	pdfRenderer := services.NewMarotoSummaryPDFRenderer()
+	pdfRenderer := services.NewHTMLSummaryPDFRenderer()
 	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)

@@ -46,7 +46,7 @@ func (c *ragModelsGeminiController) Query(ctx *gin.Context) {
 	}
 
 	result, err := c.usecase.Query(req.Prompt, ctx.Request.URL.Path)
-	
+
 	httpStatus := http.StatusOK
 	message := "Query executed successfully"
 	isSuccess := true

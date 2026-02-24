@@ -59,27 +59,6 @@ definitions:
     required:
     - name
     type: object
-  dtos.MailSendRequestDTO:
-    properties:
-      attachment_path:
-        example: /uploads/reports/summary_123.pdf
-        type: string
-      subject:
-        example: Notification
-        type: string
-      template:
-        example: test
-        type: string
-      to:
-        example:
-        - user@example.com
-        items:
-          type: string
-        type: array
-    required:
-    - subject
-    - to
-    type: object
   dtos.MailStatusDTO:
     properties:
       duration_seconds:
@@ -215,12 +194,25 @@ definitions:
       context:
         example: technical meeting
         type: string
+      date:
+        type: string
       language:
         description: '"id" or "en"'
         example: id
         type: string
+      location:
+        example: Meeting Room A
+        type: string
+      participants:
+        example:
+        - '["Alice"'
+        - ' "Bob"]'
+        items:
+          type: string
+        type: array
       style:
-        example: professional
+        description: e.g., "minutes", "executive"
+        example: minutes
         type: string
       text:
         example: This is a long transcript of a technical meeting...
@@ -252,20 +244,6 @@ definitions:
       teralux_id:
         type: string
     type: object
-  dtos.SendMailByMacRequestDTO:
-    properties:
-      attachment_path:
-        example: /uploads/reports/summary_123.pdf
-        type: string
-      subject:
-        example: Booking Confirmation
-        type: string
-      template:
-        example: test
-        type: string
-    required:
-    - subject
-    type: object
   dtos.SensorDataDTO:
     properties:
       battery_percentage:
@@ -278,6 +256,72 @@ definitions:
         type: string
       temperature:
         type: number
+    type: object
+  dtos.SwaggerEmailTemplateData:
+    properties:
+      booking_date:
+        example: 24 Februari 2026
+        type: string
+      booking_place:
+        example: Lt. 3
+        type: string
+      booking_room:
+        example: Ruang Cendrawasih
+        type: string
+      booking_time_start:
+        example: "10:00"
+        type: string
+      booking_time_stop:
+        example: "12:00"
+        type: string
+      customer_company:
+        example: PT Perkasa Pilar Utama
+        type: string
+      customer_name:
+        example: John Doe
+        type: string
+      email:
+        example: override@example.com
+        type: string
+    type: object
+  dtos.SwaggerMailSendRequestDTO:
+    properties:
+      attachment_path:
+        example: /uploads/reports/summary_123.pdf
+        type: string
+      data:
+        $ref: '#/definitions/dtos.SwaggerEmailTemplateData'
+      subject:
+        example: Notification
+        type: string
+      template:
+        example: summary
+        type: string
+      to:
+        example:
+        - user@example.com
+        items:
+          type: string
+        type: array
+    required:
+    - subject
+    - to
+    type: object
+  dtos.SwaggerSendMailByMacRequestDTO:
+    properties:
+      attachment_path:
+        example: /uploads/reports/summary_123.pdf
+        type: string
+      data:
+        $ref: '#/definitions/dtos.SwaggerEmailTemplateData'
+      subject:
+        example: Booking Confirmation
+        type: string
+      template:
+        example: summary
+        type: string
+    required:
+    - subject
     type: object
   dtos.TeraluxScenesDTO:
     properties:
@@ -546,7 +590,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dtos.MailSendRequestDTO'
+          $ref: '#/definitions/dtos.SwaggerMailSendRequestDTO'
       produces:
       - application/json
       responses:
@@ -589,7 +633,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dtos.SendMailByMacRequestDTO'
+          $ref: '#/definitions/dtos.SwaggerSendMailByMacRequestDTO'
       produces:
       - application/json
       responses:
@@ -1457,6 +1501,10 @@ paths:
         in: formData
         name: language
         type: string
+      - description: Identify speakers in transcription
+        in: formData
+        name: diarize
+        type: boolean
       produces:
       - application/json
       responses:

@@ -17,7 +17,7 @@ type mqttPublisher interface {
 
 // WhisperClient is the unified interface for all whisper transcription services
 type WhisperClient interface {
-	Transcribe(audioPath string, language string) (*speechdtos.WhisperResult, error)
+	Transcribe(audioPath string, language string, diarize bool) (*speechdtos.WhisperResult, error)
 }
 
 type TranscriptionMetadata struct {
@@ -26,6 +26,7 @@ type TranscriptionMetadata struct {
 	Source      string // "mqtt", "rest", etc.
 	Trigger     string // e.g., "/api/speech/transcribe"
 	DeleteAfter bool   // Whether to delete the audio file after processing
+	Diarize     bool   // Whether to perform speaker diarization
 }
 
 type TranscribeUseCase interface {
@@ -105,10 +106,15 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	}()
 
 	// Use unified whisper client with automatic fallback
-	result, err := uc.whisperClient.Transcribe(inputPath, reqLanguage)
+	diarize := false
+	if metadata != nil {
+		diarize = metadata.Diarize
+	}
+
+	result, err := uc.whisperClient.Transcribe(inputPath, reqLanguage, diarize)
 	if err != nil && uc.fallbackClient != nil {
 		utils.LogWarn("Transcribe: Primary client failed, falling back to local: %v", err)
-		result, err = uc.fallbackClient.Transcribe(inputPath, reqLanguage)
+		result, err = uc.fallbackClient.Transcribe(inputPath, reqLanguage, diarize)
 	}
 
 	if err != nil {

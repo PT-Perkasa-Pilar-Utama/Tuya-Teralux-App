@@ -13,7 +13,7 @@ import (
 
 type openAIServiceClient interface {
 	HealthCheck() bool
-	Transcribe(audioPath string, language string) (*dtos.WhisperResult, error)
+	Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
 }
 
 type TranscribeOpenAIModelUseCase interface {
@@ -77,7 +77,7 @@ func (u *transcribeOpenAIModelUseCase) TranscribeAsync(filePath, fileName, langu
 		}
 
 		// Step 2: Transcribe
-		result, err := u.service.Transcribe(filePath, language)
+		result, err := u.service.Transcribe(filePath, language, false)
 		if err != nil {
 			utils.LogError("OpenAI Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

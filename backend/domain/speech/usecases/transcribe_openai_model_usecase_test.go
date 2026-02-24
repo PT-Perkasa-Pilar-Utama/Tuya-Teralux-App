@@ -18,7 +18,7 @@ import (
 
 func TestTranscribeOpenAIModelUseCase(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "openai_test_*")
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	audioFile := filepath.Join(tmpDir, "test.wav")
 	_ = os.WriteFile(audioFile, []byte("audio content"), 0644)
@@ -30,11 +30,7 @@ func TestTranscribeOpenAIModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("HealthCheck").Return(true)
-		mockSvc.On("Transcribe", audioFile, "id").Return(&dtos.WhisperResult{
-			Transcription:    "OpenAI result",
-			DetectedLanguage: "id",
-			Source:           "OpenAI",
-		}, nil)
+		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{Transcription: "OpenAI result"}, nil)
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
@@ -60,7 +56,7 @@ func TestTranscribeOpenAIModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("HealthCheck").Return(true)
-		mockSvc.On("Transcribe", audioFile, "id").Return(nil, errors.New("api error"))
+		mockSvc.On("Transcribe", audioFile, "id", mock.Anything).Return(nil, errors.New("api error"))
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)

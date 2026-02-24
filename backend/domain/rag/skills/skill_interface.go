@@ -26,6 +26,13 @@ type SkillContext struct {
 	Config    *utils.Config
 	Vector    *infrastructure.VectorService
 	Badger    *infrastructure.BadgerService
+
+	// Metadata for Meeting Summaries / MoM
+	Date         string
+	Location     string
+	Participants string
+	Style        string
+	Context      string
 }
 
 // SkillResult represents the output of a skill execution.

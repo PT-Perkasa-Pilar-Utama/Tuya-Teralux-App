@@ -32,7 +32,7 @@ func (u *queryLlamaCppModelUseCase) Query(prompt string, trigger string) (*dtos.
 	}
 
 	result, err := u.llm.CallModel(prompt, "low")
-	
+
 	duration := time.Since(startTime).Seconds()
 	response.DurationSeconds = duration
 
