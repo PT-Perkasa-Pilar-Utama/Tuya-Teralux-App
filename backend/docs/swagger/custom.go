@@ -5,7 +5,7 @@ const CustomSwaggerHTML = `
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Terminal API - Swagger UI</title>
+  <title>Sensio API - Swagger UI</title>
   <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3/swagger-ui.css" >
   <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@3/favicon-32x32.png" sizes="32x32" />
   <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@3/favicon-16x16.png" sizes="16x16" />
