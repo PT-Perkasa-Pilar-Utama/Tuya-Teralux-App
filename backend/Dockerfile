@@ -83,7 +83,7 @@ COPY --from=builder /usr/local/bin/whisper-cli /app/bin/whisper-cli
 COPY --from=builder /usr/local/bin/llama-cli /app/bin/llama-cli
 
 # Copy application assets/data
-COPY --from=builder /app/domain/teralux/migrations /app/migrations
+COPY --from=builder /app/domain/terminal/migrations /app/migrations
 COPY --from=builder /app/docs /app/docs
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
 
