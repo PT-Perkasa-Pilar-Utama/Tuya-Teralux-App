@@ -4,7 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisper_android.domain.usecase.AuthenticateUseCase
-import com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase
+import com.example.whisper_android.domain.usecase.RegisterTerminalUseCase
+import com.example.whisper_android.domain.usecase.GetTerminalByMacUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,10 +21,10 @@ data class RegisterUiState(
 
 class RegisterViewModel(
     application: Application,
-    private val registerTeraluxUseCase:
-        com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase,
-    private val getTeraluxByMacUseCase:
-        com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase,
+    private val registerTerminalUseCase:
+        com.example.whisper_android.domain.usecase.RegisterTerminalUseCase,
+    private val getTerminalByMacUseCase:
+        com.example.whisper_android.domain.usecase.GetTerminalByMacUseCase,
     private val authenticateUseCase: AuthenticateUseCase
 ) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(RegisterUiState(isLoading = true)) // Start with loading
@@ -39,7 +40,7 @@ class RegisterViewModel(
                 com.example.whisper_android.util.DeviceUtils
                     .getDeviceId(getApplication())
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = getTeraluxByMacUseCase(deviceId)
+            val result = getTerminalByMacUseCase(deviceId)
 
             result
                 .onSuccess { registration ->
@@ -103,7 +104,7 @@ class RegisterViewModel(
                 com.example.whisper_android.util.DeviceUtils
                     .getDeviceTypeId(context)
 
-            val result = registerTeraluxUseCase(name, roomId, deviceId, deviceTypeId)
+            val result = registerTerminalUseCase(name, roomId, deviceId, deviceTypeId)
 
             result
                 .onSuccess {

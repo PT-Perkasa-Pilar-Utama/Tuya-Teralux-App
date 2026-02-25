@@ -2,15 +2,15 @@ package com.example.whisper_android.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 
-data class TeraluxResponseDto(
+data class TerminalResponseDto(
     @SerializedName("status") val status: Boolean,
     @SerializedName("message") val message: String,
-    @SerializedName("data") val data: TeraluxDataDto?
+    @SerializedName("data") val data: TerminalDataDto?
 )
 
-data class TeraluxDataDto(
-    @SerializedName("teralux_id") val teraluxId: String? = null, // From Register response
-    @SerializedName("teralux") val teralux: TeraluxItemDto? = null, // From GetByID/MAC response
+data class TerminalDataDto(
+    @SerializedName("terminal_id") val terminalId: String? = null, // From Register response
+    @SerializedName("terminal") val terminal: TerminalItemDto? = null, // From GetByID/MAC response
     // Maintain flat fields for immediate backward compatibility in case they are used
     @SerializedName("id") val id: String? = null,
     @SerializedName("name") val name: String? = null,
@@ -18,7 +18,7 @@ data class TeraluxDataDto(
     @SerializedName("mac_address") val macAddress: String? = null
 )
 
-data class TeraluxItemDto(
+data class TerminalItemDto(
     @SerializedName("id") val id: String,
     @SerializedName("mac_address") val macAddress: String,
     @SerializedName("room_id") val roomId: String,

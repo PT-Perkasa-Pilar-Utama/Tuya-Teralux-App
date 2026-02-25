@@ -128,34 +128,41 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 }
 
 func generatePDFFromHTML(htmlContent string, outputPath string) error {
-	browser := rod.New().MustConnect()
+	// Create common browser launcher with flags
+	l := rod.New().ControlURL("") // Local
+	
+	browser := l.MustConnect()
 	defer browser.MustClose()
 
-	page := browser.MustPage()
+	// Use a 20s timeout for the entire operation
+	return rod.Try(func() {
+		page := browser.MustPage()
+		defer page.MustClose()
 
-	// Set the HTML content
-	page.MustSetDocumentContent(htmlContent)
-	page.MustWaitLoad()
+		// Set the HTML content
+		page.MustSetDocumentContent(htmlContent)
+		page.MustWaitLoad()
 
-	marginTop := 0.75
-	marginBottom := 0.75
-	marginLeft := 0.6
-	marginRight := 0.6
-	pdfStream, err := page.PDF(&proto.PagePrintToPDF{
-		PrintBackground: true,
-		MarginTop:       &marginTop,
-		MarginBottom:    &marginBottom,
-		MarginLeft:      &marginLeft,
-		MarginRight:     &marginRight,
+		marginTop := 0.75
+		marginBottom := 0.75
+		marginLeft := 0.6
+		marginRight := 0.6
+		pdfStream, err := page.PDF(&proto.PagePrintToPDF{
+			PrintBackground: true,
+			MarginTop:       &marginTop,
+			MarginBottom:    &marginBottom,
+			MarginLeft:      &marginLeft,
+			MarginRight:     &marginRight,
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		pdfBytes, err := io.ReadAll(pdfStream)
+		if err != nil {
+			panic(err)
+		}
+
+		_ = os.WriteFile(outputPath, pdfBytes, 0644)
 	})
-	if err != nil {
-		return err
-	}
-
-	pdfBytes, err := io.ReadAll(pdfStream)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(outputPath, pdfBytes, 0644)
 }

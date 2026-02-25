@@ -8,7 +8,7 @@ class TokenManager(
     context: Context
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
-        "teralux_prefs",
+        "sensio_prefs",
         Context.MODE_PRIVATE
     )
 

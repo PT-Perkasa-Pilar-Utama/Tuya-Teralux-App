@@ -10,19 +10,20 @@ object DeviceUtils {
         (context.resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK) >=
             Configuration.SCREENLAYOUT_SIZE_LARGE
 
-    fun isTeralux(): Boolean {
+    fun isTerminal(): Boolean {
         val model = Build.MODEL
         val manufacturer = Build.MANUFACTURER
         return model.contains("px30_evb", ignoreCase = true) ||
             manufacturer.contains("rockchip", ignoreCase = true) ||
+            model.contains("terminal", ignoreCase = true) ||
             model.contains("teralux", ignoreCase = true)
     }
 
-    fun isPhone(context: Context): Boolean = !isTablet(context) && !isTeralux()
+    fun isPhone(context: Context): Boolean = !isTablet(context) && !isTerminal()
 
     fun getDeviceTypeId(context: Context): String {
         return when {
-            isTeralux() -> "2"
+            isTerminal() -> "2"
             isTablet(context) -> "1"
             else -> "3" // Phone
         }

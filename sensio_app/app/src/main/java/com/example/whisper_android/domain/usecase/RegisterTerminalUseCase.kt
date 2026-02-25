@@ -1,17 +1,17 @@
 package com.example.whisper_android.domain.usecase
 
-import com.example.whisper_android.domain.model.TeraluxRegistration
-import com.example.whisper_android.domain.repository.TeraluxRepository
+import com.example.whisper_android.domain.model.TerminalRegistration
+import com.example.whisper_android.domain.repository.TerminalRepository
 
-class RegisterTeraluxUseCase(
-    private val repository: TeraluxRepository
+class RegisterTerminalUseCase(
+    private val repository: TerminalRepository
 ) {
     suspend operator fun invoke(
         name: String,
         roomId: String,
         macAddress: String,
         deviceTypeId: String
-    ): Result<TeraluxRegistration> {
+    ): Result<TerminalRegistration> {
         if (name.isBlank()) return Result.failure(IllegalArgumentException("Name cannot be empty"))
         if (roomId.isBlank()) {
             return Result.failure(
@@ -24,6 +24,6 @@ class RegisterTeraluxUseCase(
             )
         }
 
-        return repository.registerTeralux(name, roomId, macAddress, deviceTypeId)
+        return repository.registerTerminal(name, roomId, macAddress, deviceTypeId)
     }
 }

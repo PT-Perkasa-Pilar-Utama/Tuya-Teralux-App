@@ -82,8 +82,8 @@ android {
         )
         buildConfigField(
             "String",
-            "TERALUX_API_KEY",
-            "\"${localProperties.getProperty("teralux.api_key") ?: ""}\""
+            "SENSIO_API_KEY",
+            "\"${localProperties.getProperty("sensio.api_key") ?: ""}\""
         )
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
         buildConfigField("String", "BASE_HOSTNAME", "\"$baseHostname\"")

@@ -59,7 +59,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
             RegisterViewModel(
                 application,
                 NetworkModule.registerUseCase,
-                NetworkModule.getTeraluxByMacUseCase,
+                NetworkModule.getTerminalByMacUseCase,
                 NetworkModule.authenticateUseCase
             )
         }

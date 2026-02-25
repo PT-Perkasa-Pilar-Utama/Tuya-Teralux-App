@@ -1,11 +1,11 @@
 package com.example.whisper_android.data.di
 
-import com.example.whisper_android.data.remote.api.TeraluxApi
-import com.example.whisper_android.data.repository.TeraluxRepositoryImpl
-import com.example.whisper_android.domain.repository.TeraluxRepository
+import com.example.whisper_android.data.remote.api.TerminalApi
+import com.example.whisper_android.data.repository.TerminalRepositoryImpl
+import com.example.whisper_android.domain.repository.TerminalRepository
 import com.example.whisper_android.domain.usecase.AuthenticateUseCase
-import com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase
-import com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase
+import com.example.whisper_android.domain.usecase.GetTerminalByMacUseCase
+import com.example.whisper_android.domain.usecase.RegisterTerminalUseCase
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -15,7 +15,7 @@ object NetworkModule {
     // Read from BuildConfig (local.properties)
     val BASE_URL = com.example.whisper_android.BuildConfig.BASE_URL
     private val BASE_HOSTNAME = com.example.whisper_android.BuildConfig.BASE_HOSTNAME
-    private val API_KEY = com.example.whisper_android.BuildConfig.TERALUX_API_KEY
+    private val API_KEY = com.example.whisper_android.BuildConfig.SENSIO_API_KEY
     private val client by lazy {
         val logging =
             HttpLoggingInterceptor().apply {
@@ -44,8 +44,8 @@ object NetworkModule {
                 .TokenManager(context)
     }
 
-    private val api: TeraluxApi by lazy {
-        retrofit.create(TeraluxApi::class.java)
+    private val api: TerminalApi by lazy {
+        retrofit.create(TerminalApi::class.java)
     }
 
     private val tuyaApi: com.example.whisper_android.data.remote.api.TuyaApi by lazy {
@@ -56,9 +56,9 @@ object NetworkModule {
         retrofit.create(com.example.whisper_android.data.remote.api.SpeechApi::class.java)
     }
 
-    val repository: TeraluxRepository by lazy {
+    val repository: TerminalRepository by lazy {
         // Ensure init() is called before accessing this
-        TeraluxRepositoryImpl(api, API_KEY)
+        TerminalRepositoryImpl(api, API_KEY)
     }
 
     val tuyaRepository: com.example.whisper_android.domain.repository.TuyaRepository by lazy {
@@ -84,12 +84,12 @@ object NetworkModule {
             .RagRepositoryImpl(ragApi)
     }
 
-    val registerUseCase: RegisterTeraluxUseCase by lazy {
-        RegisterTeraluxUseCase(repository)
+    val registerUseCase: RegisterTerminalUseCase by lazy {
+        RegisterTerminalUseCase(repository)
     }
 
-    val getTeraluxByMacUseCase: GetTeraluxByMacUseCase by lazy {
-        GetTeraluxByMacUseCase(repository)
+    val getTerminalByMacUseCase: GetTerminalByMacUseCase by lazy {
+        GetTerminalByMacUseCase(repository)
     }
 
     val authenticateUseCase: AuthenticateUseCase by lazy {

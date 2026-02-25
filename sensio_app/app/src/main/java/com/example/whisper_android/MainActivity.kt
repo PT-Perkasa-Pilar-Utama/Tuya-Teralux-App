@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
         // Dynamic Orientation Locking
         if (com.example.whisper_android.util.DeviceUtils
-            .isTeralux()
+            .isTerminal()
         ) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else if (com.example.whisper_android.util.DeviceUtils
