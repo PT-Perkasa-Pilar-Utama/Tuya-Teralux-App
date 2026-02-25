@@ -1,13 +1,13 @@
 services:
-  terminal-backend:
-    image: ghcr.io/farismnrr/terminal-backend:latest
-    container_name: terminal-backend
+  sensio-backend:
+    image: ghcr.io/farismnrr/sensio-backend:latest
+    container_name: sensio-backend
     ports:
       - "8081:8080"
     env_file:
       - .env.prod
     depends_on:
-      terminal-db:
+      sensio-db:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -20,9 +20,9 @@ services:
       - ./bin:/app/models
       - ./templates:/app/templates
 
-  terminal-db:
+  sensio-db:
     image: mysql:8.0
-    container_name: terminal-db
+    container_name: sensio-db
     env_file:
       - .env.prod
     volumes:

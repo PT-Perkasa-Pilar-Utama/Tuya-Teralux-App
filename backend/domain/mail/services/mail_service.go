@@ -127,7 +127,7 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 	fmt.Fprintf(buf, "To: %s\r\n", strings.Join(to, ","))
 	fmt.Fprintf(buf, "Subject: %s\r\n", subject)
 	fmt.Fprintf(buf, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
-	fmt.Fprintf(buf, "Message-ID: <%d.%d@terminal.app>\r\n", time.Now().UnixNano(), os.Getpid())
+	fmt.Fprintf(buf, "Message-ID: <%d.%d@sensio.app>\r\n", time.Now().UnixNano(), os.Getpid())
 	fmt.Fprintf(buf, "MIME-Version: 1.0\r\n")
 
 	// If we have an attachment, we use multipart/mixed.
