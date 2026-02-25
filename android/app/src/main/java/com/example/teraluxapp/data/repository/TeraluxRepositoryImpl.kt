@@ -28,9 +28,9 @@ class TeraluxRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun registerDevice(macAddress: String, roomId: String, name: String): Result<CreateTeraluxResponse> {
+    override suspend fun registerDevice(macAddress: String, roomId: String, name: String, deviceTypeId: String): Result<CreateTeraluxResponse> {
         return try {
-            val response = apiService.registerTeralux(CreateTeraluxRequest(macAddress, roomId, name))
+            val response = apiService.registerTeralux(CreateTeraluxRequest(macAddress, roomId, name, deviceTypeId))
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
                 if (body.status && body.data != null) {

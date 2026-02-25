@@ -41,20 +41,20 @@ func NewHTMLSummaryPDFRenderer() *HTMLSummaryPDFRenderer {
 
 type templateData struct {
 	SummaryPDFMeta
-	SummaryHTML template.HTML
-	LogoDataURI template.URL
-	LblMeetingInfo string
-	LblDate        string
-	LblLocation    string
-	LblParticipants string
-	LblContext     string
-	LblFooterRights string
+	SummaryHTML        template.HTML
+	LogoDataURI        template.URL
+	LblMeetingInfo     string
+	LblDate            string
+	LblLocation        string
+	LblParticipants    string
+	LblContext         string
+	LblFooterRights    string
 	LblFooterGenerated string
 }
 
 func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta SummaryPDFMeta) error {
 	basePath, _ := os.Getwd()
-	
+
 	// Convert Markdown to HTML
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM), // GitHub Flavored Markdown (tables, etc.)
@@ -66,7 +66,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 			html.WithUnsafe(),
 		),
 	)
-	
+
 	var buf bytes.Buffer
 	if err := md.Convert([]byte(summary), &buf); err != nil {
 		return fmt.Errorf("failed to convert markdown to html: %w", err)
@@ -87,7 +87,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 		SummaryHTML:    summaryHTML,
 		LogoDataURI:    template.URL(logoBase64),
 	}
-	
+
 	if isEnglish {
 		data.LblMeetingInfo = "Meeting Information"
 		data.LblDate = "Date"
@@ -132,7 +132,7 @@ func generatePDFFromHTML(htmlContent string, outputPath string) error {
 	defer browser.MustClose()
 
 	page := browser.MustPage()
-	
+
 	// Set the HTML content
 	page.MustSetDocumentContent(htmlContent)
 	page.MustWaitLoad()
@@ -148,7 +148,7 @@ func generatePDFFromHTML(htmlContent string, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	pdfBytes, err := io.ReadAll(pdfStream)
 	if err != nil {
 		return err

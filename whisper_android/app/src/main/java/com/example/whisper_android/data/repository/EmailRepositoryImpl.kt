@@ -10,9 +10,42 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 
+import com.example.whisper_android.data.remote.dto.SendEmailByMacRequestDto
+
 class EmailRepositoryImpl(
     private val api: EmailApi
 ) : EmailRepository {
+    override suspend fun sendEmailByMac(
+        macAddress: String,
+        subject: String,
+        template: String,
+        token: String,
+        attachmentPath: String?
+    ): Flow<Resource<Boolean>> = flow {
+        emit(Resource.Loading())
+        try {
+            val request = SendEmailByMacRequestDto(
+                subject = subject,
+                template = template,
+                attachmentPath = attachmentPath
+            )
+            val response = api.sendEmailByMac("Bearer $token", macAddress, request)
+
+            if (response.status && response.data != null) {
+                val taskId = response.data.taskId
+                pollEmailStatus(taskId, token).collect { pollResource ->
+                    emit(pollResource)
+                }
+            } else {
+                emit(Resource.Error(response.message))
+            }
+        } catch (e: HttpException) {
+            emit(Resource.Error(e.getErrorMessage()))
+        } catch (e: Exception) {
+            emit(Resource.Error(e.localizedMessage ?: "Unknown error occurred"))
+        }
+    }
+
     override suspend fun sendEmail(
         to: String,
         subject: String,

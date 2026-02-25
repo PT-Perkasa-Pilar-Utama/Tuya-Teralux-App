@@ -128,4 +128,9 @@ object NetworkModule {
         com.example.whisper_android.domain.usecase
             .SendEmailUseCase(emailRepository)
     }
+
+    val sendEmailByMacUseCase: com.example.whisper_android.domain.usecase.SendEmailByMacUseCase by lazy {
+        com.example.whisper_android.domain.usecase
+            .SendEmailByMacUseCase(emailRepository)
+    }
 }

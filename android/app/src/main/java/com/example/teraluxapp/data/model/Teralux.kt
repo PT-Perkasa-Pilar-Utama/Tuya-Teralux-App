@@ -27,7 +27,8 @@ data class TeraluxListResponse(
 data class CreateTeraluxRequest(
     @SerializedName("mac_address") val macAddress: String,
     @SerializedName("room_id") val roomId: String,
-    @SerializedName("name") val name: String
+    @SerializedName("name") val name: String,
+    @SerializedName("device_type_id") val deviceTypeId: String
 )
 
 data class CreateTeraluxResponse(

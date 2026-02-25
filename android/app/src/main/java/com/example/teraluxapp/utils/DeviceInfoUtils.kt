@@ -55,4 +55,27 @@ object DeviceInfoUtils {
     fun getAndroidId(context: Context): String {
         return Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
     }
+
+    fun isTablet(context: Context): Boolean {
+        return (context.resources.configuration.screenLayout and android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK) >=
+            android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
+    }
+
+    fun isTeralux(): Boolean {
+        val model = Build.MODEL
+        val manufacturer = Build.MANUFACTURER
+        return model.contains("px30_evb", ignoreCase = true) ||
+            manufacturer.contains("rockchip", ignoreCase = true) ||
+            model.contains("teralux", ignoreCase = true)
+    }
+
+    fun isPhone(context: Context): Boolean = !isTablet(context) && !isTeralux()
+
+    fun getDeviceTypeId(context: Context): String {
+        return when {
+            isTeralux() -> "2"
+            isTablet(context) -> "1"
+            else -> "3" // Phone
+        }
+    }
 }

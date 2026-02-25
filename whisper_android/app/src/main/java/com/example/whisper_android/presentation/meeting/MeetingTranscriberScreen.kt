@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.whisper_android.domain.usecase.MeetingProcessState
 import com.example.whisper_android.presentation.components.EmailInputDialog
+import com.example.whisper_android.util.DeviceUtils
 import com.example.whisper_android.presentation.components.FeatureBackground
 import com.example.whisper_android.presentation.components.FeatureHeader
 import com.example.whisper_android.presentation.components.FeatureMainCard
@@ -132,7 +133,8 @@ fun MeetingTranscriberScreen(
                                 viewModel.processRecording(
                                     outputFile,
                                     token,
-                                    summaryLanguage
+                                    summaryLanguage,
+                                    DeviceUtils.getDeviceId(context)
                                 )
                             }
                         }
@@ -274,7 +276,8 @@ fun MeetingTranscriberScreen(
                                 viewModel.processRecording(
                                     file,
                                     token,
-                                    summaryLanguage
+                                    summaryLanguage,
+                                    DeviceUtils.getDeviceId(context)
                                 )
                             }
                         }
@@ -295,8 +298,12 @@ fun MeetingTranscriberScreen(
         if (showEmailDialog) {
             EmailInputDialog(
                 onDismiss = { showEmailDialog = false },
-                onSend = { email, subject ->
-                    viewModel.sendEmailSummary(email, subject, summaryLanguage)
+                onSend = { isMacMode, target, subject ->
+                    if (isMacMode) {
+                        viewModel.sendEmailSummaryByMac(target, subject, summaryLanguage)
+                    } else {
+                        viewModel.sendEmailSummary(target, subject, summaryLanguage)
+                    }
                     showEmailDialog = false
                 }
             )

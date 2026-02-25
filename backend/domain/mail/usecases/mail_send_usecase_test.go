@@ -38,7 +38,7 @@ func TestMailSendUseCase_SendMail_DefaultTemplate(t *testing.T) {
 		To:      []string{"user@example.com"},
 		Subject: "Default Template Test",
 	}
-	
+
 	taskID, err := uc.SendMail(req)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, taskID)
@@ -61,7 +61,7 @@ func TestMailSendUseCase_SendMail_SpecificTemplate(t *testing.T) {
 		Subject:  "Specific Template Test",
 		Template: "summary",
 	}
-	
+
 	taskID, err := uc.SendMail(req)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, taskID)
@@ -74,7 +74,7 @@ func TestMailSendUseCase_SendMail_ValidationError_To(t *testing.T) {
 		To:      []string{},
 		Subject: "Test",
 	}
-	
+
 	taskID, err := uc.SendMail(req)
 	assert.Error(t, err)
 	assert.Empty(t, taskID)
@@ -88,7 +88,7 @@ func TestMailSendUseCase_SendMail_ValidationError_Subject(t *testing.T) {
 		To:      []string{"user@example.com"},
 		Subject: "",
 	}
-	
+
 	taskID, err := uc.SendMail(req)
 	assert.Error(t, err)
 	assert.Empty(t, taskID)

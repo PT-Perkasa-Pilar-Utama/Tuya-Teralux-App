@@ -29,6 +29,7 @@ func NewValidationError(message string, details []ValidationErrorDetail) *Valida
 		Details: details,
 	}
 }
+
 // APIError represents an error from an external API or internal service with a status code
 type APIError struct {
 	StatusCode int    `json:"status_code"`

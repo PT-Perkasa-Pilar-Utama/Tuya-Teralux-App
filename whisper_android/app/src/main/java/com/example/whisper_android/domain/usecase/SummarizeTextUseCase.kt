@@ -13,13 +13,14 @@ class SummarizeTextUseCase(
         text: String,
         language: String?,
         style: String,
+        macAddress: String?,
         token: String
     ): Flow<Resource<RAGSummaryResponseDto>> =
         flow {
             emit(Resource.Loading())
-
+ 
             var taskId: String? = null
-            ragRepository.generateSummary(text, style, language, null, token).collect { result ->
+            ragRepository.generateSummary(text, style, language, null, macAddress, token).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         taskId = result.data

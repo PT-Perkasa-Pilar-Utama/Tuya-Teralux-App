@@ -252,10 +252,12 @@ fun RegisterTeraluxScreen(
                     modifier = Modifier.size(48.dp)
                 )
             } else {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 Button(
                     onClick = {
                         if (deviceName.isNotBlank() && roomId.isNotBlank()) {
-                            viewModel.registerDevice(macAddress, roomId, deviceName)
+                            val deviceTypeId = com.example.teraluxapp.utils.DeviceInfoUtils.getDeviceTypeId(context)
+                            viewModel.registerDevice(macAddress, roomId, deviceName, deviceTypeId)
                         }
                     },
                     modifier = Modifier

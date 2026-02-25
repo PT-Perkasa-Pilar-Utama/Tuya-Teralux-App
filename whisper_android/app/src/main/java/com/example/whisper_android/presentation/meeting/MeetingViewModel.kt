@@ -26,10 +26,11 @@ class MeetingViewModel(
     fun processRecording(
         audioFile: File,
         token: String,
-        targetLang: String = "Indonesian"
+        targetLang: String = "Indonesian",
+        macAddress: String? = null
     ) {
         viewModelScope.launch {
-            processMeetingUseCase(audioFile, token, targetLang).collect { state ->
+            processMeetingUseCase(audioFile, token, targetLang, macAddress).collect { state ->
                 _uiState.value = state
             }
         }
@@ -68,6 +69,45 @@ class MeetingViewModel(
                         }
                         is Resource.Error -> {
                             _emailState.value = UiState.Error(resource.message ?: "Failed to send email")
+                        }
+                    }
+                }
+        }
+    }
+
+    fun sendEmailSummaryByMac(
+        macAddress: String,
+        subject: String,
+        targetLang: String = "id"
+    ) {
+        val state = _uiState.value
+        if (state !is MeetingProcessState.Success) return
+
+        val token = NetworkModule.tokenManager.getAccessToken() ?: ""
+
+        if (token.isEmpty()) {
+            _emailState.value = UiState.Error("Authentication token not found. Please login again.")
+            return
+        }
+
+        viewModelScope.launch {
+            NetworkModule
+                .sendEmailByMacUseCase(
+                    macAddress = macAddress,
+                    subject = subject,
+                    template = "summary",
+                    token = token,
+                    attachmentPath = state.pdfUrl
+                ).collectLatest { resource ->
+                    when (resource) {
+                        is Resource.Loading -> {
+                            _emailState.value = UiState.Loading
+                        }
+                        is Resource.Success -> {
+                            _emailState.value = UiState.Success(true)
+                        }
+                        is Resource.Error -> {
+                            _emailState.value = UiState.Error(resource.message ?: "Failed to send email by MAC")
                         }
                     }
                 }

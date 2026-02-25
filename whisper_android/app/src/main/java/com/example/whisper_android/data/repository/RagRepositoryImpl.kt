@@ -88,6 +88,7 @@ class RagRepositoryImpl(
         style: String,
         language: String?,
         context: String?,
+        macAddress: String?,
         token: String
     ): Flow<Resource<String>> =
         flow {
@@ -99,7 +100,8 @@ class RagRepositoryImpl(
                             text = text,
                             style = style,
                             language = language,
-                            context = context
+                            context = context,
+                            macAddress = macAddress
                         ),
                         "Bearer $token"
                     )

@@ -2,6 +2,7 @@ package com.example.whisper_android.data.remote.api
 
 import com.example.whisper_android.data.remote.dto.MailStatusDto
 import com.example.whisper_android.data.remote.dto.MailTaskResponseDto
+import com.example.whisper_android.data.remote.dto.SendEmailByMacRequestDto
 import com.example.whisper_android.data.remote.dto.SendEmailRequestDto
 import com.example.whisper_android.data.remote.dto.StandardResponseDto
 import retrofit2.http.Body
@@ -11,6 +12,13 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface EmailApi {
+    @POST("/api/mail/send/mac/{macAddress}")
+    suspend fun sendEmailByMac(
+        @Header("Authorization") token: String,
+        @Path("macAddress") macAddress: String,
+        @Body request: SendEmailByMacRequestDto
+    ): StandardResponseDto<MailTaskResponseDto>
+
     @POST("/api/mail/send")
     suspend fun sendEmail(
         @Header("Authorization") token: String,

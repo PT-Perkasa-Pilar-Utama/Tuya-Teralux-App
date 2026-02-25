@@ -35,6 +35,7 @@ class LoginViewModel @Inject constructor(
 
                 if (teralux != null) {
                     com.example.teraluxapp.utils.PreferencesManager.saveTeraluxId(context, teralux.id)
+                    com.example.teraluxapp.utils.PreferencesManager.saveUid(context, authResponse.uid)
                     _uiState.value = LoginUiState.Success(
                         token = authResponse.accessToken,
                         uid = authResponse.uid

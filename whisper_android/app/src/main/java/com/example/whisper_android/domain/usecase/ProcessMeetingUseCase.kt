@@ -36,7 +36,8 @@ class ProcessMeetingUseCase(
     suspend operator fun invoke(
         audioFile: File,
         token: String,
-        targetLang: String = "English"
+        targetLang: String = "English",
+        macAddress: String? = null
     ): Flow<MeetingProcessState> =
         flow {
             emit(MeetingProcessState.Uploading)
@@ -92,7 +93,7 @@ class ProcessMeetingUseCase(
 
             // 3. Summarize
             emit(MeetingProcessState.Summarizing)
-            summarizeTextUseCase(translatedText!!, targetLang.lowercase(), "meeting_minutes", token).collect { result ->
+            summarizeTextUseCase(translatedText!!, targetLang.lowercase(), "meeting_minutes", macAddress, token).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         emit(MeetingProcessState.Summarizing)

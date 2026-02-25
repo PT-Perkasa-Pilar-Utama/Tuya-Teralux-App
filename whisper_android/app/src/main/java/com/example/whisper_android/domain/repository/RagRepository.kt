@@ -13,6 +13,7 @@ interface RagRepository {
         style: String,
         language: String?,
         context: String?,
+        macAddress: String?,
         token: String
     ): Flow<Resource<String>> // Returns Task ID
 

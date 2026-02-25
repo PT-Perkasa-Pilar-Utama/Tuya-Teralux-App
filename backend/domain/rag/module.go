@@ -5,6 +5,7 @@ import (
 	commonServices "teralux_app/domain/common/services"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
+	mailServices "teralux_app/domain/mail/services"
 	"teralux_app/domain/rag/controllers"
 	ragdtos "teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/routes"
@@ -69,7 +70,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 
 	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
 	pdfRenderer := services.NewHTMLSummaryPDFRenderer()
-	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer)
+	mailExternalService := mailServices.NewMailExternalService()
+	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, mailExternalService)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
 	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, orchestrator)

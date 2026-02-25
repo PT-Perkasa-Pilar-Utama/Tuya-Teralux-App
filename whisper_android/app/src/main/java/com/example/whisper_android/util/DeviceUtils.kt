@@ -20,6 +20,14 @@ object DeviceUtils {
 
     fun isPhone(context: Context): Boolean = !isTablet(context) && !isTeralux()
 
+    fun getDeviceTypeId(context: Context): String {
+        return when {
+            isTeralux() -> "2"
+            isTablet(context) -> "1"
+            else -> "3" // Phone
+        }
+    }
+
     fun getDeviceId(context: Context): String {
         // 1. Try ANDROID_ID (Stable for lifetime of device reset)
         val androidId =

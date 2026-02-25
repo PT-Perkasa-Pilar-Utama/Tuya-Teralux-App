@@ -18,7 +18,7 @@ func TestDeleteDeviceUseCase_UserBehavior(t *testing.T) {
 	t.Run("Delete Device (Success)", func(t *testing.T) {
 		deviceID := "dev-1"
 		teraluxID := "tx-1"
-		
+
 		repo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID, TeraluxID: teraluxID}, nil).Once()
 		statusRepo.On("DeleteByDeviceID", deviceID).Return(nil).Once()
 		repo.On("Delete", deviceID).Return(nil).Once()
@@ -26,7 +26,7 @@ func TestDeleteDeviceUseCase_UserBehavior(t *testing.T) {
 
 		err := useCase.DeleteDevice(deviceID)
 		assert.NoError(t, err)
-		
+
 		repo.AssertExpectations(t)
 		statusRepo.AssertExpectations(t)
 		teraRepo.AssertExpectations(t)

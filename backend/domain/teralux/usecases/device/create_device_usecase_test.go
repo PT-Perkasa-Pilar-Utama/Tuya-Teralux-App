@@ -16,7 +16,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 	teraRepo := new(MockTeraluxRepository)
 	tuyaAuth := new(MockTuyaAuthUseCase)
 	tuyaGetDevice := new(MockTuyaGetDeviceByIDUseCase)
-	
+
 	useCase := NewCreateDeviceUseCase(repo, statusRepo, tuyaAuth, tuyaGetDevice, teraRepo)
 
 	// 1. Create Device (Success)
@@ -30,11 +30,11 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 		teraRepo.On("GetByID", req.TeraluxID).Return(&entities.Teralux{ID: "tx-1"}, nil).Once()
 		tuyaAuth.On("Authenticate").Return(&tuya_dtos.TuyaAuthResponseDTO{AccessToken: "token"}, nil).Once()
 		tuyaGetDevice.On("GetDeviceByID", "token", req.ID).Return(&tuya_dtos.TuyaDeviceDTO{
-			ID: req.ID,
-			Name: "Mocked",
+			ID:     req.ID,
+			Name:   "Mocked",
 			Status: []tuya_dtos.TuyaDeviceStatusDTO{{Code: "s1", Value: "v1"}},
 		}, nil).Once()
-		
+
 		repo.On("GetByIDUnscoped", req.ID).Return(nil, assert.AnError).Once()
 		repo.On("Create", mock.Anything).Return(nil).Once()
 		statusRepo.On("UpsertDeviceStatuses", req.ID, mock.Anything).Return(nil).Once()
@@ -43,7 +43,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 		res, _, err := useCase.CreateDevice(req)
 		assert.NoError(t, err)
 		assert.Equal(t, req.ID, res.DeviceID)
-		
+
 		repo.AssertExpectations(t)
 		statusRepo.AssertExpectations(t)
 		teraRepo.AssertExpectations(t)
@@ -68,7 +68,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 			TeraluxID: "tx-999",
 		}
 		teraRepo.On("GetByID", "tx-999").Return(nil, assert.AnError).Once()
-		
+
 		_, _, err := useCase.CreateDevice(req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "Invalid teralux_id")

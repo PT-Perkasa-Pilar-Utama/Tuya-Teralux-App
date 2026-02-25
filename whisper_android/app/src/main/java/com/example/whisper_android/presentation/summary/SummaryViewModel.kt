@@ -110,6 +110,49 @@ class SummaryViewModel : ViewModel() {
         }
     }
 
+    fun sendEmailByMac(
+        macAddress: String,
+        subject: String
+    ) {
+        val token =
+            com.example.whisper_android.data.di.NetworkModule.tokenManager
+                .getAccessToken() ?: ""
+
+        if (token.isEmpty()) {
+            _emailState.value = UiState.Error("Authentication token not found. Please login again.")
+            return
+        }
+
+        viewModelScope.launch {
+            val sendEmailByMacUseCase =
+                com.example.whisper_android.data.di.NetworkModule.sendEmailByMacUseCase
+
+            sendEmailByMacUseCase(
+                macAddress = macAddress,
+                subject = subject,
+                template = "summary",
+                token = token,
+                attachmentPath = null
+            ).collectLatest { resource ->
+                when (resource) {
+                    is Resource.Loading -> {
+                        _emailState.value = UiState.Loading
+                    }
+
+                    is Resource.Success -> {
+                        _emailState.value = UiState.Success(true)
+                    }
+
+                    is Resource.Error -> {
+                        _emailState.value = UiState.Error(
+                            resource.message ?: "Failed to send email by MAC"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     fun resetEmailState() {
         _emailState.value = UiState.Idle
     }

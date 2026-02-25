@@ -38,10 +38,10 @@ func TestMailSendByMacUseCase_SendMailByMac_Validation(t *testing.T) {
 	})
 
 	t.Run("Valid UUID Format", func(t *testing.T) {
-		// This should pass validation. 
+		// This should pass validation.
 		// If external API is reachable, it might try to send email.
 		taskID, err := uc.SendMailByMac("db329671-96bb-368b-95d3-53a3a3712563", &dtos.SendMailByMacRequestDTO{Subject: "Test"})
-		
+
 		if err != nil {
 			assert.NotContains(t, err.Error(), "invalid mac address format")
 			assert.Empty(t, taskID)

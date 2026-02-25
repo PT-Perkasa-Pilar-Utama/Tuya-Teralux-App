@@ -53,7 +53,8 @@ data class RAGSummaryRequestDto(
     @SerializedName("text") val text: String,
     @SerializedName("language") val language: String? = null,
     @SerializedName("context") val context: String? = null,
-    @SerializedName("style") val style: String? = null
+    @SerializedName("style") val style: String? = null,
+    @SerializedName("mac_address") val macAddress: String? = null
 )
 
 data class RAGSummaryResponseDto(

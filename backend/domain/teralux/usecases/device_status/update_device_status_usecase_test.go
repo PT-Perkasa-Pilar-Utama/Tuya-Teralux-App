@@ -38,20 +38,20 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 		deviceID := "d1"
 		token := "valid_token"
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
-		
+
 		devRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID, RemoteID: "r1"}, nil).Once()
-		
+
 		mockTuya.On("SendSwitchCommand", token, deviceID, mock.MatchedBy(func(cmds []tuya_dtos.TuyaCommandDTO) bool {
 			return len(cmds) == 1 && cmds[0].Code == "switch_1" && cmds[0].Value == true
 		})).Return(true, nil).Once()
-		
+
 		repo.On("Upsert", mock.MatchedBy(func(s *entities.DeviceStatus) bool {
 			return s.DeviceID == deviceID && s.Code == "switch_1" && s.Value == "true"
 		})).Return(nil).Once()
 
 		err := useCase.UpdateDeviceStatus(deviceID, req, token)
 		assert.NoError(t, err)
-		
+
 		devRepo.AssertExpectations(t)
 		repo.AssertExpectations(t)
 		mockTuya.AssertExpectations(t)
@@ -60,7 +60,7 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 	// 2. Update Status (Not Found - Device)
 	t.Run("Update Status (Not Found - Device)", func(t *testing.T) {
 		devRepo.On("GetByID", "unknown").Return(nil, errors.New("record not found")).Once()
-		
+
 		err := useCase.UpdateDeviceStatus("unknown", &dtos.UpdateDeviceStatusRequestDTO{Code: "c"}, "t")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "Device not found")
@@ -82,9 +82,9 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 		deviceID := "d1"
 		token := "valid_token"
 		req := &dtos.UpdateDeviceStatusRequestDTO{Code: "switch_1", Value: true}
-		
+
 		devRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID, RemoteID: "r1"}, nil).Once()
-		
+
 		mockTuya.On("SendSwitchCommand", token, deviceID, mock.Anything).Return(false, errors.New("tuya error")).Once()
 
 		err := useCase.UpdateDeviceStatus(deviceID, req, token)
@@ -102,20 +102,20 @@ func TestUpdateDeviceStatus_UserBehavior(t *testing.T) {
 			Value:    24,
 			RemoteID: remoteID,
 		}
-		
+
 		devRepo.On("GetByID", deviceID).Return(&entities.Device{ID: deviceID}, nil).Once()
-		
+
 		mockTuya.On("SendIRACCommand", token, deviceID, remoteID, mock.MatchedBy(func(p map[string]int) bool {
 			return p["temp"] == 24
 		})).Return(true, nil).Once()
-		
+
 		repo.On("Upsert", mock.MatchedBy(func(s *entities.DeviceStatus) bool {
 			return s.DeviceID == deviceID && s.Code == "temp" && s.Value == "24"
 		})).Return(nil).Once()
 
 		err := useCase.UpdateDeviceStatus(deviceID, req, token)
 		assert.NoError(t, err)
-		
+
 		devRepo.AssertExpectations(t)
 		repo.AssertExpectations(t)
 		mockTuya.AssertExpectations(t)

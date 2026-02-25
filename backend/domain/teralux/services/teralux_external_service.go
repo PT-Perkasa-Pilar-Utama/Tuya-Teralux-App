@@ -53,13 +53,33 @@ func (s *TeraluxExternalService) ProcInsertMacAddress(roomID int, macAddress str
 		utils.LogError("TeraluxExternalService: API request failed for MAC %s: %v", macAddress, err)
 		return fmt.Errorf("external API request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	utils.LogDebug("TeraluxExternalService: API returned status %d for MAC %s", resp.StatusCode, macAddress)
 
 	if resp.StatusCode != http.StatusOK {
+		var errResp struct {
+			Error struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && errResp.Error.Message != "" {
+			utils.LogError("TeraluxExternalService: API returned error message: %s for MAC %s", errResp.Error.Message, macAddress)
+			return utils.NewAPIError(resp.StatusCode, errResp.Error.Message)
+		}
+
 		utils.LogError("TeraluxExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
 		return fmt.Errorf("external API returned non-200 status: %d", resp.StatusCode)
+	}
+
+	var successResp struct {
+		Pattern string `json:"Pattern"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&successResp); err == nil && successResp.Pattern != "" {
+		utils.LogDebug("TeraluxExternalService: API success pattern: %s for MAC %s", successResp.Pattern, macAddress)
 	}
 
 	return nil

@@ -18,14 +18,14 @@ func TestGetAllDeviceStatusesUseCase_UserBehavior(t *testing.T) {
 			{DeviceID: "d1", Code: "c1", Value: "v1"},
 			{DeviceID: "d2", Code: "c2", Value: "v2"},
 		}
-		
+
 		repo.On("GetAllPaginated", 0, 0).Return(expectedStatuses, int64(2), nil).Once()
 
 		res, err := useCase.ListDeviceStatuses(0, 0)
 		assert.NoError(t, err)
 		assert.Len(t, res.DeviceStatuses, 2)
 		assert.Equal(t, "v1", res.DeviceStatuses[0].Value)
-		
+
 		repo.AssertExpectations(t)
 	})
 
@@ -36,7 +36,7 @@ func TestGetAllDeviceStatusesUseCase_UserBehavior(t *testing.T) {
 		res, err := useCase.ListDeviceStatuses(0, 0)
 		assert.NoError(t, err)
 		assert.Len(t, res.DeviceStatuses, 0)
-		
+
 		repo.AssertExpectations(t)
 	})
 }
