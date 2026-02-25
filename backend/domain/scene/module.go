@@ -1,11 +1,11 @@
 package scene
 
 import (
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/scene/controllers"
-	"teralux_app/domain/scene/repositories"
-	"teralux_app/domain/scene/usecases"
-	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/scene/controllers"
+	"sensio/domain/scene/repositories"
+	"sensio/domain/scene/usecases"
+	tuyaUsecases "sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -41,11 +41,11 @@ func NewSceneModule(db *gorm.DB, tuyaCmd tuyaUsecases.TuyaDeviceControlExecutor,
 }
 
 func (m *SceneModule) RegisterRoutes(protected *gin.RouterGroup) {
-	// All scenes (grouped by teralux_id)
+	// All scenes (grouped by terminal_id)
 	protected.GET("/api/scenes", m.ListAllController.ListAllScenes)
 
 	// Per-device scene routes
-	group := protected.Group("/api/teralux/:id/scenes")
+	group := protected.Group("/api/terminal/:id/scenes")
 	{
 		group.POST("", m.AddController.AddScene)
 		group.GET("", m.ListController.ListScenes)

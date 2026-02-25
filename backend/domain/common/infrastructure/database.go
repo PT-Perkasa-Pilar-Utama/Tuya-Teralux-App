@@ -3,7 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"log"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

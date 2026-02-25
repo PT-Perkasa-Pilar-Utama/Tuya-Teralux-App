@@ -1,10 +1,10 @@
 package usecases
 
 import (
-	"teralux_app/domain/tuya/dtos"
+	"sensio/domain/tuya/dtos"
 )
 
-// SyncDeviceStatusUseCase synchronizes device status from Tuya to Teralux DB
+// SyncDeviceStatusUseCase synchronizes device status from Tuya to Terminal DB
 type SyncDeviceStatusUseCase struct {
 	getAllDevicesUC TuyaGetAllDevicesUseCase
 }

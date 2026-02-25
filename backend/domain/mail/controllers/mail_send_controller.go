@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	mail_dtos "teralux_app/domain/mail/dtos"
-	"teralux_app/domain/mail/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	mail_dtos "sensio/domain/mail/dtos"
+	"sensio/domain/mail/usecases"
 )
 
 type MailSendController struct {
@@ -27,7 +27,7 @@ func NewMailSendController(useCase usecases.MailSendUseCase) *MailSendController
 // SendMail handles POST /api/mail/send
 // @Summary Send an email using a template
 // @Description Send an email using a server-side template and specified recipients
-// @Tags 09. Mail
+// @Tags 08. Mail
 // @Accept json
 // @Produce json
 // @Param request body mail_dtos.SwaggerMailSendRequestDTO true "Mail Request"

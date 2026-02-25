@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"teralux_app/domain/mail/controllers"
+	"sensio/domain/mail/controllers"
 
 	"github.com/gin-gonic/gin"
 )

@@ -3,10 +3,10 @@ package controllers
 import (
 	"net/http"
 	"path/filepath"
-	"teralux_app/domain/common/utils"
-	recordingUsecases "teralux_app/domain/recordings/usecases"
-	"teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/usecases"
+	"sensio/domain/common/utils"
+	recordingUsecases "sensio/domain/recordings/usecases"
+	"sensio/domain/speech/dtos"
+	"sensio/domain/speech/usecases"
 
 	"github.com/gin-gonic/gin"
 )

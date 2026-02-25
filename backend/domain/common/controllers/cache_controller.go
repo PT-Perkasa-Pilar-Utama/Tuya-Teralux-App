@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +26,7 @@ func NewCacheController(cache *infrastructure.BadgerService, vector *infrastruct
 // FlushCache clears the entire cache
 // @Summary Flush all cache
 // @Description Remove all data from the cache storage
-// @Tags         08. Common
+// @Tags 10. Common
 // @Accept json
 // @Produce json
 // @Security BearerAuth

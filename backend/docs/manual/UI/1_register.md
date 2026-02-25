@@ -2,10 +2,10 @@
 ![Register UI](../../assets/ui/register-ui.png)
 
 ## Description
-This is the initial setup screen for the Teralux Device, used to register the physical hardware (e.g., tablet) with the backend system. It is usually seen only once during the initial deployment.
+This is the initial setup screen for the Terminal Device, used to register the physical hardware (e.g., tablet) with the backend system. It is usually seen only once during the initial deployment.
 
 ## API Used
-*   **Register Teralux**: `POST /api/teralux`
+*   **Register Terminal**: `POST /api/terminal`
 *   **Request Body**:
 ```json
     {
@@ -20,7 +20,7 @@ This is the initial setup screen for the Teralux Device, used to register the ph
     *   **MAC Address**: Automatically detected and displayed in a read-only field (e.g., `02:00:00:00:00:00`). This is crucial for hardware identification.
     *   **Inputs**:
         *   **Room ID**: The identifier for the room this device is installed in (e.g., "Meeting Room 1").
-        *   **Device Name**: A friendly name for this specific Teralux unit (e.g., "Front Wall Tablet").
+        *   **Device Name**: A friendly name for this specific Terminal unit (e.g., "Front Wall Tablet").
 2.  **Interaction**:
     *   User fills in the `Room ID` and `Device Name`.
     *   Taps **"Register Device"**.

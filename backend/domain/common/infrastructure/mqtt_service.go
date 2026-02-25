@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )

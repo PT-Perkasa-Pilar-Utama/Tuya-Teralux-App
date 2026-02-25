@@ -1,11 +1,11 @@
 # MQTT: AI Assistant Chat Scenario
 
 ## 1. Overview
-The AI assistant chat can be triggered via MQTT on the `users/teralux/chat` topic. Responses are published back to `users/teralux/chat/answer`.
+The AI assistant chat can be triggered via MQTT on the `users/terminal/chat` topic. Responses are published back to `users/terminal/chat/answer`.
 
 ## 2. MQTT Topic
-- **Subscription Topic**: `users/teralux/chat`
-- **Response Topic**: `users/teralux/chat/answer`
+- **Subscription Topic**: `users/terminal/chat`
+- **Response Topic**: `users/terminal/chat/answer`
 - **QoS**: 0
 
 ## 3. Test Cases
@@ -17,12 +17,12 @@ The AI assistant chat can be triggered via MQTT on the `users/teralux/chat` topi
 ```json
 {
     "prompt": "Halo, siapa kamu?",
-    "teralux_id": "tx-1",
+    "terminal_id": "tx-1",
     "language": "id"
 }
 ```
 
-**Expected Response (on `users/teralux/chat/answer`)**:
+**Expected Response (on `users/terminal/chat/answer`)**:
 ```json
 {
   "status": true,
@@ -39,12 +39,12 @@ The AI assistant chat can be triggered via MQTT on the `users/teralux/chat` topi
 ```json
 {
     "prompt": "Nyalakan AC",
-    "teralux_id": "tx-1",
+    "terminal_id": "tx-1",
     "language": "id"
   }
 ```
 
-**Expected Response (on `users/teralux/chat/answer`)**:
+**Expected Response (on `users/terminal/chat/answer`)**:
 ```json
 {
   "status": true,
@@ -57,7 +57,7 @@ The AI assistant chat can be triggered via MQTT on the `users/teralux/chat` topi
       "method": "POST",
       "body": {
         "prompt": "Nyalakan AC",
-        "teralux_id": "tx-1"
+        "terminal_id": "tx-1"
       }
     }
   }
@@ -65,6 +65,6 @@ The AI assistant chat can be triggered via MQTT on the `users/teralux/chat` topi
 ```
 
 ## 4. Verification Steps
-1. Use an MQTT client (e.g., MQTT Explorer or `mosquitto_sub`) to subscribe to `users/teralux/chat/answer`.
-2. Publish the CHAT payload to `users/teralux/chat`.
+1. Use an MQTT client (e.g., MQTT Explorer or `mosquitto_sub`) to subscribe to `users/terminal/chat/answer`.
+2. Publish the CHAT payload to `users/terminal/chat`.
 3. Verify the response message matches the expected format.

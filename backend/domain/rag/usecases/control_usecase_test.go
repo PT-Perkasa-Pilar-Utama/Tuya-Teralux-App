@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	tuyaDtos "teralux_app/domain/tuya/dtos"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	tuyaDtos "sensio/domain/tuya/dtos"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,7 +81,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	uc := NewControlUseCase(mockLLM, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
 
 	uid := "user-123"
-	teraluxID := "tx-1"
+	terminalID := "tx-1"
 
 	// 1. Setup Mock User Devices in Vector DB
 	devices := []tuyaDtos.TuyaDeviceDTO{
@@ -122,7 +122,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	}
 
 	t.Run("Single Match", func(t *testing.T) {
-		res, err := uc.ProcessControl(uid, teraluxID, "Nyalakan Lampu Teras")
+		res, err := uc.ProcessControl(uid, terminalID, "Nyalakan Lampu Teras")
 		assert.NoError(t, err)
 		assert.Contains(t, res.Message, "turned on")
 		assert.Contains(t, res.Message, "Lampu Teras")
@@ -139,7 +139,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		expectedResponse := "I found 2 matching devices: AC Kamar Utama, AC Ruang Tamu. Which one?"
 		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
 
-		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
+		res, err := localUC.ProcessControl(uid, terminalID, prompt)
 		assert.NoError(t, err)
 		assert.Contains(t, res.Message, "I found 2 matching devices")
 		assert.Contains(t, res.Message, "AC Kamar Utama")
@@ -159,7 +159,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 
 		localMock.On("CallModel", mock.Anything, "high").Return("EXECUTE:dev-ac-1", nil).Once()
 
-		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
+		res, err := localUC.ProcessControl(uid, terminalID, prompt)
 		assert.NoError(t, err)
 		// AC commands use IR API which always sets mode/temp/wind defaults, so message contains specific settings
 		assert.Contains(t, res.Message, "AC Kamar Utama")
@@ -175,7 +175,7 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		expectedResponse := "I'm sorry, I couldn't find any device matching 'Turn on the Fridge'."
 		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
 
-		res, err := localUC.ProcessControl(uid, teraluxID, prompt)
+		res, err := localUC.ProcessControl(uid, terminalID, prompt)
 		assert.NoError(t, err)
 		assert.Contains(t, res.Message, "I'm sorry, I couldn't find any device matching")
 		assert.Empty(t, res.DeviceID)

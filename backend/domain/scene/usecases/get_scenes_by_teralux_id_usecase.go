@@ -1,8 +1,8 @@
 package usecases
 
 import (
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/repositories"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/repositories"
 )
 
 type GetAllScenesUseCase struct {
@@ -13,6 +13,6 @@ func NewGetAllScenesUseCase(repo repositories.ISceneRepository) *GetAllScenesUse
 	return &GetAllScenesUseCase{repo: repo}
 }
 
-func (u *GetAllScenesUseCase) ListScenes(teraluxID string) ([]entities.Scene, error) {
-	return u.repo.GetAll(teraluxID)
+func (u *GetAllScenesUseCase) ListScenes(terminalID string) ([]entities.Scene, error) {
+	return u.repo.GetAll(terminalID)
 }

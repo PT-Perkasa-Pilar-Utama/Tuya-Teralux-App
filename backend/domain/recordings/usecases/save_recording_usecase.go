@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/recordings/entities"
-	"teralux_app/domain/recordings/repositories"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/recordings/entities"
+	"sensio/domain/recordings/repositories"
 )
 
 type SaveRecordingUseCase interface {

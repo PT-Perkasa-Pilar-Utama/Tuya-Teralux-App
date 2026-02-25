@@ -1,18 +1,18 @@
 package rag
 
 import (
-	"teralux_app/domain/common/infrastructure"
-	commonServices "teralux_app/domain/common/services"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	mailServices "teralux_app/domain/mail/services"
-	"teralux_app/domain/rag/controllers"
-	ragdtos "teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/routes"
-	"teralux_app/domain/rag/services"
-	"teralux_app/domain/rag/skills"
-	"teralux_app/domain/rag/usecases"
-	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"sensio/domain/common/infrastructure"
+	commonServices "sensio/domain/common/services"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	mailServices "sensio/domain/mail/services"
+	"sensio/domain/rag/controllers"
+	ragdtos "sensio/domain/rag/dtos"
+	"sensio/domain/rag/routes"
+	"sensio/domain/rag/services"
+	"sensio/domain/rag/skills"
+	"sensio/domain/rag/usecases"
+	tuyaUsecases "sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )

@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	recordingUsecases "teralux_app/domain/recordings/usecases"
-	"teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	recordingUsecases "sensio/domain/recordings/usecases"
+	"sensio/domain/speech/dtos"
+	"sensio/domain/speech/usecases"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
@@ -46,7 +46,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		return
 	}
 
-	topic := "users/teralux/whisper"
+	topic := "users/terminal/whisper"
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		if len(payload) == 0 {
@@ -60,9 +60,9 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			return
 		}
 
-		if req.Audio == "" || req.TeraluxID == "" {
-			utils.LogError("SpeechTranscribe MQTT: Missing audio or teralux_id")
-			c.publishMqttValidationError("audio/teralux_id", "audio and teralux_id are required")
+		if req.Audio == "" || req.TerminalID == "" {
+			utils.LogError("SpeechTranscribe MQTT: Missing audio or terminal_id")
+			c.publishMqttValidationError("audio/terminal_id", "audio and terminal_id are required")
 			return
 		}
 
@@ -80,7 +80,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		}
 
 		// Generate a descriptive temporary filename
-		tempFilename := fmt.Sprintf("mqtt_temp_%s_%d.wav", req.TeraluxID, time.Now().UnixNano())
+		tempFilename := fmt.Sprintf("mqtt_temp_%s_%d.wav", req.TerminalID, time.Now().UnixNano())
 		tempPath := filepath.Join("uploads", "audio", tempFilename)
 
 		// Save audio bytes to disk manually (without DB entry)
@@ -93,7 +93,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		// Start transcription task using usecase
 		taskID, err := c.transcribeUC.TranscribeAudio(tempPath, tempFilename, language, usecases.TranscriptionMetadata{
 			UID:         req.UID,
-			TeraluxID:   req.TeraluxID,
+			TerminalID:   req.TerminalID,
 			Source:      "mqtt",
 			Trigger:     "mqtt:tera/transcribe",
 			DeleteAfter: true, // Delete file after transcription
@@ -147,7 +147,7 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 	if c.mqttSvc == nil {
 		return
 	}
-	respTopic := "users/teralux/whisper/answer"
+	respTopic := "users/terminal/whisper/answer"
 	respData, _ := json.Marshal(resp)
 	if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 		utils.LogError("SpeechTranscribe MQTT: Failed to publish response: %v", err)

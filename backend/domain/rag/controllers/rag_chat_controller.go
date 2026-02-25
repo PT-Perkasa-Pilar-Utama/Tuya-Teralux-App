@@ -3,10 +3,10 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/dtos"
+	"sensio/domain/rag/usecases"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
@@ -29,7 +29,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		return
 	}
 
-	topic := "users/teralux/chat"
+	topic := "users/terminal/chat"
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		utils.LogInfo("RAGChat MQTT: Received message on %s, payload size: %d", topic, len(payload))
@@ -42,7 +42,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		err := json.Unmarshal(payload, &req)
 		if err != nil {
 			utils.LogError("RAGChat MQTT: Failed to unmarshal message: %v", err)
-			respTopic := "users/teralux/chat/answer"
+			respTopic := "users/terminal/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
 				Message: "Validation Error",
@@ -56,15 +56,15 @@ func (c *RAGChatController) StartMqttSubscription() {
 			return
 		}
 
-		if req.Prompt == "" || req.TeraluxID == "" {
-			utils.LogError("RAGChat MQTT: Missing prompt or teralux_id")
-			respTopic := "users/teralux/chat/answer"
+		if req.Prompt == "" || req.TerminalID == "" {
+			utils.LogError("RAGChat MQTT: Missing prompt or terminal_id")
+			respTopic := "users/terminal/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
 				Message: "Validation Error",
 				Details: []utils.ValidationErrorDetail{
 					{Field: "prompt", Message: "prompt is required"},
-					{Field: "teralux_id", Message: "teralux_id is required"},
+					{Field: "terminal_id", Message: "terminal_id is required"},
 				},
 			})
 			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
@@ -80,10 +80,10 @@ func (c *RAGChatController) StartMqttSubscription() {
 		}
 
 		utils.LogInfo("RAGChat MQTT: Starting chat process for UID: %s, Prompt: '%s'", uid, req.Prompt)
-		res, err := c.chatUC.Chat(uid, req.TeraluxID, req.Prompt, req.Language)
+		res, err := c.chatUC.Chat(uid, req.TerminalID, req.Prompt, req.Language)
 		if err != nil {
 			utils.LogError("RAGChat MQTT: Chat processing failed: %v", err)
-			respTopic := "users/teralux/chat/answer"
+			respTopic := "users/terminal/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
 				Message: "Internal Server Error",
@@ -95,7 +95,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		}
 
 		// Publish result back
-		respTopic := "users/teralux/chat/answer"
+		respTopic := "users/terminal/chat/answer"
 		resp := dtos.StandardResponse{
 			Status:  true,
 			Message: "Chat processed successfully",
@@ -144,7 +144,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		uidStr = uid.(string)
 	}
 
-	res, err := c.chatUC.Chat(uidStr, req.TeraluxID, req.Prompt, req.Language)
+	res, err := c.chatUC.Chat(uidStr, req.TerminalID, req.Prompt, req.Language)
 	if err != nil {
 		utils.LogError("RAGChatController.Chat: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
@@ -175,7 +175,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 
 	// Also publish to MQTT if service is available (for unified view on mobile apps)
 	if c.mqttSvc != nil {
-		respTopic := "users/teralux/chat/answer"
+		respTopic := "users/terminal/chat/answer"
 		respData, _ := json.Marshal(resp)
 		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 			utils.LogError("RAGChatController.Chat: Failed to publish to MQTT: %v", err)

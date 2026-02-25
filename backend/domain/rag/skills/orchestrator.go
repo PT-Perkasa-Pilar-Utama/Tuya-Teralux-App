@@ -3,7 +3,7 @@ package skills
 import (
 	"fmt"
 	"strings"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 )
 
 // Orchestrator coordinates the execution of skills using LLM-based routing.

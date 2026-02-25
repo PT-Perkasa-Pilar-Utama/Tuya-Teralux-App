@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/mail/dtos"
-	"teralux_app/domain/mail/services"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	"sensio/domain/mail/dtos"
+	"sensio/domain/mail/services"
 	"time"
 )
 

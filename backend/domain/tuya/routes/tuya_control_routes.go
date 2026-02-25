@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/tuya/controllers"
+	"sensio/domain/common/utils"
+	"sensio/domain/tuya/controllers"
 
 	"github.com/gin-gonic/gin"
 )

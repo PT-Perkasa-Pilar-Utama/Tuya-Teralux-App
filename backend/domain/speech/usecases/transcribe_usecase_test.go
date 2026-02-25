@@ -4,11 +4,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	speechdtos "teralux_app/domain/speech/dtos"
-	"teralux_app/domain/speech/usecases"
-	speechUtils "teralux_app/domain/speech/utils"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	speechdtos "sensio/domain/speech/dtos"
+	"sensio/domain/speech/usecases"
+	speechUtils "sensio/domain/speech/utils"
 	"testing"
 	"time"
 
@@ -108,7 +108,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 			Source:           "OpenAI",
 		}, nil)
 
-		mockMqtt.On("Publish", "users/teralux/chat", byte(0), false, mock.Anything).Return(nil)
+		mockMqtt.On("Publish", "users/terminal/chat", byte(0), false, mock.Anything).Return(nil)
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
@@ -117,11 +117,11 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, &utils.Config{}, mockMqtt)
 		_, _ = uc.TranscribeAudio(audioFile, "test.wav", "id", usecases.TranscriptionMetadata{
 			Source:    "mqtt",
-			TeraluxID: "TLX001",
+			TerminalID: "TLX001",
 			UID:       "USER001",
 		})
 
 		time.Sleep(50 * time.Millisecond)
-		mockMqtt.AssertCalled(t, "Publish", "users/teralux/chat", byte(0), false, mock.Anything)
+		mockMqtt.AssertCalled(t, "Publish", "users/terminal/chat", byte(0), false, mock.Anything)
 	})
 }

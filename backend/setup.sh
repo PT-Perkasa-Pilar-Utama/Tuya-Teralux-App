@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# setup.sh - Teralux Backend Environment Setup Script
+# setup.sh - Terminal Backend Environment Setup Script
 # Generates .env.prod with user-provided credentials and secure random keys.
 
 set -e
@@ -10,7 +10,7 @@ INFO='\033[0;34m'
 SUCCESS='\033[0;32m'
 NC='\033[0m' # No Color
 
-echo -e "${INFO}[INFO] Starting Teralux environment setup...${NC}"
+echo -e "${INFO}[INFO] Starting Terminal environment setup...${NC}"
 
 # 1. Prompt for Tuya Configuration
 echo -e "${INFO}[INFO] Please enter your Tuya credentials:${NC}"
@@ -27,17 +27,17 @@ MQTT_BROKER=${MQTT_BROKER:-wss://ws.farismnrr.com:443/mqtt}
 read -p "MQTT Username: " MQTT_USERNAME
 read -s -p "MQTT Password: " MQTT_PASSWORD
 echo ""
-read -p "MQTT Topic (default: users/teralux/whisper): " MQTT_TOPIC
-MQTT_TOPIC=${MQTT_TOPIC:-users/teralux/whisper}
+read -p "MQTT Topic (default: users/terminal/whisper): " MQTT_TOPIC
+MQTT_TOPIC=${MQTT_TOPIC:-users/terminal/whisper}
 
 # 3. Prompt for Database Configuration
 echo -e "${INFO}[INFO] Please enter your Database credentials (MySQL):${NC}"
-read -p "DB Host (default: teralux-db): " DB_HOST
-DB_HOST=${DB_HOST:-teralux-db}
+read -p "DB Host (default: terminal-db): " DB_HOST
+DB_HOST=${DB_HOST:-terminal-db}
 read -p "DB Port (default: 3306): " DB_PORT
 DB_PORT=${DB_PORT:-3306}
-read -p "DB User (default: teralux): " DB_USER
-DB_USER=${DB_USER:-teralux}
+read -p "DB User (default: terminal): " DB_USER
+DB_USER=${DB_USER:-terminal}
 
 # Optional Database Password Generation
 DB_PASSWORD=""
@@ -52,8 +52,8 @@ else
     echo ""
 fi
 
-read -p "DB Name (default: teralux): " DB_NAME
-DB_NAME=${DB_NAME:-teralux}
+read -p "DB Name (default: terminal): " DB_NAME
+DB_NAME=${DB_NAME:-terminal}
 
 # 4. Prompt for LLM Configuration
 echo -e "${INFO}[INFO] Please enter your LLM credentials:${NC}"

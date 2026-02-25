@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"teralux_app/domain/rag/dtos"
-	tuyaDtos "teralux_app/domain/tuya/dtos"
-	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"sensio/domain/rag/dtos"
+	tuyaDtos "sensio/domain/tuya/dtos"
+	tuyaUsecases "sensio/domain/tuya/usecases"
 )
 
 type SwitchSensor struct{}

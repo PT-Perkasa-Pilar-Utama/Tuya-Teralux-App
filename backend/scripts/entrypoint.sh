@@ -8,7 +8,7 @@ WARNING='\033[0;33m'
 ERROR='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${INFO}[INFO] Starting Teralux Backend (10/10 Production Grade)...${NC}"
+echo -e "${INFO}[INFO] Starting Terminal Backend (10/10 Production Grade)...${NC}"
 
 # 1. Environment & Path Setup
 MODEL_DIR="/app/models"
@@ -158,7 +158,7 @@ if [ "${AUTO_MIGRATE:-true}" = "true" ] && [ "${DB_TYPE:-mysql}" = "mysql" ]; th
     DB_P="${MYSQL_PORT:-3306}"
     DB_U="${MYSQL_USER:-root}"
     DB_PW="${MYSQL_PASSWORD:-root}"
-    DB_N="${MYSQL_DATABASE:-teralux}"
+    DB_N="${MYSQL_DATABASE:-terminal}"
 
     echo -e "${INFO}[INFO] Waiting for database (${DB_H}:${DB_P})...${NC}"
     
@@ -189,5 +189,5 @@ fi
 mkdir -p /app/logs
 
 # 6. Start Application
-echo -e "${SUCCESS}[SUCCESS] Initialization complete. Starting Teralux Backend...${NC}"
+echo -e "${SUCCESS}[SUCCESS] Initialization complete. Starting Terminal Backend...${NC}"
 exec /app/app

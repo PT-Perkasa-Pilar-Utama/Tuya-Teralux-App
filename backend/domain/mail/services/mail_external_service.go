@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 	"time"
 )
 
-// MailExternalService handles communication with third-party Teralux services for mail
+// MailExternalService handles communication with third-party Terminal services for mail
 type MailExternalService struct {
 	client *http.Client
 }

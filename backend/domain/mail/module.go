@@ -1,14 +1,14 @@
 package mail
 
 import (
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/mail/controllers"
-	"teralux_app/domain/mail/dtos"
-	"teralux_app/domain/mail/routes"
-	"teralux_app/domain/mail/services"
-	"teralux_app/domain/mail/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	"sensio/domain/mail/controllers"
+	"sensio/domain/mail/dtos"
+	"sensio/domain/mail/routes"
+	"sensio/domain/mail/services"
+	"sensio/domain/mail/usecases"
 
 	"github.com/gin-gonic/gin"
 )

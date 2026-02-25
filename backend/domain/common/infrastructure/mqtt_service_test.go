@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/stretchr/testify/assert"

@@ -1,7 +1,7 @@
 package usecases
 
 import (
-	"teralux_app/domain/scene/repositories"
+	"sensio/domain/scene/repositories"
 )
 
 type DeleteSceneUseCase struct {
@@ -12,6 +12,6 @@ func NewDeleteSceneUseCase(repo repositories.ISceneRepository) *DeleteSceneUseCa
 	return &DeleteSceneUseCase{repo: repo}
 }
 
-func (u *DeleteSceneUseCase) DeleteScene(teraluxID, id string) error {
-	return u.repo.Delete(teraluxID, id)
+func (u *DeleteSceneUseCase) DeleteScene(terminalID, id string) error {
+	return u.repo.Delete(terminalID, id)
 }

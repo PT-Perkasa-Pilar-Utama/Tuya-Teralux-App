@@ -1,10 +1,10 @@
 package usecases
 
 import (
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/skills"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/dtos"
+	"sensio/domain/rag/skills"
 	"time"
 
 	"github.com/google/uuid"

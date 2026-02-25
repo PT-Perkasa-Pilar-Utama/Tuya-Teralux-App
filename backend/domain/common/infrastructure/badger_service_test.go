@@ -2,7 +2,7 @@ package infrastructure
 
 import (
 	"os"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 	"testing"
 	"time"
 )

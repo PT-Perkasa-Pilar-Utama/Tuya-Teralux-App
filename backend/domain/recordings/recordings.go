@@ -3,10 +3,10 @@ package recordings
 import (
 	"github.com/gin-gonic/gin"
 
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/recordings/controllers"
-	"teralux_app/domain/recordings/repositories"
-	"teralux_app/domain/recordings/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/recordings/controllers"
+	"sensio/domain/recordings/repositories"
+	"sensio/domain/recordings/usecases"
 )
 
 type RecordingsModule struct {

@@ -10,8 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/speech/dtos"
+	"sensio/domain/common/utils"
+	"sensio/domain/speech/dtos"
 	"time"
 )
 

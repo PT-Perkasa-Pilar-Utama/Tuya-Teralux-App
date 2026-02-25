@@ -1,8 +1,8 @@
 package usecases
 
 import (
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/repositories"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/repositories"
 )
 
 type UpdateSceneUseCase struct {
@@ -13,8 +13,8 @@ func NewUpdateSceneUseCase(repo repositories.ISceneRepository) *UpdateSceneUseCa
 	return &UpdateSceneUseCase{repo: repo}
 }
 
-func (u *UpdateSceneUseCase) UpdateScene(teraluxID, id string, name string, actions entities.Actions) error {
-	scene, err := u.repo.GetByID(teraluxID, id)
+func (u *UpdateSceneUseCase) UpdateScene(terminalID, id string, name string, actions entities.Actions) error {
+	scene, err := u.repo.GetByID(terminalID, id)
 	if err != nil {
 		return err
 	}

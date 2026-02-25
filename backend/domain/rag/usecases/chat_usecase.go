@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/skills"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/dtos"
+	"sensio/domain/rag/skills"
 )
 
 type ChatUseCase interface {
-	Chat(uid, teraluxID, prompt, language string) (*dtos.RAGChatResponseDTO, error)
+	Chat(uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error)
 }
 
 type ChatUseCaseImpl struct {
@@ -34,13 +34,13 @@ func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *uti
 	}
 }
 
-func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
+func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("prompt is empty")
 	}
 
 	// 1. Get History
-	historyKey := fmt.Sprintf("chat_history:%s", teraluxID)
+	historyKey := fmt.Sprintf("chat_history:%s", terminalID)
 	var history []string
 	if u.badger != nil {
 		data, _ := u.badger.Get(historyKey)
@@ -52,7 +52,7 @@ func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.R
 	// 2. Prepare Skill Context
 	ctx := &skills.SkillContext{
 		UID:       uid,
-		TeraluxID: teraluxID,
+		TerminalID: terminalID,
 		Prompt:    prompt,
 		Language:  language,
 		History:   history,
@@ -92,7 +92,7 @@ func (u *ChatUseCaseImpl) Chat(uid, teraluxID, prompt, language string) (*dtos.R
 			Method:   "POST",
 			Body: dtos.RAGControlRequestDTO{
 				Prompt:    prompt,
-				TeraluxID: teraluxID,
+				TerminalID: terminalID,
 			},
 		}
 	}

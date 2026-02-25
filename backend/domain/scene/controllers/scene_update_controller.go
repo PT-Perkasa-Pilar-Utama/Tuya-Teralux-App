@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	scene_dtos "teralux_app/domain/scene/dtos"
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	scene_dtos "sensio/domain/scene/dtos"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,21 +21,21 @@ func NewSceneUpdateController(useCase *usecases.UpdateSceneUseCase) *SceneUpdate
 	}
 }
 
-// UpdateScene handles PUT /api/teralux/:id/scenes/:scene_id
+// UpdateScene handles PUT /api/terminal/:id/scenes/:scene_id
 // @Summary Update an existing scene
 // @Description Update the configuration of a specific scene
 // @Tags 03. Scenes
 // @Accept json
 // @Produce json
-// @Param id path string true "Teralux UUID"
+// @Param id path string true "Terminal UUID"
 // @Param scene_id path string true "Scene UUID"
 // @Param scene body scene_dtos.UpdateSceneRequestDTO true "Updated scene configuration"
 // @Success 200 {object} dtos.StandardResponse "Scene updated"
 // @Failure 404 {object} dtos.StandardResponse "Scene not found"
 // @Security BearerAuth
-// @Router /api/teralux/{id}/scenes/{scene_id} [put]
+// @Router /api/terminal/{id}/scenes/{scene_id} [put]
 func (c *SceneUpdateController) UpdateScene(ctx *gin.Context) {
-	teraluxID := ctx.Param("id")
+	terminalID := ctx.Param("id")
 	id := ctx.Param("scene_id")
 	var req scene_dtos.UpdateSceneRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -57,7 +57,7 @@ func (c *SceneUpdateController) UpdateScene(ctx *gin.Context) {
 		}
 	}
 
-	if err := c.useCase.UpdateScene(teraluxID, id, req.Name, actions); err != nil {
+	if err := c.useCase.UpdateScene(terminalID, id, req.Name, actions); err != nil {
 		utils.LogError("SceneUpdateController.UpdateScene: %v", err)
 		statusCode := http.StatusInternalServerError
 		if err.Error() == "record not found" {

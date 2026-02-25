@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "d44978c5-72bb-4c1c-a786-8e01fd2b833e",
-		"name": "Teralux API V1",
+		"name": "Terminal API V1",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "30262904",
 		"_collection_link": "https://lms555-7968.postman.co/workspace/LMS-Workspace~16b288ac-a61f-45ce-8d85-f330bcfc2eff/collection/30262904-d44978c5-72bb-4c1c-a786-8e01fd2b833e?action=share&source=collection_link&creator=30262904"
@@ -32,12 +32,12 @@
 					}
 				],
 				"url": {
-					"raw": "{{TERALUX_URL}}/{{TERALUX_API_VERSION}}/auth",
+					"raw": "{{TERMINAL_URL}}/{{TERMINAL_API_VERSION}}/auth",
 					"host": [
-						"{{TERALUX_URL}}"
+						"{{TERMINAL_URL}}"
 					],
 					"path": [
-						"{{TERALUX_API_VERSION}}",
+						"{{TERMINAL_API_VERSION}}",
 						"auth"
 					]
 				}
@@ -85,12 +85,12 @@
 					}
 				],
 				"url": {
-					"raw": "{{TERALUX_URL}}/{{TERALUX_API_VERSION}}/devices",
+					"raw": "{{TERMINAL_URL}}/{{TERMINAL_API_VERSION}}/devices",
 					"host": [
-						"{{TERALUX_URL}}"
+						"{{TERMINAL_URL}}"
 					],
 					"path": [
-						"{{TERALUX_API_VERSION}}",
+						"{{TERMINAL_API_VERSION}}",
 						"devices"
 					]
 				}
@@ -132,12 +132,12 @@
 					}
 				],
 				"url": {
-					"raw": "{{TERALUX_URL}}/{{TERALUX_API_VERSION}}/devices/{{DEVICE_ID_IR}}",
+					"raw": "{{TERMINAL_URL}}/{{TERMINAL_API_VERSION}}/devices/{{DEVICE_ID_IR}}",
 					"host": [
-						"{{TERALUX_URL}}"
+						"{{TERMINAL_URL}}"
 					],
 					"path": [
-						"{{TERALUX_API_VERSION}}",
+						"{{TERMINAL_API_VERSION}}",
 						"devices",
 						"{{DEVICE_ID_IR}}"
 					]
@@ -180,12 +180,12 @@
 					}
 				],
 				"url": {
-					"raw": "{{TERALUX_URL}}/{{TERALUX_API_VERSION}}/devices/{{DEVICE_ID_SENSOR}}/sensor",
+					"raw": "{{TERMINAL_URL}}/{{TERMINAL_API_VERSION}}/devices/{{DEVICE_ID_SENSOR}}/sensor",
 					"host": [
-						"{{TERALUX_URL}}"
+						"{{TERMINAL_URL}}"
 					],
 					"path": [
-						"{{TERALUX_API_VERSION}}",
+						"{{TERMINAL_API_VERSION}}",
 						"devices",
 						"{{DEVICE_ID_SENSOR}}",
 						"sensor"
@@ -238,12 +238,12 @@
 					}
 				},
 				"url": {
-					"raw": "{{TERALUX_URL}}/{{TERALUX_API_VERSION}}/devices/{{DEVICE_ID_SWITCH}}/commands/switch",
+					"raw": "{{TERMINAL_URL}}/{{TERMINAL_API_VERSION}}/devices/{{DEVICE_ID_SWITCH}}/commands/switch",
 					"host": [
-						"{{TERALUX_URL}}"
+						"{{TERMINAL_URL}}"
 					],
 					"path": [
-						"{{TERALUX_API_VERSION}}",
+						"{{TERMINAL_API_VERSION}}",
 						"devices",
 						"{{DEVICE_ID_SWITCH}}",
 						"commands",
@@ -297,12 +297,12 @@
 					}
 				},
 				"url": {
-					"raw": "{{TERALUX_URL}}/{{TERALUX_API_VERSION}}/devices/{{DEVICE_ID_IR}}/commands/ir",
+					"raw": "{{TERMINAL_URL}}/{{TERMINAL_API_VERSION}}/devices/{{DEVICE_ID_IR}}/commands/ir",
 					"host": [
-						"{{TERALUX_URL}}"
+						"{{TERMINAL_URL}}"
 					],
 					"path": [
-						"{{TERALUX_API_VERSION}}",
+						"{{TERMINAL_API_VERSION}}",
 						"devices",
 						"{{DEVICE_ID_IR}}",
 						"commands",

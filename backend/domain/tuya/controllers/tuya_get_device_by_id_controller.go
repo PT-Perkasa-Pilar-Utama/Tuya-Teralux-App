@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	tuya_dtos "teralux_app/domain/tuya/dtos"
-	"teralux_app/domain/tuya/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	tuya_dtos "sensio/domain/tuya/dtos"
+	"sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )

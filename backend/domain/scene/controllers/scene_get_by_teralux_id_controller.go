@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	scene_dtos "teralux_app/domain/scene/dtos"
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	scene_dtos "sensio/domain/scene/dtos"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,18 +21,18 @@ func NewSceneListController(useCase *usecases.GetAllScenesUseCase) *SceneListCon
 	}
 }
 
-// ListScenes handles GET /api/teralux/:id/scenes
-// @Summary List all scenes for a Teralux device
-// @Description Retrieve a list of all configured scenes for a specific Teralux device, including all actions for each scene.
+// ListScenes handles GET /api/terminal/:id/scenes
+// @Summary List all scenes for a Terminal device
+// @Description Retrieve a list of all configured scenes for a specific Terminal device, including all actions for each scene.
 // @Tags 03. Scenes
 // @Produce json
-// @Param id path string true "Teralux UUID"
+// @Param id path string true "Terminal UUID"
 // @Success 200 {object} dtos.StandardResponse{data=[]scene_dtos.SceneResponseDTO} "List of scenes with actions"
 // @Security BearerAuth
-// @Router /api/teralux/{id}/scenes [get]
+// @Router /api/terminal/{id}/scenes [get]
 func (c *SceneListController) ListScenes(ctx *gin.Context) {
-	teraluxID := ctx.Param("id")
-	scenes, err := c.useCase.ListScenes(teraluxID)
+	terminalID := ctx.Param("id")
+	scenes, err := c.useCase.ListScenes(terminalID)
 	if err != nil {
 		utils.LogError("SceneListController.ListScenes: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
@@ -46,7 +46,7 @@ func (c *SceneListController) ListScenes(ctx *gin.Context) {
 	for i, s := range scenes {
 		response[i] = scene_dtos.SceneResponseDTO{
 			ID:        s.ID,
-			TeraluxID: s.TeraluxID,
+			TerminalID: s.TerminalID,
 			Name:      s.Name,
 			Actions:   toActionDTOs(s.Actions),
 		}

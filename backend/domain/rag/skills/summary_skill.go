@@ -3,7 +3,7 @@ package skills
 import (
 	"fmt"
 	"strings"
-	"teralux_app/domain/rag/services"
+	"sensio/domain/rag/services"
 )
 
 // SummarySkill handles requests to summarize text or meetings.

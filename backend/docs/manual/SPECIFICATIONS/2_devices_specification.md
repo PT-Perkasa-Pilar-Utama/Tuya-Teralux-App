@@ -1,6 +1,6 @@
 # Device Specifications
 
-Overview of the smart devices compatible with the Teralux ecosystem.
+Overview of the smart devices compatible with the Terminal ecosystem.
 
 ## 1. Philips RadiantLine LED Bulb 12W
 ![Philips LED Bulb](../../assets/specifications/device-lamp.png)

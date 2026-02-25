@@ -2,8 +2,8 @@ package usecases
 
 import (
 	"strings"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/skills"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/skills"
 )
 
 type RefineUseCase interface {

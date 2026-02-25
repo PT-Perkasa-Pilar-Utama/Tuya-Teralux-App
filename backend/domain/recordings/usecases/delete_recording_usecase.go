@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"teralux_app/domain/recordings/repositories"
+	"sensio/domain/recordings/repositories"
 )
 
 type DeleteRecordingUseCase interface {

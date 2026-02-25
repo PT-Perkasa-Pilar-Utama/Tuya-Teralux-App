@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/infrastructure"
+	"sensio/domain/common/infrastructure"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +18,7 @@ func NewHealthController() *HealthController {
 // CheckHealth godoc
 // @Summary      Health check endpoint
 // @Description  Check if the application and database are healthy
-// @Tags         08. Common
+// @Tags 10. Common
 // @Produce      plain
 // @Success      200  {string}  string "OK"
 // @Failure      503  {string}  string "Service Unavailable"

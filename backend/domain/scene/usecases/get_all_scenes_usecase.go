@@ -1,8 +1,8 @@
 package usecases
 
 import (
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/repositories"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/repositories"
 )
 
 type GetAllGroupedScenesUseCase struct {

@@ -5,7 +5,7 @@
 The main control panel for the room's smart devices.
 
 ## API Used
-*   **Fetch Devices**: `GET /api/devices/teralux/{teraluxId}` (Paginated)
+*   **Fetch Devices**: `GET /api/devices/terminal/{terminalId}` (Paginated)
 *   **Parameters**: `page=1`, `limit=6`
 
 ## Flow

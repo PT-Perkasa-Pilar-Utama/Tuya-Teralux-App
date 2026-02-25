@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	mail_dtos "teralux_app/domain/mail/dtos"
-	"teralux_app/domain/mail/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	mail_dtos "sensio/domain/mail/dtos"
+	"sensio/domain/mail/usecases"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -26,12 +26,12 @@ func NewMailSendByMacController(useCase usecases.MailSendByMacUseCase) *MailSend
 }
 
 // SendMailByMac handles POST /api/mail/send/mac/:mac_address
-// @Summary Send an email by Teralux MAC Address
+// @Summary Send an email by Terminal MAC Address
 // @Description Looks up customer email by MAC address and sends an email using a template
-// @Tags 09. Mail
+// @Tags 08. Mail
 // @Accept json
 // @Produce json
-// @Param mac_address path string true "Teralux MAC Address"
+// @Param mac_address path string true "Terminal MAC Address"
 // @Param request body mail_dtos.SwaggerSendMailByMacRequestDTO true "Mail Request"
 // @Security BearerAuth
 // @Success 202 {object} dtos.StandardResponse{data=mail_dtos.MailTaskResponseDTO} "Email task submitted successfully"

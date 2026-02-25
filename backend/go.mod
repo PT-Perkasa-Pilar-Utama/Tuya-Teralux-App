@@ -1,4 +1,4 @@
-module teralux_app
+module sensio
 
 go 1.24.0
 

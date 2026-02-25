@@ -1,10 +1,10 @@
 package usecases
 
 import (
-	"teralux_app/domain/tuya/dtos"
+	"sensio/domain/tuya/dtos"
 )
 
-// TuyaDeviceControlExecutor (Duplicate from Teralux for internal use if needed, but better to use a local interface)
+// TuyaDeviceControlExecutor (Duplicate from Terminal for internal use if needed, but better to use a local interface)
 // This bridge satisfies domains that need a single executor for both command types.
 type TuyaDeviceControlExecutor interface {
 	SendSwitchCommand(accessToken, deviceID string, commands []dtos.TuyaCommandDTO) (bool, error)

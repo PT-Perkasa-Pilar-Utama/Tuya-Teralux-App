@@ -1,8 +1,8 @@
 package usecases
 
 import (
-	"teralux_app/domain/common/tasks"
-	ragdtos "teralux_app/domain/rag/dtos"
+	"sensio/domain/common/tasks"
+	ragdtos "sensio/domain/rag/dtos"
 )
 
 // RAGStatusUseCase is a type alias for the generic status usecase from common/tasks.

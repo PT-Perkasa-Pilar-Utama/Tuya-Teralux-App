@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	teralux_repositories "teralux_app/domain/teralux/repositories"
-	"teralux_app/domain/tuya/dtos"
-	"teralux_app/domain/tuya/services"
-	tuya_utils "teralux_app/domain/tuya/utils"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	terminal_repositories "sensio/domain/terminal/repositories"
+	"sensio/domain/tuya/dtos"
+	"sensio/domain/tuya/services"
+	tuya_utils "sensio/domain/tuya/utils"
 	"time"
 )
 
@@ -27,19 +27,19 @@ type tuyaGetAllDevicesUseCase struct {
 	deviceStateUC DeviceStateUseCase
 	cache         *infrastructure.BadgerService
 	vectorSvc     *infrastructure.VectorService
-	deviceRepo    *teralux_repositories.DeviceRepository
-	teraluxRepo   *teralux_repositories.TeraluxRepository
+	deviceRepo    *terminal_repositories.DeviceRepository
+	terminalRepo   *terminal_repositories.TerminalRepository
 }
 
 // NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
-func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *teralux_repositories.DeviceRepository, teraluxRepo *teralux_repositories.TeraluxRepository) TuyaGetAllDevicesUseCase {
+func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *terminal_repositories.DeviceRepository, terminalRepo *terminal_repositories.TerminalRepository) TuyaGetAllDevicesUseCase {
 	return &tuyaGetAllDevicesUseCase{
 		service:       service,
 		deviceStateUC: deviceStateUC,
 		cache:         cache,
 		vectorSvc:     vectorSvc,
 		deviceRepo:    deviceRepo,
-		teraluxRepo:   teraluxRepo,
+		terminalRepo:   terminalRepo,
 	}
 }
 
@@ -459,9 +459,9 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 		hubName := "Unknown Hub"
 
 		// Try to enrich with DB context if repositories are available
-		if uc.deviceRepo != nil && uc.teraluxRepo != nil {
+		if uc.deviceRepo != nil && uc.terminalRepo != nil {
 			if devEntity, err := uc.deviceRepo.GetByID(d.ID); err == nil && devEntity != nil {
-				if hubEntity, err := uc.teraluxRepo.GetByID(devEntity.TeraluxID); err == nil && hubEntity != nil {
+				if hubEntity, err := uc.terminalRepo.GetByID(devEntity.TerminalID); err == nil && hubEntity != nil {
 					roomID = hubEntity.RoomID
 					hubName = hubEntity.Name
 				}

@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"teralux_app/domain/speech/dtos"
+	"sensio/domain/speech/dtos"
 	"time"
 
 	"github.com/stretchr/testify/mock"

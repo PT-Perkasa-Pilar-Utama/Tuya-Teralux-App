@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"teralux_app/domain/rag/controllers"
+	"sensio/domain/rag/controllers"
 
 	"github.com/gin-gonic/gin"
 )

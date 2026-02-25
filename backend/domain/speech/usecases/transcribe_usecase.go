@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	ragUsecases "teralux_app/domain/rag/usecases"
-	speechdtos "teralux_app/domain/speech/dtos"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	ragUsecases "sensio/domain/rag/usecases"
+	speechdtos "sensio/domain/speech/dtos"
 	"time"
 )
 
@@ -22,7 +22,7 @@ type WhisperClient interface {
 
 type TranscriptionMetadata struct {
 	UID         string
-	TeraluxID   string
+	TerminalID   string
 	Source      string // "mqtt", "rest", etc.
 	Trigger     string // e.g., "/api/speech/transcribe"
 	DeleteAfter bool   // Whether to delete the audio file after processing
@@ -154,8 +154,8 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 	uc.updateStatus(taskID, "completed", finalResult, nil)
 
 	// Chaining to /chat ONLY if initiated via MQTT
-	if metadata != nil && metadata.Source == "mqtt" && metadata.TeraluxID != "" && uc.mqttSvc != nil {
-		chatTopic := "users/teralux/chat"
+	if metadata != nil && metadata.Source == "mqtt" && metadata.TerminalID != "" && uc.mqttSvc != nil {
+		chatTopic := "users/terminal/chat"
 		prompt := finalResult.RefinedText
 		if prompt == "" {
 			prompt = finalResult.Transcription
@@ -163,7 +163,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 
 		chatReq := map[string]string{
 			"prompt":     prompt,
-			"teralux_id": metadata.TeraluxID,
+			"terminal_id": metadata.TerminalID,
 			"language":   result.DetectedLanguage,
 			"uid":        metadata.UID,
 		}

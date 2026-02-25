@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"fmt"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 	"time"
 )
 

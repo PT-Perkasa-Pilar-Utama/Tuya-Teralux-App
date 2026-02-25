@@ -10,21 +10,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"teralux_app/domain/common"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/middlewares"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/mail"
-	"teralux_app/domain/rag"
-	"teralux_app/domain/recordings"
-	recordings_entities "teralux_app/domain/recordings/entities"
-	"teralux_app/domain/scene"
-	scene_entities "teralux_app/domain/scene/entities"
-	"teralux_app/domain/speech"
-	"teralux_app/domain/teralux"
-	teralux_entities "teralux_app/domain/teralux/entities"
-	teralux_repositories "teralux_app/domain/teralux/repositories"
-	"teralux_app/domain/tuya"
+	"sensio/domain/common"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/middlewares"
+	"sensio/domain/common/utils"
+	"sensio/domain/mail"
+	"sensio/domain/rag"
+	"sensio/domain/recordings"
+	recordings_entities "sensio/domain/recordings/entities"
+	"sensio/domain/scene"
+	scene_entities "sensio/domain/scene/entities"
+	"sensio/domain/speech"
+	"sensio/domain/terminal"
+	terminal_entities "sensio/domain/terminal/entities"
+	terminal_repositories "sensio/domain/terminal/repositories"
+	"sensio/domain/tuya"
 )
 
 // @title           Sensio API
@@ -71,10 +71,14 @@ import (
 // @tag.name 07. Recordings
 // @tag.description Recordings management endpoints
 
-// @tag.name 08. Common
-// @tag.description Common endpoints (Health, Cache)
-// @tag.name 09. Mail
+// @tag.name 08. Mail
 // @tag.description Mail service endpoints
+
+// @tag.name 09. Terminals
+// @tag.description Terminal management endpoints
+
+// @tag.name 10. Common
+// @tag.description Common endpoints (Health, Cache)
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -111,9 +115,9 @@ func run() error {
 
 	// Auto Migrate Entities
 	if err := infrastructure.DB.AutoMigrate(
-		&teralux_entities.Teralux{},
-		&teralux_entities.Device{},
-		&teralux_entities.DeviceStatus{},
+		&terminal_entities.Terminal{},
+		&terminal_entities.Device{},
+		&terminal_entities.DeviceStatus{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
 	); err != nil {
@@ -145,15 +149,15 @@ func run() error {
 	}
 
 	// Shared Repositories
-	deviceRepo := teralux_repositories.NewDeviceRepository(badgerService)
-	teraluxRepo := teralux_repositories.NewTeraluxRepository(badgerService)
+	deviceRepo := terminal_repositories.NewDeviceRepository(badgerService)
+	terminalRepo := terminal_repositories.NewTerminalRepository(badgerService)
 
 	// Initialize Modules
 	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService)
-	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, teraluxRepo)
+	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, terminalRepo)
 	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
-	teraluxModule := teralux.NewTeraluxModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
+	terminalModule := terminal.NewTerminalModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
 	protected := router.Group("/")
 	protected.Use(middlewares.AuthMiddleware(tuyaModule.AuthUseCase))
@@ -169,8 +173,8 @@ func run() error {
 	// 2. Tuya Routes (Auth, Device Control)
 	tuyaModule.RegisterRoutes(router, protected)
 
-	// 3. Teralux Routes (CRUD)
-	teraluxModule.RegisterRoutes(router, protected)
+	// 3. Terminal Routes (CRUD)
+	terminalModule.RegisterRoutes(router, protected)
 
 	// 3a. Mail Routes
 	mailModule.RegisterRoutes(protected)

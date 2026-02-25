@@ -1,8 +1,8 @@
 package skills
 
 import (
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
 )
 
 // LLMClient represents the external LLM client used by RAG.
@@ -18,7 +18,7 @@ type Healthcheckable interface {
 // SkillContext holds the shared services and state needed by skills during execution.
 type SkillContext struct {
 	UID       string
-	TeraluxID string
+	TerminalID string
 	Prompt    string
 	Language  string
 	History   []string

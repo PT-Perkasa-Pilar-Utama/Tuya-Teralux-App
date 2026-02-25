@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/usecases"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/dtos"
+	"sensio/domain/rag/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -50,7 +50,7 @@ func (c *RAGControlController) Control(ctx *gin.Context) {
 		uidStr = uid.(string)
 	}
 
-	res, err := c.controlUC.ProcessControl(uidStr, req.TeraluxID, req.Prompt)
+	res, err := c.controlUC.ProcessControl(uidStr, req.TerminalID, req.Prompt)
 	if err != nil {
 		utils.LogError("RAGControlController.Control: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

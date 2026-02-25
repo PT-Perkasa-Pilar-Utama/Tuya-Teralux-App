@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"teralux_app/domain/common/infrastructure"
+	"sensio/domain/common/infrastructure"
 )
 
 // BadgerStore defines the interface for badger database operations

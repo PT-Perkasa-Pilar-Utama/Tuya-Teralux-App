@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/usecases"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/dtos"
+	"sensio/domain/rag/usecases"
 
 	"github.com/gin-gonic/gin"
 )

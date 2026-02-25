@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 )
 
 type TestEvent struct {

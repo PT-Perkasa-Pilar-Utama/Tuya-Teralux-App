@@ -7,9 +7,9 @@ import (
 
 	"gorm.io/gorm"
 
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/recordings/entities"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	"sensio/domain/recordings/entities"
 )
 
 type RecordingRepository interface {
