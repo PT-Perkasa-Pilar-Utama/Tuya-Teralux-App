@@ -3,9 +3,9 @@ package controllers
 import (
 	"net/http"
 
-	common_dtos "teralux_app/domain/common/dtos"
-	recordings_dtos "teralux_app/domain/recordings/dtos"
-	"teralux_app/domain/recordings/usecases"
+	common_dtos "sensio/domain/common/dtos"
+	recordings_dtos "sensio/domain/recordings/dtos"
+	"sensio/domain/recordings/usecases"
 
 	"github.com/gin-gonic/gin"
 )

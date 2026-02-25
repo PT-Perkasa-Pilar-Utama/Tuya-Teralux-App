@@ -1,8 +1,8 @@
 package usecases_test
 
 import (
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/usecases"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/usecases"
 	"testing"
 	"time"
 

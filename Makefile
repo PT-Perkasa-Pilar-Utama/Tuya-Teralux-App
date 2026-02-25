@@ -1,10 +1,10 @@
-# Teralux App - Root Makefile for Project-Wide Automation
+# Sensio App - Root Makefile for Project-Wide Automation
 
 .PHONY: help setup backend-setup dev clean kill test vet push-local
 
 # Default target
 help:
-	@echo "Teralux App - Available Project-Wide Commands:"
+	@echo "Sensio App - Available Project-Wide Commands:"
 	@echo ""
 	@echo "  make setup          - Setup Backend (install tools, run migrations)"
 	@echo "  make backend-setup  - Setup Backend (install tools, run migrations)"

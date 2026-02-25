@@ -1,19 +1,19 @@
 # Settings Screen UI
-![Settings UI](../../assets/ui/settings-device-information-and-teralux-configuration-ui.png)
+![Settings UI](../../assets/ui/settings-device-information-and-terminal-configuration-ui.png)
 
 ## Description
-Administrative panel for configuring the Teralux unit and managing linked devices.
+Administrative panel for configuring the Terminal unit and managing linked devices.
 
 ## API Used
-*   **Get Info**: `GET /api/teralux/{id}`
-*   **Update Info**: `PUT /api/teralux/{id}`
-*   **List Linked**: `GET /api/devices/teralux/{teraluxId}`
+*   **Get Info**: `GET /api/terminal/{id}`
+*   **Update Info**: `PUT /api/terminal/{id}`
+*   **List Linked**: `GET /api/devices/terminal/{terminalId}`
 *   **Link Device**: `POST /api/devices`
 *   **Unlink Device**: `DELETE /api/devices/{id}`
 *   **Flush Cache**: `DELETE /api/cache/flush`
 
 ## Flow
-1.  **Device Information**: Read-only display of Teralux ID and MAC Address.
+1.  **Device Information**: Read-only display of Terminal ID and MAC Address.
 2.  **Configuration**:
     *   Edit **Device Name** and **Room ID**.
     *   "Update Configuration" saves changes.
@@ -26,6 +26,6 @@ Administrative panel for configuring the Teralux unit and managing linked device
     
     ![Linked Devices List](../../assets/ui/settings-linked-devices-and-systems-ui.png)
     
-    *   **Delete**: Removes the link between the Tuya device and this Teralux unit.
+    *   **Delete**: Removes the link between the Tuya device and this Terminal unit.
 4.  **System**:
     *   **Clear Cache**: Flushes local storage (BadgerDB) to resolve synchronization issues.

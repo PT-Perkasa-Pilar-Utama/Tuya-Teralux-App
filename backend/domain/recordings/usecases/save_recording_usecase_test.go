@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"teralux_app/domain/recordings/entities"
-	"teralux_app/domain/recordings/usecases"
+	"sensio/domain/recordings/entities"
+	"sensio/domain/recordings/usecases"
 )
 
 // Mocks

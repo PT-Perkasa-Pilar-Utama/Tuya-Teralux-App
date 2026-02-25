@@ -1,12 +1,12 @@
-# ENDPOINT: DELETE /api/teralux/:id/scenes/:scene_id
+# ENDPOINT: DELETE /api/terminal/:id/scenes/:scene_id
 
 ## Description
-Delete a Scene configuration for a specific Teralux device.
+Delete a Scene configuration for a specific Terminal device.
 
 ## Test Scenarios
 
 ### 1. Delete Scene (Success)
-- **URL**: `http://localhost:8080/api/teralux/:id/scenes/:scene_id`
+- **URL**: `http://localhost:8080/api/terminal/:id/scenes/:scene_id`
 - **Method**: `DELETE`
 - **Path Parameters**:
     - `id`: The UUID of the scene to delete.

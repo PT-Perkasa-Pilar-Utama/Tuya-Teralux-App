@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/scene/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	"sensio/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,22 +19,22 @@ func NewSceneControlController(useCase *usecases.ControlSceneUseCase) *SceneCont
 	}
 }
 
-// ControlScene handles GET /api/teralux/:id/scenes/:scene_id/control
+// ControlScene handles GET /api/terminal/:id/scenes/:scene_id/control
 // @Summary Apply/Trigger a scene
 // @Description Trigger all actions defined in a specific scene
 // @Tags 03. Scenes
 // @Produce json
-// @Param id path string true "Teralux UUID"
+// @Param id path string true "Terminal UUID"
 // @Param scene_id path string true "Scene UUID"
 // @Success 200 {object} dtos.StandardResponse "Scene applied"
 // @Security BearerAuth
-// @Router /api/teralux/{id}/scenes/{scene_id}/control [get]
+// @Router /api/terminal/{id}/scenes/{scene_id}/control [get]
 func (c *SceneControlController) ControlScene(ctx *gin.Context) {
-	teraluxID := ctx.Param("id")
+	terminalID := ctx.Param("id")
 	id := ctx.Param("scene_id")
 	accessToken := ctx.GetString("access_token")
 
-	if err := c.useCase.ControlScene(teraluxID, id, accessToken); err != nil {
+	if err := c.useCase.ControlScene(terminalID, id, accessToken); err != nil {
 		utils.LogError("SceneControlController.ControlScene: %v", err)
 		statusCode := http.StatusInternalServerError
 		if err.Error() == "record not found" {

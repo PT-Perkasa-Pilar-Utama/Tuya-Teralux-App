@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	scene_dtos "teralux_app/domain/scene/dtos"
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	scene_dtos "sensio/domain/scene/dtos"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,21 +21,21 @@ func NewSceneAddController(useCase *usecases.AddSceneUseCase) *SceneAddControlle
 	}
 }
 
-// AddScene handles POST /api/teralux/:id/scenes
+// AddScene handles POST /api/terminal/:id/scenes
 // @Summary Create a new scene
 // @Description Create a scene with a name and a list of actions (Tuya/MQTT)
 // @Tags 03. Scenes
 // @Accept json
 // @Produce json
-// @Param id path string true "Teralux UUID"
+// @Param id path string true "Terminal UUID"
 // @Param scene body scene_dtos.CreateSceneRequestDTO true "Scene configuration"
 // @Success 201 {object} dtos.StandardResponse "Scene created"
 // @Failure 400 {object} dtos.StandardResponse "Invalid request"
 // @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Security BearerAuth
-// @Router /api/teralux/{id}/scenes [post]
+// @Router /api/terminal/{id}/scenes [post]
 func (c *SceneAddController) AddScene(ctx *gin.Context) {
-	teraluxID := ctx.Param("id")
+	terminalID := ctx.Param("id")
 	var req scene_dtos.CreateSceneRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
@@ -53,7 +53,7 @@ func (c *SceneAddController) AddScene(ctx *gin.Context) {
 		actions[i] = entities.Action(a)
 	}
 
-	sceneID, err := c.useCase.AddScene(teraluxID, req.Name, actions)
+	sceneID, err := c.useCase.AddScene(terminalID, req.Name, actions)
 	if err != nil {
 		utils.LogError("SceneAddController.AddScene: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

@@ -3,10 +3,10 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/tuya/dtos"
-	"teralux_app/domain/tuya/entities"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	"sensio/domain/tuya/dtos"
+	"sensio/domain/tuya/entities"
 	"time"
 )
 

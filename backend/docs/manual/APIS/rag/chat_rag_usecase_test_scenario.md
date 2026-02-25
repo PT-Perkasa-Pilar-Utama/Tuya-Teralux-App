@@ -64,7 +64,7 @@ The AI Assistant Chat endpoint (`/api/rag/chat`) serves as the primary entry poi
 ```json
 {
     "prompt": "",
-    "teralux_id": "tx-1"
+    "terminal_id": "tx-1"
 }
 ```
 

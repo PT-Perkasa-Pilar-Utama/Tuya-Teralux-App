@@ -1,8 +1,8 @@
 package usecases
 
 import (
-	recordings_dtos "teralux_app/domain/recordings/dtos"
-	"teralux_app/domain/recordings/repositories"
+	recordings_dtos "sensio/domain/recordings/dtos"
+	"sensio/domain/recordings/repositories"
 )
 
 type GetAllRecordingsUseCase interface {

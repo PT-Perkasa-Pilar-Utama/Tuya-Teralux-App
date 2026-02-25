@@ -1,12 +1,12 @@
-# ENDPOINT: POST /api/teralux/:id/scenes
+# ENDPOINT: POST /api/terminal/:id/scenes
 
 ## Description
-Create a new Scene for a specific Teralux device. A scene is a preset configuration of multiple devices that can be activated simultaneously.
+Create a new Scene for a specific Terminal device. A scene is a preset configuration of multiple devices that can be activated simultaneously.
 
 ## Test Scenarios
 
 ### 1. Create Scene (Success)
-- **URL**: `http://localhost:8080/api/teralux/:id/scenes`
+- **URL**: `http://localhost:8080/api/terminal/:id/scenes`
 - **Method**: `POST`
 - **Headers**:
 ```json

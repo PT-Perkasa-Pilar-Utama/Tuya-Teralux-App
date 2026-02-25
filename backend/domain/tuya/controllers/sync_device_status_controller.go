@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/tuya/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	"sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,8 +21,8 @@ func NewSyncDeviceStatusController(useCase *usecases.SyncDeviceStatusUseCase) *S
 	}
 }
 
-// SyncStatus handles the request to synchronize Teralux device status with Tuya
-// @Summary Sync Teralux Device Status
+// SyncStatus handles the request to synchronize Terminal device status with Tuya
+// @Summary Sync Terminal Device Status
 // @Description Fetches real-time status from Tuya. Does NOT update local DB. Returns fresh device list.
 // @Tags 02. Tuya
 // @Accept json

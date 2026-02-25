@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"teralux_app/domain/scene/entities"
+	"sensio/domain/scene/entities"
 
 	"gorm.io/gorm"
 )
@@ -9,9 +9,9 @@ import (
 // ISceneRepository defines the interface for scene storage operations
 type ISceneRepository interface {
 	Save(scene *entities.Scene) error
-	GetByID(teraluxID, id string) (*entities.Scene, error)
-	GetAll(teraluxID string) ([]entities.Scene, error)
-	Delete(teraluxID, id string) error
+	GetByID(terminalID, id string) (*entities.Scene, error)
+	GetAll(terminalID string) ([]entities.Scene, error)
+	Delete(terminalID, id string) error
 	GetAllGrouped() (map[string][]entities.Scene, error)
 }
 
@@ -30,38 +30,38 @@ func (r *SceneRepository) Save(scene *entities.Scene) error {
 	return r.db.Save(scene).Error
 }
 
-// GetByID retrieves a scene by its unique identifier and TeraluxID
-func (r *SceneRepository) GetByID(teraluxID, id string) (*entities.Scene, error) {
+// GetByID retrieves a scene by its unique identifier and TerminalID
+func (r *SceneRepository) GetByID(terminalID, id string) (*entities.Scene, error) {
 	var scene entities.Scene
-	if err := r.db.Where("id = ? AND teralux_id = ?", id, teraluxID).First(&scene).Error; err != nil {
+	if err := r.db.Where("id = ? AND terminal_id = ?", id, terminalID).First(&scene).Error; err != nil {
 		return nil, err
 	}
 	return &scene, nil
 }
 
-// GetAll retrieves all configured scenes for a specific Teralux device
-func (r *SceneRepository) GetAll(teraluxID string) ([]entities.Scene, error) {
+// GetAll retrieves all configured scenes for a specific Terminal device
+func (r *SceneRepository) GetAll(terminalID string) ([]entities.Scene, error) {
 	var scenes []entities.Scene
-	if err := r.db.Where("teralux_id = ?", teraluxID).Find(&scenes).Error; err != nil {
+	if err := r.db.Where("terminal_id = ?", terminalID).Find(&scenes).Error; err != nil {
 		return nil, err
 	}
 	return scenes, nil
 }
 
-// Delete removes a scene from the database if it belongs to the specified Teralux device
-func (r *SceneRepository) Delete(teraluxID, id string) error {
-	return r.db.Where("id = ? AND teralux_id = ?", id, teraluxID).Delete(&entities.Scene{}).Error
+// Delete removes a scene from the database if it belongs to the specified Terminal device
+func (r *SceneRepository) Delete(terminalID, id string) error {
+	return r.db.Where("id = ? AND terminal_id = ?", id, terminalID).Delete(&entities.Scene{}).Error
 }
 
-// GetAllGrouped retrieves all scenes across all Teralux devices, grouped by TeraluxID
+// GetAllGrouped retrieves all scenes across all Terminal devices, grouped by TerminalID
 func (r *SceneRepository) GetAllGrouped() (map[string][]entities.Scene, error) {
 	var scenes []entities.Scene
-	if err := r.db.Order("teralux_id").Find(&scenes).Error; err != nil {
+	if err := r.db.Order("terminal_id").Find(&scenes).Error; err != nil {
 		return nil, err
 	}
 	grouped := make(map[string][]entities.Scene)
 	for _, s := range scenes {
-		grouped[s.TeraluxID] = append(grouped[s.TeraluxID], s)
+		grouped[s.TerminalID] = append(grouped[s.TerminalID], s)
 	}
 	return grouped, nil
 }

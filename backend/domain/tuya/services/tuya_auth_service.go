@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/tuya/entities"
+	"sensio/domain/common/utils"
+	"sensio/domain/tuya/entities"
 	"time"
 )
 

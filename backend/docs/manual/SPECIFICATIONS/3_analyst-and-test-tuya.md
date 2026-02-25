@@ -30,7 +30,7 @@ The diagram shows the communication flow of the system consisting of:
 - **Smartlife**: Mobile application for device control
 - **Internet**: Public cloud connectivity
 - **Tuya Gateway**: Gateway server managing routing and device authentication
-- **TERALUX HMI**: Local control panel with Zigbee integration
+- **TERMINAL HMI**: Local control panel with Zigbee integration
 - **Sensors & Transducer**: IoT devices in the field connected to the local gateway via Zigbee network
 
 This architecture enables device control both via the mobile app (via Tuya cloud) and locally through the HMI panel.

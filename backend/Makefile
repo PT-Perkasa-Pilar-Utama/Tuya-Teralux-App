@@ -1,10 +1,10 @@
-# Teralux App Backend - Makefile for Development Automation
+# Sensio App Backend - Makefile for Development Automation
 
 .PHONY: help dev build-docker push pull run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint vet
 
 # Default target
 help:
-	@echo "Teralux App Backend - Available Commands:"
+	@echo "Sensio App Backend - Available Commands:"
 	@echo ""
 	@echo "  --- LOCAL DEV ---"
 	@echo "  make dev              - Run development server with hot reload (Air)"

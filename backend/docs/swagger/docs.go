@@ -39,23 +39,227 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "10. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
+            }
+        },
+        "/api/devices": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetAllDevices",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetAllDevices",
+                "responses": {}
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "CreateDevice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "CreateDevice",
+                "responses": {}
+            }
+        },
+        "/api/devices/statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetAllDeviceStatuses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetAllDeviceStatuses",
+                "responses": {}
+            }
+        },
+        "/api/devices/terminal/{terminal_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetDevicesByTerminalID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetDevicesByTerminalID",
+                "responses": {}
+            }
+        },
+        "/api/devices/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetDeviceByID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetDeviceByID",
+                "responses": {}
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "UpdateDevice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "UpdateDevice",
+                "responses": {}
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "DeleteDevice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "DeleteDevice",
+                "responses": {}
+            }
+        },
+        "/api/devices/{id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "UpdateDeviceStatus",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "UpdateDeviceStatus",
+                "responses": {}
+            }
+        },
+        "/api/devices/{id}/statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetDeviceStatusesByDeviceID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetDeviceStatusesByDeviceID",
+                "responses": {}
+            }
+        },
+        "/api/devices/{id}/statuses/{code}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetDeviceStatusByCode",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetDeviceStatusByCode",
+                "responses": {}
             }
         },
         "/api/health": {
@@ -65,7 +269,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "08. Common"
+                    "10. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -99,7 +303,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "09. Mail"
+                    "08. Mail"
                 ],
                 "summary": "Send an email using a template",
                 "parameters": [
@@ -119,7 +323,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -135,13 +339,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -162,13 +366,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "09. Mail"
+                    "08. Mail"
                 ],
-                "summary": "Send an email by Teralux MAC Address",
+                "summary": "Send an email by Terminal MAC Address",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Teralux MAC Address",
+                        "description": "Terminal MAC Address",
                         "name": "mac_address",
                         "in": "path",
                         "required": true
@@ -189,7 +393,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -205,19 +409,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -235,7 +439,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "09. Mail"
+                    "08. Mail"
                 ],
                 "summary": "Get email task status",
                 "parameters": [
@@ -253,7 +457,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -269,13 +473,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -316,7 +520,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -332,19 +536,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -385,7 +589,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -401,19 +605,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -454,7 +658,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -470,19 +674,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -523,7 +727,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -539,19 +743,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -592,7 +796,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -608,19 +812,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -659,19 +863,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -710,19 +914,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -763,7 +967,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -782,13 +986,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -829,7 +1033,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -848,13 +1052,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -889,7 +1093,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -905,7 +1109,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1154,21 +1358,21 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve all configured scenes grouped under each Teralux device",
+                "description": "Retrieve all configured scenes grouped under each Terminal device",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "03. Scenes"
                 ],
-                "summary": "List all scenes across all Teralux devices",
+                "summary": "List all scenes across all Terminal devices",
                 "responses": {
                     "200": {
-                        "description": "All scenes grouped by Teralux",
+                        "description": "All scenes grouped by Terminal",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1176,7 +1380,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dtos.TeraluxScenesWrapperDTO"
+                                                "$ref": "#/definitions/dtos.TerminalScenesWrapperDTO"
                                             }
                                         }
                                     }
@@ -1226,7 +1430,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1242,25 +1446,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1305,7 +1509,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1321,25 +1525,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1384,7 +1588,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1400,25 +1604,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1463,7 +1667,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1479,25 +1683,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1542,7 +1746,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1558,25 +1762,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1627,7 +1831,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1643,25 +1847,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1697,7 +1901,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1713,37 +1917,157 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
                         }
                     }
                 }
             }
         },
-        "/api/teralux/{id}/scenes": {
+        "/api/terminal": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of all configured scenes for a specific Teralux device, including all actions for each scene.",
+                "description": "GetAllTerminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetAllTerminal",
+                "responses": {}
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "CreateTerminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "CreateTerminal",
+                "responses": {}
+            }
+        },
+        "/api/terminal/mac/{mac}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetTerminalByMAC",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetTerminalByMAC",
+                "responses": {}
+            }
+        },
+        "/api/terminal/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "GetTerminalByID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "GetTerminalByID",
+                "responses": {}
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "UpdateTerminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "UpdateTerminal",
+                "responses": {}
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "DeleteTerminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "09. Terminals"
+                ],
+                "summary": "DeleteTerminal",
+                "responses": {}
+            }
+        },
+        "/api/terminal/{id}/scenes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all configured scenes for a specific Terminal device, including all actions for each scene.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "03. Scenes"
                 ],
-                "summary": "List all scenes for a Teralux device",
+                "summary": "List all scenes for a Terminal device",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Teralux UUID",
+                        "description": "Terminal UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1755,7 +2079,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1793,7 +2117,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Teralux UUID",
+                        "description": "Terminal UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1812,25 +2136,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Scene created",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
             }
         },
-        "/api/teralux/{id}/scenes/{scene_id}": {
+        "/api/terminal/{id}/scenes/{scene_id}": {
             "put": {
                 "security": [
                     {
@@ -1851,7 +2175,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Teralux UUID",
+                        "description": "Terminal UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1877,13 +2201,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Scene updated",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Scene not found",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1905,7 +2229,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Teralux UUID",
+                        "description": "Terminal UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1922,13 +2246,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Scene deleted",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
             }
         },
-        "/api/teralux/{id}/scenes/{scene_id}/control": {
+        "/api/terminal/{id}/scenes/{scene_id}/control": {
             "get": {
                 "security": [
                     {
@@ -1946,7 +2270,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Teralux UUID",
+                        "description": "Terminal UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1963,7 +2287,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Scene applied",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -1993,7 +2317,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2009,7 +2333,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -2065,7 +2389,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2081,7 +2405,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -2107,14 +2431,14 @@ const docTemplate = `{
                 "tags": [
                     "02. Tuya"
                 ],
-                "summary": "Sync Teralux Device Status",
+                "summary": "Sync Terminal Device Status",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2133,13 +2457,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -2178,7 +2502,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2194,13 +2518,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -2239,7 +2563,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2255,13 +2579,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/teralux_app_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     }
                 }
@@ -2404,7 +2728,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "prompt",
-                "teralux_id"
+                "terminal_id"
             ],
             "properties": {
                 "language": {
@@ -2415,7 +2739,7 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Nyalakan AC"
                 },
-                "teralux_id": {
+                "terminal_id": {
                     "type": "string",
                     "example": "tx-1"
                 },
@@ -2429,14 +2753,14 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "prompt",
-                "teralux_id"
+                "terminal_id"
             ],
             "properties": {
                 "prompt": {
                     "type": "string",
                     "example": "Nyalakan AC"
                 },
-                "teralux_id": {
+                "terminal_id": {
                     "type": "string",
                     "example": "tx-1"
                 }
@@ -2622,7 +2946,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "teralux_id": {
+                "terminal_id": {
                     "type": "string"
                 }
             }
@@ -2650,6 +2974,10 @@ const docTemplate = `{
         "dtos.SwaggerEmailTemplateData": {
             "type": "object",
             "properties": {
+                "agenda_context": {
+                    "type": "string",
+                    "example": "Persiapan Kunjungan UNIAPEC"
+                },
                 "booking_date": {
                     "type": "string",
                     "example": "24 Februari 2026"
@@ -2746,7 +3074,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.TeraluxScenesDTO": {
+        "dtos.TerminalScenesDTO": {
             "type": "object",
             "properties": {
                 "scenes": {
@@ -2755,16 +3083,16 @@ const docTemplate = `{
                         "$ref": "#/definitions/dtos.SceneItemDTO"
                     }
                 },
-                "teralux_id": {
+                "terminal_id": {
                     "type": "string"
                 }
             }
         },
-        "dtos.TeraluxScenesWrapperDTO": {
+        "dtos.TerminalScenesWrapperDTO": {
             "type": "object",
             "properties": {
-                "teralux": {
-                    "$ref": "#/definitions/dtos.TeraluxScenesDTO"
+                "terminal": {
+                    "$ref": "#/definitions/dtos.TerminalScenesDTO"
                 }
             }
         },
@@ -3004,7 +3332,7 @@ const docTemplate = `{
                 }
             }
         },
-        "teralux_app_domain_common_dtos.StandardResponse": {
+        "sensio_domain_common_dtos.StandardResponse": {
             "type": "object",
             "properties": {
                 "data": {},
@@ -3021,7 +3349,7 @@ const docTemplate = `{
                 }
             }
         },
-        "teralux_app_domain_rag_dtos.StandardResponse": {
+        "sensio_domain_rag_dtos.StandardResponse": {
             "type": "object",
             "properties": {
                 "data": {},
@@ -3034,7 +3362,7 @@ const docTemplate = `{
                 }
             }
         },
-        "teralux_app_domain_speech_dtos.StandardResponse": {
+        "sensio_domain_speech_dtos.StandardResponse": {
             "type": "object",
             "properties": {
                 "data": {},
@@ -3091,12 +3419,16 @@ const docTemplate = `{
             "name": "07. Recordings"
         },
         {
-            "description": "Common endpoints (Health, Cache)",
-            "name": "08. Common"
+            "description": "Mail service endpoints",
+            "name": "08. Mail"
         },
         {
-            "description": "Mail service endpoints",
-            "name": "09. Mail"
+            "description": "Terminal management endpoints",
+            "name": "09. Terminals"
+        },
+        {
+            "description": "Common endpoints (Health, Cache)",
+            "name": "10. Common"
         }
     ]
 }`

@@ -2,10 +2,10 @@ package usecases
 
 import (
 	"context"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	ragdtos "teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/services"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	ragdtos "sensio/domain/rag/dtos"
+	"sensio/domain/rag/services"
 	"testing"
 	"time"
 )

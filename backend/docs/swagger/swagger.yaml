@@ -98,7 +98,7 @@ definitions:
       prompt:
         example: Nyalakan AC
         type: string
-      teralux_id:
+      terminal_id:
         example: tx-1
         type: string
       uid:
@@ -106,19 +106,19 @@ definitions:
         type: string
     required:
     - prompt
-    - teralux_id
+    - terminal_id
     type: object
   dtos.RAGControlRequestDTO:
     properties:
       prompt:
         example: Nyalakan AC
         type: string
-      teralux_id:
+      terminal_id:
         example: tx-1
         type: string
     required:
     - prompt
-    - teralux_id
+    - terminal_id
     type: object
   dtos.RAGRawPromptRequestDTO:
     properties:
@@ -244,7 +244,7 @@ definitions:
         type: string
       name:
         type: string
-      teralux_id:
+      terminal_id:
         type: string
     type: object
   dtos.SensorDataDTO:
@@ -262,6 +262,9 @@ definitions:
     type: object
   dtos.SwaggerEmailTemplateData:
     properties:
+      agenda_context:
+        example: Persiapan Kunjungan UNIAPEC
+        type: string
       booking_date:
         example: 24 Februari 2026
         type: string
@@ -330,19 +333,19 @@ definitions:
     required:
     - subject
     type: object
-  dtos.TeraluxScenesDTO:
+  dtos.TerminalScenesDTO:
     properties:
       scenes:
         items:
           $ref: '#/definitions/dtos.SceneItemDTO'
         type: array
-      teralux_id:
+      terminal_id:
         type: string
     type: object
-  dtos.TeraluxScenesWrapperDTO:
+  dtos.TerminalScenesWrapperDTO:
     properties:
-      teralux:
-        $ref: '#/definitions/dtos.TeraluxScenesDTO'
+      terminal:
+        $ref: '#/definitions/dtos.TerminalScenesDTO'
     type: object
   dtos.TranscriptionTaskResponseDTO:
     properties:
@@ -502,7 +505,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  teralux_app_domain_common_dtos.StandardResponse:
+  sensio_domain_common_dtos.StandardResponse:
     properties:
       data: {}
       details:
@@ -516,7 +519,7 @@ definitions:
         example: true
         type: boolean
     type: object
-  teralux_app_domain_rag_dtos.StandardResponse:
+  sensio_domain_rag_dtos.StandardResponse:
     properties:
       data: {}
       details: {}
@@ -525,7 +528,7 @@ definitions:
       status:
         type: boolean
     type: object
-  teralux_app_domain_speech_dtos.StandardResponse:
+  sensio_domain_speech_dtos.StandardResponse:
     properties:
       data: {}
       details: {}
@@ -559,16 +562,143 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - 08. Common
+      - 10. Common
+  /api/devices:
+    get:
+      consumes:
+      - application/json
+      description: GetAllDevices
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetAllDevices
+      tags:
+      - 09. Terminals
+    post:
+      consumes:
+      - application/json
+      description: CreateDevice
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: CreateDevice
+      tags:
+      - 09. Terminals
+  /api/devices/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteDevice
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: DeleteDevice
+      tags:
+      - 09. Terminals
+    get:
+      consumes:
+      - application/json
+      description: GetDeviceByID
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetDeviceByID
+      tags:
+      - 09. Terminals
+    put:
+      consumes:
+      - application/json
+      description: UpdateDevice
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: UpdateDevice
+      tags:
+      - 09. Terminals
+  /api/devices/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: UpdateDeviceStatus
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: UpdateDeviceStatus
+      tags:
+      - 09. Terminals
+  /api/devices/{id}/statuses:
+    get:
+      consumes:
+      - application/json
+      description: GetDeviceStatusesByDeviceID
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetDeviceStatusesByDeviceID
+      tags:
+      - 09. Terminals
+  /api/devices/{id}/statuses/{code}:
+    get:
+      consumes:
+      - application/json
+      description: GetDeviceStatusByCode
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetDeviceStatusByCode
+      tags:
+      - 09. Terminals
+  /api/devices/statuses:
+    get:
+      consumes:
+      - application/json
+      description: GetAllDeviceStatuses
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetAllDeviceStatuses
+      tags:
+      - 09. Terminals
+  /api/devices/terminal/{terminal_id}:
+    get:
+      consumes:
+      - application/json
+      description: GetDevicesByTerminalID
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetDevicesByTerminalID
+      tags:
+      - 09. Terminals
   /api/health:
     get:
       description: Check if the application and database are healthy
@@ -585,7 +715,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - 08. Common
+      - 10. Common
   /api/mail/send:
     post:
       consumes:
@@ -605,7 +735,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.MailTaskResponseDTO'
@@ -613,16 +743,16 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Send an email using a template
       tags:
-      - 09. Mail
+      - 08. Mail
   /api/mail/send/mac/{mac_address}:
     post:
       consumes:
@@ -630,7 +760,7 @@ paths:
       description: Looks up customer email by MAC address and sends an email using
         a template
       parameters:
-      - description: Teralux MAC Address
+      - description: Terminal MAC Address
         in: path
         name: mac_address
         required: true
@@ -648,7 +778,7 @@ paths:
           description: Email task submitted successfully
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.MailTaskResponseDTO'
@@ -656,20 +786,20 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
-      summary: Send an email by Teralux MAC Address
+      summary: Send an email by Terminal MAC Address
       tags:
-      - 09. Mail
+      - 08. Mail
   /api/mail/status/{task_id}:
     get:
       description: Get the status and result of an email sending task.
@@ -686,7 +816,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.MailStatusDTO'
@@ -694,16 +824,16 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get email task status
       tags:
-      - 09. Mail
+      - 08. Mail
   /api/models/gemini:
     post:
       consumes:
@@ -724,7 +854,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
@@ -732,15 +862,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to Gemini model
@@ -765,7 +895,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
@@ -773,15 +903,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to Groq model
@@ -807,7 +937,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
@@ -815,15 +945,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to local Llama.cpp model
@@ -849,7 +979,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
@@ -857,15 +987,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to OpenAI model
@@ -890,7 +1020,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.RAGRawPromptResponseDTO'
@@ -898,15 +1028,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to Orion model
@@ -927,7 +1057,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.RAGStatusDTO'
@@ -935,7 +1065,7 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get RAG task status
@@ -960,15 +1090,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: AI Assistant Chat
@@ -992,15 +1122,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: AI Assistant Control
@@ -1026,7 +1156,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   additionalProperties:
@@ -1036,11 +1166,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Generate meeting minutes summary
@@ -1066,7 +1196,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
             - properties:
                 data:
                   additionalProperties:
@@ -1076,11 +1206,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_rag_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_rag_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Translate text to specified language
@@ -1230,24 +1360,24 @@ paths:
       - 07. Recordings
   /api/scenes:
     get:
-      description: Retrieve all configured scenes grouped under each Teralux device
+      description: Retrieve all configured scenes grouped under each Terminal device
       produces:
       - application/json
       responses:
         "200":
-          description: All scenes grouped by Teralux
+          description: All scenes grouped by Terminal
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/dtos.TeraluxScenesWrapperDTO'
+                    $ref: '#/definitions/dtos.TerminalScenesWrapperDTO'
                   type: array
               type: object
       security:
       - BearerAuth: []
-      summary: List all scenes across all Teralux devices
+      summary: List all scenes across all Terminal devices
       tags:
       - 03. Scenes
   /api/speech/models/gemini:
@@ -1272,7 +1402,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
@@ -1280,19 +1410,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "413":
           description: Request Entity Too Large
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "415":
           description: Unsupported Media Type
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Gemini)
@@ -1320,7 +1450,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
@@ -1328,19 +1458,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "413":
           description: Request Entity Too Large
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "415":
           description: Unsupported Media Type
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Groq)
@@ -1368,7 +1498,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
@@ -1376,19 +1506,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "413":
           description: Request Entity Too Large
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "415":
           description: Unsupported Media Type
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (OpenAI)
@@ -1416,7 +1546,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
@@ -1424,19 +1554,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "413":
           description: Request Entity Too Large
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "415":
           description: Unsupported Media Type
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Orion)
@@ -1465,7 +1595,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
@@ -1473,19 +1603,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "413":
           description: Request Entity Too Large
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "415":
           description: Unsupported Media Type
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Whisper.cpp)
@@ -1519,7 +1649,7 @@ paths:
           description: Accepted
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
@@ -1527,19 +1657,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "413":
           description: Request Entity Too Large
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "415":
           description: Unsupported Media Type
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Unified)
@@ -1562,7 +1692,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
@@ -1570,22 +1700,84 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_speech_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_speech_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get transcription status (Consolidated)
       tags:
       - 04. Speech
-  /api/teralux/{id}/scenes:
+  /api/terminal:
     get:
-      description: Retrieve a list of all configured scenes for a specific Teralux
+      consumes:
+      - application/json
+      description: GetAllTerminal
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetAllTerminal
+      tags:
+      - 09. Terminals
+    post:
+      consumes:
+      - application/json
+      description: CreateTerminal
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: CreateTerminal
+      tags:
+      - 09. Terminals
+  /api/terminal/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteTerminal
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: DeleteTerminal
+      tags:
+      - 09. Terminals
+    get:
+      consumes:
+      - application/json
+      description: GetTerminalByID
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetTerminalByID
+      tags:
+      - 09. Terminals
+    put:
+      consumes:
+      - application/json
+      description: UpdateTerminal
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: UpdateTerminal
+      tags:
+      - 09. Terminals
+  /api/terminal/{id}/scenes:
+    get:
+      description: Retrieve a list of all configured scenes for a specific Terminal
         device, including all actions for each scene.
       parameters:
-      - description: Teralux UUID
+      - description: Terminal UUID
         in: path
         name: id
         required: true
@@ -1597,7 +1789,7 @@ paths:
           description: List of scenes with actions
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   items:
@@ -1606,7 +1798,7 @@ paths:
               type: object
       security:
       - BearerAuth: []
-      summary: List all scenes for a Teralux device
+      summary: List all scenes for a Terminal device
       tags:
       - 03. Scenes
     post:
@@ -1614,7 +1806,7 @@ paths:
       - application/json
       description: Create a scene with a name and a list of actions (Tuya/MQTT)
       parameters:
-      - description: Teralux UUID
+      - description: Terminal UUID
         in: path
         name: id
         required: true
@@ -1631,25 +1823,25 @@ paths:
         "201":
           description: Scene created
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Create a new scene
       tags:
       - 03. Scenes
-  /api/teralux/{id}/scenes/{scene_id}:
+  /api/terminal/{id}/scenes/{scene_id}:
     delete:
       description: Remove a specific scene configuration
       parameters:
-      - description: Teralux UUID
+      - description: Terminal UUID
         in: path
         name: id
         required: true
@@ -1665,7 +1857,7 @@ paths:
         "200":
           description: Scene deleted
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Delete a scene
@@ -1676,7 +1868,7 @@ paths:
       - application/json
       description: Update the configuration of a specific scene
       parameters:
-      - description: Teralux UUID
+      - description: Terminal UUID
         in: path
         name: id
         required: true
@@ -1698,21 +1890,21 @@ paths:
         "200":
           description: Scene updated
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "404":
           description: Scene not found
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Update an existing scene
       tags:
       - 03. Scenes
-  /api/teralux/{id}/scenes/{scene_id}/control:
+  /api/terminal/{id}/scenes/{scene_id}/control:
     get:
       description: Trigger all actions defined in a specific scene
       parameters:
-      - description: Teralux UUID
+      - description: Terminal UUID
         in: path
         name: id
         required: true
@@ -1728,12 +1920,25 @@ paths:
         "200":
           description: Scene applied
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Apply/Trigger a scene
       tags:
       - 03. Scenes
+  /api/terminal/mac/{mac}:
+    get:
+      consumes:
+      - application/json
+      description: GetTerminalByMAC
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: GetTerminalByMAC
+      tags:
+      - 09. Terminals
   /api/tuya/auth:
     get:
       consumes:
@@ -1746,7 +1951,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TuyaAuthResponseDTO'
@@ -1754,7 +1959,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - ApiKeyAuth: []
       summary: Authenticate with Tuya
@@ -1792,7 +1997,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TuyaDevicesResponseDTO'
@@ -1800,7 +2005,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get All Devices
@@ -1824,7 +2029,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.TuyaDeviceResponseDTO'
@@ -1832,11 +2037,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Device by ID
@@ -1861,7 +2066,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   $ref: '#/definitions/dtos.SensorDataDTO'
@@ -1869,11 +2074,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - BearerAuth: []
       summary: Get Sensor Data
@@ -1892,7 +2097,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
             - properties:
                 data:
                   items:
@@ -1902,15 +2107,15 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/teralux_app_domain_common_dtos.StandardResponse'
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
       security:
       - ApiKeyAuth: []
       - BearerAuth: []
-      summary: Sync Teralux Device Status
+      summary: Sync Terminal Device Status
       tags:
       - 02. Tuya
 schemes:
@@ -1942,7 +2147,9 @@ tags:
   name: 06. Models
 - description: Recordings management endpoints
   name: 07. Recordings
-- description: Common endpoints (Health, Cache)
-  name: 08. Common
 - description: Mail service endpoints
-  name: 09. Mail
+  name: 08. Mail
+- description: Terminal management endpoints
+  name: 09. Terminals
+- description: Common endpoints (Health, Cache)
+  name: 10. Common

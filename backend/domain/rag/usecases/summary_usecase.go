@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	mailServices "teralux_app/domain/mail/services"
-	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/services"
-	"teralux_app/domain/rag/skills"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	mailServices "sensio/domain/mail/services"
+	"sensio/domain/rag/dtos"
+	"sensio/domain/rag/services"
+	"sensio/domain/rag/skills"
 	"time"
 
 	"github.com/google/uuid"
@@ -79,19 +79,19 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
 			if err == nil {
 				if date == "" {
-					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
+					date = fmt.Sprintf("%v", info["SDTGetRoomTerminalByendDate"])
 					if date == "" || date == "<nil>" {
-						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback to other key
+						date = fmt.Sprintf("%v", info["SDTGetRoomTerminaltimeendDate"]) // Fallback to other key
 					}
 				}
 				if location == "" {
-					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+					location = fmt.Sprintf("%v", info["SDTGetRoomTerminalRoomName"])
 				}
 				if participants == "" {
-					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
+					participants = fmt.Sprintf("%v", info["SDTGetRoomTerminalCustomerName"])
 				}
 				if meetingContext == "" {
-					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTeraluxMeetingAgenda"])
+					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTerminalMeetingAgenda"])
 					if apiAgenda != "" && apiAgenda != "<nil>" {
 						meetingContext = apiAgenda
 					}
@@ -320,19 +320,19 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
 			if err == nil {
 				if date == "" {
-					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
+					date = fmt.Sprintf("%v", info["SDTGetRoomTerminalByendDate"])
 					if date == "" || date == "<nil>" {
-						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback
+						date = fmt.Sprintf("%v", info["SDTGetRoomTerminaltimeendDate"]) // Fallback
 					}
 				}
 				if location == "" {
-					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+					location = fmt.Sprintf("%v", info["SDTGetRoomTerminalRoomName"])
 				}
 				if participants == "" {
-					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
+					participants = fmt.Sprintf("%v", info["SDTGetRoomTerminalCustomerName"])
 				}
 				if meetingContext == "" {
-					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTeraluxMeetingAgenda"])
+					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTerminalMeetingAgenda"])
 					if apiAgenda != "" && apiAgenda != "<nil>" {
 						meetingContext = apiAgenda
 					}

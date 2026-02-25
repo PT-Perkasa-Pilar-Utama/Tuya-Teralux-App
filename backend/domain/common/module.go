@@ -1,10 +1,10 @@
 package common
 
 import (
-	"teralux_app/docs/swagger"
-	"teralux_app/domain/common/controllers"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/routes"
+	"sensio/docs/swagger"
+	"sensio/domain/common/controllers"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/routes"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"

@@ -1,6 +1,6 @@
 # System Wiring Diagram
 
-This section illustrates the electrical wiring layout for the Teralux smart home system, showing the connections between the power source, Smart MCB, Zigbee Gateway, and end devices.
+This section illustrates the electrical wiring layout for the Terminal smart home system, showing the connections between the power source, Smart MCB, Zigbee Gateway, and end devices.
 
 ![System Wiring Diagram](../../assets/specifications/Wiring%20Diagram.png)
 

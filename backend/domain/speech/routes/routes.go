@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"teralux_app/domain/speech/controllers"
+	"sensio/domain/speech/controllers"
 
 	"github.com/gin-gonic/gin"
 )

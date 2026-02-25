@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/tuya/entities"
+	"sensio/domain/common/utils"
+	"sensio/domain/tuya/entities"
 	"time"
 
 	"github.com/gin-gonic/gin"

@@ -1,17 +1,17 @@
 package speech
 
 import (
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/services"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	ragUsecases "teralux_app/domain/rag/usecases"
-	recordingUsecases "teralux_app/domain/recordings/usecases"
-	speechControllers "teralux_app/domain/speech/controllers"
-	speechdtos "teralux_app/domain/speech/dtos"
-	speechRoutes "teralux_app/domain/speech/routes"
-	speechUsecases "teralux_app/domain/speech/usecases"
-	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/services"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	ragUsecases "sensio/domain/rag/usecases"
+	recordingUsecases "sensio/domain/recordings/usecases"
+	speechControllers "sensio/domain/speech/controllers"
+	speechdtos "sensio/domain/speech/dtos"
+	speechRoutes "sensio/domain/speech/routes"
+	speechUsecases "sensio/domain/speech/usecases"
+	tuyaUsecases "sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,15 +1,15 @@
-# ENDPOINT: GET /api/teralux/:id/scenes/:scene_id/control
+# ENDPOINT: GET /api/terminal/:id/scenes/:scene_id/control
 
 ## Description
-Trigger/Apply a Scene for a specific Teralux device.
+Trigger/Apply a Scene for a specific Terminal device.
 
 ## Test Scenarios
 
 ### 1. Control Scene (Success)
-- **URL**: `http://localhost:8080/api/teralux/:id/scenes/:scene_id/control`
+- **URL**: `http://localhost:8080/api/terminal/:id/scenes/:scene_id/control`
 - **Method**: `GET`
 - **Path Parameters**:
-    - `id`: Teralux UUID
+    - `id`: Terminal UUID
     - `scene_id`: Scene UUID
 - **Headers**:
 ```json

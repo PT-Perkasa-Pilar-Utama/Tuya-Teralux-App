@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/rag/dtos"
+	"sensio/domain/common/tasks"
+	"sensio/domain/rag/dtos"
 
 	"github.com/gin-gonic/gin"
 )

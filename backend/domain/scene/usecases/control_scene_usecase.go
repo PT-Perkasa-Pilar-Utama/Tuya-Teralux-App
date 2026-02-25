@@ -2,10 +2,10 @@ package usecases
 
 import (
 	"fmt"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/scene/repositories"
-	tuya_dtos "teralux_app/domain/tuya/dtos"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	"sensio/domain/scene/repositories"
+	tuya_dtos "sensio/domain/tuya/dtos"
 )
 
 // TuyaDeviceControlExecutor defines the interface for controlling Tuya devices
@@ -32,8 +32,8 @@ func NewControlSceneUseCase(
 	}
 }
 
-func (u *ControlSceneUseCase) ControlScene(teraluxID, id, accessToken string) error {
-	scene, err := u.repo.GetByID(teraluxID, id)
+func (u *ControlSceneUseCase) ControlScene(terminalID, id, accessToken string) error {
+	scene, err := u.repo.GetByID(terminalID, id)
 	if err != nil {
 		return err
 	}

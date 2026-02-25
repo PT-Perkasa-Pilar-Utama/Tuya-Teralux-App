@@ -1,0 +1,83 @@
+package routes
+
+import (
+	device "sensio/domain/terminal/controllers/device"
+	device_status "sensio/domain/terminal/controllers/device_status"
+	terminal "sensio/domain/terminal/controllers/terminal"
+
+	"github.com/gin-gonic/gin"
+)
+
+// SetupTerminalRoutes registers endpoints for terminal CRUD operations
+func SetupTerminalRoutes(
+	publicRouter gin.IRouter,
+	protectedRouter gin.IRouter,
+	createController *terminal.CreateTerminalController,
+	getAllController *terminal.GetAllTerminalController,
+	getByIDController *terminal.GetTerminalByIDController,
+	getByMACController *terminal.GetTerminalByMACController,
+	updateController *terminal.UpdateTerminalController,
+	deleteController *terminal.DeleteTerminalController,
+
+	createDeviceController *device.CreateDeviceController,
+	getAllDevicesController *device.GetAllDevicesController,
+	getDeviceByIDController *device.GetDeviceByIDController,
+	getDevicesByTerminalIDController *device.GetDevicesByTerminalIDController,
+	updateDeviceController *device.UpdateDeviceController,
+	deleteDeviceController *device.DeleteDeviceController,
+
+	getAllDeviceStatusesController *device_status.GetAllDeviceStatusesController,
+	getDeviceStatusByCodeController *device_status.GetDeviceStatusByCodeController,
+	getDeviceStatusesByDeviceIDController *device_status.GetDeviceStatusesByDeviceIDController,
+	updateDeviceStatusController *device_status.UpdateDeviceStatusController,
+) {
+	// Public Terminal Routes (Registration and Check)
+	terminalPublicAPI := publicRouter.Group("/api/terminal")
+	{
+		// POST /api/terminal - Create a new terminal (Public with API Key)
+		terminalPublicAPI.POST("", createController.CreateTerminal)
+
+		// GET /api/terminal - Get all terminal (Public with API Key for check)
+		terminalPublicAPI.GET("", getAllController.GetAllTerminal)
+
+		// GET /api/terminal/mac/:mac - Get terminal by MAC address (Public with API Key)
+		terminalPublicAPI.GET("/mac/:mac", getByMACController.GetTerminalByMAC)
+	}
+
+	// Protected Terminal Routes
+	terminalProtectedAPI := protectedRouter.Group("/api/terminal")
+	{
+		// GET /api/terminal/:id - Get terminal by ID
+		terminalProtectedAPI.GET("/:id", getByIDController.GetTerminalByID)
+
+		// PUT /api/terminal/:id - Update terminal
+		terminalProtectedAPI.PUT("/:id", updateController.UpdateTerminal)
+
+		// DELETE /api/terminal/:id - Delete terminal (soft delete)
+		terminalProtectedAPI.DELETE("/:id", deleteController.DeleteTerminal)
+	}
+
+	// Device Routes (Protected)
+	deviceAPI := protectedRouter.Group("/api/devices")
+	{
+		deviceAPI.POST("", createDeviceController.CreateDevice)
+		deviceAPI.GET("", getAllDevicesController.GetAllDevices)
+		deviceAPI.GET("/terminal/:terminal_id", getDevicesByTerminalIDController.GetDevicesByTerminalID)
+		deviceAPI.GET("/:id", getDeviceByIDController.GetDeviceByID)
+		deviceAPI.PUT("/:id", updateDeviceController.UpdateDevice)
+		deviceAPI.DELETE("/:id", deleteDeviceController.DeleteDevice)
+	}
+
+	// Device Status Routes (Protected)
+	// GET /api/devices/statuses - Get all statuses (Scenario 1)
+	protectedRouter.GET("/api/devices/statuses", getAllDeviceStatusesController.GetAllDeviceStatuses)
+
+	// GET /api/devices/:id/statuses - Get statuses by device ID (Scenario 2)
+	protectedRouter.GET("/api/devices/:id/statuses", getDeviceStatusesByDeviceIDController.GetDeviceStatusesByDeviceID)
+
+	// GET /api/devices/:id/statuses/:code - Get status by code (Scenario 4)
+	protectedRouter.GET("/api/devices/:id/statuses/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
+
+	// PUT /api/devices/:id/status - Update device status (Scenario 1)
+	protectedRouter.PUT("/api/devices/:id/status", updateDeviceStatusController.UpdateDeviceStatus)
+}

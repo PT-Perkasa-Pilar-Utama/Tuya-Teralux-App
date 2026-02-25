@@ -3,9 +3,9 @@ package usecases
 import (
 	"fmt"
 	"os"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/speech/dtos"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	"sensio/domain/speech/dtos"
 	"time"
 
 	"github.com/google/uuid"

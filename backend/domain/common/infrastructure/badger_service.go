@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 
 	"github.com/dgraph-io/badger/v3"
 )

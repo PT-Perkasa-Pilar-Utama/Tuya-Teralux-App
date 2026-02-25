@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/tasks"
-	mail_dtos "teralux_app/domain/mail/dtos"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/tasks"
+	mail_dtos "sensio/domain/mail/dtos"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +23,7 @@ func NewMailStatusController(statusUC tasks.GenericStatusUseCase[mail_dtos.MailS
 // GetStatus handles GET /api/email/status/:task_id
 // @Summary Get email task status
 // @Description Get the status and result of an email sending task.
-// @Tags 09. Mail
+// @Tags 08. Mail
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"

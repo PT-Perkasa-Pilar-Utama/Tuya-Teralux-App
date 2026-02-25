@@ -1,13 +1,13 @@
 package tuya
 
 import (
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/middlewares"
-	teralux_repositories "teralux_app/domain/teralux/repositories"
-	"teralux_app/domain/tuya/controllers"
-	"teralux_app/domain/tuya/routes"
-	"teralux_app/domain/tuya/services"
-	"teralux_app/domain/tuya/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/middlewares"
+	terminal_repositories "sensio/domain/terminal/repositories"
+	"sensio/domain/tuya/controllers"
+	"sensio/domain/tuya/routes"
+	"sensio/domain/tuya/services"
+	"sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +30,7 @@ type TuyaModule struct {
 }
 
 // NewTuyaModule initializes the Tuya module
-func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *teralux_repositories.DeviceRepository, teraluxRepo *teralux_repositories.TeraluxRepository) *TuyaModule {
+func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *terminal_repositories.DeviceRepository, terminalRepo *terminal_repositories.TerminalRepository) *TuyaModule {
 	// Services
 	tuyaAuthService := services.NewTuyaAuthService()
 	tuyaDeviceService := services.NewTuyaDeviceService()
@@ -39,7 +39,7 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 	tuyaAuthUseCase := usecases.NewTuyaAuthUseCase(tuyaAuthService)
 	deviceStateUseCase := usecases.NewDeviceStateUseCase(badger)
 
-	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc, deviceRepo, teraluxRepo)
+	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc, deviceRepo, terminalRepo)
 	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, badger)
 	tuyaCommandSwitchUseCase := usecases.NewTuyaCommandSwitchUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaSendIRCommandUseCase := usecases.NewTuyaSendIRCommandUseCase(tuyaDeviceService)

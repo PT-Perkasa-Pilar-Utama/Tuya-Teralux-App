@@ -3,7 +3,7 @@ package usecases
 import (
 	"errors"
 	"strings"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 	"testing"
 )
 

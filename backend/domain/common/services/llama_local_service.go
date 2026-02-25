@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 	"time"
 )
 

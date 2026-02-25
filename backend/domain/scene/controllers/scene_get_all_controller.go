@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	scene_dtos "teralux_app/domain/scene/dtos"
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	scene_dtos "sensio/domain/scene/dtos"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,11 +20,11 @@ func NewSceneListAllController(useCase *usecases.GetAllGroupedScenesUseCase) *Sc
 }
 
 // ListAllScenes handles GET /api/scenes
-// @Summary List all scenes across all Teralux devices
-// @Description Retrieve all configured scenes grouped under each Teralux device
+// @Summary List all scenes across all Terminal devices
+// @Description Retrieve all configured scenes grouped under each Terminal device
 // @Tags 03. Scenes
 // @Produce json
-// @Success 200 {object} dtos.StandardResponse{data=[]scene_dtos.TeraluxScenesWrapperDTO} "All scenes grouped by Teralux"
+// @Success 200 {object} dtos.StandardResponse{data=[]scene_dtos.TerminalScenesWrapperDTO} "All scenes grouped by Terminal"
 // @Security BearerAuth
 // @Router /api/scenes [get]
 func (c *SceneListAllController) ListAllScenes(ctx *gin.Context) {
@@ -38,11 +38,11 @@ func (c *SceneListAllController) ListAllScenes(ctx *gin.Context) {
 		return
 	}
 
-	response := make([]scene_dtos.TeraluxScenesWrapperDTO, 0, len(grouped))
-	for teraluxID, scenes := range grouped {
-		response = append(response, scene_dtos.TeraluxScenesWrapperDTO{
-			Teralux: scene_dtos.TeraluxScenesDTO{
-				TeraluxID: teraluxID,
+	response := make([]scene_dtos.TerminalScenesWrapperDTO, 0, len(grouped))
+	for terminalID, scenes := range grouped {
+		response = append(response, scene_dtos.TerminalScenesWrapperDTO{
+			Terminal: scene_dtos.TerminalScenesDTO{
+				TerminalID: terminalID,
 				Scenes:    toSceneItemDTOs(scenes),
 			},
 		})

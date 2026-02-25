@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/mail/dtos"
-	"teralux_app/domain/mail/services"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	"sensio/domain/mail/dtos"
+	"sensio/domain/mail/services"
 	"time"
 )
 
@@ -92,7 +92,7 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	}
 
 	// Extract email from external API
-	rawRecipientEmail, ok := info["SDTGetRoomTeraluxItemCustomerEmail"].(string)
+	rawRecipientEmail, ok := info["SDTGetRoomTerminalItemCustomerEmail"].(string)
 
 	// Override email if provided in req.Data
 	var overriddenRecipients []string
@@ -154,7 +154,7 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	brandName := "Sensio"
 
 	// Parsing booking time start/stop if possible
-	bookingTime := fmt.Sprintf("%v", info["SDTGetRoomTeraluxBookingtimeChar"])
+	bookingTime := fmt.Sprintf("%v", info["SDTGetRoomTerminalBookingtimeChar"])
 	timeStart := ""
 	timeStop := ""
 	if strings.Contains(bookingTime, "–") {
@@ -178,22 +178,22 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	// Map external data to template variables
 	templateData := map[string]interface{}{
 		"brand_name":       brandName,
-		"customer_name":    info["SDTGetRoomTeraluxCustomerName"],
-		"customer_company": info["SDTGetRoomTeraluxItemCompanyName"],
+		"customer_name":    info["SDTGetRoomTerminalCustomerName"],
+		"customer_company": info["SDTGetRoomTerminalItemCompanyName"],
 		"booking_date": func() interface{} {
-			date := info["SDTGetRoomTeraluxByendDate"]
+			date := info["SDTGetRoomTerminalByendDate"]
 			if date == nil || date == "" || date == "<nil>" {
-				return info["SDTGetRoomTeraluxtimeendDate"]
+				return info["SDTGetRoomTerminaltimeendDate"]
 			}
 			return date
 		}(),
 		"booking_time_start": timeStart,
 		"booking_time_stop":  timeStop,
-		"booking_place":      info["SDTGetRoomTeraluxRoomName"],
-		"booking_room":       info["SDTGetRoomTeraluxRoomName"],
+		"booking_place":      info["SDTGetRoomTerminalRoomName"],
+		"booking_room":       info["SDTGetRoomTerminalRoomName"],
 		"agenda_context": func() interface{} {
 			// 1. Try external API
-			apiAgenda := info["SDTGetRoomTeraluxMeetingAgenda"]
+			apiAgenda := info["SDTGetRoomTerminalMeetingAgenda"]
 			if apiAgenda != nil && apiAgenda != "" && apiAgenda != "<nil>" {
 				return apiAgenda
 			}
@@ -243,9 +243,9 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	// Dynamic Subject Generation if empty or placeholder
 	finalSubject := req.Subject
 	if finalSubject == "" || strings.EqualFold(finalSubject, "Auto-generated") || strings.EqualFold(finalSubject, "Meeting Summary") {
-		roomName := fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+		roomName := fmt.Sprintf("%v", info["SDTGetRoomTerminalRoomName"])
 		if roomName == "" || roomName == "<nil>" {
-			roomName = "Teralux"
+			roomName = "Terminal"
 		}
 
 		bookingDateRaw := templateData["booking_date"]

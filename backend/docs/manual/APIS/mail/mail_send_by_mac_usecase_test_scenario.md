@@ -9,7 +9,7 @@ Looks up customer information via MAC address and submits an email task asynchro
 
 ## Parameters
 - **Path Parameter**:
-  - `mac_address` (string): The MAC address (or UUID) of the Teralux device.
+  - `mac_address` (string): The MAC address (or UUID) of the Terminal device.
 
 ## Request Body
 - **Content-Type**: `application/json`

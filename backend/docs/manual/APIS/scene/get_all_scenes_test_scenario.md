@@ -1,7 +1,7 @@
 # ENDPOINT: GET /api/scenes
 
 ## Description
-Retrieve all scenes across all Teralux devices. Each element in `data` wraps a `teralux` object that contains `teralux_id` and its `scenes`.
+Retrieve all scenes across all Terminal devices. Each element in `data` wraps a `terminal` object that contains `terminal_id` and its `scenes`.
 
 ## Authentication
 - **Type**: BearerAuth
@@ -19,8 +19,8 @@ Retrieve all scenes across all Teralux devices. Each element in `data` wraps a `
   "message": "Scenes retrieved successfully",
   "data": [
     {
-      "teralux": {
-        "teralux_id": "1",
+      "terminal": {
+        "terminal_id": "1",
         "scenes": [
           {
             "id": "776cfc67-ab77-4bfa-a60e-8bed7611f921",

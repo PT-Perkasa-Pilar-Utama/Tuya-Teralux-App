@@ -1,23 +1,23 @@
 # MQTT: Whisper Audio Transcription Scenario
 
 ## 1. Overview
-Transcription can be triggered by sending raw audio bytes to the `users/teralux/whisper` topic.
+Transcription can be triggered by sending raw audio bytes to the `users/terminal/whisper` topic.
 
 ## 2. MQTT Topic
-- **Subscription Topic**: `users/teralux/whisper`
-- **Response Topic**: `users/teralux/whisper/answer`
+- **Subscription Topic**: `users/terminal/whisper`
+- **Response Topic**: `users/terminal/whisper/answer`
 - **Payload Format**: JSON
 
 **Payload**:
 ```json
 {
     "audio": "BASE64_ENCODED_AUDIO_DATA",
-    "teralux_id": "tx-1",
+    "terminal_id": "tx-1",
     "language": "id"
 }
 ```
 
-## 3. Expected Response (on `users/teralux/whisper/answer`)
+## 3. Expected Response (on `users/terminal/whisper/answer`)
 ```json
 {
   "status": true,
@@ -37,6 +37,6 @@ Transcription can be triggered by sending raw audio bytes to the `users/teralux/
 
 ## 5. Verification Steps
 1. Prepare a small audio file and convert it to Base64.
-2. Publish the JSON payload to `users/teralux/whisper`.
-3. Verify the response on `users/teralux/whisper/answer`.
+2. Publish the JSON payload to `users/terminal/whisper`.
+3. Verify the response on `users/terminal/whisper/answer`.
 

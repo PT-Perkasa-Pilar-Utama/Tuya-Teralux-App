@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
 
 	"github.com/gin-gonic/gin"
 )

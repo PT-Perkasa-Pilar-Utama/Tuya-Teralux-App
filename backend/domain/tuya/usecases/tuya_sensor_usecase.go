@@ -2,7 +2,7 @@ package usecases
 
 import (
 	"fmt"
-	"teralux_app/domain/tuya/dtos"
+	"sensio/domain/tuya/dtos"
 )
 
 // TuyaSensorUseCase handles retrieval and interpretation of sensor data.

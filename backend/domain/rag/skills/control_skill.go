@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"teralux_app/domain/rag/sensors"
-	tuyaDtos "teralux_app/domain/tuya/dtos"
-	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"sensio/domain/rag/sensors"
+	tuyaDtos "sensio/domain/tuya/dtos"
+	tuyaUsecases "sensio/domain/tuya/usecases"
 )
 
 // ControlSkill handles device control requests using RAG and similarity search.
@@ -91,7 +91,7 @@ User Prompt: "%s"
 %s
 
 PANDUAN:
-1. KOCARKIR (MATCHING): Cocokkan nama perangkat yang diminta dengan nama di [Daftar Perangkat Tersedia]. Nama mungkin tidak sama persis (misal: "Teralux" cocok dengan "Teralux (Receptionist)").
+1. KOCARKIR (MATCHING): Cocokkan nama perangkat yang diminta dengan nama di [Daftar Perangkat Tersedia]. Nama mungkin tidak sama persis (misal: "Terminal" cocok dengan "Terminal (Receptionist)").
 2. KONTROL: 
    - Jika pengguna merujuk pada perangkat dari daftar, kembalikan: "EXECUTE:[Device ID]".
    - Jika pengguna menjawab pertanyaan tindak lanjut, pilih ID-nya dan kembalikan: "EXECUTE:[Device ID]".
@@ -111,7 +111,7 @@ User Prompt: "%s"
 %s
 
 GUIDELINES:
-1. MATCHING: Match the requested device name with the names in [Available Devices]. Names might not match exactly (e.g., "Teralux" matches "Teralux (Receptionist)").
+1. MATCHING: Match the requested device name with the names in [Available Devices]. Names might not match exactly (e.g., "Terminal" matches "Terminal (Receptionist)").
 2. CONTROL: 
    - If the user refers to a device from the list, return: "EXECUTE:[Device ID]".
    - If they are answering a follow-up question, identify it and return: "EXECUTE:[Device ID]".
@@ -204,12 +204,12 @@ func (s *ControlSkill) selectDeviceSensor(device *tuyaDtos.TuyaDeviceDTO) sensor
 		return sensors.NewTemperatureSensor()
 	}
 
-	// 5. Teralux Specific (dgnzk = voice/media control panel)
+	// 5. Terminal Specific (dgnzk = voice/media control panel)
 	if category == "dgnzk" {
-		return sensors.NewTeraluxSensor()
+		return sensors.NewTerminalSensor()
 	}
 
 	// Default fallback: Try to handle as a switch if it has switch capabilities,
-	// otherwise defaults to basic TeraluxSensor which handles generic switches too.
+	// otherwise defaults to basic TerminalSensor which handles generic switches too.
 	return sensors.NewSwitchSensor()
 }

@@ -36,7 +36,7 @@ func (a *Actions) Scan(value interface{}) error {
 // Scene represents a collection of actions that can be triggered together
 type Scene struct {
 	ID        string         `gorm:"type:char(36);primaryKey" json:"id"`
-	TeraluxID string         `gorm:"type:char(36);not null;index" json:"teralux_id"`
+	TerminalID string         `gorm:"type:char(36);not null;index" json:"terminal_id"`
 	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
 	Actions   Actions        `gorm:"type:text;not null" json:"actions"`
 	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`

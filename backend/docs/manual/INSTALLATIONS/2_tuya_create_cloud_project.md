@@ -1,6 +1,6 @@
 # Tuya Cloud Project Setup
 
-To connect Teralux devices with the backend, you need to create a Project on the Tuya IoT Platform. Here are the steps:
+To connect Terminal devices with the backend, you need to create a Project on the Tuya IoT Platform. Here are the steps:
 
 ## 1. Tuya Account Registration
 
@@ -42,7 +42,7 @@ After successfully logging in, you need to create a Cloud Project to obtain the 
     ![Create Project Button](../../assets/installations/tuya-project-management-and-click-create-project.png)
 
 4.  Fill in the project creation form:
-    *   **Project Name**: Any name (e.g., `Teralux Home`).
+    *   **Project Name**: Any name (e.g., `Terminal Home`).
     *   **Description**: Short description.
     *   **Industry**: Select `Smart Home`.
     *   **Development Method**: Select `Smart Home`.

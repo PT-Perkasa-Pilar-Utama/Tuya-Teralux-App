@@ -1,8 +1,8 @@
 package usecases
 
 import (
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/skills"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/skills"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,10 +58,10 @@ func TestChatUseCase_Chat(t *testing.T) {
 	cfg := &utils.Config{GeminiModelHigh: "test-model-chat"}
 	uc := NewChatUseCase(mockLLM, nil, cfg, nil, nil, orchestrator)
 	uid := "test-user"
-	teraluxID := "teralux-1"
+	terminalID := "terminal-1"
 
 	t.Run("Empty prompt", func(t *testing.T) {
-		res, err := uc.Chat(uid, "teralux-1", "", "id")
+		res, err := uc.Chat(uid, "terminal-1", "", "id")
 		assert.Error(t, err)
 		assert.Nil(t, res)
 	})
@@ -79,7 +79,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 			IsControl: true,
 		}, nil).Once()
 
-		res, err := uc.Chat(uid, teraluxID, prompt, "id")
+		res, err := uc.Chat(uid, terminalID, prompt, "id")
 		assert.NoError(t, err)
 		assert.True(t, res.IsControl)
 		assert.Equal(t, "Sure! Running command for AC.", res.Response)
@@ -97,7 +97,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 			Message: "Saya adalah asisten AI Sensio.",
 		}, nil).Once()
 
-		res, err := uc.Chat(uid, teraluxID, prompt, "id")
+		res, err := uc.Chat(uid, terminalID, prompt, "id")
 		assert.NoError(t, err)
 		assert.False(t, res.IsControl)
 		assert.Equal(t, "Saya adalah asisten AI Sensio.", res.Response)

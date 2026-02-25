@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"teralux_app/domain/common/dtos"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/scene/usecases"
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	"sensio/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,20 +19,20 @@ func NewSceneDeleteController(useCase *usecases.DeleteSceneUseCase) *SceneDelete
 	}
 }
 
-// DeleteScene handles DELETE /api/teralux/:id/scenes/:scene_id
+// DeleteScene handles DELETE /api/terminal/:id/scenes/:scene_id
 // @Summary Delete a scene
 // @Description Remove a specific scene configuration
 // @Tags 03. Scenes
 // @Produce json
-// @Param id path string true "Teralux UUID"
+// @Param id path string true "Terminal UUID"
 // @Param scene_id path string true "Scene UUID"
 // @Success 200 {object} dtos.StandardResponse "Scene deleted"
 // @Security BearerAuth
-// @Router /api/teralux/{id}/scenes/{scene_id} [delete]
+// @Router /api/terminal/{id}/scenes/{scene_id} [delete]
 func (c *SceneDeleteController) DeleteScene(ctx *gin.Context) {
-	teraluxID := ctx.Param("id")
+	terminalID := ctx.Param("id")
 	id := ctx.Param("scene_id")
-	if err := c.useCase.DeleteScene(teraluxID, id); err != nil {
+	if err := c.useCase.DeleteScene(terminalID, id); err != nil {
 		utils.LogError("SceneDeleteController.DeleteScene: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,

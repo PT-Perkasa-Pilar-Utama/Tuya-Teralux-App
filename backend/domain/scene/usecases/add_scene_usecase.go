@@ -1,8 +1,8 @@
 package usecases
 
 import (
-	"teralux_app/domain/scene/entities"
-	"teralux_app/domain/scene/repositories"
+	"sensio/domain/scene/entities"
+	"sensio/domain/scene/repositories"
 
 	"github.com/google/uuid"
 )
@@ -15,10 +15,10 @@ func NewAddSceneUseCase(repo repositories.ISceneRepository) *AddSceneUseCase {
 	return &AddSceneUseCase{repo: repo}
 }
 
-func (u *AddSceneUseCase) AddScene(teraluxID string, name string, actions entities.Actions) (string, error) {
+func (u *AddSceneUseCase) AddScene(terminalID string, name string, actions entities.Actions) (string, error) {
 	scene := &entities.Scene{
 		ID:        uuid.New().String(),
-		TeraluxID: teraluxID,
+		TerminalID: terminalID,
 		Name:      name,
 		Actions:   actions,
 	}

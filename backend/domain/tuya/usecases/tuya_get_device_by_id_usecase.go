@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/tuya/dtos"
-	"teralux_app/domain/tuya/services"
-	tuya_utils "teralux_app/domain/tuya/utils"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	"sensio/domain/tuya/dtos"
+	"sensio/domain/tuya/services"
+	tuya_utils "sensio/domain/tuya/utils"
 	"time"
 )
 

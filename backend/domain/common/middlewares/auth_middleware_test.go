@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"teralux_app/domain/common/utils"
+	"sensio/domain/common/utils"
 	"testing"
 
 	"github.com/gin-gonic/gin"

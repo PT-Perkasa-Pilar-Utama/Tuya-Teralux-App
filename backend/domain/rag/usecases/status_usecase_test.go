@@ -4,10 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/tasks"
-	"teralux_app/domain/common/utils"
-	ragdtos "teralux_app/domain/rag/dtos"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	ragdtos "sensio/domain/rag/dtos"
 )
 
 func TestStatusUseCase_Execute(t *testing.T) {

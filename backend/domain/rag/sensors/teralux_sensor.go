@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"teralux_app/domain/rag/dtos"
-	tuyaDtos "teralux_app/domain/tuya/dtos"
-	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"sensio/domain/rag/dtos"
+	tuyaDtos "sensio/domain/tuya/dtos"
+	tuyaUsecases "sensio/domain/tuya/usecases"
 )
 
 type DeviceSensor interface {
@@ -14,18 +14,18 @@ type DeviceSensor interface {
 	ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error)
 }
 
-type TeraluxSensor struct{}
+type TerminalSensor struct{}
 
-func NewTeraluxSensor() DeviceSensor {
-	return &TeraluxSensor{}
+func NewTerminalSensor() DeviceSensor {
+	return &TerminalSensor{}
 }
 
-func (s *TeraluxSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
-	// Handle Teralux devices with voice/media controls (dgnzk category)
+func (s *TerminalSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
+	// Handle Terminal devices with voice/media controls (dgnzk category)
 	return device.Category == "dgnzk"
 }
 
-func (s *TeraluxSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
+func (s *TerminalSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
 	promptLower := strings.ToLower(prompt)
 
 	// Check what to control
@@ -99,7 +99,7 @@ func (s *TeraluxSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDevice
 
 // findSwitchCode finds any switch code in the device status
 // Returns the switch code and switch index (1-based, 0 if single switch)
-func (s *TeraluxSensor) findSwitchCode(promptLower string, status []tuyaDtos.TuyaDeviceStatusDTO) (string, int) {
+func (s *TerminalSensor) findSwitchCode(promptLower string, status []tuyaDtos.TuyaDeviceStatusDTO) (string, int) {
 	// Check for specific switch number in prompt
 	switchNum := s.extractSwitchNumber(promptLower)
 
@@ -136,7 +136,7 @@ func (s *TeraluxSensor) findSwitchCode(promptLower string, status []tuyaDtos.Tuy
 }
 
 // extractSwitchNumber extracts switch number from prompt (e.g., "switch 1" -> 1)
-func (s *TeraluxSensor) extractSwitchNumber(promptLower string) int {
+func (s *TerminalSensor) extractSwitchNumber(promptLower string) int {
 	// Look for patterns like "switch 1", "switch1", "saklar 1", etc.
 	patterns := []string{"switch ", "saklar ", "lampu "}
 	for _, pattern := range patterns {
@@ -154,8 +154,8 @@ func (s *TeraluxSensor) extractSwitchNumber(promptLower string) int {
 }
 
 // matchDeviceCode tries to match a user prompt to an available device control code
-func (s *TeraluxSensor) matchDeviceCode(promptLower string, status []tuyaDtos.TuyaDeviceStatusDTO) (string, interface{}, bool) {
-	// Map keywords to device codes for Teralux voice/media controls
+func (s *TerminalSensor) matchDeviceCode(promptLower string, status []tuyaDtos.TuyaDeviceStatusDTO) (string, interface{}, bool) {
+	// Map keywords to device codes for Terminal voice/media controls
 
 	isOn := strings.Contains(promptLower, "on") || strings.Contains(promptLower, "nyalakan") || strings.Contains(promptLower, "hidupkan")
 	isOff := strings.Contains(promptLower, "off") || strings.Contains(promptLower, "matikan") || strings.Contains(promptLower, "mati")
@@ -228,7 +228,7 @@ func parseBoolean(value interface{}) bool {
 }
 
 // parseVolumeValue extracts volume percentage (0-100) from prompt
-func (s *TeraluxSensor) parseVolumeValue(promptLower string) (int, bool) {
+func (s *TerminalSensor) parseVolumeValue(promptLower string) (int, bool) {
 	words := strings.Fields(promptLower)
 	for i, word := range words {
 		if num, err := strconv.Atoi(word); err == nil && num >= 0 && num <= 100 {

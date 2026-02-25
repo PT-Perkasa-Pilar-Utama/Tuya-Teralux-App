@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"teralux_app/domain/recordings/entities"
-	"teralux_app/domain/recordings/usecases"
+	"sensio/domain/recordings/entities"
+	"sensio/domain/recordings/usecases"
 )
 
 func TestGetRecordingByIDUseCase_Execute(t *testing.T) {

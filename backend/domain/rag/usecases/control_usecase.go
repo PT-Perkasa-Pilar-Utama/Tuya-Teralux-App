@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"teralux_app/domain/common/infrastructure"
-	"teralux_app/domain/common/utils"
-	"teralux_app/domain/rag/dtos"
-	"teralux_app/domain/rag/skills"
-	tuyaUsecases "teralux_app/domain/tuya/usecases"
+	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
+	"sensio/domain/rag/dtos"
+	"sensio/domain/rag/skills"
+	tuyaUsecases "sensio/domain/tuya/usecases"
 )
 
 type ControlUseCase interface {
-	ProcessControl(uid, teraluxID, prompt string) (*dtos.ControlResultDTO, error)
+	ProcessControl(uid, terminalID, prompt string) (*dtos.ControlResultDTO, error)
 }
 
 type controlUseCase struct {
@@ -37,7 +37,7 @@ func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *
 	}
 }
 
-func (u *controlUseCase) ProcessControl(uid, teraluxID, prompt string) (*dtos.ControlResultDTO, error) {
+func (u *controlUseCase) ProcessControl(uid, terminalID, prompt string) (*dtos.ControlResultDTO, error) {
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("prompt is empty")
 	}
@@ -47,7 +47,7 @@ func (u *controlUseCase) ProcessControl(uid, teraluxID, prompt string) (*dtos.Co
 
 	ctx := &skills.SkillContext{
 		UID:       uid,
-		TeraluxID: teraluxID,
+		TerminalID: terminalID,
 		Prompt:    prompt,
 		LLM:       u.llm,
 		Config:    u.config,
@@ -57,7 +57,7 @@ func (u *controlUseCase) ProcessControl(uid, teraluxID, prompt string) (*dtos.Co
 
 	// Preload history for the skill
 	// This maintains the behavior where history is loaded from Badger
-	historyKey := fmt.Sprintf("chat_history:%s", teraluxID)
+	historyKey := fmt.Sprintf("chat_history:%s", terminalID)
 	var history []string
 	if u.badger != nil {
 		data, _ := u.badger.Get(historyKey)

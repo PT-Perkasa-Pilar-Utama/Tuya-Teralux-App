@@ -5,7 +5,7 @@
 The default "Digital Door Sign" mode. It displays the current occupancy status of the room.
 
 ## API Used
-*   **Data Source**: Fetches room status from Teralux Backend (e.g., `GET /api/teralux/{id}`).
+*   **Data Source**: Fetches room status from Terminal Backend (e.g., `GET /api/terminal/{id}`).
 
 ## Flow
 1.  **Status Indication**:
