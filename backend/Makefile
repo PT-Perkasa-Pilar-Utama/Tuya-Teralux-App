@@ -80,7 +80,7 @@ build:
 # --- Docker Configuration ---
 REGISTRY      ?= ghcr.io
 USERNAME      ?= farismnrr
-IMAGE_BASE    ?= teralux-backend
+IMAGE_BASE    ?= sensio-backend
 IMAGE_TAG     ?= latest
 PLATFORMS     ?= linux/amd64,linux/arm64
 REPO          = $(REGISTRY)/$(USERNAME)/$(IMAGE_BASE)
@@ -109,7 +109,7 @@ pull:
 
 # Run production stack
 run:
-	@echo "🚀 Starting Teralux Backend stack..."
+	@echo "🚀 Starting Sensio Backend stack..."
 	docker compose up -d
 
 # Start Docker Compose (Production/Latest)
@@ -223,8 +223,8 @@ kill:
 	@echo "🐳 Cleaning up Docker containers..."
 	@docker compose down --remove-orphans 2>/dev/null || true
 	@docker compose -f docker-compose.dev.yml down --remove-orphans 2>/dev/null || true
-	@docker stop teralux-backend teralux-db dev-mysql 2>/dev/null || true
-	@docker rm teralux-backend teralux-db dev-mysql 2>/dev/null || true
+	@docker stop sensio-backend sensio-db dev-mysql 2>/dev/null || true
+	@docker rm sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@echo "✅ Kill completed"
 
 # --- Database Migration Configuration ---
@@ -250,19 +250,19 @@ $(MIGRATE_BIN):
 # Run all pending migrations
 migrate-up: $(MIGRATE_BIN)
 	@echo "⬆️  Running migrations..."
-	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" up
+	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" up
 	@echo "✅ Migrations completed"
 
 # Rollback last migration
 migrate-down: $(MIGRATE_BIN)
 	@echo "⬇️  Rolling back last migration..."
-	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" down 1
+	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" down 1
 	@echo "✅ Rollback completed"
 
 # Show current migration version
 migrate-version: $(MIGRATE_BIN)
 	@echo "📊 Current migration version:"
-	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" version
+	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" version
 
 # Force database to a specific version (use: make migrate-force VERSION=3)
 migrate-force: $(MIGRATE_BIN)
@@ -271,6 +271,6 @@ migrate-force: $(MIGRATE_BIN)
 		exit 1; \
 	fi
 	@echo "⚠️  Forcing database to version $(VERSION)..."
-	@$(MIGRATE_BIN) -path domain/teralux/migrations -database "$(DB_URL)" force $(VERSION)
+	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" force $(VERSION)
 	@echo "✅ Database forced to version $(VERSION)"
 
