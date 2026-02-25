@@ -46,9 +46,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.whisper_android.data.di.NetworkModule
 import com.example.whisper_android.presentation.components.ToastObserver
-import com.example.whisper_android.presentation.components.WhisperButton
-import com.example.whisper_android.presentation.components.WhisperLogo
-import com.example.whisper_android.presentation.components.WhisperTextField
+import com.example.whisper_android.presentation.components.SensioButton
+import com.example.whisper_android.presentation.components.SensioLogo
+import com.example.whisper_android.presentation.components.SensioTextField
 
 @Composable
 fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
@@ -165,7 +165,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                     ) {
                         // Logo is clickable
                         Box(modifier = Modifier.clickable { viewModel.checkRegistration() }) {
-                            WhisperLogo()
+                            SensioLogo()
                         }
 
                         // Text is NOT clickable
@@ -234,7 +234,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable { viewModel.checkRegistration() }
                     ) {
-                        WhisperLogo()
+                        SensioLogo()
                     }
 
                     Spacer(modifier = Modifier.height(40.dp))
@@ -326,13 +326,13 @@ fun RegisterCard(
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            WhisperTextField(
+            SensioTextField(
                 value = name,
                 onValueChange = onNameChange,
                 label = "Name"
             )
 
-            WhisperTextField(
+            SensioTextField(
                 value = roomId,
                 onValueChange = onRoomIdChange,
                 label = "Room ID",
@@ -342,7 +342,7 @@ fun RegisterCard(
             if (isLoading) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             } else {
-                WhisperButton(
+                SensioButton(
                     text = "Register",
                     onClick = onRegisterClick,
                     enabled = name.isNotBlank() && roomId.isNotBlank()

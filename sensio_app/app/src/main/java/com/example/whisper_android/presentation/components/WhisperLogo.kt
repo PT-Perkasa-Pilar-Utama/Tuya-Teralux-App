@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.example.whisper_android.R
 
 @Composable
-fun WhisperLogo(
+fun SensioLogo(
     modifier: Modifier = Modifier,
     showText: Boolean = true
 ) {
