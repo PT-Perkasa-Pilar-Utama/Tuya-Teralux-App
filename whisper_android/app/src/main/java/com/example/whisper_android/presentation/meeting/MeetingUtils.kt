@@ -37,7 +37,9 @@ fun downloadPdf(
                 .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true)
 
-        val downloadManager = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
+        val downloadManager = context.getSystemService(
+            android.content.Context.DOWNLOAD_SERVICE
+        ) as DownloadManager
         downloadManager.enqueue(request)
         Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
 

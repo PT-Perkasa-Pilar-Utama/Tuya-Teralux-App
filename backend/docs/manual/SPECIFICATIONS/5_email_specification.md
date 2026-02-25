@@ -31,7 +31,7 @@ To use the Mail Service, the following environment variables must be set in the 
 ### Controller
 The `MailController` provides the following endpoints:
 1. `POST /api/mail/send`: Sends an email by specifying recipient list directly.
-2. `POST /api/mail/send/mac/:mac_address`: Looks up recipient email via Teralux MAC address and sends the email.
+2. `POST /api/mail/send/mac/:mac_address`: Looks up recipient email via Teralux MAC address and sends the email. Supports multiple recipients in the `email` override field as an array of strings (e.g., `["user1@a.com", "user2@b.com"]`).
 
 ### Service
 The `MailService` can be used by other domains:

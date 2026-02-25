@@ -184,7 +184,8 @@ fun AiAssistantScreen(
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = androidx.compose.material.icons.Icons
+                                    .AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
@@ -211,7 +212,11 @@ fun AiAssistantScreen(
                                     Surface(
                                         onClick = { viewModel.selectLanguage(lang) },
                                         shape = RoundedCornerShape(16.dp),
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            Color.Transparent
+                                        },
                                         modifier = Modifier.size(width = 36.dp, height = 24.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
@@ -219,7 +224,11 @@ fun AiAssistantScreen(
                                                 text = lang.uppercase(),
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = if (isSelected) {
+                                                    Color.White
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                }
                                             )
                                         }
                                     }

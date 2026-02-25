@@ -16,7 +16,7 @@
         }
 
         @page {
-            margin: 0; /* Remove default browser margins if printing to PDF */
+            margin: 0.75in 0.6in; /* Matches Go-Rod margin for consistency and preview */
         }
 
         body {
@@ -24,7 +24,7 @@
             color: var(--text-main);
             line-height: 1.6;
             margin: 0;
-            padding: 40px;
+            padding: 0; /* Padding is now managed by @page and margins */
             background-color: white;
             font-size: 14px;
         }
@@ -37,7 +37,7 @@
             margin-bottom: 30px;
         }
         .header img {
-            max-width: 140px;
+            max-width: 100px;
             margin-bottom: 15px;
         }
         .header h1 {
@@ -111,6 +111,15 @@
             margin-top: 20px;
             margin-bottom: 10px;
         }
+        
+        /* Prevent headers and lists from breaking awkwardally */
+        .summary-body h1, .summary-body h2, .summary-body h3 {
+            break-after: avoid;
+        }
+        
+        .summary-body p, .summary-body li {
+            break-inside: auto;
+        }
         .summary-body p {
             margin-bottom: 15px;
         }
@@ -129,6 +138,7 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             font-size: 13px;
+            break-inside: avoid; /* Prevent table from splitting across pages */
         }
         .summary-body th, .summary-body td {
             border: 1px solid #ddd;
@@ -164,7 +174,7 @@
         <!-- Logo data URI is injected by Go renderer -->
         <img src="{{.LogoDataURI}}" alt="Logo">
         <h1>Meeting Intelligence Report</h1>
-        <p>Powered by {{.CompanyName}} Engine</p>
+        <p>Powered by {{.CompanyName}}</p>
     </div>
 
     <!-- METADATA CARD -->

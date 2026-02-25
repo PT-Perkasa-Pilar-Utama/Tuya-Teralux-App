@@ -104,10 +104,11 @@ fun MeetingHeaderControls(
                         .graphicsLayer { alpha = if (isEmailSending) emailButtonAlpha else 1f },
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isEmailSending)
+                        containerColor = if (isEmailSending) {
                             MaterialTheme.colorScheme.secondary
-                        else
+                        } else {
                             MaterialTheme.colorScheme.primary
+                        }
                     ),
                     shape = RoundedCornerShape(16.dp),
                     enabled = true

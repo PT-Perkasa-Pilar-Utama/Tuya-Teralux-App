@@ -132,7 +132,11 @@ fun MeetingControlPill(
                         else -> "Ready"
                     },
                     fontSize = 12.sp,
-                    color = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    color = if (isRecording) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(end = 4.dp)

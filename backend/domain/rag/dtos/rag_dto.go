@@ -55,8 +55,9 @@ type StandardResponse struct {
 }
 
 type RAGSummaryResponseDTO struct {
-	Summary string `json:"summary"`
-	PDFUrl  string `json:"pdf_url,omitempty"`
+	Summary       string `json:"summary"`
+	PDFUrl        string `json:"pdf_url,omitempty"`
+	AgendaContext string `json:"agenda_context,omitempty"`
 }
 
 type RAGChatRequestDTO struct {

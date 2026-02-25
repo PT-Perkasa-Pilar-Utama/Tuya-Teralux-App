@@ -20,8 +20,10 @@ data class RegisterUiState(
 
 class RegisterViewModel(
     application: Application,
-    private val registerTeraluxUseCase: RegisterTeraluxUseCase,
-    private val getTeraluxByMacUseCase: com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase,
+    private val registerTeraluxUseCase:
+        com.example.whisper_android.domain.usecase.RegisterTeraluxUseCase,
+    private val getTeraluxByMacUseCase:
+        com.example.whisper_android.domain.usecase.GetTeraluxByMacUseCase,
     private val authenticateUseCase: AuthenticateUseCase
 ) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(RegisterUiState(isLoading = true)) // Start with loading
@@ -61,8 +63,9 @@ class RegisterViewModel(
                                         isLoading = false,
                                         isSuccess = false,
                                         error =
-                                        "Device registered but authentication failed: ${e.message}. " +
-                                            "Please check your connection or try again."
+                                        "Device registered but authentication failed: " +
+                                            "${e.message}. Please check your connection or try " +
+                                            "again."
                                     )
                                 }
                             }
@@ -117,7 +120,7 @@ class RegisterViewModel(
                         }.onFailure { e ->
                             _uiState.value =
                                 RegisterUiState(
-                                    isSuccess = true, // Still success registration, but auth failed. Dashboard will retry auth.
+                                    isSuccess = true, // Redirect anyway, dashboard will retry auth
                                     message = "Registration successful. Login failed: ${e.message}"
                                 )
                         }

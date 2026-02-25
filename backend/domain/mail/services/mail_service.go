@@ -20,26 +20,15 @@ import (
 	"teralux_app/domain/common/utils"
 )
 
-const smtpDialTimeout = 180 * time.Second
-
 type MailService struct {
 	config      *utils.Config
 	TemplateDir string
 }
 
 func NewMailService(cfg *utils.Config) *MailService {
-	// Determine template directory relative to exec path or standard location
+	// Determine template directory relative to workspace root
 	wd, _ := os.Getwd()
-	// New location: domain/mail/templates
-	tmplDir := filepath.Join(wd, "domain", "mail", "templates")
-
-	// Fallback check for "backend/domain..."
-	if _, err := os.Stat(tmplDir); os.IsNotExist(err) {
-		altDir := filepath.Join(wd, "backend", "domain", "mail", "templates")
-		if _, err := os.Stat(altDir); err == nil {
-			tmplDir = altDir
-		}
-	}
+	tmplDir := filepath.Join(wd, "templates", "mail")
 
 	return &MailService{
 		config:      cfg,
@@ -84,7 +73,9 @@ func (s *MailService) sendEmailDirect(addr string, host string, auth smtp.Auth, 
 	if err != nil {
 		return fmt.Errorf("smtp dial failed: %w", err)
 	}
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
@@ -132,7 +123,6 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 	writer := multipart.NewWriter(buf)
 
 	// Headers
-	// Headers
 	fmt.Fprintf(buf, "From: %s\r\n", s.config.SMTPFrom)
 	fmt.Fprintf(buf, "To: %s\r\n", strings.Join(to, ","))
 	fmt.Fprintf(buf, "Subject: %s\r\n", subject)
@@ -154,20 +144,17 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 	}
 
 	qp := quotedprintable.NewWriter(bodyPartWriter)
-	qp.Write([]byte(body))
-	qp.Close()
+	if _, err := qp.Write([]byte(body)); err != nil {
+		return nil, fmt.Errorf("failed to write body to quotedprintable: %w", err)
+	}
+	if err := qp.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close quotedprintable: %w", err)
+	}
 
 	// 2. Logo Part (CID embedding)
 	// Try to find logo in assets/images/logo.png
 	wd, _ := os.Getwd()
 	logoPath := filepath.Join(wd, "assets", "images", "logo.png")
-	// Fallback check
-	if _, err := os.Stat(logoPath); os.IsNotExist(err) {
-		altLogo := filepath.Join(wd, "backend", "assets", "images", "logo.png")
-		if _, err := os.Stat(altLogo); err == nil {
-			logoPath = altLogo
-		}
-	}
 
 	if _, err := os.Stat(logoPath); err == nil {
 		logoData, err := os.ReadFile(logoPath)
@@ -181,7 +168,9 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 			logoWriter, err := writer.CreatePart(logoHeader)
 			if err == nil {
 				encoded := base64.StdEncoding.EncodeToString(logoData)
-				logoWriter.Write([]byte(chunkBase64(encoded)))
+				if _, err := logoWriter.Write([]byte(chunkBase64(encoded))); err != nil {
+					utils.LogError("MailService: failed to write logo to multipart: %v", err)
+				}
 			}
 		}
 	}
@@ -192,7 +181,9 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 		if err != nil {
 			return nil, fmt.Errorf("failed to open attachment: %w", err)
 		}
-		defer file.Close()
+		defer func() {
+			_ = file.Close()
+		}()
 
 		fileName := filepath.Base(attachmentPath)
 		attachmentHeader := make(textproto.MIMEHeader)
@@ -211,10 +202,14 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 		}
 
 		encoded := base64.StdEncoding.EncodeToString(attachmentData)
-		attachmentWriter.Write([]byte(chunkBase64(encoded)))
+		if _, err := attachmentWriter.Write([]byte(chunkBase64(encoded))); err != nil {
+			return nil, fmt.Errorf("failed to write attachment to multipart: %w", err)
+		}
 	}
 
-	writer.Close()
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
 	return buf.Bytes(), nil
 }
 

@@ -93,7 +93,13 @@ class ProcessMeetingUseCase(
 
             // 3. Summarize
             emit(MeetingProcessState.Summarizing)
-            summarizeTextUseCase(translatedText!!, targetLang.lowercase(), "meeting_minutes", macAddress, token).collect { result ->
+            summarizeTextUseCase(
+                translatedText!!,
+                targetLang.lowercase(),
+                "meeting_minutes",
+                macAddress,
+                token
+            ).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         emit(MeetingProcessState.Summarizing)

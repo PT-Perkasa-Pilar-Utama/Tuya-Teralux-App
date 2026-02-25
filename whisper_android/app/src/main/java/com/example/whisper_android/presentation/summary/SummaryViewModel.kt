@@ -80,12 +80,18 @@ class SummaryViewModel : ViewModel() {
             return
         }
 
+        val recipients = email.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        if (recipients.isEmpty()) {
+            _emailState.value = UiState.Error("At least one valid email address is required.")
+            return
+        }
+
         viewModelScope.launch {
             val sendEmailUseCase =
                 com.example.whisper_android.data.di.NetworkModule.sendEmailUseCase
 
             sendEmailUseCase(
-                to = email,
+                to = recipients,
                 subject = subject,
                 template = "summary",
                 token = token,
@@ -123,16 +129,24 @@ class SummaryViewModel : ViewModel() {
             return
         }
 
+        val overrideEmails = if (macAddress.contains("@")) {
+            macAddress.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        } else {
+            null
+        }
+
         viewModelScope.launch {
             val sendEmailByMacUseCase =
                 com.example.whisper_android.data.di.NetworkModule.sendEmailByMacUseCase
 
             sendEmailByMacUseCase(
-                macAddress = macAddress,
+                // If it's email, MAC lookup is irrelevant but usecase needs a value or override
+                macAddress = if (overrideEmails != null) "" else macAddress,
                 subject = subject,
                 template = "summary",
                 token = token,
-                attachmentPath = null
+                attachmentPath = null,
+                overrideEmails = overrideEmails
             ).collectLatest { resource ->
                 when (resource) {
                     is Resource.Loading -> {

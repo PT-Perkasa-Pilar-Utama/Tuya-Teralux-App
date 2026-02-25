@@ -2,6 +2,7 @@ package com.example.whisper_android.data.repository
 
 import com.example.whisper_android.common.util.getErrorMessage
 import com.example.whisper_android.data.remote.api.EmailApi
+import com.example.whisper_android.data.remote.dto.SendEmailByMacRequestDto
 import com.example.whisper_android.data.remote.dto.SendEmailRequestDto
 import com.example.whisper_android.domain.repository.EmailRepository
 import com.example.whisper_android.domain.repository.Resource
@@ -9,8 +10,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
-
-import com.example.whisper_android.data.remote.dto.SendEmailByMacRequestDto
 
 class EmailRepositoryImpl(
     private val api: EmailApi
@@ -20,13 +19,21 @@ class EmailRepositoryImpl(
         subject: String,
         template: String,
         token: String,
-        attachmentPath: String?
+        attachmentPath: String?,
+        overrideEmails: List<String>?
     ): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         try {
+            val dataMap = if (overrideEmails != null && overrideEmails.isNotEmpty()) {
+                mapOf("email" to overrideEmails)
+            } else {
+                null
+            }
+
             val request = SendEmailByMacRequestDto(
                 subject = subject,
                 template = template,
+                data = dataMap,
                 attachmentPath = attachmentPath
             )
             val response = api.sendEmailByMac("Bearer $token", macAddress, request)
@@ -47,7 +54,7 @@ class EmailRepositoryImpl(
     }
 
     override suspend fun sendEmail(
-        to: String,
+        to: List<String>,
         subject: String,
         template: String,
         token: String,
@@ -56,7 +63,7 @@ class EmailRepositoryImpl(
         emit(Resource.Loading())
         try {
             val request = SendEmailRequestDto(
-                to = listOf(to),
+                to = to,
                 subject = subject,
                 template = template,
                 attachmentPath = attachmentPath

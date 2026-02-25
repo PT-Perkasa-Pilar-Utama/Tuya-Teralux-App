@@ -56,7 +56,9 @@ func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]
 		utils.LogError("MailExternalService: API request failed for MAC %s: %v", macAddress, err)
 		return nil, fmt.Errorf("external API request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		utils.LogError("MailExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)

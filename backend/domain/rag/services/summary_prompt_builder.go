@@ -61,145 +61,126 @@ func (pc *PromptConfig) BuildPrompt(transcript string) string {
 	structural := fmt.Sprintf(`### STRUCTURAL REQUIREMENTS
 1. **Language**: All output in %s.
 2. **Analysis Over Description**: Not just "what was said" but "what it means".
-3. **Formatting**: Markdown headers, tables, status indicators (☐/⏳/✅ for actions, 🟢🟡🔴 for risks).
+3. **Formatting**: Markdown headers, tables, status indicators.
+4. **Sequential Numbering**: Number all primary sections sequentially (1, 2, 3...) in the final output. If a section is omitted, the next section must continue the correct sequence without gaps. Sub-sections must follow the parent number (e.g., 2.1, 2.2).
 
 ### ANTI-HALLUCINATION & DYNAMIC UX RULES (CRITICAL)
 1. **DO NOT INVENT NAMES**: If a person's name, role, or specific assignment is not explicitly stated in the transcript, DO NOT make one up.
 2. **OMIT EMPTY SECTIONS**: This is extremely important. If there is no information in the audio for a specific section (e.g., no Action Items, no Decisions, or no Risks), DO NOT write "Tidak ada", "N/A", or placeholders. **COMPLETELY REMOVE / OMIT that section and its header from your final output.**
-3. **FLEXIBLE STRUCTURE**: The template below is just a guide. You are encouraged to merge topics, change section titles, or add new sections if it better fits the flow of the meeting. You do not need to strictly follow the numbering. Only keep sections that bring value based on the transcript.`, pc.Language)
+3. **FLEXIBLE STRUCTURE**: The template below is just a guide. You are encouraged to merge topics, change section titles, or add new sections if it better fits the flow of the meeting. Keep sections that bring value based on the transcript.`, pc.Language)
 
 	// Output Structure based on User Template
 	var outputStructure string
 	if strings.Contains(strings.ToLower(pc.Language), "english") {
 		outputStructure = `### SUGGESTED OUTPUT STRUCTURE (FLEXIBLE: OMIT SECTIONS WITH NO CONTENT)
 
-# 📋 MEETING SUMMARY TEMPLATE
+# AGENDA: [Inferred concise meeting context/objective]
 
-## [Meeting Code/Date]: [Meeting Title]
-
-**Date & Time:** [YYYY-MM-DD HH:MM] (Use ` + pc.Date + ` if available)
-**Location:** [Meeting Location] (Use ` + pc.Location + ` if available)
-**Participants:**
-* [Name 1]
-* [Name 2]
- (Use ` + pc.Participants + ` as reference. If nobody is mentioned and reference is empty, write "Not Mentioned")
+# Background & Objective
+Briefly describe the meeting context, objective, and overall goal as inferred from the transcript.
 
 ---
 
-# 1️⃣ Background & Objective
-Brief description of the meeting context and objective.
+# Main Discussion
+Provide a deep, multi-topic analysis of the conversations. Split this into logical sub-sections if there are different themes.
+## [Section #].1 [Main Topic 1]
+Detailed explanation of this topic, key points raised, and their significance.
+### 📌 Breakdown (If applicable)
+* Specific notes or sub-topics...
+
+## [Section #].2 [Main Topic 2]
+* Comprehensive bullet points analyzing the outcomes or disagreements...
 
 ---
 
-# 2️⃣ Main Discussion
-## 2.1 [Main Topic 1]
-Brief explanation of this topic.
-### 📌 Breakdown (If there are sessions/days)
-#### Day One – [Date]
-* Agenda & Notes...
-
-## 2.2 [Main Topic 2]
-* Bullet points...
-
----
-
-# 3️⃣ Roles & Responsibilities
+# Roles & Responsibilities
+Detail who is responsible for what, identifying roles explicitly mentioned.
 | Party / Name | Responsibility |
 |---|---|
 | (Do not invent names) | ... |
 
 ---
 
-# 4️⃣ Action Items
+# Action Items
 | No | Task | PIC | Deadline | Status |
 |---|---|---|---|---|
-| 1 | description | name (do not invent) | date | ☐/⏳/✅ |
+| 1 | description | name (do not invent) | date | status text |
 
 ---
 
-# 5️⃣ Decisions Made
-1. List decisions...
+# Decisions Made
+1. List all key decisions agreed upon during the meeting.
 
 ---
 
-# 6️⃣ Open Issues / Pending Discussion
-1. List open issues...
+# Open Issues / Pending Discussion
+1. List topics that were discussed but not resolved.
 
 ---
 
-# 7️⃣ Risks & Mitigation
+# Risks & Mitigation
 | Risk | Impact | Mitigation |
 |---|---|---|
 
 ---
 
-# 8️⃣ Additional Notes
-Other things to note.`
+# Additional Notes
+Other noteworthy observations.`
 	} else {
 		outputStructure = `### SUGGESTED OUTPUT STRUCTURE (FLEXIBLE: OMIT SECTIONS WITH NO CONTENT)
 
-# 📋 TEMPLATE SUMMARY MEETING
+# AGENDA: [Ringkasan singkat konteks/tujuan rapat yang disimpulkan]
 
-## [Kode/Tanggal] Rapat: [Judul Rapat]
-
-**Tanggal & Waktu:** [YYYY-MM-DD HH:MM] (Use ` + pc.Date + ` if available)
-**Lokasi:** [Lokasi Rapat] (Use ` + pc.Location + ` if available)
-**Peserta:**
-* [Nama 1]
-* [Nama 2]
- (Use ` + pc.Participants + ` as reference. If nobody is mentioned and reference is empty, write "Tidak Disebutkan")
+# Latar Belakang & Tujuan
+Deskripsi singkat mengenai konteks, tujuan, dan sasaran utama rapat berdasarkan transkrip.
 
 ---
 
-# 1️⃣ Latar Belakang & Tujuan
-Deskripsi singkat mengenai konteks dan tujuan rapat.
+# Pembahasan Utama
+Berikan analisis mendalam untuk setiap topik besar. Pecah menjadi sub-bagian logis jika ada tema yang berbeda.
+## [Section #].1 [Topik Besar 1]
+Penjelasan mendalam mengenai topik ini, poin-poin kunci yang diangkat, dan signifikansinya.
+### 📌 Sub-Acara / Breakdown (Jika ada)
+* Agenda & Catatan spesifik...
+
+## [Section #].2 [Topik Besar 2]
+* Analisis komprehensif mengenai hasil diskusi atau perdebatan...
 
 ---
 
-# 2️⃣ Pembahasan Utama
-## 2.1 [Topik Besar 1]
-Penjelasan ringkas mengenai topik ini.
-### 📌 Sub-Acara / Breakdown (Jika ada breakdown sesi/hari)
-#### Hari Pertama – [Tanggal]
-* Agenda & Catatan...
-
-## 2.2 [Topik Besar 2]
-* Bullet points...
-
----
-
-# 3️⃣ Pembagian Peran & Tanggung Jawab
+# Pembagian Peran & Tanggung Jawab
+Detailkan siapa yang bertanggung jawab atas apa, gunakan nama yang disebutkan.
 | Pihak / Nama | Tanggung Jawab |
 |---|---|
-| (Do not invent names) | ... |
+| (Jangan mengarang nama) | ... |
 
 ---
 
-# 4️⃣ Rencana Kerja (Action Items)
+# Rencana Kerja (Action Items)
 | No | Tugas | PIC | Deadline | Status |
 |---|---|---|---|---|
-| 1 | description | name (do not invent) | date | ☐/⏳/✅ |
+| 1 | deskripsi tugas | nama (jangan mengarang) | tanggal | status teks |
 
 ---
 
-# 5️⃣ Keputusan yang Disepakati
-1. List keputusan...
+# Keputusan yang Disepakati
+1. Daftar semua keputusan penting yang disepakati selama rapat.
 
 ---
 
-# 6️⃣ Isu Terbuka / Pending Discussion
-1. List isu terbuka...
+# Isu Terbuka / Pending Discussion
+1. Daftar topik yang dibahas namun belum mencapai keputusan akhir.
 
 ---
 
-# 7️⃣ Risiko & Mitigasi
+# Risiko & Mitigasi
 | Risiko | Dampak | Mitigasi |
 |---|---|---|
 
 ---
 
-# 8️⃣ Catatan Tambahan
-Hal lain yang perlu diperhatikan.`
+# Catatan Tambahan
+Hal-hal penting lainnya yang perlu dicatat.`
 	}
 
 	prompt := fmt.Sprintf(`### ROLE & MANDATE

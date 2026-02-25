@@ -80,10 +80,18 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
     // Proactive Request on Launch
     LaunchedEffect(Unit) {
         val permissionsToRequest = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        val hasRecordAuth = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) != PackageManager.PERMISSION_GRANTED
+        if (hasRecordAuth) {
             permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
         }
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        val hasStorageAuth = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) != PackageManager.PERMISSION_GRANTED
+        if (hasStorageAuth) {
             permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
 
@@ -182,7 +190,8 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Experience private, high-fidelity transcription for your enterprise meetings.",
+                            text = "Experience private, high-fidelity transcription for " +
+                                "your enterprise meetings.",
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                             lineHeight = 26.sp,
@@ -263,7 +272,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         )
                     }
                     Spacer(modifier = Modifier.height(48.dp))
-                    
+
                     RegisterCard(
                         name = name,
                         onNameChange = {

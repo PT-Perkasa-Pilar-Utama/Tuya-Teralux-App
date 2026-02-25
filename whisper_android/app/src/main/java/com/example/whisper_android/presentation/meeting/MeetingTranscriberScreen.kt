@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.whisper_android.domain.usecase.MeetingProcessState
 import com.example.whisper_android.presentation.components.EmailInputDialog
-import com.example.whisper_android.util.DeviceUtils
 import com.example.whisper_android.presentation.components.FeatureBackground
 import com.example.whisper_android.presentation.components.FeatureHeader
 import com.example.whisper_android.presentation.components.FeatureMainCard
@@ -50,6 +49,7 @@ import com.example.whisper_android.presentation.meeting.components.MeetingIdleCo
 import com.example.whisper_android.presentation.meeting.components.MeetingLoadingContent
 import com.example.whisper_android.presentation.meeting.components.MeetingRecordingContent
 import com.example.whisper_android.presentation.meeting.components.MeetingSuccessContent
+import com.example.whisper_android.util.DeviceUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -107,7 +107,8 @@ fun MeetingTranscriberScreen(
             }
 
             is UiState.Error -> {
-                Toast.makeText(context, (emailState as UiState.Error).message, Toast.LENGTH_LONG).show()
+                val errorMsg = (emailState as UiState.Error).message
+                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                 viewModel.resetEmailState()
             }
 
@@ -121,7 +122,8 @@ fun MeetingTranscriberScreen(
                 scope.launch(Dispatchers.IO) {
                     val contentResolver = context.contentResolver
                     val type = contentResolver.getType(selectedUri)
-                    val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(type) ?: "m4a"
+                    val extension = MimeTypeMap.getSingleton()
+                        .getExtensionFromMimeType(type) ?: "m4a"
                     val outputFile = java.io.File(context.cacheDir, "upload_audio.$extension")
                     try {
                         contentResolver.openInputStream(selectedUri)?.use { input ->
@@ -150,7 +152,9 @@ fun MeetingTranscriberScreen(
     ) { }
 
     val storagePermissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
             if (isGranted) {
                 Toast.makeText(
                     context,
@@ -166,7 +170,10 @@ fun MeetingTranscriberScreen(
             }
         }
 
-    val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    val hasPermission = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
 
     FeatureBackground {
         Scaffold(
@@ -176,9 +183,10 @@ fun MeetingTranscriberScreen(
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 2.dp).padding(
-                        bottom = 60.dp
-                    ),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                        .padding(bottom = 60.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     FeatureMainCard(modifier = Modifier.weight(1f)) {
@@ -189,7 +197,10 @@ fun MeetingTranscriberScreen(
                                 summaryLanguage = summaryLanguage,
                                 onLanguageSelected = { summaryLanguage = it },
                                 onDownloadClick = { url ->
-                                    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    val isLegacyStorage =
+                                        android.os.Build.VERSION.SDK_INT <
+                                            android.os.Build.VERSION_CODES.TIRAMISU
+                                    if (isLegacyStorage) {
                                         if (ContextCompat.checkSelfPermission(
                                                 context,
                                                 Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -243,12 +254,10 @@ fun MeetingTranscriberScreen(
                     uiState = uiState,
                     pulseScale = pulseScale,
                     onMicClick = {
-                        if (!isRecording &&
-                            (
-                                uiState is MeetingProcessState.Idle || uiState is MeetingProcessState.Success ||
-                                    uiState is MeetingProcessState.Error
-                                )
-                        ) {
+                        val canRecord = uiState is MeetingProcessState.Idle ||
+                            uiState is MeetingProcessState.Success ||
+                            uiState is MeetingProcessState.Error
+                        if (!isRecording && canRecord) {
                             if (!hasPermission) {
                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             } else {
@@ -261,9 +270,10 @@ fun MeetingTranscriberScreen(
                         }
                     },
                     onUploadClick = {
-                        if (uiState is MeetingProcessState.Idle || uiState is MeetingProcessState.Success ||
+                        val canUpload = uiState is MeetingProcessState.Idle ||
+                            uiState is MeetingProcessState.Success ||
                             uiState is MeetingProcessState.Error
-                        ) {
+                        if (canUpload) {
                             launcher.launch("audio/*")
                         }
                     },

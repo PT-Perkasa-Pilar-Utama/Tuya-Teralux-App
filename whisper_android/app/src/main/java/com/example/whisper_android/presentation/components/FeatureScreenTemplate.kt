@@ -262,7 +262,7 @@ fun FeatureScreenTemplate(
                                     isProcessing = isProcessing || thinkingState,
                                     isPaused = isPaused,
                                     hasPermission = hasPermission,
-                                    size = if (isRecording) 64.dp else 80.dp, // Shrink a bit when stop is shown
+                                    size = if (isRecording) 64.dp else 80.dp,
                                     onClick = onMicClick
                                 )
 

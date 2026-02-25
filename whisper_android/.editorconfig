@@ -1,6 +1,7 @@
 [*.{kt,kts}]
 indent_size = 4
 insert_final_newline = true
-ktlint_standard_package-name = disabled
 ktlint_package-name = disabled
+ktlint_standard_package-name = disabled
+ktlint_standard_no-package-name-with-underscore = disabled
 ktlint_code_style = android

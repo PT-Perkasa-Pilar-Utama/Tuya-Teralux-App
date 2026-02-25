@@ -12,8 +12,16 @@ class SendEmailByMacUseCase(
         subject: String,
         template: String,
         token: String,
-        attachmentPath: String? = null
+        attachmentPath: String? = null,
+        overrideEmails: List<String>? = null
     ): Flow<Resource<Boolean>> {
-        return emailRepository.sendEmailByMac(macAddress, subject, template, token, attachmentPath)
+        return emailRepository.sendEmailByMac(
+            macAddress,
+            subject,
+            template,
+            token,
+            attachmentPath,
+            overrideEmails
+        )
     }
 }

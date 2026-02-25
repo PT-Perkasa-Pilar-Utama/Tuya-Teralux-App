@@ -8,7 +8,7 @@ class SendEmailUseCase(
     private val emailRepository: EmailRepository
 ) {
     suspend operator fun invoke(
-        to: String,
+        to: List<String>,
         subject: String,
         template: String,
         token: String,

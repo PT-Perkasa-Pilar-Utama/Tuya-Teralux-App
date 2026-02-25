@@ -51,10 +51,16 @@ class MeetingViewModel(
             return
         }
 
+        val recipients = email.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        if (recipients.isEmpty()) {
+            _emailState.value = UiState.Error("At least one valid email address is required.")
+            return
+        }
+
         viewModelScope.launch {
             NetworkModule
                 .sendEmailUseCase(
-                    to = email,
+                    to = recipients,
                     subject = subject,
                     template = "summary",
                     token = token,
@@ -68,7 +74,9 @@ class MeetingViewModel(
                             _emailState.value = UiState.Success(true)
                         }
                         is Resource.Error -> {
-                            _emailState.value = UiState.Error(resource.message ?: "Failed to send email")
+                            _emailState.value = UiState.Error(
+                                resource.message ?: "Failed to send email"
+                            )
                         }
                     }
                 }
@@ -90,14 +98,21 @@ class MeetingViewModel(
             return
         }
 
+        val overrideEmails = if (macAddress.contains("@")) {
+            macAddress.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        } else {
+            null
+        }
+
         viewModelScope.launch {
             NetworkModule
                 .sendEmailByMacUseCase(
-                    macAddress = macAddress,
+                    macAddress = if (overrideEmails != null) "" else macAddress,
                     subject = subject,
                     template = "summary",
                     token = token,
-                    attachmentPath = state.pdfUrl
+                    attachmentPath = state.pdfUrl,
+                    overrideEmails = overrideEmails
                 ).collectLatest { resource ->
                     when (resource) {
                         is Resource.Loading -> {
@@ -107,7 +122,9 @@ class MeetingViewModel(
                             _emailState.value = UiState.Success(true)
                         }
                         is Resource.Error -> {
-                            _emailState.value = UiState.Error(resource.message ?: "Failed to send email by MAC")
+                            _emailState.value = UiState.Error(
+                                resource.message ?: "Failed to send email by MAC"
+                            )
                         }
                     }
                 }
