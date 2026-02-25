@@ -174,7 +174,7 @@ fun AiAssistantScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            "Whisper Intelligence",
+                            "Sensio Intelligence",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),

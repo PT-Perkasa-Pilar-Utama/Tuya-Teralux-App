@@ -27,7 +27,7 @@ fun WhisperLogo(
     ) {
         Image(
             painter = painterResource(id = R.drawable.sensio_icon),
-            contentDescription = "Whisper Logo",
+            contentDescription = "Sensio Logo",
             modifier = Modifier.size(40.dp),
             colorFilter =
             androidx.compose.ui.graphics.ColorFilter
@@ -35,7 +35,7 @@ fun WhisperLogo(
         )
 
         Text(
-            text = "Whisper",
+            text = "Sensio",
             fontSize = 32.sp,
             fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.primary,

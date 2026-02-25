@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.whisper_android.presentation.dashboard.DashboardScreen
 import com.example.whisper_android.presentation.register.RegisterScreen
-import com.example.whisper_android.ui.theme.SmartMeetingRoomWhisperDemoTheme
+import com.example.whisper_android.ui.theme.SensioTheme
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
             .setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
         setContent {
-            SmartMeetingRoomWhisperDemoTheme {
+            SensioTheme {
                 val context = androidx.compose.ui.platform.LocalContext.current
                 var permissionsGranted by remember {
                     androidx.compose.runtime.mutableStateOf(false)
@@ -134,7 +134,7 @@ fun Greeting(
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    SmartMeetingRoomWhisperDemoTheme {
+    SensioTheme {
         Greeting("Android")
     }
 }
