@@ -66,16 +66,3 @@ func toSceneItemDTOs(scenes []entities.Scene) []scene_dtos.SceneItemDTO {
 	}
 	return result
 }
-
-func toSceneResponseDTOs(scenes []entities.Scene) []scene_dtos.SceneResponseDTO {
-	result := make([]scene_dtos.SceneResponseDTO, len(scenes))
-	for i, s := range scenes {
-		result[i] = scene_dtos.SceneResponseDTO{
-			ID:        s.ID,
-			TeraluxID: s.TeraluxID,
-			Name:      s.Name,
-			Actions:   toActionDTOs(s.Actions),
-		}
-	}
-	return result
-}

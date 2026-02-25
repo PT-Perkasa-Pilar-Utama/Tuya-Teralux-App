@@ -2565,6 +2565,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Meeting Room A"
                 },
+                "mac_address": {
+                    "type": "string",
+                    "example": "AA:BB:CC:DD:EE:FF"
+                },
                 "participants": {
                     "type": "array",
                     "items": {
@@ -2675,8 +2679,14 @@ const docTemplate = `{
                     "example": "John Doe"
                 },
                 "email": {
-                    "type": "string",
-                    "example": "override@example.com"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "override@example.com",
+                        "user2@example.com"
+                    ]
                 }
             }
         },

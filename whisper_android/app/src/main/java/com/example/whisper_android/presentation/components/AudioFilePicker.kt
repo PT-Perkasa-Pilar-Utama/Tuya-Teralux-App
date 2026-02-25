@@ -53,7 +53,11 @@ fun AudioFilePicker(
             contentDescription = "Upload Audio File",
             tint =
             if (enabled) {
-                if (hasPermission) tint else MaterialTheme.colorScheme.error // Red if permission missing
+                if (hasPermission) {
+                    tint
+                } else {
+                    MaterialTheme.colorScheme.error // Red if permission missing
+                }
             } else {
                 disabledTint
             }

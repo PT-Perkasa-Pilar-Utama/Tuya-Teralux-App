@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"teralux_app/domain/common/utils"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,9 @@ import (
 
 func TestApiKeyMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	_ = os.Setenv("GO_TEST", "true")
+	defer func() { _ = os.Unsetenv("GO_TEST") }()
+	utils.AppConfig = nil // Force config reload with test env vars
 
 	t.Run("Valid API Key", func(t *testing.T) {
 		// Set valid API key in environment

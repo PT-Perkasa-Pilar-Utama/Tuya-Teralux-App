@@ -51,7 +51,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             SmartMeetingRoomWhisperDemoTheme {
                 val context = androidx.compose.ui.platform.LocalContext.current
-                var permissionsGranted by remember { androidx.compose.runtime.mutableStateOf(false) }
+                var permissionsGranted by remember {
+                    androidx.compose.runtime.mutableStateOf(false)
+                }
 
                 val launcher =
                     androidx.activity.compose.rememberLauncherForActivityResult(
@@ -70,7 +72,10 @@ class MainActivity : ComponentActivity() {
                             android.Manifest.permission.RECORD_AUDIO
                         )
 
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    val isTiramisu =
+                        android.os.Build.VERSION.SDK_INT >=
+                            android.os.Build.VERSION_CODES.TIRAMISU
+                    if (isTiramisu) {
                         permissionsToRequest.add(android.Manifest.permission.READ_MEDIA_AUDIO)
                     } else {
                         permissionsToRequest.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)

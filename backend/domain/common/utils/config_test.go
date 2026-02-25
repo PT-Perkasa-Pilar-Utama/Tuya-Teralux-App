@@ -7,8 +7,12 @@ import (
 
 func TestLoadConfig(t *testing.T) {
 	// Backup original env vars relative to this test
+	_ = os.Setenv("GO_TEST", "true")
 	originalClientID := os.Getenv("TUYA_CLIENT_ID")
-	defer func() { _ = os.Setenv("TUYA_CLIENT_ID", originalClientID) }()
+	defer func() {
+		_ = os.Setenv("TUYA_CLIENT_ID", originalClientID)
+		_ = os.Unsetenv("GO_TEST")
+	}()
 
 	// Set test env var
 	testID := "test_client_id"
@@ -35,11 +39,13 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 	for _, k := range keys {
 		backup[k] = os.Getenv(k)
 	}
+	_ = os.Setenv("GO_TEST", "true")
 	defer func() {
 		for k, v := range backup {
 			_ = os.Setenv(k, v)
 		}
 		AppConfig = nil
+		_ = os.Unsetenv("GO_TEST")
 	}()
 
 	_ = os.Setenv("GEMINI_MODEL_HIGH", "gemini-test")
@@ -68,7 +74,12 @@ func TestLoadConfig_SetsValues(t *testing.T) {
 
 func TestLoadConfig_InvalidMaxFileSize(t *testing.T) {
 	backup := os.Getenv("MAX_FILE_SIZE_MB")
-	defer func() { _ = os.Setenv("MAX_FILE_SIZE_MB", backup) }()
+	_ = os.Setenv("GO_TEST", "true")
+	defer func() {
+		_ = os.Setenv("MAX_FILE_SIZE_MB", backup)
+		_ = os.Unsetenv("GO_TEST")
+	}()
+
 	_ = os.Setenv("MAX_FILE_SIZE_MB", "notanumber")
 	AppConfig = nil
 	LoadConfig()

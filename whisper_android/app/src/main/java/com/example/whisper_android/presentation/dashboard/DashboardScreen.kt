@@ -200,7 +200,8 @@ fun DashboardContent(
                 ) {
                     DashboardFeatureCard(
                         title = "Meeting Transcriber & Summary",
-                        description = "Record, transcribe, and generate summaries of your meetings.",
+                        description = "Record, transcribe, and generate " +
+                            "summaries of your meetings.",
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.Groups,

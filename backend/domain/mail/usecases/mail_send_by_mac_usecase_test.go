@@ -38,8 +38,6 @@ func TestMailSendByMacUseCase_SendMailByMac_Validation(t *testing.T) {
 	})
 
 	t.Run("Valid UUID Format", func(t *testing.T) {
-		// This should pass validation.
-		// If external API is reachable, it might try to send email.
 		taskID, err := uc.SendMailByMac("db329671-96bb-368b-95d3-53a3a3712563", &dtos.SendMailByMacRequestDTO{Subject: "Test"})
 
 		if err != nil {
@@ -48,5 +46,27 @@ func TestMailSendByMacUseCase_SendMailByMac_Validation(t *testing.T) {
 		} else {
 			assert.NotEmpty(t, taskID)
 		}
+	})
+
+	t.Run("Valid Array Recipients Passing", func(t *testing.T) {
+		taskID, err := uc.SendMailByMac("AA:BB:CC:DD:EE:FF", &dtos.SendMailByMacRequestDTO{
+			Subject: "Test",
+			Data: map[string]interface{}{
+				"email": []string{"user1@example.com", "user2@example.com"},
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, taskID)
+	})
+
+	t.Run("Valid Comma Recipients Backward Compatibility", func(t *testing.T) {
+		taskID, err := uc.SendMailByMac("AA:BB:CC:DD:EE:FF", &dtos.SendMailByMacRequestDTO{
+			Subject: "Test",
+			Data: map[string]interface{}{
+				"email": "user1@example.com, user2@example.com",
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, taskID)
 	})
 }

@@ -53,7 +53,8 @@ class GoogleSpeechWakeWordManager(
                     when (error) {
                         SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
                         SpeechRecognizer.ERROR_CLIENT -> "Client side error"
-                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Insufficient permissions"
+                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
+                            "Insufficient permissions"
                         SpeechRecognizer.ERROR_NETWORK -> "Network error"
                         SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
                         SpeechRecognizer.ERROR_NO_MATCH -> "No match"

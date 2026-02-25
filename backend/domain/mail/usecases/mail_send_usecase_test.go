@@ -14,12 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createTestTemplate(t *testing.T, svc *services.MailService, name string) func() {
+func createTestTemplate(_ *testing.T, svc *services.MailService, name string) func() {
 	tmpDir, _ := os.MkdirTemp("", "templates")
 	tmplPath := filepath.Join(tmpDir, name+".html")
-	os.WriteFile(tmplPath, []byte("<h1>Test</h1>"), 0644)
+	_ = os.WriteFile(tmplPath, []byte("<h1>Test</h1>"), 0644)
 	svc.SetTemplateDir(tmpDir)
-	return func() { os.RemoveAll(tmpDir) }
+	return func() { _ = os.RemoveAll(tmpDir) }
 }
 
 func TestMailSendUseCase_SendMail_DefaultTemplate(t *testing.T) {

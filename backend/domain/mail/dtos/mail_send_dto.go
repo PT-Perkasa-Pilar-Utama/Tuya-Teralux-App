@@ -44,14 +44,15 @@ func (s *MailStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
 
 // SwaggerEmailTemplateData represents the expected map structure for the email template (used for Swagger Docs only)
 type SwaggerEmailTemplateData struct {
-	Email            string `json:"email,omitempty" example:"override@example.com"`
-	CustomerName     string `json:"customer_name" example:"John Doe"`
-	CustomerCompany  string `json:"customer_company" example:"PT Perkasa Pilar Utama"`
-	BookingDate      string `json:"booking_date" example:"24 Februari 2026"`
-	BookingTimeStart string `json:"booking_time_start" example:"10:00"`
-	BookingTimeStop  string `json:"booking_time_stop" example:"12:00"`
-	BookingPlace     string `json:"booking_place" example:"Lt. 3"`
-	BookingRoom      string `json:"booking_room" example:"Ruang Cendrawasih"`
+	Email            []string `json:"email,omitempty" example:"override@example.com,user2@example.com"`
+	CustomerName     string   `json:"customer_name" example:"John Doe"`
+	CustomerCompany  string   `json:"customer_company" example:"PT Perkasa Pilar Utama"`
+	BookingDate      string   `json:"booking_date" example:"24 Februari 2026"`
+	BookingTimeStart string   `json:"booking_time_start" example:"10:00"`
+	BookingTimeStop  string   `json:"booking_time_stop" example:"12:00"`
+	BookingPlace     string   `json:"booking_place" example:"Lt. 3"`
+	BookingRoom      string   `json:"booking_room" example:"Ruang Cendrawasih"`
+	AgendaContext    string   `json:"agenda_context" example:"Persiapan Kunjungan UNIAPEC"`
 }
 
 // SwaggerMailSendRequestDTO is used to generate proper Swagger documentation for the generic map

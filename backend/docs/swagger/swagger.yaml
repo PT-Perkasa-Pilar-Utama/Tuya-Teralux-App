@@ -203,6 +203,9 @@ definitions:
       location:
         example: Meeting Room A
         type: string
+      mac_address:
+        example: AA:BB:CC:DD:EE:FF
+        type: string
       participants:
         example:
         - '["Alice"'
@@ -281,8 +284,12 @@ definitions:
         example: John Doe
         type: string
       email:
-        example: override@example.com
-        type: string
+        example:
+        - override@example.com
+        - user2@example.com
+        items:
+          type: string
+        type: array
     type: object
   dtos.SwaggerMailSendRequestDTO:
     properties:

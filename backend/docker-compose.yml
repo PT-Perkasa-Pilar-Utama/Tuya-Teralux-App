@@ -18,6 +18,7 @@ services:
       start_period: 40s
     volumes:
       - ./bin:/app/models
+      - ./templates:/app/templates
 
   teralux-db:
     image: mysql:8.0

@@ -37,7 +37,9 @@ fun VerticalScrollbar(
 ) {
     val showScrollbar by remember {
         derivedStateOf {
-            lazyListState.layoutInfo.visibleItemsInfo.size < lazyListState.layoutInfo.totalItemsCount
+            val layoutInfo = lazyListState.layoutInfo
+            val visibleCount = layoutInfo.visibleItemsInfo.size
+            visibleCount < layoutInfo.totalItemsCount
         }
     }
 
@@ -50,7 +52,9 @@ fun VerticalScrollbar(
 
         val visibleItemsInfo = lazyListState.layoutInfo.visibleItemsInfo
         val totalItemsCount = lazyListState.layoutInfo.totalItemsCount
-        val viewportHeight = lazyListState.layoutInfo.viewportEndOffset - lazyListState.layoutInfo.viewportStartOffset
+        val viewportHeight =
+            lazyListState.layoutInfo.viewportEndOffset -
+                lazyListState.layoutInfo.viewportStartOffset
 
         BoxWithConstraints(modifier = modifier.fillMaxHeight().width(width)) {
             val maxHeight = maxHeight
@@ -60,7 +64,8 @@ fun VerticalScrollbar(
             val averageItemHeight = visibleItemsInfo.map { it.size }.average().toFloat()
             val estimatedTotalHeight = averageItemHeight * totalItemsCount
             val currentScrollPosition =
-                (lazyListState.firstVisibleItemIndex * averageItemHeight) + lazyListState.firstVisibleItemScrollOffset
+                (lazyListState.firstVisibleItemIndex * averageItemHeight) +
+                    lazyListState.firstVisibleItemScrollOffset
 
             // Calculate ratios
             val thumbHeightRatio = (viewportHeight.toFloat() / estimatedTotalHeight).coerceIn(
@@ -117,10 +122,12 @@ fun VerticalScrollbar(
 
             // Calculate thumb height and offset
             val totalContentHeight = scrollState.maxValue + maxHeight.value
-            val thumbHeight = (maxHeight.value / totalContentHeight * maxHeight.value).dp.coerceAtLeast(
-                40.dp
-            )
-            val thumbOffset = (scrollState.value.toFloat() / scrollState.maxValue * (maxHeight.value - thumbHeight.value)).dp
+            val thumbHeightRaw = maxHeight.value / totalContentHeight * maxHeight.value
+            val thumbHeight = thumbHeightRaw.dp.coerceAtLeast(40.dp)
+            val thumbOffset = (
+                scrollState.value.toFloat() / scrollState.maxValue *
+                    (maxHeight.value - thumbHeight.value)
+                ).dp
 
             Box(
                 modifier =

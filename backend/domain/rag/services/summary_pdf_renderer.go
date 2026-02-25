@@ -107,7 +107,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 	}
 
 	// Load templates
-	tmplDir := filepath.Join(basePath, "domain/rag/templates")
+	tmplDir := filepath.Join(basePath, "templates", "pdf")
 	t, err := template.ParseGlob(filepath.Join(tmplDir, "*.html"))
 	if err != nil {
 		return fmt.Errorf("failed to parse templates: %w", err)
@@ -137,13 +137,16 @@ func generatePDFFromHTML(htmlContent string, outputPath string) error {
 	page.MustSetDocumentContent(htmlContent)
 	page.MustWaitLoad()
 
-	margin := 0.4
+	marginTop := 0.75
+	marginBottom := 0.75
+	marginLeft := 0.6
+	marginRight := 0.6
 	pdfStream, err := page.PDF(&proto.PagePrintToPDF{
 		PrintBackground: true,
-		MarginTop:       &margin,
-		MarginBottom:    &margin,
-		MarginLeft:      &margin,
-		MarginRight:     &margin,
+		MarginTop:       &marginTop,
+		MarginBottom:    &marginBottom,
+		MarginLeft:      &marginLeft,
+		MarginRight:     &marginRight,
 	})
 	if err != nil {
 		return err

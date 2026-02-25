@@ -111,7 +111,11 @@ fun SummaryPreviewScreen(
                                 .widthIn(min = 50.dp),
                             colors =
                             ButtonDefaults.buttonColors(
-                                containerColor = if (selectedLanguage == "id") MaterialTheme.colorScheme.primary else Color.White
+                                containerColor = if (selectedLanguage == "id") {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    Color.White
+                                }
                             ),
                             shape = RoundedCornerShape(16.dp),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
@@ -132,7 +136,11 @@ fun SummaryPreviewScreen(
                                 .widthIn(min = 50.dp),
                             colors =
                             ButtonDefaults.buttonColors(
-                                containerColor = if (selectedLanguage == "en") MaterialTheme.colorScheme.primary else Color.White
+                                containerColor = if (selectedLanguage == "en") {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    Color.White
+                                }
                             ),
                             shape = RoundedCornerShape(16.dp),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)

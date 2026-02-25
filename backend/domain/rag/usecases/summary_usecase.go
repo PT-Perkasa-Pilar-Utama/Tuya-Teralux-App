@@ -73,24 +73,33 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	// If MacAddress is provided, fetch booking info to complement metadata
-	if macAddress != "" && u.mailExternal != nil {
-		info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
-		if err == nil {
-			if date == "" {
-				date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
-				if date == "" || date == "<nil>" {
-					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback to other key
+	if macAddress != "" {
+		macAddress = strings.ToUpper(strings.TrimSpace(macAddress)) // Normalize MAC
+		if u.mailExternal != nil {
+			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
+			if err == nil {
+				if date == "" {
+					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
+					if date == "" || date == "<nil>" {
+						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback to other key
+					}
 				}
+				if location == "" {
+					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+				}
+				if participants == "" {
+					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
+				}
+				if meetingContext == "" {
+					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTeraluxMeetingAgenda"])
+					if apiAgenda != "" && apiAgenda != "<nil>" {
+						meetingContext = apiAgenda
+					}
+				}
+				utils.LogDebug("SummaryUseCase: Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
+			} else {
+				utils.LogWarn("SummaryUseCase: Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
 			}
-			if location == "" {
-				location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
-			}
-			if participants == "" {
-				participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
-			}
-			utils.LogDebug("SummaryUseCase: Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
-		} else {
-			utils.LogWarn("SummaryUseCase: Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
 		}
 	}
 
@@ -120,6 +129,24 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	trimmedSummary := res.Message
+	inferredAgenda := ""
+
+	// Extract # AGENDA: [content] if present
+	if strings.Contains(trimmedSummary, "# AGENDA:") {
+		lines := strings.Split(trimmedSummary, "\n")
+		for i, line := range lines {
+			if strings.HasPrefix(line, "# AGENDA:") {
+				inferredAgenda = strings.TrimSpace(strings.TrimPrefix(line, "# AGENDA:"))
+				// Remove the specific agenda line from the summary body
+				trimmedSummary = strings.Join(append(lines[:i], lines[i+1:]...), "\n")
+				break
+			}
+		}
+	}
+
+	if meetingContext == "" && inferredAgenda != "" {
+		meetingContext = inferredAgenda
+	}
 
 	// Generate PDF
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
@@ -157,9 +184,17 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
 	utils.LogDebug("RAG Summary Result: %q", trimmedSummary)
 
+	// Cache inferred agenda if MAC is provided to share with mail domain
+	if macAddress != "" && inferredAgenda != "" {
+		cacheKey := fmt.Sprintf("agenda_mac_%s", macAddress)
+		_ = u.cache.Set(cacheKey, inferredAgenda)
+		utils.LogDebug("SummaryUseCase: Cached inferred agenda for MAC %s: %s", macAddress, inferredAgenda)
+	}
+
 	return &dtos.RAGSummaryResponseDTO{
-		Summary: trimmedSummary,
-		PDFUrl:  pdfUrl,
+		Summary:       trimmedSummary,
+		PDFUrl:        pdfUrl,
+		AgendaContext: meetingContext,
 	}, nil
 }
 
@@ -279,24 +314,33 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	}
 
 	// If MacAddress is provided, fetch booking info
-	if macAddress != "" && u.mailExternal != nil {
-		info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
-		if err == nil {
-			if date == "" {
-				date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
-				if date == "" || date == "<nil>" {
-					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback
+	if macAddress != "" {
+		macAddress = strings.ToUpper(strings.TrimSpace(macAddress)) // Normalize MAC
+		if u.mailExternal != nil {
+			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
+			if err == nil {
+				if date == "" {
+					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
+					if date == "" || date == "<nil>" {
+						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback
+					}
 				}
+				if location == "" {
+					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+				}
+				if participants == "" {
+					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
+				}
+				if meetingContext == "" {
+					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTeraluxMeetingAgenda"])
+					if apiAgenda != "" && apiAgenda != "<nil>" {
+						meetingContext = apiAgenda
+					}
+				}
+				utils.LogDebug("SummaryUseCase (WithContext): Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
+			} else {
+				utils.LogWarn("SummaryUseCase (WithContext): Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
 			}
-			if location == "" {
-				location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
-			}
-			if participants == "" {
-				participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
-			}
-			utils.LogDebug("SummaryUseCase (WithContext): Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
-		} else {
-			utils.LogWarn("SummaryUseCase (WithContext): Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
 		}
 	}
 
@@ -334,6 +378,24 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	}
 
 	trimmedSummary := res.Message
+	inferredAgenda := ""
+
+	// Extract # AGENDA: Tag if present
+	if strings.Contains(trimmedSummary, "# AGENDA:") {
+		lines := strings.Split(trimmedSummary, "\n")
+		for i, line := range lines {
+			if strings.HasPrefix(line, "# AGENDA:") {
+				inferredAgenda = strings.TrimSpace(strings.TrimPrefix(line, "# AGENDA:"))
+				// Remove the header from result
+				trimmedSummary = strings.Join(append(lines[:i], lines[i+1:]...), "\n")
+				break
+			}
+		}
+	}
+
+	if meetingContext == "" && inferredAgenda != "" {
+		meetingContext = inferredAgenda
+	}
 
 	// PDF rendering with timeout
 	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
@@ -376,9 +438,17 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
 	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
 
+	// Cache inferred agenda if MAC is provided
+	if macAddress != "" && inferredAgenda != "" {
+		cacheKey := fmt.Sprintf("agenda_mac_%s", macAddress)
+		_ = u.cache.Set(cacheKey, inferredAgenda)
+		utils.LogDebug("SummaryUseCase (WithContext): Cached inferred agenda for MAC %s: %s", macAddress, inferredAgenda)
+	}
+
 	return &dtos.RAGSummaryResponseDTO{
-		Summary: trimmedSummary,
-		PDFUrl:  pdfUrl,
+		Summary:       trimmedSummary,
+		PDFUrl:        pdfUrl,
+		AgendaContext: meetingContext,
 	}, nil
 }
 

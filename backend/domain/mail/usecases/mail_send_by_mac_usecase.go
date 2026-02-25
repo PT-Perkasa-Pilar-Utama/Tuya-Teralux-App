@@ -92,13 +92,54 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	}
 
 	// Extract email from external API
-	recipientEmail, ok := info["SDTGetRoomTeraluxItemCustomerEmail"].(string)
+	rawRecipientEmail, ok := info["SDTGetRoomTeraluxItemCustomerEmail"].(string)
 
 	// Override email if provided in req.Data
-	if overrideEmail, hasOverride := req.Data["email"].(string); hasOverride && strings.TrimSpace(overrideEmail) != "" {
-		recipientEmail = strings.TrimSpace(overrideEmail)
-		utils.LogDebug("Mail Task %s (MAC): Overriding recipient email with %s", taskID, recipientEmail)
-	} else if !ok || strings.TrimSpace(recipientEmail) == "" {
+	var overriddenRecipients []string
+	if overrideData, hasOverride := req.Data["email"]; hasOverride {
+		switch v := overrideData.(type) {
+		case string:
+			trimmed := strings.TrimSpace(v)
+			if trimmed != "" {
+				if strings.Contains(trimmed, ",") {
+					parts := strings.Split(trimmed, ",")
+					for _, p := range parts {
+						tp := strings.TrimSpace(p)
+						if tp != "" {
+							overriddenRecipients = append(overriddenRecipients, tp)
+						}
+					}
+				} else {
+					overriddenRecipients = append(overriddenRecipients, trimmed)
+				}
+			}
+		case []interface{}:
+			for _, item := range v {
+				if s, ok := item.(string); ok {
+					trimmed := strings.TrimSpace(s)
+					if trimmed != "" {
+						overriddenRecipients = append(overriddenRecipients, trimmed)
+					}
+				}
+			}
+		case []string:
+			for _, s := range v {
+				trimmed := strings.TrimSpace(s)
+				if trimmed != "" {
+					overriddenRecipients = append(overriddenRecipients, trimmed)
+				}
+			}
+		}
+	}
+
+	var recipients []string
+	switch {
+	case len(overriddenRecipients) > 0:
+		recipients = overriddenRecipients
+		utils.LogDebug("Mail Task %s (MAC): Overriding recipients with %v", taskID, recipients)
+	case ok && strings.TrimSpace(rawRecipientEmail) != "":
+		recipients = []string{strings.TrimSpace(rawRecipientEmail)}
+	default:
 		utils.LogError("Mail Task %s (MAC): Customer email not found in external API and no override provided", taskID)
 		uc.updateStatus(taskID, "failed", fmt.Errorf("customer email not found for this device"), "")
 		return
@@ -136,15 +177,39 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 
 	// Map external data to template variables
 	templateData := map[string]interface{}{
-		"brand_name":         brandName,
-		"customer_name":      info["SDTGetRoomTeraluxCustomerName"],
-		"customer_company":   info["SDTGetRoomTeraluxItemCompanyName"],
-		"booking_date":       info["SDTGetRoomTeraluxtimeendDate"],
+		"brand_name":       brandName,
+		"customer_name":    info["SDTGetRoomTeraluxCustomerName"],
+		"customer_company": info["SDTGetRoomTeraluxItemCompanyName"],
+		"booking_date": func() interface{} {
+			date := info["SDTGetRoomTeraluxByendDate"]
+			if date == nil || date == "" || date == "<nil>" {
+				return info["SDTGetRoomTeraluxtimeendDate"]
+			}
+			return date
+		}(),
 		"booking_time_start": timeStart,
 		"booking_time_stop":  timeStop,
-		"booking_place":      info["SDTGetRoomTeraluxRoomName"], // Mapping room name to place as building name is missing in new API
+		"booking_place":      info["SDTGetRoomTeraluxRoomName"],
 		"booking_room":       info["SDTGetRoomTeraluxRoomName"],
-		"has_attachment":     req.AttachmentPath != nil && *req.AttachmentPath != "",
+		"agenda_context": func() interface{} {
+			// 1. Try external API
+			apiAgenda := info["SDTGetRoomTeraluxMeetingAgenda"]
+			if apiAgenda != nil && apiAgenda != "" && apiAgenda != "<nil>" {
+				return apiAgenda
+			}
+
+			// 2. Try cache (inferred from recent summary)
+			cacheKey := fmt.Sprintf("agenda_mac_%s", macAddress)
+			var cachedAgenda string
+			_, found, err := uc.cache.GetWithTTL(cacheKey, &cachedAgenda)
+			if err == nil && found && cachedAgenda != "" {
+				utils.LogDebug("MailSendByMacUseCase: Using cached inferred agenda for MAC %s", macAddress)
+				return cachedAgenda
+			}
+
+			return ""
+		}(),
+		"has_attachment": req.AttachmentPath != nil && *req.AttachmentPath != "",
 	}
 
 	// Merge with custom data from request (request data takes precedence)
@@ -175,8 +240,25 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 		}
 	}
 
-	utils.LogDebug("MailSendByMacUseCase: Sending email to %s for MAC %s", recipientEmail, macAddress)
-	err = uc.mailService.SendEmailWithTemplate([]string{recipientEmail}, req.Subject, templateName, templateData, attachmentPath)
+	// Dynamic Subject Generation if empty or placeholder
+	finalSubject := req.Subject
+	if finalSubject == "" || strings.EqualFold(finalSubject, "Auto-generated") || strings.EqualFold(finalSubject, "Meeting Summary") {
+		roomName := fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+		if roomName == "" || roomName == "<nil>" {
+			roomName = "Teralux"
+		}
+
+		bookingDateRaw := templateData["booking_date"]
+		bookingDateStr := fmt.Sprintf("%v", bookingDateRaw)
+		if bookingDateStr == "" || bookingDateStr == "<nil>" {
+			bookingDateStr = time.Now().Format("02 Jan 2006")
+		}
+
+		finalSubject = fmt.Sprintf("%s Meeting Summary - %s", roomName, bookingDateStr)
+	}
+
+	utils.LogDebug("MailSendByMacUseCase: Sending email to %v for MAC %s with subject: %s", recipients, macAddress, finalSubject)
+	err = uc.mailService.SendEmailWithTemplate(recipients, finalSubject, templateName, templateData, attachmentPath)
 	if err != nil {
 		utils.LogError("Mail Task %s (MAC): Failed to send email: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", err, "")
@@ -184,7 +266,7 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	}
 
 	utils.LogInfo("Mail Task %s (MAC): Email sent successfully", taskID)
-	uc.updateStatus(taskID, "completed", nil, fmt.Sprintf("Email sent to %s", recipientEmail))
+	uc.updateStatus(taskID, "completed", nil, fmt.Sprintf("Email sent to %s", strings.Join(recipients, ", ")))
 }
 
 func (uc *mailSendByMacUseCase) updateStatus(taskID string, statusStr string, err error, result string) {

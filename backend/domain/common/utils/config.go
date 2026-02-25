@@ -94,12 +94,28 @@ func LoadConfig() {
 		if err != nil {
 			log.Println("Warning: Error reading .env file")
 		} else {
+			isTest := os.Getenv("GO_TEST") == "true"
 			for k, v := range m {
-				if err := os.Setenv(k, v); err != nil {
-					log.Printf("Warning: failed to set environment variable %s", k)
+				// In production/dev, we overwrite OS vars with .env values (previous behavior)
+				// In tests, we preserve what the test setup (e.g. TestApiKeyMiddleware) has configured
+				if !isTest {
+					if err := os.Setenv(k, v); err != nil {
+						log.Printf("Warning: failed to set environment variable %s", k)
+					}
+				} else {
+					// Test mode: only set if not present
+					if _, exists := os.LookupEnv(k); !exists {
+						if err := os.Setenv(k, v); err != nil {
+							log.Printf("Warning: failed to set environment variable %s", k)
+						}
+					}
 				}
 			}
-			log.Printf("Loaded env file and overwrote environment variables: %s", envPath)
+			if isTest {
+				log.Printf("Loaded env file in TEST mode (preserving existing variables): %s", envPath)
+			} else {
+				log.Printf("Loaded env file and overwrote environment variables: %s", envPath)
+			}
 		}
 	}
 

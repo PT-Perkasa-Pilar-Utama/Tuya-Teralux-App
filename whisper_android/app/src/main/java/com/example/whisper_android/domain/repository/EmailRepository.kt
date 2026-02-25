@@ -8,11 +8,12 @@ interface EmailRepository {
         subject: String,
         template: String,
         token: String,
-        attachmentPath: String? = null
+        attachmentPath: String? = null,
+        overrideEmails: List<String>? = null
     ): Flow<Resource<Boolean>>
 
     suspend fun sendEmail(
-        to: String,
+        to: List<String>,
         subject: String,
         template: String,
         token: String,

@@ -36,7 +36,8 @@ object DeviceUtils {
                 android.provider.Settings.Secure.ANDROID_ID
             )
 
-        if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") { // Known broken ID on some emulators
+        if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
+            // "9774d56d682e549c" is a known broken ID on some emulators
             return androidId.uppercase()
         }
 
