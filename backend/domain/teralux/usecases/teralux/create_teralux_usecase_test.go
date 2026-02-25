@@ -19,9 +19,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	// 1. Create Teralux (Success Condition)
 	t.Run("Create Teralux (Success Condition)", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "Master Bedroom Hub",
-			MacAddress: "AA:BB:CC:11:22:33",
-			RoomID:     "1",
+			Name:         "Master Bedroom Hub",
+			MacAddress:   "AA:BB:CC:11:22:33",
+			RoomID:       "1",
 			DeviceTypeID: "1",
 		}
 
@@ -41,9 +41,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	// 1b. Create Teralux with Android ID (Success Condition)
 	t.Run("Create Teralux with Android ID", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "Android Device",
-			MacAddress: "C756630F2F039D27", // 16 chars hex
-			RoomID:     "1",
+			Name:         "Android Device",
+			MacAddress:   "C756630F2F039D27", // 16 chars hex
+			RoomID:       "1",
 			DeviceTypeID: "1",
 		}
 
@@ -63,9 +63,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	// 2. Validation: Empty Fields
 	t.Run("Validation: Empty Fields", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "",
-			MacAddress: "",
-			RoomID:     "",
+			Name:         "",
+			MacAddress:   "",
+			RoomID:       "",
 			DeviceTypeID: "",
 		}
 
@@ -81,9 +81,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	// 3. Validation: Invalid MAC Address Format
 	t.Run("Validation: Invalid MAC Address Format", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "Living Room",
-			MacAddress: "INVALID-MAC",
-			RoomID:     "1",
+			Name:         "Living Room",
+			MacAddress:   "INVALID-MAC",
+			RoomID:       "1",
 			DeviceTypeID: "1",
 		}
 
@@ -105,9 +105,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	// 4. Validation: Name Too Long
 	t.Run("Validation: Name Too Long", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       string(make([]byte, 256)),
-			MacAddress: "AA:BB:CC:11:22:33",
-			RoomID:     "1",
+			Name:         string(make([]byte, 256)),
+			MacAddress:   "AA:BB:CC:11:22:33",
+			RoomID:       "1",
 			DeviceTypeID: "1",
 		}
 
@@ -129,9 +129,9 @@ func TestCreateTeralux_UserBehavior(t *testing.T) {
 	// 5. Conflict: Duplicate MAC Address
 	t.Run("Conflict: Duplicate MAC Address", func(t *testing.T) {
 		req := &dtos.CreateTeraluxRequestDTO{
-			Name:       "New Hub",
-			MacAddress: "DD:EE:FF:11:22:33",
-			RoomID:     "1",
+			Name:         "New Hub",
+			MacAddress:   "DD:EE:FF:11:22:33",
+			RoomID:       "1",
 			DeviceTypeID: "1",
 		}
 

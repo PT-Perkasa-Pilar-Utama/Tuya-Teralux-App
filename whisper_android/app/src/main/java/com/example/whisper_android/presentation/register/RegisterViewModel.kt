@@ -92,11 +92,15 @@ class RegisterViewModel(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val context = getApplication<Application>()
             val deviceId =
                 com.example.whisper_android.util.DeviceUtils
-                    .getDeviceId(getApplication())
+                    .getDeviceId(context)
+            val deviceTypeId =
+                com.example.whisper_android.util.DeviceUtils
+                    .getDeviceTypeId(context)
 
-            val result = registerTeraluxUseCase(name, roomId, deviceId, "1")
+            val result = registerTeraluxUseCase(name, roomId, deviceId, deviceTypeId)
 
             result
                 .onSuccess {

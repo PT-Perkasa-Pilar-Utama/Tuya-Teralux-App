@@ -152,7 +152,7 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 	if err != nil {
 		return nil, err
 	}
-	
+
 	qp := quotedprintable.NewWriter(bodyPartWriter)
 	qp.Write([]byte(body))
 	qp.Close()
@@ -209,7 +209,7 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 		if err != nil {
 			return nil, fmt.Errorf("failed to read attachment: %w", err)
 		}
-		
+
 		encoded := base64.StdEncoding.EncodeToString(attachmentData)
 		attachmentWriter.Write([]byte(chunkBase64(encoded)))
 	}

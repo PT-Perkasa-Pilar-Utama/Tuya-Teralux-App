@@ -73,7 +73,7 @@ func TestUpdateTeralux_UserBehavior(t *testing.T) {
 		emptyName := ""
 		req := &dtos.UpdateTeraluxRequestDTO{Name: &emptyName}
 		repo.On("GetByID", id).Return(&entities.Teralux{ID: id}, nil).Once()
-		
+
 		err := useCase.UpdateTeralux(id, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "name cannot be empty")

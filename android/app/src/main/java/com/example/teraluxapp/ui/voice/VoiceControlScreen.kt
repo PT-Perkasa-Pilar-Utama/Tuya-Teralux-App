@@ -38,7 +38,12 @@ fun VoiceControlScreen(navController: NavController) {
     // State
     var isRecording by remember { mutableStateOf(false) }
     var connectionStatus by remember { mutableStateOf("Ready") }
+    var diarizeEnabled by remember { mutableStateOf(false) }
     
+    // Fetch IDs
+    val teraluxId = remember { com.example.teraluxapp.utils.PreferencesManager.getTeraluxId(context) ?: "tera-unknown" }
+    val uid = remember { com.example.teraluxapp.utils.PreferencesManager.getUid(context) ?: "user-unknown" }
+
     // Helpers
     // NB: In a real app, these should be provided by DI (Hilt)
     val mqttHelper = remember { MqttHelper(context) }
@@ -59,8 +64,28 @@ fun VoiceControlScreen(navController: NavController) {
             text = "Voice Control",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 48.dp)
+            modifier = Modifier.padding(bottom = 24.dp)
         )
+
+        // Diarization Toggle
+        Row(
+            modifier = Modifier
+                .padding(bottom = 24.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Identifikasi Pembicara",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Switch(
+                checked = diarizeEnabled,
+                onCheckedChange = { diarizeEnabled = it }
+            )
+        }
 
         // Mic Button
         if (micPermissionState.status.isGranted) {
@@ -98,7 +123,12 @@ fun VoiceControlScreen(navController: NavController) {
                                             // Send to Backend
                                             Log.d("VoiceControl", "Sending file: ${file.length()} bytes")
                                             val bytes = file.readBytes()
-                                            mqttHelper.publishAudio(bytes)
+                                            mqttHelper.publishAudio(
+                                                payload = bytes,
+                                                teraluxId = teraluxId,
+                                                uid = uid,
+                                                diarize = diarizeEnabled
+                                            )
                                             connectionStatus = "Sent"
                                             file.delete()
                                         } else {

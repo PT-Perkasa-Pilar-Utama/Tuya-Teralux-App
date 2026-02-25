@@ -3,6 +3,14 @@ package com.example.whisper_android.domain.repository
 import kotlinx.coroutines.flow.Flow
 
 interface EmailRepository {
+    suspend fun sendEmailByMac(
+        macAddress: String,
+        subject: String,
+        template: String,
+        token: String,
+        attachmentPath: String? = null
+    ): Flow<Resource<Boolean>>
+
     suspend fun sendEmail(
         to: String,
         subject: String,

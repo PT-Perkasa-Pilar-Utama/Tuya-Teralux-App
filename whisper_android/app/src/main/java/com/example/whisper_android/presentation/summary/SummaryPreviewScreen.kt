@@ -241,8 +241,12 @@ fun SummaryPreviewScreen(
         if (showEmailDialog) {
             EmailInputDialog(
                 onDismiss = { showEmailDialog = false },
-                onSend = { email, subject ->
-                    viewModel.sendEmail(email, subject)
+                onSend = { isMacMode, target, subject ->
+                    if (isMacMode) {
+                        viewModel.sendEmailByMac(target, subject)
+                    } else {
+                        viewModel.sendEmail(target, subject)
+                    }
                     showEmailDialog = false
                 }
             )

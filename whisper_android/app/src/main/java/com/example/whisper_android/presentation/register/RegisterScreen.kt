@@ -263,6 +263,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         )
                     }
                     Spacer(modifier = Modifier.height(48.dp))
+                    
                     RegisterCard(
                         name = name,
                         onNameChange = {

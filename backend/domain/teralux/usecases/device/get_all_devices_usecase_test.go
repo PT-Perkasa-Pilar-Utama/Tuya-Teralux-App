@@ -19,7 +19,7 @@ func TestGetAllDevicesUseCase_UserBehavior(t *testing.T) {
 			{ID: "d1", Name: "Light 1", TeraluxID: "tx-1"},
 			{ID: "d2", Name: "Light 2", TeraluxID: "tx-1"},
 		}
-		
+
 		repo.On("GetByTeraluxIDPaginated", teraID, 0, 0).Return(expectedDevices, int64(2), nil).Once()
 
 		res, err := useCase.ListDevices(filter)

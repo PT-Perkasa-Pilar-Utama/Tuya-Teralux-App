@@ -64,15 +64,34 @@ class MqttHelper(context: Context) {
         })
     }
     
-    fun publishAudio(payload: ByteArray) {
+    fun publishAudio(
+        payload: ByteArray,
+        teraluxId: String,
+        uid: String,
+        diarize: Boolean = false,
+        language: String = "id"
+    ) {
         val topic = "users/teralux/whisper"
-        val message = MqttMessage(payload)
-        message.qos = 0 // Fire and forget for audio
+        
+        // Convert to JSON as expected by Backend SpeechTranscribeController
+        val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
+        val jsonPayload = """
+            {
+                "audio": "$base64Audio",
+                "teralux_id": "$teraluxId",
+                "uid": "$uid",
+                "diarize": $diarize,
+                "language": "$language"
+            }
+        """.trimIndent()
+
+        val message = MqttMessage(jsonPayload.toByteArray())
+        message.qos = 0 
         message.isRetained = false
         
         try {
             mqttAndroidClient.publish(topic, message)
-            Log.d(TAG, "Published audio chunk: ${payload.size} bytes")
+            Log.d(TAG, "Published audio JSON: ${jsonPayload.length} chars (Audio: ${payload.size} bytes)")
         } catch (e: MqttException) {
             Log.e(TAG, "Error publishing audio: ${e.message}")
             e.printStackTrace()

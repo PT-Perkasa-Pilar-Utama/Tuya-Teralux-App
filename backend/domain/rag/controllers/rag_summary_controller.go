@@ -47,7 +47,7 @@ func (c *RAGSummaryController) Summary(ctx *gin.Context) {
 	}
 
 	participantsStr := strings.Join(req.Participants, ", ")
-	taskID, err := c.summaryUC.SummarizeTextWithTrigger(req.Text, req.Language, req.Context, req.Style, req.Date, req.Location, participantsStr, ctx.Request.URL.Path)
+	taskID, err := c.summaryUC.SummarizeTextWithTrigger(req.Text, req.Language, req.Context, req.Style, req.Date, req.Location, participantsStr, req.MacAddress, ctx.Request.URL.Path)
 	if err != nil {
 		utils.LogError("RAGSummaryController.Summary: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

@@ -31,7 +31,7 @@ func TestGetAllTeralux_UserBehavior(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			expectedTeralux[i] = entities.Teralux{ID: "t", Name: "Hub"}
 		}
-		
+
 		repo.On("GetAllPaginated", 0, 10, (*string)(nil)).Return(expectedTeralux, int64(15), nil).Once()
 
 		res, err := useCase.ListTeralux(filter)
@@ -60,7 +60,7 @@ func TestGetAllTeralux_UserBehavior(t *testing.T) {
 		roomID := "r1"
 		filter := &dtos.TeraluxFilterDTO{Page: 1, Limit: 10, RoomID: &roomID}
 		expectedTeralux := []entities.Teralux{{ID: "t1", RoomID: "r1"}}
-		
+
 		repo.On("GetAllPaginated", 0, 10, &roomID).Return(expectedTeralux, int64(1), nil).Once()
 
 		res, err := useCase.ListTeralux(filter)

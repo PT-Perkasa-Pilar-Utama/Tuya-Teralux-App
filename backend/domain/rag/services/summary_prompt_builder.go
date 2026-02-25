@@ -65,13 +65,13 @@ func (pc *PromptConfig) BuildPrompt(transcript string) string {
 
 ### ANTI-HALLUCINATION & DYNAMIC UX RULES (CRITICAL)
 1. **DO NOT INVENT NAMES**: If a person's name, role, or specific assignment is not explicitly stated in the transcript, DO NOT make one up.
-2. **OMIT EMPTY SECTIONS**: If there is no information in the audio for a specific section (e.g., no Action Items, no Decisions, or no Risks), **DO NOT write "Tidak ada" or placeholders. Completely remove/omit that section and its header from your final output.**
-3. **FLEXIBLE STRUCTURE**: The template below is your maximum structure. You must adapt it to the actual conversation. Keep only the sections that have real data.`, pc.Language)
+2. **OMIT EMPTY SECTIONS**: This is extremely important. If there is no information in the audio for a specific section (e.g., no Action Items, no Decisions, or no Risks), DO NOT write "Tidak ada", "N/A", or placeholders. **COMPLETELY REMOVE / OMIT that section and its header from your final output.**
+3. **FLEXIBLE STRUCTURE**: The template below is just a guide. You are encouraged to merge topics, change section titles, or add new sections if it better fits the flow of the meeting. You do not need to strictly follow the numbering. Only keep sections that bring value based on the transcript.`, pc.Language)
 
 	// Output Structure based on User Template
 	var outputStructure string
 	if strings.Contains(strings.ToLower(pc.Language), "english") {
-		outputStructure = `### OUTPUT STRUCTURE (MANDATORY FORMAT)
+		outputStructure = `### SUGGESTED OUTPUT STRUCTURE (FLEXIBLE: OMIT SECTIONS WITH NO CONTENT)
 
 # 📋 MEETING SUMMARY TEMPLATE
 
@@ -136,7 +136,7 @@ Brief explanation of this topic.
 # 8️⃣ Additional Notes
 Other things to note.`
 	} else {
-		outputStructure = `### OUTPUT STRUCTURE (MANDATORY FORMAT)
+		outputStructure = `### SUGGESTED OUTPUT STRUCTURE (FLEXIBLE: OMIT SECTIONS WITH NO CONTENT)
 
 # 📋 TEMPLATE SUMMARY MEETING
 
@@ -203,8 +203,8 @@ Hal lain yang perlu diperhatikan.`
 	}
 
 	prompt := fmt.Sprintf(`### ROLE & MANDATE
-You are a Chief of Staff and Strategic Analyst. Extract strategic value, risks, and recommended actions.
-Follow the MANDATORY FORMAT strictly.
+You are a Chief of Staff and Strategic Analyst. Extract strategic value, risks, and recommended actions from the provided transcript.
+**CRITICAL**: Adapt the suggested structure dynamically. DO NOT keep bracketed placeholders like [Meeting Title] or [Name 1] in your output. Replace them with specific information found in the transcript or metadata. If information is missing, OMIT that section or specific line entirely.
 
 %s
 
@@ -219,6 +219,13 @@ Follow the MANDATORY FORMAT strictly.
 - Context: %s
 - Style: %s (Format as MoM if style is 'minutes' or 'notulensi')
 
+### METADATA (REFERENCE ONLY)
+- Date: %s
+- Location: %s
+- Participants: %s
+
+**IMPORTANT**: Use the metadata above to fill in the header sections. If metadata is empty or "[...]"(brackets), try to infer from the transcript. If still unknown, omit the field.
+
 %s
 
 ### INPUT TRANSCRIPT
@@ -226,8 +233,8 @@ Follow the MANDATORY FORMAT strictly.
 %s
 </transcript>
 
-**BEGIN OUTPUT:**
-`, pc.AudienceGuidance(), pc.RiskScoringGuidance(), structural, pc.AssertivenessPhrasing(), pc.Context, pc.Style, outputStructure, transcript)
+**BEGIN OUTPUT (STRIP ALL PLACEHOLDERS, OMIT EMPTY SECTIONS):**
+`, pc.AudienceGuidance(), pc.RiskScoringGuidance(), structural, pc.AssertivenessPhrasing(), pc.Context, pc.Style, pc.Date, pc.Location, pc.Participants, outputStructure, transcript)
 
 	return prompt
 }

@@ -70,10 +70,10 @@ func (s *LlamaLocalService) CallModel(prompt string, model string) (string, erro
 	utils.LogDebug("LlamaLocal: Running %s (single-turn)", bin)
 
 	cmd := exec.CommandContext(ctx, bin, args...)
-	
+
 	// Force non-interactive environment
 	cmd.Env = append(os.Environ(), "TERM=dumb")
-	
+
 	// Capture BOTH stdout and stderr to ensure absolutely nothing leaks to the terminal
 	// and we can clean the whole stream.
 	out, err := cmd.CombinedOutput()
@@ -88,13 +88,13 @@ func (s *LlamaLocalService) CallModel(prompt string, model string) (string, erro
 	}
 
 	rawOutput := string(out)
-	
+
 	// Robust parsing:
 	// The output looks like: [Junk] \n > [Prompt] \n [Result] \n [Junk/Metrics]
 	// We look for the last "> " followed by the prompt (if echoed) or just the last "> ".
-	
+
 	result := rawOutput
-	
+
 	// 1. Find the content after the last "> " prompt marker
 	lastPromptIdx := strings.LastIndex(result, "> ")
 	if lastPromptIdx != -1 {

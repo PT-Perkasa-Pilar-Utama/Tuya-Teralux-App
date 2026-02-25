@@ -22,7 +22,7 @@ func TestGetTeraluxByID_UserBehavior(t *testing.T) {
 		res, err := useCase.GetTeraluxByID(id)
 		assert.NoError(t, err)
 		assert.Equal(t, id, res.Teralux.ID)
-		
+
 		repo.AssertExpectations(t)
 		devRepo.AssertExpectations(t)
 	})

@@ -19,7 +19,7 @@ func TestUpdateDeviceUseCase_UserBehavior(t *testing.T) {
 		id := "d1"
 		newName := "Updated Name"
 		req := &dtos.UpdateDeviceRequestDTO{Name: &newName}
-		
+
 		repo.On("GetByID", id).Return(&entities.Device{ID: id, Name: "Old Name", TeraluxID: "tx-1"}, nil).Once()
 		repo.On("Update", mock.MatchedBy(func(d *entities.Device) bool {
 			return d.ID == id && d.Name == newName

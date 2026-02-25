@@ -8,6 +8,7 @@ import (
 	"strings"
 	"teralux_app/domain/common/tasks"
 	"teralux_app/domain/common/utils"
+	mailServices "teralux_app/domain/mail/services"
 	"teralux_app/domain/rag/dtos"
 	"teralux_app/domain/rag/services"
 	"teralux_app/domain/rag/skills"
@@ -17,10 +18,10 @@ import (
 )
 
 type SummaryUseCase interface {
-	SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error)
-	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error)
-	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error)
-	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error)
+	SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error)
+	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error)
+	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error)
+	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error)
 }
 
 type summaryUseCase struct {
@@ -30,6 +31,7 @@ type summaryUseCase struct {
 	cache         *tasks.BadgerTaskCache
 	store         *tasks.StatusStore[dtos.RAGStatusDTO]
 	renderer      services.SummaryPDFRenderer
+	mailExternal  *mailServices.MailExternalService
 	llmTimeout    time.Duration // Timeout for LLM calls
 	renderTimeout time.Duration // Timeout for PDF rendering
 }
@@ -41,6 +43,7 @@ func NewSummaryUseCase(
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
 	renderer services.SummaryPDFRenderer,
+	mailExternal *mailServices.MailExternalService,
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:           llm,
@@ -49,12 +52,13 @@ func NewSummaryUseCase(
 		cache:         cache,
 		store:         store,
 		renderer:      renderer,
+		mailExternal:  mailExternal,
 		llmTimeout:    5 * time.Minute,  // Increased for strategic reasoning depth
 		renderTimeout: 30 * time.Second, // Default PDF render timeout
 	}
 }
 
-func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string, date string, location string, participants string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -66,6 +70,28 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	targetLangName := "Indonesian"
 	if strings.EqualFold(language, "en") {
 		targetLangName = "English"
+	}
+
+	// If MacAddress is provided, fetch booking info to complement metadata
+	if macAddress != "" && u.mailExternal != nil {
+		info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
+		if err == nil {
+			if date == "" {
+				date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
+				if date == "" || date == "<nil>" {
+					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback to other key
+				}
+			}
+			if location == "" {
+				location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+			}
+			if participants == "" {
+				participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
+			}
+			utils.LogDebug("SummaryUseCase: Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
+		} else {
+			utils.LogWarn("SummaryUseCase: Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
+		}
 	}
 
 	// Delegate prompt generation and LLM call to SummarySkill
@@ -137,11 +163,11 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}, nil
 }
 
-func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error) {
-	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, date, location, participants, "")
+func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error) {
+	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, date, location, participants, macAddress, "")
 }
 
-func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error) {
+func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error) {
 	taskID := uuid.New().String()
 	status := &dtos.RAGStatusDTO{
 		Status:    "pending",
@@ -153,7 +179,7 @@ func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, 
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
-		result, err := u.summaryInternal(text, language, meetingContext, style, date, location, participants)
+		result, err := u.summaryInternal(text, language, meetingContext, style, date, location, participants, macAddress)
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
 			u.updateStatus(taskID, "failed", err, nil)
@@ -182,11 +208,11 @@ func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, 
 //	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 //	defer cancel()
 //	taskID, err := useCase.SummarizeTextWithContext(ctx, transcript, "en", "meeting", "executive")
-func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string) (string, error) {
-	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, date, location, participants, "")
+func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error) {
+	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, date, location, participants, macAddress, "")
 }
 
-func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string) (string, error) {
+func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error) {
 	// Validate context is not already cancelled
 	select {
 	case <-ctx.Done():
@@ -215,7 +241,7 @@ func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context,
 		default:
 		}
 
-		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style, date, location, participants)
+		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style, date, location, participants, macAddress)
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
 			u.updateStatus(taskID, "failed", err, nil)
@@ -243,13 +269,35 @@ func (u *summaryUseCase) SetRenderTimeout(d time.Duration) {
 }
 
 // summaryInternalWithContext adds context-aware timeout enforcement to PDF rendering and LLM calls.
-func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
 
 	if language == "" {
 		language = "id"
+	}
+
+	// If MacAddress is provided, fetch booking info
+	if macAddress != "" && u.mailExternal != nil {
+		info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
+		if err == nil {
+			if date == "" {
+				date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
+				if date == "" || date == "<nil>" {
+					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback
+				}
+			}
+			if location == "" {
+				location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+			}
+			if participants == "" {
+				participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
+			}
+			utils.LogDebug("SummaryUseCase (WithContext): Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
+		} else {
+			utils.LogWarn("SummaryUseCase (WithContext): Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
+		}
 	}
 
 	// Delegate prompt generation and LLM call to SummarySkill with context (manually enforced for now)

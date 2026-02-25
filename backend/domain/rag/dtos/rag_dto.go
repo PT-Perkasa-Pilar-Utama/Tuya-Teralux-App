@@ -13,6 +13,7 @@ type RAGSummaryRequestDTO struct {
 	Location     string   `json:"location,omitempty" example:"Meeting Room A"`
 	Date         string   `json:"date"`
 	Participants []string `json:"participants,omitempty" example:"[\"Alice\", \"Bob\"]"`
+	MacAddress   string   `json:"mac_address,omitempty" example:"AA:BB:CC:DD:EE:FF"`
 }
 
 type RAGStatusDTO struct {
