@@ -1,34 +1,34 @@
 package com.example.whisper_android.data.repository
 
 import com.example.whisper_android.common.util.getErrorMessage
-import com.example.whisper_android.data.remote.api.TeraluxApi
-import com.example.whisper_android.data.remote.dto.TeraluxRequestDto
-import com.example.whisper_android.domain.model.TeraluxRegistration
-import com.example.whisper_android.domain.repository.TeraluxRepository
+import com.example.whisper_android.data.remote.api.TerminalApi
+import com.example.whisper_android.data.remote.dto.TerminalRequestDto
+import com.example.whisper_android.domain.model.TerminalRegistration
+import com.example.whisper_android.domain.repository.TerminalRepository
 
-class TeraluxRepositoryImpl(
-    private val api: TeraluxApi,
+class TerminalRepositoryImpl(
+    private val api: TerminalApi,
     private val apiKey: String
-) : TeraluxRepository {
-    override suspend fun registerTeralux(
+) : TerminalRepository {
+    override suspend fun registerTerminal(
         name: String,
         roomId: String,
         macAddress: String,
         deviceTypeId: String
-    ): Result<TeraluxRegistration> =
+    ): Result<TerminalRegistration> =
         try {
-            val request = TeraluxRequestDto(
+            val request = TerminalRequestDto(
                 name = name,
                 roomId = roomId,
                 macAddress = macAddress,
                 deviceTypeId = deviceTypeId
             )
-            val response = api.registerTeralux(apiKey, request)
+            val response = api.registerTerminal(apiKey, request)
 
-            if (response.status && response.data?.teraluxId != null) {
+            if (response.status && response.data?.terminalId != null) {
                 Result.success(
-                    TeraluxRegistration(
-                        id = response.data.teraluxId,
+                    TerminalRegistration(
+                        id = response.data.terminalId,
                         name = name,
                         roomId = roomId,
                         macAddress = macAddress
@@ -43,19 +43,19 @@ class TeraluxRepositoryImpl(
             Result.failure(e)
         }
 
-    override suspend fun getTeraluxByMac(macAddress: String): Result<TeraluxRegistration?> =
+    override suspend fun getTerminalByMac(macAddress: String): Result<TerminalRegistration?> =
         try {
-            val response = api.getTeraluxByMac(apiKey, macAddress)
+            val response = api.getTerminalByMac(apiKey, macAddress)
 
             if (response.status && response.data != null) {
                 // Success - Found
-                val teraluxItem = response.data.teralux
+                val terminalItem = response.data.terminal
                 Result.success(
-                    TeraluxRegistration(
-                        id = teraluxItem?.id ?: response.data.id ?: "",
-                        name = teraluxItem?.name ?: response.data.name ?: "",
-                        roomId = teraluxItem?.roomId ?: response.data.roomId ?: "",
-                        macAddress = teraluxItem?.macAddress ?: response.data.macAddress ?: macAddress
+                    TerminalRegistration(
+                        id = terminalItem?.id ?: response.data.id ?: "",
+                        name = terminalItem?.name ?: response.data.name ?: "",
+                        roomId = terminalItem?.roomId ?: response.data.roomId ?: "",
+                        macAddress = terminalItem?.macAddress ?: response.data.macAddress ?: macAddress
                     )
                 )
             } else {

@@ -83,7 +83,7 @@ data class RAGStatusDto(
 data class RAGChatRequestDto(
     @SerializedName("prompt") val prompt: String,
     @SerializedName("language") val language: String? = null,
-    @SerializedName("teralux_id") val teraluxId: String,
+    @SerializedName("terminal_id") val terminalId: String,
     @SerializedName("uid") val uid: String? = null
 )
 
@@ -101,7 +101,7 @@ data class RedirectDto(
 
 data class RAGControlRequestDto(
     @SerializedName("prompt") val prompt: String,
-    @SerializedName("teralux_id") val teraluxId: String
+    @SerializedName("terminal_id") val terminalId: String
 )
 
 data class ControlResultDto(

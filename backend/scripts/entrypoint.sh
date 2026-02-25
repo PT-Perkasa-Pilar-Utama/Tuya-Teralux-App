@@ -48,8 +48,8 @@ function acquire_lock() {
     if [ -d "$LOCK_DIR" ]; then
         # Check if lock directory is stale (using find for portability)
         # If the directory was created more than 10 minutes ago, remove it.
-        if [ "$(find "$LOCK_DIR" -maxdepth 0 -mmin +10 2>/dev/null)" ]; then
-            echo -e "${WARNING}[WARNING] Stale lock detected (older than 10m). Cleaning up...${NC}"
+        if [ "$(find "$LOCK_DIR" -maxdepth 0 -mmin +2 2>/dev/null)" ]; then
+            echo -e "${WARNING}[WARNING] Stale lock detected (older than 2m). Cleaning up...${NC}"
             rmdir "$LOCK_DIR" 2>/dev/null || true
         fi
     fi
