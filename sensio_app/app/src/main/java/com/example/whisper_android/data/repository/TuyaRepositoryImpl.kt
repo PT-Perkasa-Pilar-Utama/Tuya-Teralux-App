@@ -24,4 +24,19 @@ class TuyaRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
+
+    override suspend fun getDevices(): Result<com.example.whisper_android.data.remote.dto.TuyaDevicesResponseDto> =
+        try {
+            val token = tokenManager.getAccessToken() ?: return Result.failure(Exception("No access token found"))
+            val response = api.getDevices("Bearer $token", apiKey)
+            if (response.status && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: retrofit2.HttpException) {
+            Result.failure(Exception(e.getErrorMessage()))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
 }

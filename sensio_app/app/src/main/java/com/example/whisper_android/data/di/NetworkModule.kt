@@ -133,4 +133,9 @@ object NetworkModule {
         com.example.whisper_android.domain.usecase
             .SendEmailByMacUseCase(emailRepository)
     }
+
+    val getTuyaDevicesUseCase: com.example.whisper_android.domain.usecase.GetTuyaDevicesUseCase by lazy {
+        com.example.whisper_android.domain.usecase
+            .GetTuyaDevicesUseCase(tuyaRepository)
+    }
 }

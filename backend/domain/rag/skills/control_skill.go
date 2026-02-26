@@ -3,6 +3,7 @@ package skills
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sensio/domain/rag/sensors"
 	tuyaDtos "sensio/domain/tuya/dtos"
 	tuyaUsecases "sensio/domain/tuya/usecases"
@@ -80,12 +81,12 @@ func (s *ControlSkill) selectDeviceWithLLM(ctx *SkillContext, devices []tuyaDtos
 		codes := []string{}
 		for _, st := range d.Status {
 			// Only include common/relevant codes to keep prompt small
-			if strings.HasPrefix(st.Code, "switch") || strings.HasPrefix(st.Code, "bright") || 
-			   strings.HasPrefix(st.Code, "temp") || strings.HasPrefix(st.Code, "cur_") {
+			if strings.HasPrefix(st.Code, "switch") || strings.HasPrefix(st.Code, "bright") ||
+				strings.HasPrefix(st.Code, "temp") || strings.HasPrefix(st.Code, "cur_") {
 				codes = append(codes, st.Code)
 			}
 		}
-		
+
 		controlsStr := ""
 		if len(codes) > 0 {
 			controlsStr = fmt.Sprintf(" [Controls: %s]", strings.Join(codes, ", "))
@@ -93,8 +94,8 @@ func (s *ControlSkill) selectDeviceWithLLM(ctx *SkillContext, devices []tuyaDtos
 		deviceList = append(deviceList, fmt.Sprintf("- %s%s (ID: %s)", d.Name, controlsStr, d.ID))
 	}
 
-	reconcilePrompt := fmt.Sprintf(`You are Sensio AI Assistant, a professional and interactive smart home companion by Sensio.
-Your goal is to help the user manage their smart home devices efficiently.
+	reconcilePrompt := fmt.Sprintf(`You are Sensio AI Home Controller.
+Your goal is to parse user requests and output the correct device execution commands.
 
 User Prompt: "%s"
 
@@ -103,14 +104,15 @@ User Prompt: "%s"
 %s
 
 GUIDELINES:
-1. MATCHING: Match the requested device name with the names in [Available Devices].
-2. MULTI-SWITCH: If user asks for "switch 2" or "lamp 1", check the [Controls] section for each device.
-   - Example: If user says "turn on switch 2" and only one device has "switch_2" in its controls, select that device.
-3. CONTROL: 
-   - If the user refers to a device from the list, return: "EXECUTE:[Device ID]".
-   - If they are answering a follow-up question, identify it and return: "EXECUTE:[Device ID]".
-4. AMBIGUITY: If the request matches multiple devices or is vague, ask a professional follow-up question.
-5. NO HALLUCINATION: Only use Device IDs from the [Available Devices] list.
+1. MATCHING: Identify all devices the user wants to control.
+2. MULTI-DEVICE: If the user says "all", "everything", or implies multiple devices (e.g., "turn on all lights"), identify ALL matching devices.
+3. OUTPUT FORMAT: 
+   - For EACH target device, output "EXECUTE:[Device ID]" on a NEW LINE.
+   - You MAY include short natural language before or after the EXECUTE tags.
+   - Example: "I will turn on the following devices:\nEXECUTE:id1\nEXECUTE:id2"
+4. NO CONFIRMATION: If the command is clear (e.g., "turn on office light"), do NOT ask "Are you sure?" or "Do you want to continue?". Output the EXECUTE tag immediately.
+5. AMBIGUITY: If the request is truly vague and could match different types of devices incorrectly, ask a short clarifying question.
+6. NO HALLUCINATION: Only use Device IDs from the [Available Devices] list.
 
 Response:`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 
@@ -122,29 +124,53 @@ Response:`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 	}
 
 	cleanRes := strings.TrimSpace(res)
-	cleanRes = strings.Trim(cleanRes, `"`) // strip LLM-added surrounding quotes (e.g. "EXECUTE:id")
 	fmt.Printf("DEBUG: ControlSkill: LLM raw response: '%s'\n", cleanRes)
 
-	if strings.HasPrefix(cleanRes, "EXECUTE:") {
-		deviceID := strings.TrimPrefix(cleanRes, "EXECUTE:")
-		var targetDevice *tuyaDtos.TuyaDeviceDTO
-		for _, d := range devices {
-			if d.ID == deviceID {
-				targetDevice = &d
-				break
+	// Regex to find all EXECUTE:[ID] patterns
+	// Matches EXECUTE: followed by alphanumeric characters (IDs are typically alphanumeric)
+	re := regexp.MustCompile(`EXECUTE:([a-zA-Z0-9_-]+)`)
+	matches := re.FindAllStringSubmatch(cleanRes, -1)
+
+	if len(matches) > 0 {
+		var finalMessages []string
+		var lastStatus int = 200
+		executedCount := 0
+
+		for _, match := range matches {
+			if len(match) < 2 {
+				continue
+			}
+			deviceID := match[1]
+			var targetDevice *tuyaDtos.TuyaDeviceDTO
+			for _, d := range devices {
+				if d.ID == deviceID {
+					targetDevice = &d
+					break
+				}
+			}
+
+			if targetDevice != nil {
+				res, err := s.executeOnTarget(ctx, targetDevice)
+				if err == nil {
+					finalMessages = append(finalMessages, res.Message)
+					lastStatus = res.HTTPStatusCode
+					executedCount++
+				} else {
+					finalMessages = append(finalMessages, fmt.Sprintf("Error controlling %s: %v", targetDevice.Name, err))
+				}
 			}
 		}
 
-		if targetDevice == nil {
+		if executedCount > 0 {
 			return &SkillResult{
-				Message:        "Device not found.",
-				HTTPStatusCode: 404,
+				Message:        strings.Join(finalMessages, "\n"),
+				IsControl:      true,
+				HTTPStatusCode: lastStatus,
 			}, nil
 		}
-
-		return s.executeOnTarget(ctx, targetDevice)
 	}
 
+	// No execution tags found, return the LLM's full response (likely a question)
 	return &SkillResult{
 		Message: cleanRes,
 	}, nil
