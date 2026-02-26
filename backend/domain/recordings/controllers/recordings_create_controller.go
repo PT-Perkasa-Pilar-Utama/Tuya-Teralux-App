@@ -29,6 +29,7 @@ func NewRecordingsCreateController(useCase usecases.SaveRecordingUseCase) *Recor
 // @Accept mpfd
 // @Produce json
 // @Param file formData file true "Audio file"
+// @Param mac_address formData string false "Device MAC Address"
 // @Success 201 {object} recordings_dtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
 // @Failure 400 {object} recordings_dtos.StandardResponse
 // @Failure 401 {object} recordings_dtos.StandardResponse
@@ -44,7 +45,10 @@ func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.useCase.SaveRecording(file)
+	macAddress := ctx.PostForm("mac_address")
+
+	baseURL := utils.GetBaseURL(ctx)
+	result, err := c.useCase.SaveRecording(file, macAddress, baseURL)
 	if err != nil {
 		utils.LogError("RecordingsCreateController.CreateRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, common_dtos.StandardResponse{

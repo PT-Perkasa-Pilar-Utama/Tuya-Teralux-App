@@ -82,7 +82,9 @@ func (c *SpeechModelsGeminiController) Transcribe(ctx *gin.Context) {
 		return
 	}
 
-	recording, err := c.saveRecording.SaveRecording(file)
+	macAddress := ctx.PostForm("mac_address")
+	baseURL := utils.GetBaseURL(ctx)
+	recording, err := c.saveRecording.SaveRecording(file, macAddress, baseURL)
 	if err != nil {
 		utils.LogError("Gemini.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

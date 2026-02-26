@@ -12,13 +12,14 @@ class TranscribeAudioUseCase(
     suspend operator fun invoke(
         audioFile: File,
         token: String,
-        language: String
+        language: String,
+        macAddress: String? = null
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
 
             var taskId: String? = null
-            speechRepository.transcribeAudio(audioFile, token, language).collect { result ->
+            speechRepository.transcribeAudio(audioFile, token, language, macAddress).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         taskId = result.data

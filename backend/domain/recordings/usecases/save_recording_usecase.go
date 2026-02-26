@@ -9,28 +9,32 @@ import (
 	"github.com/google/uuid"
 
 	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
 	"sensio/domain/recordings/entities"
 	"sensio/domain/recordings/repositories"
+	"sensio/domain/recordings/services"
 )
 
 type SaveRecordingUseCase interface {
-	SaveRecording(file *multipart.FileHeader) (*entities.Recording, error)
-	SaveRecordingFromBytes(data []byte, originalName string) (*entities.Recording, error)
+	SaveRecording(file *multipart.FileHeader, macAddress, baseURL string) (*entities.Recording, error)
+	SaveRecordingFromBytes(data []byte, originalName, macAddress, baseURL string) (*entities.Recording, error)
 }
 
 type saveRecordingUseCase struct {
 	repo        repositories.RecordingRepository
 	fileService infrastructure.FileService
+	bigService  services.BIGRoomAudioUpdateService
 }
 
-func NewSaveRecordingUseCase(repo repositories.RecordingRepository, fileService infrastructure.FileService) SaveRecordingUseCase {
+func NewSaveRecordingUseCase(repo repositories.RecordingRepository, fileService infrastructure.FileService, bigService services.BIGRoomAudioUpdateService) SaveRecordingUseCase {
 	return &saveRecordingUseCase{
 		repo:        repo,
 		fileService: fileService,
+		bigService:  bigService,
 	}
 }
 
-func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) (*entities.Recording, error) {
+func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader, macAddress, baseURL string) (*entities.Recording, error) {
 	// 1. Generate UUIDv7 for filename
 	fileExt := filepath.Ext(fileHeader.Filename)
 	uuidFilename, _ := uuid.NewV7()
@@ -57,9 +61,11 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) 
 	}
 
 	// 4. Construct Public URL
-	// Assuming the server domain/port is handled by frontend proxy or configuration
-	// But as per requirement: /uploads/audio/{filename}
+	// Prepend baseURL if provided to ensure full domain is stored
 	publicUrl := fmt.Sprintf("/uploads/audio/%s", newFilename)
+	if baseURL != "" {
+		publicUrl = fmt.Sprintf("%s%s", baseURL, publicUrl)
+	}
 
 	uuidEntity, _ := uuid.NewV7()
 	// 5. Create Entity
@@ -68,6 +74,7 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) 
 		Filename:     newFilename,
 		OriginalName: fileHeader.Filename,
 		AudioUrl:     publicUrl,
+		MacAddress:   macAddress,
 		CreatedAt:    time.Now(),
 	}
 
@@ -76,10 +83,19 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) 
 		return nil, err
 	}
 
+	// 7. Trigger BIG Room Audio Update
+	if macAddress != "" {
+		go func() {
+			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
+				utils.LogError("SaveRecordingUseCase.SaveRecording: Failed to update room occupied audio: %v", err)
+			}
+		}()
+	}
+
 	return recording, nil
 }
 
-func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName string) (*entities.Recording, error) {
+func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName, macAddress, baseURL string) (*entities.Recording, error) {
 	// 1. Generate UUIDv4 for filename
 	fileExt := filepath.Ext(originalName)
 	if fileExt == "" {
@@ -98,6 +114,9 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 
 	// 4. Construct Public URL
 	publicUrl := fmt.Sprintf("/uploads/audio/%s", newFilename)
+	if baseURL != "" {
+		publicUrl = fmt.Sprintf("%s%s", baseURL, publicUrl)
+	}
 
 	uuidEntity, _ := uuid.NewV7()
 	// 5. Create Entity
@@ -106,12 +125,22 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 		Filename:     newFilename,
 		OriginalName: originalName,
 		AudioUrl:     publicUrl,
+		MacAddress:   macAddress,
 		CreatedAt:    time.Now(),
 	}
 
 	// 6. Save Metadata
 	if err := uc.repo.Save(recording); err != nil {
 		return nil, err
+	}
+
+	// 7. Trigger BIG Room Audio Update
+	if macAddress != "" {
+		go func() {
+			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
+				utils.LogError("SaveRecordingUseCase.SaveRecordingFromBytes: Failed to update room occupied audio: %v", err)
+			}
+		}()
 	}
 
 	return recording, nil

@@ -82,7 +82,9 @@ func (c *SpeechModelsWhisperCppController) Transcribe(ctx *gin.Context) {
 		return
 	}
 
-	recording, err := c.saveRecording.SaveRecording(file)
+	macAddress := ctx.PostForm("mac_address")
+	baseURL := utils.GetBaseURL(ctx)
+	recording, err := c.saveRecording.SaveRecording(file, macAddress, baseURL)
 	if err != nil {
 		utils.LogError("WhisperCpp.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
