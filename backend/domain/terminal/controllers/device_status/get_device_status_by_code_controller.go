@@ -26,13 +26,6 @@ func NewGetDeviceStatusByCodeController(useCase *usecases.GetDeviceStatusByCodeU
 }
 
 // GetDeviceStatusByCode handles GET /api/devices/:id/statuses/:code endpoint
-// @Summary GetDeviceStatusByCode
-// @Description GetDeviceStatusByCode
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/{id}/statuses/{code} [get]
 func (c *GetDeviceStatusByCodeController) GetDeviceStatusByCode(ctx *gin.Context) {
 	deviceID := ctx.Param("id")
 	code := ctx.Param("code")

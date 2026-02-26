@@ -23,13 +23,6 @@ func NewUpdateDeviceController(useCase *usecases.UpdateDeviceUseCase) *UpdateDev
 }
 
 // UpdateDevice handles PUT /api/devices/:id endpoint
-// @Summary UpdateDevice
-// @Description UpdateDevice
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/{id} [put]
 func (c *UpdateDeviceController) UpdateDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

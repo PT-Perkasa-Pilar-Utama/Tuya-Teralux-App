@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"sensio/domain/common/utils"
+	"strings"
 	"time"
 )
 

@@ -3,11 +3,11 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	mail_dtos "sensio/domain/mail/dtos"
 	"sensio/domain/mail/usecases"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

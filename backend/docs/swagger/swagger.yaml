@@ -571,134 +571,7 @@ paths:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - 10. Common
-  /api/devices:
-    get:
-      consumes:
-      - application/json
-      description: GetAllDevices
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetAllDevices
-      tags:
-      - 09. Terminals
-    post:
-      consumes:
-      - application/json
-      description: CreateDevice
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: CreateDevice
-      tags:
-      - 09. Terminals
-  /api/devices/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: DeleteDevice
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: DeleteDevice
-      tags:
-      - 09. Terminals
-    get:
-      consumes:
-      - application/json
-      description: GetDeviceByID
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetDeviceByID
-      tags:
-      - 09. Terminals
-    put:
-      consumes:
-      - application/json
-      description: UpdateDevice
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: UpdateDevice
-      tags:
-      - 09. Terminals
-  /api/devices/{id}/status:
-    put:
-      consumes:
-      - application/json
-      description: UpdateDeviceStatus
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: UpdateDeviceStatus
-      tags:
-      - 09. Terminals
-  /api/devices/{id}/statuses:
-    get:
-      consumes:
-      - application/json
-      description: GetDeviceStatusesByDeviceID
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetDeviceStatusesByDeviceID
-      tags:
-      - 09. Terminals
-  /api/devices/{id}/statuses/{code}:
-    get:
-      consumes:
-      - application/json
-      description: GetDeviceStatusByCode
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetDeviceStatusByCode
-      tags:
-      - 09. Terminals
-  /api/devices/statuses:
-    get:
-      consumes:
-      - application/json
-      description: GetAllDeviceStatuses
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetAllDeviceStatuses
-      tags:
-      - 09. Terminals
-  /api/devices/terminal/{terminal_id}:
-    get:
-      consumes:
-      - application/json
-      description: GetDevicesByTerminalID
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetDevicesByTerminalID
-      tags:
-      - 09. Terminals
+      - 09. Common
   /api/health:
     get:
       description: Check if the application and database are healthy
@@ -715,7 +588,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - 10. Common
+      - 09. Common
   /api/mail/send:
     post:
       consumes:
@@ -1710,68 +1583,6 @@ paths:
       summary: Get transcription status (Consolidated)
       tags:
       - 04. Speech
-  /api/terminal:
-    get:
-      consumes:
-      - application/json
-      description: GetAllTerminal
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetAllTerminal
-      tags:
-      - 09. Terminals
-    post:
-      consumes:
-      - application/json
-      description: CreateTerminal
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: CreateTerminal
-      tags:
-      - 09. Terminals
-  /api/terminal/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: DeleteTerminal
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: DeleteTerminal
-      tags:
-      - 09. Terminals
-    get:
-      consumes:
-      - application/json
-      description: GetTerminalByID
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetTerminalByID
-      tags:
-      - 09. Terminals
-    put:
-      consumes:
-      - application/json
-      description: UpdateTerminal
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: UpdateTerminal
-      tags:
-      - 09. Terminals
   /api/terminal/{id}/scenes:
     get:
       description: Retrieve a list of all configured scenes for a specific Terminal
@@ -1926,19 +1737,6 @@ paths:
       summary: Apply/Trigger a scene
       tags:
       - 03. Scenes
-  /api/terminal/mac/{mac}:
-    get:
-      consumes:
-      - application/json
-      description: GetTerminalByMAC
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - BearerAuth: []
-      summary: GetTerminalByMAC
-      tags:
-      - 09. Terminals
   /api/tuya/auth:
     get:
       consumes:
@@ -2149,7 +1947,5 @@ tags:
   name: 07. Recordings
 - description: Mail service endpoints
   name: 08. Mail
-- description: Terminal management endpoints
-  name: 09. Terminals
 - description: Common endpoints (Health, Cache)
-  name: 10. Common
+  name: 09. Common

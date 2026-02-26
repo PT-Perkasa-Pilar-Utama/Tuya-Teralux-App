@@ -3,11 +3,11 @@ package usecases
 import (
 	"fmt"
 	"regexp"
-	"strings"
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/dtos"
 	"sensio/domain/terminal/entities"
 	"sensio/domain/terminal/repositories"
+	"strings"
 
 	"strconv"
 

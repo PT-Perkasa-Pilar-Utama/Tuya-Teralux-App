@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail/dtos"
 	"sensio/domain/mail/services"
+	"strings"
 	"time"
 )
 

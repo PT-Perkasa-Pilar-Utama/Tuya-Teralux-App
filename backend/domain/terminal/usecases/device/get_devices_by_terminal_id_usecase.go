@@ -8,14 +8,14 @@ import (
 
 // GetDevicesByTerminalIDUseCase handles retrieving devices linked to a terminal ID
 type GetDevicesByTerminalIDUseCase struct {
-	repository  repositories.IDeviceRepository
+	repository   repositories.IDeviceRepository
 	terminalRepo repositories.ITerminalRepository
 }
 
 // NewGetDevicesByTerminalIDUseCase creates a new instance of GetDevicesByTerminalIDUseCase
 func NewGetDevicesByTerminalIDUseCase(repository repositories.IDeviceRepository, terminalRepo repositories.ITerminalRepository) *GetDevicesByTerminalIDUseCase {
 	return &GetDevicesByTerminalIDUseCase{
-		repository:  repository,
+		repository:   repository,
 		terminalRepo: terminalRepo,
 	}
 }
@@ -48,7 +48,7 @@ func (uc *GetDevicesByTerminalIDUseCase) ListDevicesByTerminalID(terminalID stri
 	for _, item := range devices {
 		deviceDTOs = append(deviceDTOs, dtos.DeviceResponseDTO{
 			ID:                item.ID,
-			TerminalID:         item.TerminalID,
+			TerminalID:        item.TerminalID,
 			Name:              item.Name,
 			RemoteID:          item.RemoteID,
 			Category:          item.Category,

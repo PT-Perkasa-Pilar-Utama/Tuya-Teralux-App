@@ -74,10 +74,7 @@ import (
 // @tag.name 08. Mail
 // @tag.description Mail service endpoints
 
-// @tag.name 09. Terminals
-// @tag.description Terminal management endpoints
-
-// @tag.name 10. Common
+// @tag.name 09. Common
 // @tag.description Common endpoints (Health, Cache)
 func main() {
 	// CLI: Healthcheck

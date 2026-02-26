@@ -130,7 +130,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 func generatePDFFromHTML(htmlContent string, outputPath string) error {
 	// Create common browser launcher with flags
 	l := rod.New().ControlURL("") // Local
-	
+
 	browser := l.MustConnect()
 	defer browser.MustClose()
 

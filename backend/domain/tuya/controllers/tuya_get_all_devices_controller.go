@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 	"sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	tuya_dtos "sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/usecases"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )

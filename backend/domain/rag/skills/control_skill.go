@@ -3,10 +3,10 @@ package skills
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sensio/domain/rag/sensors"
 	tuyaDtos "sensio/domain/tuya/dtos"
 	tuyaUsecases "sensio/domain/tuya/usecases"
+	"strings"
 )
 
 // ControlSkill handles device control requests using RAG and similarity search.

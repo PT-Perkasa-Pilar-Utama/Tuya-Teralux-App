@@ -2,8 +2,8 @@ package skills
 
 import (
 	"fmt"
-	"strings"
 	"sensio/domain/rag/services"
+	"strings"
 )
 
 // SummarySkill handles requests to summarize text or meetings.

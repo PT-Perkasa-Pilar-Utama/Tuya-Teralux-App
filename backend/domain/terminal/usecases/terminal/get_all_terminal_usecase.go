@@ -71,8 +71,8 @@ func (uc *GetAllTerminalUseCase) ListTerminal(filter *dtos.TerminalFilterDTO) (*
 
 	return &dtos.TerminalListResponseDTO{
 		Terminal: terminalDTOs,
-		Total:   total,
-		Page:    page,
-		PerPage: limit,
+		Total:    total,
+		Page:     page,
+		PerPage:  limit,
 	}, nil
 }

@@ -61,10 +61,10 @@ type RAGSummaryResponseDTO struct {
 }
 
 type RAGChatRequestDTO struct {
-	Prompt    string `json:"prompt" binding:"required" example:"Nyalakan AC"`
-	Language  string `json:"language,omitempty" example:"id"`
+	Prompt     string `json:"prompt" binding:"required" example:"Nyalakan AC"`
+	Language   string `json:"language,omitempty" example:"id"`
 	TerminalID string `json:"terminal_id" binding:"required" example:"tx-1"`
-	UID       string `json:"uid,omitempty" example:"sg1765..."`
+	UID        string `json:"uid,omitempty" example:"sg1765..."`
 }
 
 type RAGChatResponseDTO struct {
@@ -81,7 +81,7 @@ type RedirectDTO struct {
 }
 
 type RAGControlRequestDTO struct {
-	Prompt    string `json:"prompt" binding:"required" example:"Nyalakan AC"`
+	Prompt     string `json:"prompt" binding:"required" example:"Nyalakan AC"`
 	TerminalID string `json:"terminal_id" binding:"required" example:"tx-1"`
 }
 

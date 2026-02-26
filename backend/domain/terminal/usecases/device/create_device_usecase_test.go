@@ -22,8 +22,8 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 	// 1. Create Device (Success)
 	t.Run("Create Device (Success)", func(t *testing.T) {
 		req := &dtos.CreateDeviceRequestDTO{
-			ID:        "tuya-device-123",
-			Name:      "Kitchen Light",
+			ID:         "tuya-device-123",
+			Name:       "Kitchen Light",
 			TerminalID: "tx-1",
 		}
 
@@ -54,7 +54,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 	// 2. Validation: Missing Required Fields
 	t.Run("Validation: Missing Required Fields", func(t *testing.T) {
 		req := &dtos.CreateDeviceRequestDTO{
-			Name:      "",
+			Name:       "",
 			TerminalID: "",
 		}
 		_, _, err := useCase.CreateDevice(req)
@@ -64,7 +64,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 	// 3. Constraint: Invalid Terminal ID
 	t.Run("Constraint: Invalid Terminal ID", func(t *testing.T) {
 		req := &dtos.CreateDeviceRequestDTO{
-			Name:      "Ghost Device",
+			Name:       "Ghost Device",
 			TerminalID: "tx-999",
 		}
 		teraRepo.On("GetByID", "tx-999").Return(nil, assert.AnError).Once()

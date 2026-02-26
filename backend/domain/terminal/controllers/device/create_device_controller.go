@@ -23,13 +23,6 @@ func NewCreateDeviceController(useCase *usecases.CreateDeviceUseCase) *CreateDev
 }
 
 // CreateDevice handles POST /api/devices endpoint
-// @Summary CreateDevice
-// @Description CreateDevice
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices [post]
 func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {
 	var req terminal_dtos.CreateDeviceRequestDTO
 

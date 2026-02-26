@@ -26,7 +26,7 @@ type TuyaGetDeviceByIDUseCaseInterface interface {
 type CreateDeviceUseCase struct {
 	repository       repositories.IDeviceRepository
 	statusRepository repositories.IDeviceStatusRepository
-	terminalRepo      repositories.ITerminalRepository
+	terminalRepo     repositories.ITerminalRepository
 	tuyaAuthUC       TuyaAuthUseCaseInterface
 	tuyaGetDeviceUC  TuyaGetDeviceByIDUseCaseInterface
 }
@@ -42,7 +42,7 @@ func NewCreateDeviceUseCase(
 	return &CreateDeviceUseCase{
 		repository:       repository,
 		statusRepository: statusRepository,
-		terminalRepo:      terminalRepo,
+		terminalRepo:     terminalRepo,
 		tuyaAuthUC:       tuyaAuthUC,
 		tuyaGetDeviceUC:  tuyaGetDeviceUC,
 	}
@@ -129,7 +129,7 @@ func (uc *CreateDeviceUseCase) CreateDevice(req *dtos.CreateDeviceRequestDTO) (*
 
 		deviceEntity = &entities.Device{
 			ID:                deviceID,
-			TerminalID:         req.TerminalID,
+			TerminalID:        req.TerminalID,
 			Name:              req.Name,
 			RemoteID:          tuyaDevice.RemoteID,
 			Category:          tuyaDevice.Category,

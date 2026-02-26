@@ -4,9 +4,9 @@ import "time"
 
 // CreateDeviceRequestDTO represents the request body for creating a new device
 type CreateDeviceRequestDTO struct {
-	ID        string `json:"id" binding:"required"`
+	ID         string `json:"id" binding:"required"`
 	TerminalID string `json:"terminal_id" binding:"required"`
-	Name      string `json:"name" binding:"required"`
+	Name       string `json:"name" binding:"required"`
 }
 
 // CreateDeviceResponseDTO represents the response for creating a device (only returns ID)
@@ -22,15 +22,15 @@ type UpdateDeviceRequestDTO struct {
 // DeviceFilterDTO represents filter options for listing devices
 type DeviceFilterDTO struct {
 	TerminalID *string `form:"terminal_id" json:"terminal_id,omitempty"`
-	Page      int     `form:"page" json:"page,omitempty"`
-	Limit     int     `form:"limit" json:"limit,omitempty"`
-	PerPage   int     `form:"per_page" json:"per_page,omitempty"` // Alias for limit
+	Page       int     `form:"page" json:"page,omitempty"`
+	Limit      int     `form:"limit" json:"limit,omitempty"`
+	PerPage    int     `form:"per_page" json:"per_page,omitempty"` // Alias for limit
 }
 
 // DeviceResponseDTO represents the response format for a single device
 type DeviceResponseDTO struct {
 	ID                string    `json:"id"`
-	TerminalID         string    `json:"terminal_id"`
+	TerminalID        string    `json:"terminal_id"`
 	Name              string    `json:"name"`
 	RemoteID          string    `json:"remote_id"`
 	Category          string    `json:"category"`

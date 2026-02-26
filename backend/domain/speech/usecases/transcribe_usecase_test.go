@@ -116,9 +116,9 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
 		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, &utils.Config{}, mockMqtt)
 		_, _ = uc.TranscribeAudio(audioFile, "test.wav", "id", usecases.TranscriptionMetadata{
-			Source:    "mqtt",
+			Source:     "mqtt",
 			TerminalID: "TLX001",
-			UID:       "USER001",
+			UID:        "USER001",
 		})
 
 		time.Sleep(50 * time.Millisecond)

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"sensio/domain/common/utils"
 	"sensio/domain/tuya/entities"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"

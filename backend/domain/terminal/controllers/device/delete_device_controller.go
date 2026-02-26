@@ -22,13 +22,6 @@ func NewDeleteDeviceController(useCase *usecases.DeleteDeviceUseCase) *DeleteDev
 }
 
 // DeleteDevice handles DELETE /api/devices/:id endpoint
-// @Summary DeleteDevice
-// @Description DeleteDevice
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/{id} [delete]
 func (c *DeleteDeviceController) DeleteDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

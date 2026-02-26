@@ -17,10 +17,10 @@ func NewAddSceneUseCase(repo repositories.ISceneRepository) *AddSceneUseCase {
 
 func (u *AddSceneUseCase) AddScene(terminalID string, name string, actions entities.Actions) (string, error) {
 	scene := &entities.Scene{
-		ID:        uuid.New().String(),
+		ID:         uuid.New().String(),
 		TerminalID: terminalID,
-		Name:      name,
-		Actions:   actions,
+		Name:       name,
+		Actions:    actions,
 	}
 
 	if err := u.repo.Save(scene); err != nil {

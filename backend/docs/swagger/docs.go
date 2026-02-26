@@ -39,7 +39,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "10. Common"
+                    "09. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -58,210 +58,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/devices": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetAllDevices",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetAllDevices",
-                "responses": {}
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "CreateDevice",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "CreateDevice",
-                "responses": {}
-            }
-        },
-        "/api/devices/statuses": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetAllDeviceStatuses",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetAllDeviceStatuses",
-                "responses": {}
-            }
-        },
-        "/api/devices/terminal/{terminal_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetDevicesByTerminalID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetDevicesByTerminalID",
-                "responses": {}
-            }
-        },
-        "/api/devices/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetDeviceByID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetDeviceByID",
-                "responses": {}
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "UpdateDevice",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "UpdateDevice",
-                "responses": {}
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "DeleteDevice",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "DeleteDevice",
-                "responses": {}
-            }
-        },
-        "/api/devices/{id}/status": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "UpdateDeviceStatus",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "UpdateDeviceStatus",
-                "responses": {}
-            }
-        },
-        "/api/devices/{id}/statuses": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetDeviceStatusesByDeviceID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetDeviceStatusesByDeviceID",
-                "responses": {}
-            }
-        },
-        "/api/devices/{id}/statuses/{code}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetDeviceStatusByCode",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetDeviceStatusByCode",
-                "responses": {}
-            }
-        },
         "/api/health": {
             "get": {
                 "description": "Check if the application and database are healthy",
@@ -269,7 +65,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "10. Common"
+                    "09. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -1929,126 +1725,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/terminal": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetAllTerminal",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetAllTerminal",
-                "responses": {}
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "CreateTerminal",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "CreateTerminal",
-                "responses": {}
-            }
-        },
-        "/api/terminal/mac/{mac}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetTerminalByMAC",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetTerminalByMAC",
-                "responses": {}
-            }
-        },
-        "/api/terminal/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "GetTerminalByID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "GetTerminalByID",
-                "responses": {}
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "UpdateTerminal",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "UpdateTerminal",
-                "responses": {}
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "DeleteTerminal",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "09. Terminals"
-                ],
-                "summary": "DeleteTerminal",
-                "responses": {}
-            }
-        },
         "/api/terminal/{id}/scenes": {
             "get": {
                 "security": [
@@ -3423,12 +3099,8 @@ const docTemplate = `{
             "name": "08. Mail"
         },
         {
-            "description": "Terminal management endpoints",
-            "name": "09. Terminals"
-        },
-        {
             "description": "Common endpoints (Health, Cache)",
-            "name": "10. Common"
+            "name": "09. Common"
         }
     ]
 }`

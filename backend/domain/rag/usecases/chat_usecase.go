@@ -3,11 +3,11 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/skills"
+	"strings"
 )
 
 type ChatUseCase interface {
@@ -51,15 +51,15 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 
 	// 2. Prepare Skill Context
 	ctx := &skills.SkillContext{
-		UID:       uid,
+		UID:        uid,
 		TerminalID: terminalID,
-		Prompt:    prompt,
-		Language:  language,
-		History:   history,
-		LLM:       u.llm,
-		Config:    u.config,
-		Vector:    u.vector,
-		Badger:    u.badger,
+		Prompt:     prompt,
+		Language:   language,
+		History:    history,
+		LLM:        u.llm,
+		Config:     u.config,
+		Vector:     u.vector,
+		Badger:     u.badger,
 	}
 
 	// 3. Route and Execute via Orchestrator
@@ -91,7 +91,7 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 			Endpoint: "/api/rag/control",
 			Method:   "POST",
 			Body: dtos.RAGControlRequestDTO{
-				Prompt:    prompt,
+				Prompt:     prompt,
 				TerminalID: terminalID,
 			},
 		}

@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"sensio/domain/common/dtos"
 	terminal_dtos "sensio/domain/terminal/dtos"
 	usecases "sensio/domain/terminal/usecases/device"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,13 +26,6 @@ func NewGetDeviceByIDController(useCase *usecases.GetDeviceByIDUseCase) *GetDevi
 }
 
 // GetDeviceByID handles GET /api/devices/:id endpoint
-// @Summary GetDeviceByID
-// @Description GetDeviceByID
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/{id} [get]
 func (c *GetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if strings.TrimSpace(id) == "" || strings.Contains(id, "INVALID") {

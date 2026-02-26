@@ -6,7 +6,7 @@ type MailSendRequestDTO struct {
 	Subject        string                 `json:"subject" binding:"required" example:"Notification"`
 	Template       string                 `json:"template" binding:"omitempty" example:"test"`
 	Data           map[string]interface{} `json:"data,omitempty" example:"{\"customer_name\": \"John Doe\"}"`
-	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/summary_123.pdf"`
+	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
 }
 
 // SendMailByMacRequestDTO represents the request body for sending an email by MAC address
@@ -14,7 +14,7 @@ type SendMailByMacRequestDTO struct {
 	Subject        string                 `json:"subject" binding:"required" example:"Booking Confirmation"`
 	Template       string                 `json:"template" binding:"omitempty" example:"test"`
 	Data           map[string]interface{} `json:"data,omitempty" example:"{\"customer_name\": \"John Doe\"}"`
-	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/summary_123.pdf"`
+	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
 }
 
 // MailTaskResponseDTO represents the immediate response for a mail task
@@ -61,7 +61,7 @@ type SwaggerMailSendRequestDTO struct {
 	Subject        string                   `json:"subject" binding:"required" example:"Notification"`
 	Template       string                   `json:"template" example:"summary"`
 	Data           SwaggerEmailTemplateData `json:"data,omitempty"`
-	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/uploads/reports/summary_123.pdf"`
+	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
 }
 
 // SwaggerSendMailByMacRequestDTO is used to generate proper Swagger documentation for the generic map
@@ -69,5 +69,5 @@ type SwaggerSendMailByMacRequestDTO struct {
 	Subject        string                   `json:"subject" binding:"required" example:"Booking Confirmation"`
 	Template       string                   `json:"template" example:"summary"`
 	Data           SwaggerEmailTemplateData `json:"data,omitempty"`
-	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/uploads/reports/summary_123.pdf"`
+	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
 }

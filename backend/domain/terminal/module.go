@@ -30,12 +30,12 @@ type TerminalModule struct {
 	DeleteController   *terminal.DeleteTerminalController
 
 	// Device Controllers
-	CreateDeviceController          *device.CreateDeviceController
-	GetAllDevicesController         *device.GetAllDevicesController
-	GetDeviceByIDController         *device.GetDeviceByIDController
+	CreateDeviceController           *device.CreateDeviceController
+	GetAllDevicesController          *device.GetAllDevicesController
+	GetDeviceByIDController          *device.GetDeviceByIDController
 	GetDevicesByTerminalIDController *device.GetDevicesByTerminalIDController
-	UpdateDeviceController          *device.UpdateDeviceController
-	DeleteDeviceController          *device.DeleteDeviceController
+	UpdateDeviceController           *device.UpdateDeviceController
+	DeleteDeviceController           *device.DeleteDeviceController
 
 	// DeviceStatus Controllers
 	GetAllDeviceStatusesController        *device_status.GetAllDeviceStatusesController
@@ -90,12 +90,12 @@ func NewTerminalModule(
 		UpdateController:   terminal.NewUpdateTerminalController(updateTerminalUseCase),
 		DeleteController:   terminal.NewDeleteTerminalController(deleteTerminalUseCase),
 
-		CreateDeviceController:          device.NewCreateDeviceController(createDeviceUseCase),
-		GetAllDevicesController:         device.NewGetAllDevicesController(getAllDevicesUseCase),
-		GetDeviceByIDController:         device.NewGetDeviceByIDController(getDeviceByIDUseCase),
+		CreateDeviceController:           device.NewCreateDeviceController(createDeviceUseCase),
+		GetAllDevicesController:          device.NewGetAllDevicesController(getAllDevicesUseCase),
+		GetDeviceByIDController:          device.NewGetDeviceByIDController(getDeviceByIDUseCase),
 		GetDevicesByTerminalIDController: device.NewGetDevicesByTerminalIDController(getDevicesByTerminalIDUseCase),
-		UpdateDeviceController:          device.NewUpdateDeviceController(updateDeviceUseCase),
-		DeleteDeviceController:          device.NewDeleteDeviceController(deleteDeviceUseCase),
+		UpdateDeviceController:           device.NewUpdateDeviceController(updateDeviceUseCase),
+		DeleteDeviceController:           device.NewDeleteDeviceController(deleteDeviceUseCase),
 
 		GetAllDeviceStatusesController:        device_status.NewGetAllDeviceStatusesController(getAllDeviceStatusesUseCase),
 		GetDeviceStatusByCodeController:       device_status.NewGetDeviceStatusByCodeController(getDeviceStatusByCodeUseCase),

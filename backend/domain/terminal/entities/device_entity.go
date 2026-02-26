@@ -8,13 +8,13 @@ import (
 
 // Device represents a device connected to a terminal unit
 type Device struct {
-	ID        string         `gorm:"type:char(36);primaryKey" json:"id"`
+	ID         string         `gorm:"type:char(36);primaryKey" json:"id"`
 	TerminalID string         `gorm:"type:char(36);not null;index" json:"terminal_id"`
-	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
-	Status    []DeviceStatus `json:"status" gorm:"foreignKey:DeviceID"`
-	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	Name       string         `gorm:"type:varchar(255);not null" json:"name"`
+	Status     []DeviceStatus `json:"status" gorm:"foreignKey:DeviceID"`
+	CreatedAt  time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt  time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
 	// Associations can be added here if needed, e.g., Terminal *Terminal
 

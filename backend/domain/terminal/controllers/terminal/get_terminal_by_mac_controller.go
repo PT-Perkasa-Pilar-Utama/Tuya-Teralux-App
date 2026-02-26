@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"sensio/domain/common/dtos"
 	terminal_dtos "sensio/domain/terminal/dtos"
 	usecases "sensio/domain/terminal/usecases/terminal"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,13 +26,6 @@ func NewGetTerminalByMACController(useCase *usecases.GetTerminalByMACUseCase) *G
 }
 
 // GetTerminalByMAC handles GET /api/terminal/mac/:mac endpoint
-// @Summary GetTerminalByMAC
-// @Description GetTerminalByMAC
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/terminal/mac/{mac} [get]
 func (c *GetTerminalByMACController) GetTerminalByMAC(ctx *gin.Context) {
 	mac := ctx.Param("mac")
 	if strings.TrimSpace(mac) == "" || strings.Contains(mac, "INVALID") {
