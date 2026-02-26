@@ -2,11 +2,11 @@ package sensors
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"sensio/domain/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
 	tuyaUsecases "sensio/domain/tuya/usecases"
+	"strconv"
+	"strings"
 )
 
 type SwitchSensor struct{}

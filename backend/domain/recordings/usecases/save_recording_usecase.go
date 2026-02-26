@@ -31,9 +31,10 @@ func NewSaveRecordingUseCase(repo repositories.RecordingRepository, fileService 
 }
 
 func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) (*entities.Recording, error) {
-	// 1. Generate UUIDv4 for filename
+	// 1. Generate UUIDv7 for filename
 	fileExt := filepath.Ext(fileHeader.Filename)
-	newFilename := uuid.New().String() + fileExt
+	uuidFilename, _ := uuid.NewV7()
+	newFilename := uuidFilename.String() + fileExt
 
 	// 2. Define paths
 	uploadPath := filepath.Join("uploads", "audio", newFilename)
@@ -60,9 +61,10 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader) 
 	// But as per requirement: /uploads/audio/{filename}
 	publicUrl := fmt.Sprintf("/uploads/audio/%s", newFilename)
 
+	uuidEntity, _ := uuid.NewV7()
 	// 5. Create Entity
 	recording := &entities.Recording{
-		ID:           uuid.New().String(),
+		ID:           uuidEntity.String(),
 		Filename:     newFilename,
 		OriginalName: fileHeader.Filename,
 		AudioUrl:     publicUrl,
@@ -83,7 +85,8 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 	if fileExt == "" {
 		fileExt = ".wav" // default
 	}
-	newFilename := uuid.New().String() + fileExt
+	uuidFilename, _ := uuid.NewV7()
+	newFilename := uuidFilename.String() + fileExt
 
 	// 2. Define paths
 	uploadPath := filepath.Join("uploads", "audio", newFilename)
@@ -96,9 +99,10 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 	// 4. Construct Public URL
 	publicUrl := fmt.Sprintf("/uploads/audio/%s", newFilename)
 
+	uuidEntity, _ := uuid.NewV7()
 	// 5. Create Entity
 	recording := &entities.Recording{
-		ID:           uuid.New().String(),
+		ID:           uuidEntity.String(),
 		Filename:     newFilename,
 		OriginalName: originalName,
 		AudioUrl:     publicUrl,

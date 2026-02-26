@@ -2,8 +2,8 @@ package skills
 
 import (
 	"fmt"
-	"strings"
 	"sensio/domain/common/utils"
+	"strings"
 )
 
 // Orchestrator coordinates the execution of skills using LLM-based routing.

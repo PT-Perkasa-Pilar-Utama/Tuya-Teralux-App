@@ -2,9 +2,9 @@ package middlewares
 
 import (
 	"net/http"
-	"strings"
 	"sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )

@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 	"sensio/domain/common/dtos"
 	terminal_dtos "sensio/domain/terminal/dtos"
 	usecases "sensio/domain/terminal/usecases/device_status"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,13 +26,6 @@ func NewGetAllDeviceStatusesController(useCase *usecases.GetAllDeviceStatusesUse
 }
 
 // GetAllDeviceStatuses handles GET /api/devices/statuses endpoint
-// @Summary GetAllDeviceStatuses
-// @Description GetAllDeviceStatuses
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/statuses [get]
 func (c *GetAllDeviceStatusesController) GetAllDeviceStatuses(ctx *gin.Context) {
 	pageStr := ctx.Query("page")
 	limitStr := ctx.Query("limit")

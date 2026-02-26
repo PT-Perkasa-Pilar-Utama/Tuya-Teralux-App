@@ -3,10 +3,10 @@ package usecases
 import (
 	"errors"
 	"regexp"
-	"strings"
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/dtos"
 	"sensio/domain/terminal/repositories"
+	"strings"
 )
 
 // UpdateTerminalUseCase handles updating an existing terminal

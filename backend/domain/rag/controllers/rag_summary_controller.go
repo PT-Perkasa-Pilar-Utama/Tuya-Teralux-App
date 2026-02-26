@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/usecases"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )

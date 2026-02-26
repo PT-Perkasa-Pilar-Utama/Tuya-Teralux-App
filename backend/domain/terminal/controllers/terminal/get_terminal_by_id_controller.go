@@ -25,13 +25,6 @@ func NewGetTerminalByIDController(useCase *usecases.GetTerminalByIDUseCase) *Get
 }
 
 // GetTerminalByID handles GET /api/terminal/:id endpoint
-// @Summary GetTerminalByID
-// @Description GetTerminalByID
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/terminal/{id} [get]
 func (c *GetTerminalByIDController) GetTerminalByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 

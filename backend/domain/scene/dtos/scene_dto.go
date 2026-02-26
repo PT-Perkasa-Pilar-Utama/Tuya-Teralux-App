@@ -23,17 +23,17 @@ type UpdateSceneRequestDTO struct {
 
 // SceneResponseDTO for GET /api/terminal/:id/scenes (includes terminal_id)
 type SceneResponseDTO struct {
-	ID        string      `json:"id"`
+	ID         string      `json:"id"`
 	TerminalID string      `json:"terminal_id"`
-	Name      string      `json:"name"`
-	Actions   []ActionDTO `json:"actions"`
+	Name       string      `json:"name"`
+	Actions    []ActionDTO `json:"actions"`
 }
 
 // SceneListResponseDTO for summarized list
 type SceneListResponseDTO struct {
-	ID        string `json:"id"`
+	ID         string `json:"id"`
 	TerminalID string `json:"terminal_id"`
-	Name      string `json:"name"`
+	Name       string `json:"name"`
 }
 
 // SceneIDResponseDTO for returning just the scene ID
@@ -51,7 +51,7 @@ type SceneItemDTO struct {
 // TerminalScenesDTO holds terminal_id and its scenes — used inside the wrapper
 type TerminalScenesDTO struct {
 	TerminalID string         `json:"terminal_id"`
-	Scenes    []SceneItemDTO `json:"scenes"`
+	Scenes     []SceneItemDTO `json:"scenes"`
 }
 
 // TerminalScenesWrapperDTO wraps TerminalScenesDTO under "terminal" key

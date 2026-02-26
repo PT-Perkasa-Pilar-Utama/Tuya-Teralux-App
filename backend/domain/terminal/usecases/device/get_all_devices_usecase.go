@@ -60,7 +60,7 @@ func (uc *GetAllDevicesUseCase) ListDevices(filter *dtos.DeviceFilterDTO) (*dtos
 	for _, item := range devices {
 		deviceDTOs = append(deviceDTOs, dtos.DeviceResponseDTO{
 			ID:                item.ID,
-			TerminalID:         item.TerminalID,
+			TerminalID:        item.TerminalID,
 			Name:              item.Name,
 			RemoteID:          item.RemoteID,
 			Category:          item.Category,

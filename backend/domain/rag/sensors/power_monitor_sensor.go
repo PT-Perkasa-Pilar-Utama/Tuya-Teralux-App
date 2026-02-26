@@ -2,10 +2,10 @@ package sensors
 
 import (
 	"fmt"
-	"strings"
 	"sensio/domain/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
 	tuyaUsecases "sensio/domain/tuya/usecases"
+	"strings"
 )
 
 type PowerMonitorSensor struct{}

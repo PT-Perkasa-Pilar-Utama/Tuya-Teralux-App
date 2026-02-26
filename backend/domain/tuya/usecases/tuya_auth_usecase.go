@@ -4,12 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"strconv"
-	"sync"
 	"sensio/domain/common/utils"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/services"
 	tuya_utils "sensio/domain/tuya/utils"
+	"strconv"
+	"sync"
 	"time"
 )
 

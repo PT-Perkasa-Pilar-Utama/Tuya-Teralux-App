@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	terminal_dtos "sensio/domain/terminal/dtos"
 	usecases "sensio/domain/terminal/usecases/terminal"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,13 +24,6 @@ func NewUpdateTerminalController(useCase *usecases.UpdateTerminalUseCase) *Updat
 }
 
 // UpdateTerminal handles PUT /api/terminal/:id endpoint
-// @Summary UpdateTerminal
-// @Description UpdateTerminal
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/terminal/{id} [put]
 func (c *UpdateTerminalController) UpdateTerminal(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var req terminal_dtos.UpdateTerminalRequestDTO

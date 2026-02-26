@@ -28,7 +28,7 @@ func (uc *GetDeviceByIDUseCase) GetDeviceByID(id string) (*dtos.DeviceSingleResp
 	return &dtos.DeviceSingleResponseDTO{
 		Device: dtos.DeviceResponseDTO{
 			ID:                device.ID,
-			TerminalID:         device.TerminalID,
+			TerminalID:        device.TerminalID,
 			Name:              device.Name,
 			RemoteID:          device.RemoteID,
 			Category:          device.Category,

@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 	"sensio/domain/common/dtos"
 	usecases "sensio/domain/terminal/usecases/terminal"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,13 +22,6 @@ func NewDeleteTerminalController(useCase *usecases.DeleteTerminalUseCase) *Delet
 }
 
 // DeleteTerminal handles DELETE /api/terminal/:id endpoint
-// @Summary DeleteTerminal
-// @Description DeleteTerminal
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/terminal/{id} [delete]
 func (c *DeleteTerminalController) DeleteTerminal(ctx *gin.Context) {
 	id := ctx.Param("id")
 

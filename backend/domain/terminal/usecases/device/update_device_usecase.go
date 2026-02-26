@@ -2,22 +2,22 @@ package usecases
 
 import (
 	"errors"
-	"strings"
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/dtos"
 	"sensio/domain/terminal/repositories"
+	"strings"
 )
 
 // UpdateDeviceUseCase handles updating an existing device
 type UpdateDeviceUseCase struct {
-	repository  repositories.IDeviceRepository
+	repository   repositories.IDeviceRepository
 	terminalRepo repositories.ITerminalRepository
 }
 
 // NewUpdateDeviceUseCase creates a new instance of UpdateDeviceUseCase
 func NewUpdateDeviceUseCase(repository repositories.IDeviceRepository, terminalRepo repositories.ITerminalRepository) *UpdateDeviceUseCase {
 	return &UpdateDeviceUseCase{
-		repository:  repository,
+		repository:   repository,
 		terminalRepo: terminalRepo,
 	}
 }

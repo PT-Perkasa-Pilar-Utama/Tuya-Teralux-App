@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 	"sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	terminal_dtos "sensio/domain/terminal/dtos"
 	usecases "sensio/domain/terminal/usecases/device_status"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,13 +27,6 @@ func NewGetDeviceStatusesByDeviceIDController(useCase *usecases.GetDeviceStatuse
 }
 
 // GetDeviceStatusesByDeviceID handles GET /api/device/statuses/:deviceId endpoint
-// @Summary GetDeviceStatusesByDeviceID
-// @Description GetDeviceStatusesByDeviceID
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/{id}/statuses [get]
 func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

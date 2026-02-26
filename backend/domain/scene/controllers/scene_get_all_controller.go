@@ -43,7 +43,7 @@ func (c *SceneListAllController) ListAllScenes(ctx *gin.Context) {
 		response = append(response, scene_dtos.TerminalScenesWrapperDTO{
 			Terminal: scene_dtos.TerminalScenesDTO{
 				TerminalID: terminalID,
-				Scenes:    toSceneItemDTOs(scenes),
+				Scenes:     toSceneItemDTOs(scenes),
 			},
 		})
 	}

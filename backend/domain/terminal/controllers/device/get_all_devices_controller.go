@@ -26,13 +26,6 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 }
 
 // GetAllDevices handles GET /api/devices endpoint
-// @Summary GetAllDevices
-// @Description GetAllDevices
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices [get]
 func (c *GetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	var filter terminal_dtos.DeviceFilterDTO
 	if err := ctx.ShouldBindQuery(&filter); err != nil {

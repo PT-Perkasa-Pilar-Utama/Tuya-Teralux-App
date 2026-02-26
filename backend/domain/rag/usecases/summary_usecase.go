@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	mailServices "sensio/domain/mail/services"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/services"
 	"sensio/domain/rag/skills"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -149,7 +149,8 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	// Generate PDF
-	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
+	uuidStr, _ := uuid.NewV7()
+	pdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
 
 	// Determine backend root to ensure uploads are correctly placed
 	basePath := "."
@@ -398,7 +399,8 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	}
 
 	// PDF rendering with timeout
-	pdfFilename := fmt.Sprintf("summary_%d.pdf", time.Now().Unix())
+	uuidStr, _ := uuid.NewV7()
+	pdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
 
 	// Determine backend root
 	basePath := "."

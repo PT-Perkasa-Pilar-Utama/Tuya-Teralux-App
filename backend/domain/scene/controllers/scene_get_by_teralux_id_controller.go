@@ -45,10 +45,10 @@ func (c *SceneListController) ListScenes(ctx *gin.Context) {
 	response := make([]scene_dtos.SceneResponseDTO, len(scenes))
 	for i, s := range scenes {
 		response[i] = scene_dtos.SceneResponseDTO{
-			ID:        s.ID,
+			ID:         s.ID,
 			TerminalID: s.TerminalID,
-			Name:      s.Name,
-			Actions:   toActionDTOs(s.Actions),
+			Name:       s.Name,
+			Actions:    toActionDTOs(s.Actions),
 		}
 	}
 

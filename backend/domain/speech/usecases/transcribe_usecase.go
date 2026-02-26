@@ -22,7 +22,7 @@ type WhisperClient interface {
 
 type TranscriptionMetadata struct {
 	UID         string
-	TerminalID   string
+	TerminalID  string
 	Source      string // "mqtt", "rest", etc.
 	Trigger     string // e.g., "/api/speech/transcribe"
 	DeleteAfter bool   // Whether to delete the audio file after processing
@@ -162,10 +162,10 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 		}
 
 		chatReq := map[string]string{
-			"prompt":     prompt,
+			"prompt":      prompt,
 			"terminal_id": metadata.TerminalID,
-			"language":   result.DetectedLanguage,
-			"uid":        metadata.UID,
+			"language":    result.DetectedLanguage,
+			"uid":         metadata.UID,
 		}
 		payload, _ := json.Marshal(chatReq)
 		if err := uc.mqttSvc.Publish(chatTopic, 0, false, payload); err != nil {

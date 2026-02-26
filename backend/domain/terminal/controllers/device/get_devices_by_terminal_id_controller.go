@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
-	"strings"
 	"sensio/domain/common/dtos"
 	terminal_dtos "sensio/domain/terminal/dtos"
 	usecases "sensio/domain/terminal/usecases/device"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,13 +27,6 @@ func NewGetDevicesByTerminalIDController(useCase *usecases.GetDevicesByTerminalI
 }
 
 // GetDevicesByTerminalID handles GET /api/devices/terminal/:terminal_id endpoint
-// @Summary GetDevicesByTerminalID
-// @Description GetDevicesByTerminalID
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/terminal/{terminal_id} [get]
 func (c *GetDevicesByTerminalIDController) GetDevicesByTerminalID(ctx *gin.Context) {
 	terminalID := ctx.Param("terminal_id")
 	if strings.TrimSpace(terminalID) == "" || strings.Contains(terminalID, "INVALID") {

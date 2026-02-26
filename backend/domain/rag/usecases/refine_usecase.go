@@ -1,9 +1,9 @@
 package usecases
 
 import (
-	"strings"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/skills"
+	"strings"
 )
 
 type RefineUseCase interface {

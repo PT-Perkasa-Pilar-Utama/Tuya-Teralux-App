@@ -44,9 +44,9 @@ type TerminalResponseDTO struct {
 // TerminalListResponseDTO represents the response format for a list of terminal items
 type TerminalListResponseDTO struct {
 	Terminal []TerminalResponseDTO `json:"terminal"`
-	Total   int64                `json:"total"`
-	Page    int                  `json:"page"`
-	PerPage int                  `json:"per_page"`
+	Total    int64                 `json:"total"`
+	Page     int                   `json:"page"`
+	PerPage  int                   `json:"per_page"`
 }
 
 // TerminalSingleResponseDTO represents the response format for a single terminal (wrapped)

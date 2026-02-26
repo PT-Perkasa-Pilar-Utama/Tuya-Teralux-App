@@ -9,11 +9,11 @@ type WhisperResult struct {
 }
 
 type WhisperMqttRequestDTO struct {
-	Audio     string `json:"audio" binding:"required"` // Base64 encoded audio
-	Language  string `json:"language,omitempty"`
+	Audio      string `json:"audio" binding:"required"` // Base64 encoded audio
+	Language   string `json:"language,omitempty"`
 	TerminalID string `json:"terminal_id" binding:"required"`
-	UID       string `json:"uid,omitempty"`
-	Diarize   bool   `json:"diarize,omitempty"`
+	UID        string `json:"uid,omitempty"`
+	Diarize    bool   `json:"diarize,omitempty"`
 }
 
 type TranscriptionRequestDTO struct {

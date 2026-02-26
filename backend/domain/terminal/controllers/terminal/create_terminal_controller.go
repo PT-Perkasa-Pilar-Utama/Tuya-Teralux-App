@@ -23,13 +23,6 @@ func NewCreateTerminalController(useCase *usecases.CreateTerminalUseCase) *Creat
 }
 
 // CreateTerminal handles POST /api/terminal endpoint
-// @Summary CreateTerminal
-// @Description CreateTerminal
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/terminal [post]
 func (c *CreateTerminalController) CreateTerminal(ctx *gin.Context) {
 	var req terminal_dtos.CreateTerminalRequestDTO
 

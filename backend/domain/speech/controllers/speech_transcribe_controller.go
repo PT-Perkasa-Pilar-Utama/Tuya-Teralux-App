@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
@@ -17,6 +16,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // SpeechTranscribeController handles POST /api/speech/transcribe.
@@ -80,7 +80,8 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		}
 
 		// Generate a descriptive temporary filename
-		tempFilename := fmt.Sprintf("mqtt_temp_%s_%d.wav", req.TerminalID, time.Now().UnixNano())
+		uuidStr, _ := uuid.NewV7()
+		tempFilename := fmt.Sprintf("mqtt_temp_%s_%s.wav", req.TerminalID, uuidStr.String())
 		tempPath := filepath.Join("uploads", "audio", tempFilename)
 
 		// Save audio bytes to disk manually (without DB entry)
@@ -93,7 +94,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		// Start transcription task using usecase
 		taskID, err := c.transcribeUC.TranscribeAudio(tempPath, tempFilename, language, usecases.TranscriptionMetadata{
 			UID:         req.UID,
-			TerminalID:   req.TerminalID,
+			TerminalID:  req.TerminalID,
 			Source:      "mqtt",
 			Trigger:     "mqtt:tera/transcribe",
 			DeleteAfter: true, // Delete file after transcription

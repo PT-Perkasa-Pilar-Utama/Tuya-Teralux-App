@@ -5,14 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"sort"
-	"strconv"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	terminal_repositories "sensio/domain/terminal/repositories"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/services"
 	tuya_utils "sensio/domain/tuya/utils"
+	"sort"
+	"strconv"
 	"time"
 )
 
@@ -28,7 +28,7 @@ type tuyaGetAllDevicesUseCase struct {
 	cache         *infrastructure.BadgerService
 	vectorSvc     *infrastructure.VectorService
 	deviceRepo    *terminal_repositories.DeviceRepository
-	terminalRepo   *terminal_repositories.TerminalRepository
+	terminalRepo  *terminal_repositories.TerminalRepository
 }
 
 // NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
@@ -39,7 +39,7 @@ func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStat
 		cache:         cache,
 		vectorSvc:     vectorSvc,
 		deviceRepo:    deviceRepo,
-		terminalRepo:   terminalRepo,
+		terminalRepo:  terminalRepo,
 	}
 }
 

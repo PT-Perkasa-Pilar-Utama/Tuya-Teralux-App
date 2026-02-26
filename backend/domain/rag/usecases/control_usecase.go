@@ -3,12 +3,12 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/skills"
 	tuyaUsecases "sensio/domain/tuya/usecases"
+	"strings"
 )
 
 type ControlUseCase interface {
@@ -46,13 +46,13 @@ func (u *controlUseCase) ProcessControl(uid, terminalID, prompt string) (*dtos.C
 	skill := skills.NewControlSkill(u.tuyaExecutor, u.tuyaAuth)
 
 	ctx := &skills.SkillContext{
-		UID:       uid,
+		UID:        uid,
 		TerminalID: terminalID,
-		Prompt:    prompt,
-		LLM:       u.llm,
-		Config:    u.config,
-		Vector:    u.vector,
-		Badger:    u.badger,
+		Prompt:     prompt,
+		LLM:        u.llm,
+		Config:     u.config,
+		Vector:     u.vector,
+		Badger:     u.badger,
 	}
 
 	// Preload history for the skill

@@ -17,15 +17,15 @@ type Healthcheckable interface {
 
 // SkillContext holds the shared services and state needed by skills during execution.
 type SkillContext struct {
-	UID       string
+	UID        string
 	TerminalID string
-	Prompt    string
-	Language  string
-	History   []string
-	LLM       LLMClient
-	Config    *utils.Config
-	Vector    *infrastructure.VectorService
-	Badger    *infrastructure.BadgerService
+	Prompt     string
+	Language   string
+	History    []string
+	LLM        LLMClient
+	Config     *utils.Config
+	Vector     *infrastructure.VectorService
+	Badger     *infrastructure.BadgerService
 
 	// Metadata for Meeting Summaries / MoM
 	Date         string

@@ -18,7 +18,7 @@ func NewHealthController() *HealthController {
 // CheckHealth godoc
 // @Summary      Health check endpoint
 // @Description  Check if the application and database are healthy
-// @Tags 10. Common
+// @Tags 09. Common
 // @Produce      plain
 // @Success      200  {string}  string "OK"
 // @Failure      503  {string}  string "Service Unavailable"

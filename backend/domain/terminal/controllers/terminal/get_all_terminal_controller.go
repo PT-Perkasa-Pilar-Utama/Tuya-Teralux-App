@@ -26,13 +26,6 @@ func NewGetAllTerminalController(useCase *usecases.GetAllTerminalUseCase) *GetAl
 }
 
 // GetAllTerminal handles GET /api/terminal endpoint
-// @Summary GetAllTerminal
-// @Description GetAllTerminal
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/terminal [get]
 func (c *GetAllTerminalController) GetAllTerminal(ctx *gin.Context) {
 	var filter terminal_dtos.TerminalFilterDTO
 	if err := ctx.ShouldBindQuery(&filter); err != nil {

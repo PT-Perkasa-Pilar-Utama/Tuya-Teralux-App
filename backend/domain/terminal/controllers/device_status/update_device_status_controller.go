@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
-	"strings" // Added for strings.Contains
 	"sensio/domain/common/dtos"
 	"sensio/domain/common/utils" // Added for utils.ValidationError
 	terminal_dtos "sensio/domain/terminal/dtos"
 	usecases "sensio/domain/terminal/usecases/device_status"
+	"strings" // Added for strings.Contains
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,13 +24,6 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 }
 
 // UpdateDeviceStatus handles PUT /api/devices/statuses/:deviceId/:code endpoint
-// @Summary UpdateDeviceStatus
-// @Description UpdateDeviceStatus
-// @Tags 09. Terminals
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Router /api/devices/{id}/status [put]
 func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

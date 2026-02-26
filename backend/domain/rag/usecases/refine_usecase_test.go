@@ -2,8 +2,8 @@ package usecases
 
 import (
 	"errors"
-	"strings"
 	"sensio/domain/common/utils"
+	"strings"
 	"testing"
 )
 

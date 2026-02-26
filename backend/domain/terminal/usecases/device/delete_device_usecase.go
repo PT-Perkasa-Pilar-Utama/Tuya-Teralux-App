@@ -12,7 +12,7 @@ import (
 type DeleteDeviceUseCase struct {
 	repository       repositories.IDeviceRepository
 	statusRepository repositories.IDeviceStatusRepository
-	terminalRepo      repositories.ITerminalRepository
+	terminalRepo     repositories.ITerminalRepository
 }
 
 // NewDeleteDeviceUseCase creates a new instance of DeleteDeviceUseCase
@@ -24,7 +24,7 @@ func NewDeleteDeviceUseCase(
 	return &DeleteDeviceUseCase{
 		repository:       repository,
 		statusRepository: statusRepository,
-		terminalRepo:      terminalRepo,
+		terminalRepo:     terminalRepo,
 	}
 }
 
