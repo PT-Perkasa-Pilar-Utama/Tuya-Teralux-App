@@ -19,6 +19,7 @@ services:
     volumes:
       - ./bin:/app/models
       - ./templates:/app/templates
+      - ./uploads:/app/uploads
 
   sensio-db:
     image: mysql:8.0

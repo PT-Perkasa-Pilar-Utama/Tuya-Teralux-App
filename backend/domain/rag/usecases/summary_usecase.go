@@ -79,19 +79,19 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
 			if err == nil {
 				if date == "" {
-					date = fmt.Sprintf("%v", info["SDTGetRoomTerminalByendDate"])
+					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
 					if date == "" || date == "<nil>" {
-						date = fmt.Sprintf("%v", info["SDTGetRoomTerminaltimeendDate"]) // Fallback to other key
+						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback to other key
 					}
 				}
 				if location == "" {
-					location = fmt.Sprintf("%v", info["SDTGetRoomTerminalRoomName"])
+					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
 				}
 				if participants == "" {
-					participants = fmt.Sprintf("%v", info["SDTGetRoomTerminalCustomerName"])
+					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
 				}
 				if meetingContext == "" {
-					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTerminalMeetingAgenda"])
+					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTeraluxMeetingAgenda"])
 					if apiAgenda != "" && apiAgenda != "<nil>" {
 						meetingContext = apiAgenda
 					}
@@ -321,19 +321,19 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
 			if err == nil {
 				if date == "" {
-					date = fmt.Sprintf("%v", info["SDTGetRoomTerminalByendDate"])
+					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
 					if date == "" || date == "<nil>" {
-						date = fmt.Sprintf("%v", info["SDTGetRoomTerminaltimeendDate"]) // Fallback
+						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback
 					}
 				}
 				if location == "" {
-					location = fmt.Sprintf("%v", info["SDTGetRoomTerminalRoomName"])
+					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
 				}
 				if participants == "" {
-					participants = fmt.Sprintf("%v", info["SDTGetRoomTerminalCustomerName"])
+					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
 				}
 				if meetingContext == "" {
-					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTerminalMeetingAgenda"])
+					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTeraluxMeetingAgenda"])
 					if apiAgenda != "" && apiAgenda != "<nil>" {
 						meetingContext = apiAgenda
 					}

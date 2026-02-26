@@ -27,8 +27,8 @@ MQTT_BROKER=${MQTT_BROKER:-wss://ws.farismnrr.com:443/mqtt}
 read -p "MQTT Username: " MQTT_USERNAME
 read -s -p "MQTT Password: " MQTT_PASSWORD
 echo ""
-read -p "MQTT Topic (default: users/terminal/whisper): " MQTT_TOPIC
-MQTT_TOPIC=${MQTT_TOPIC:-users/terminal/whisper}
+read -p "MQTT Topic (default: teralux/whisper): " MQTT_TOPIC
+MQTT_TOPIC=${MQTT_TOPIC:-teralux/whisper}
 
 # 3. Prompt for Database Configuration
 echo -e "${INFO}[INFO] Please enter your Database credentials (MySQL):${NC}"

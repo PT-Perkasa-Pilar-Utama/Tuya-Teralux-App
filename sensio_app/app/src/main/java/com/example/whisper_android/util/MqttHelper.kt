@@ -82,9 +82,9 @@ class MqttHelper(
                         Log.d(tag, "Success Connected to $serverUri")
 
                         // Subscribe to chat and answer topics
-                        subscribe("users/terminal/chat/answer")
-                        subscribe("users/terminal/whisper/answer")
-                        subscribe("users/terminal/chat")
+                        subscribe("teralux/chat/answer")
+                        subscribe("teralux/whisper/answer")
+                        subscribe("teralux/chat")
                         onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTED)
                     }
 
@@ -151,7 +151,7 @@ class MqttHelper(
                 "language": "$language"
             }
             """.trimIndent()
-        publish("users/terminal/whisper", json.toByteArray())
+        publish("teralux/whisper", json.toByteArray())
     }
 
     fun publishChat(
@@ -166,7 +166,7 @@ class MqttHelper(
                 "language": "$language"
             }
             """.trimIndent()
-        publish("users/terminal/chat", json.toByteArray())
+        publish("teralux/chat", json.toByteArray())
     }
 
     private fun publish(

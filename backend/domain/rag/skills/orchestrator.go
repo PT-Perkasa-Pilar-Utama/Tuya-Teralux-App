@@ -80,7 +80,7 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 	// 4. Translate response if needed
 	// If the user requested a specific language (e.g. "id") and it's not English ("en"),
 	// and we have a translator available, we translate the response.
-	if ctx.Language != "" && ctx.Language != "en" && o.translator != nil && res.Message != "" {
+	if ctx.Language != "" && ctx.Language != "en" && o.translator != nil && res.Message != "" && !res.IsControl {
 		utils.LogDebug("Orchestrator: Translating response to '%s'", ctx.Language)
 		translated, err := o.translator.TranslateTextSync(res.Message, ctx.Language)
 		if err == nil {

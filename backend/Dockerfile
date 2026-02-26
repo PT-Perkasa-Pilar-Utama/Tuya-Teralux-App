@@ -1,23 +1,61 @@
 # syntax=docker/dockerfile:1.7
 
-############################
-# Builder
-############################
-FROM golang:1.25-bookworm AS builder
+############################################
+# Base Builder
+############################################
+FROM golang:1.25-bookworm AS base-builder
 
 WORKDIR /app
-
 ARG TARGETARCH
 
-# Install build tools and binutils (for strip)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     build-essential \
     git \
     binutils \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Cache dependency layer for Go
+
+############################################
+# AI Builder (whisper + llama)
+############################################
+FROM base-builder AS ai-builder
+
+# Stable pinned versions
+ARG WHISPER_TAG=v1.7.4
+ARG LLAMA_TAG=b4765
+
+# ---- Build whisper.cpp ----
+RUN git clone --depth 1 --branch ${WHISPER_TAG} \
+    https://github.com/ggerganov/whisper.cpp.git /whisper.cpp && \
+    cmake -S /whisper.cpp -B /whisper.cpp/build -DGGML_NATIVE=OFF && \
+    cmake --build /whisper.cpp/build --config Release -t main && \
+    strip --strip-unneeded /whisper.cpp/build/bin/main && \
+    cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli
+
+# ---- Build llama.cpp ----
+RUN git clone --depth 1 --branch ${LLAMA_TAG} \
+    https://github.com/ggerganov/llama.cpp.git /llama.cpp && \
+    cmake -S /llama.cpp -B /llama.cpp/build -DGGML_NATIVE=OFF && \
+    cmake --build /llama.cpp/build --config Release -t llama-cli && \
+    strip --strip-unneeded /llama.cpp/build/bin/llama-cli && \
+    cp /llama.cpp/build/bin/llama-cli /usr/local/bin/llama-cli
+
+
+############################################
+# Go Builder
+############################################
+FROM base-builder AS app-builder
+
+# Install migrate
+RUN curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-$TARGETARCH.tar.gz \
+    | tar -xz && \
+    mv migrate /usr/local/bin/migrate && \
+    chmod +x /usr/local/bin/migrate && \
+    strip --strip-unneeded /usr/local/bin/migrate
+
+# Cache deps
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
@@ -25,7 +63,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy source
 COPY . .
 
-# Build static Go binary
+# Build app
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=1 \
@@ -37,35 +75,14 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
       -o app && \
     strip --strip-unneeded app
 
-# Install migrate (builder only)
-RUN curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-$TARGETARCH.tar.gz \
-    | tar -xz && \
-    mv migrate /usr/local/bin/migrate && \
-    chmod +x /usr/local/bin/migrate && \
-    strip --strip-unneeded /usr/local/bin/migrate
 
-# Build whisper-cli (Pinned to v1.7.4)
-RUN git clone --depth 1 --branch v1.7.4 https://github.com/ggerganov/whisper.cpp.git /whisper.cpp && \
-    cd /whisper.cpp && \
-    cmake -B build -DGGML_NATIVE=OFF && cmake --build build --config Release -t main && \
-    cp build/bin/main /usr/local/bin/whisper-cli && \
-    strip --strip-unneeded /usr/local/bin/whisper-cli
-
-# Build llama-cli (Pinned to b4765)
-RUN git clone --depth 1 --branch b4765 https://github.com/ggerganov/llama.cpp.git /llama.cpp && \
-    cd /llama.cpp && \
-    cmake -B build -DGGML_NATIVE=OFF && cmake --build build --config Release -t llama-cli && \
-    cp build/bin/llama-cli /usr/local/bin/llama-cli && \
-    strip --strip-unneeded /usr/local/bin/llama-cli
-
-############################
+############################################
 # Runtime
-############################
+############################################
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Install minimal runtime deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
@@ -83,40 +100,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpangocairo-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user and setup directories
 RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/bin /app/models /app/logs && \
+    mkdir -p /app/bin /app/models /app/logs /app/uploads && \
     chown -R appuser:appuser /app
 
-# Copy binaries from builder
-COPY --from=builder /app/app /app/app
-COPY --from=builder /usr/local/bin/migrate /usr/local/bin/migrate
-COPY --from=builder /usr/local/bin/whisper-cli /app/bin/whisper-cli
-COPY --from=builder /usr/local/bin/llama-cli /app/bin/llama-cli
+# Copy binaries
+COPY --from=app-builder /app/app /app/app
+COPY --from=app-builder /usr/local/bin/migrate /usr/local/bin/migrate
+COPY --from=ai-builder /usr/local/bin/whisper-cli /app/bin/whisper-cli
+COPY --from=ai-builder /usr/local/bin/llama-cli /app/bin/llama-cli
 
-# Copy application assets/data
-COPY --from=builder /app/domain/terminal/migrations /app/migrations
-COPY --from=builder /app/docs /app/docs
+# Copy assets
+COPY --from=app-builder /app/domain/terminal/migrations /app/migrations
+COPY --from=app-builder /app/docs /app/docs
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
 
-RUN chmod +x /app/scripts/entrypoint.sh /app/bin/whisper-cli /app/bin/llama-cli && \
+RUN chmod +x /app/scripts/entrypoint.sh \
+    /app/bin/whisper-cli \
+    /app/bin/llama-cli && \
     chown appuser:appuser /app/scripts/entrypoint.sh
 
-# Runtime env
 ENV PORT=8080
 ENV AUTO_MIGRATE=true
 ENV MODEL_AUTO_DOWNLOAD=true
 ENV WHISPER_CLI=/app/bin/whisper-cli
 ENV LLAMA_CLI=/app/bin/llama-cli
 
-# State model volume contract
 VOLUME ["/app/models"]
 
 USER appuser
 
 EXPOSE 8080
 
-# Healthcheck (Exec form)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD ["curl", "-f", "http://localhost:8080/api/health"]
 

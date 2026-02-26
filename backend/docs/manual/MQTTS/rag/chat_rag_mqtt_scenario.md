@@ -1,11 +1,11 @@
 # MQTT: AI Assistant Chat Scenario
 
 ## 1. Overview
-The AI assistant chat can be triggered via MQTT on the `users/terminal/chat` topic. Responses are published back to `users/terminal/chat/answer`.
+The AI assistant chat can be triggered via MQTT on the `teralux/chat` topic. Responses are published back to `teralux/chat/answer`.
 
 ## 2. MQTT Topic
-- **Subscription Topic**: `users/terminal/chat`
-- **Response Topic**: `users/terminal/chat/answer`
+- **Subscription Topic**: `teralux/chat`
+- **Response Topic**: `teralux/chat/answer`
 - **QoS**: 0
 
 ## 3. Test Cases
@@ -22,7 +22,7 @@ The AI assistant chat can be triggered via MQTT on the `users/terminal/chat` top
 }
 ```
 
-**Expected Response (on `users/terminal/chat/answer`)**:
+**Expected Response (on `teralux/chat/answer`)**:
 ```json
 {
   "status": true,
@@ -44,7 +44,7 @@ The AI assistant chat can be triggered via MQTT on the `users/terminal/chat` top
   }
 ```
 
-**Expected Response (on `users/terminal/chat/answer`)**:
+**Expected Response (on `teralux/chat/answer`)**:
 ```json
 {
   "status": true,
@@ -65,6 +65,6 @@ The AI assistant chat can be triggered via MQTT on the `users/terminal/chat` top
 ```
 
 ## 4. Verification Steps
-1. Use an MQTT client (e.g., MQTT Explorer or `mosquitto_sub`) to subscribe to `users/terminal/chat/answer`.
-2. Publish the CHAT payload to `users/terminal/chat`.
+1. Use an MQTT client (e.g., MQTT Explorer or `mosquitto_sub`) to subscribe to `teralux/chat/answer`.
+2. Publish the CHAT payload to `teralux/chat`.
 3. Verify the response message matches the expected format.

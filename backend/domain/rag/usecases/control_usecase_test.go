@@ -167,6 +167,27 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		localMock.AssertExpectations(t)
 	})
 
+	t.Run("Quote-wrapped LLM response (regression)", func(t *testing.T) {
+		// Regression: OpenAI sometimes returns `"EXECUTE:id"` with surrounding quotes.
+		// This must be treated the same as EXECUTE:id without quotes.
+		prompt := "The main one"
+		localMock := new(mockLLMForControl)
+		mockAuth := new(mockTuyaAuthForControl)
+		mockExec := new(mockTuyaExecutorForControl)
+		mockAuth.On("GetTuyaAccessToken").Return("mock-token", nil)
+		mockExec.On("SendIRACCommand", "mock-token", "dev-ac-1", "remote-ac-1", mock.Anything).Return(true, nil)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockExec, mockAuth)
+
+		// Simulate LLM wrapping response in surrounding double-quotes
+		localMock.On("CallModel", mock.Anything, "high").Return(`"EXECUTE:dev-ac-1"`, nil).Once()
+
+		res, err := localUC.ProcessControl(uid, terminalID, prompt)
+		assert.NoError(t, err)
+		assert.Contains(t, res.Message, "AC Kamar Utama")
+		assert.Equal(t, "dev-ac-1", res.DeviceID)
+		localMock.AssertExpectations(t)
+	})
+
 	t.Run("No Match - Not Found", func(t *testing.T) {
 		prompt := "Turn on the Fridge"
 		localMock := new(mockLLMForControl)

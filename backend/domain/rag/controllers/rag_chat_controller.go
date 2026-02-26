@@ -29,7 +29,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		return
 	}
 
-	topic := "users/terminal/chat"
+	topic := "teralux/chat"
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		utils.LogInfo("RAGChat MQTT: Received message on %s, payload size: %d", topic, len(payload))
@@ -42,7 +42,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		err := json.Unmarshal(payload, &req)
 		if err != nil {
 			utils.LogError("RAGChat MQTT: Failed to unmarshal message: %v", err)
-			respTopic := "users/terminal/chat/answer"
+			respTopic := "teralux/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
 				Message: "Validation Error",
@@ -58,7 +58,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 
 		if req.Prompt == "" || req.TerminalID == "" {
 			utils.LogError("RAGChat MQTT: Missing prompt or terminal_id")
-			respTopic := "users/terminal/chat/answer"
+			respTopic := "teralux/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
 				Message: "Validation Error",
@@ -83,7 +83,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		res, err := c.chatUC.Chat(uid, req.TerminalID, req.Prompt, req.Language)
 		if err != nil {
 			utils.LogError("RAGChat MQTT: Chat processing failed: %v", err)
-			respTopic := "users/terminal/chat/answer"
+			respTopic := "teralux/chat/answer"
 			respData, _ := json.Marshal(dtos.StandardResponse{
 				Status:  false,
 				Message: "Internal Server Error",
@@ -95,7 +95,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		}
 
 		// Publish result back
-		respTopic := "users/terminal/chat/answer"
+		respTopic := "teralux/chat/answer"
 		resp := dtos.StandardResponse{
 			Status:  true,
 			Message: "Chat processed successfully",
@@ -175,7 +175,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 
 	// Also publish to MQTT if service is available (for unified view on mobile apps)
 	if c.mqttSvc != nil {
-		respTopic := "users/terminal/chat/answer"
+		respTopic := "teralux/chat/answer"
 		respData, _ := json.Marshal(resp)
 		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 			utils.LogError("RAGChatController.Chat: Failed to publish to MQTT: %v", err)
