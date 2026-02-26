@@ -85,6 +85,11 @@ android {
             "SENSIO_API_KEY",
             "\"${localProperties.getProperty("sensio.api_key") ?: ""}\""
         )
+        buildConfigField(
+            "String",
+            "MQTT_TOPIC_BASE",
+            "\"${localProperties.getProperty("mqtt.topic_base") ?: "teralux"}\""
+        )
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
         buildConfigField("String", "BASE_HOSTNAME", "\"$baseHostname\"")
     }

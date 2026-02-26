@@ -69,10 +69,7 @@ func (pc *PromptConfig) BuildPrompt(transcript string) string {
 2. **OMIT EMPTY SECTIONS**: This is extremely important. If there is no information in the audio for a specific section (e.g., no Action Items, no Decisions, or no Risks), DO NOT write "Tidak ada", "N/A", or placeholders. **COMPLETELY REMOVE / OMIT that section and its header from your final output.**
 3. **FLEXIBLE STRUCTURE**: The template below is just a guide. You are encouraged to merge topics, change section titles, or add new sections if it better fits the flow of the meeting. Keep sections that bring value based on the transcript.`, pc.Language)
 
-	// Output Structure based on User Template
-	var outputStructure string
-	if strings.Contains(strings.ToLower(pc.Language), "english") {
-		outputStructure = `### SUGGESTED OUTPUT STRUCTURE (FLEXIBLE: OMIT SECTIONS WITH NO CONTENT)
+	outputStructure := `### SUGGESTED OUTPUT STRUCTURE (FLEXIBLE: OMIT SECTIONS WITH NO CONTENT)
 
 # AGENDA: [Inferred concise meeting context/objective]
 
@@ -126,62 +123,6 @@ Detail who is responsible for what, identifying roles explicitly mentioned.
 
 # Additional Notes
 Other noteworthy observations.`
-	} else {
-		outputStructure = `### SUGGESTED OUTPUT STRUCTURE (FLEXIBLE: OMIT SECTIONS WITH NO CONTENT)
-
-# AGENDA: [Ringkasan singkat konteks/tujuan rapat yang disimpulkan]
-
-# Latar Belakang & Tujuan
-Deskripsi singkat mengenai konteks, tujuan, dan sasaran utama rapat berdasarkan transkrip.
-
----
-
-# Pembahasan Utama
-Berikan analisis mendalam untuk setiap topik besar. Pecah menjadi sub-bagian logis jika ada tema yang berbeda.
-## [Section #].1 [Topik Besar 1]
-Penjelasan mendalam mengenai topik ini, poin-poin kunci yang diangkat, dan signifikansinya.
-### 📌 Sub-Acara / Breakdown (Jika ada)
-* Agenda & Catatan spesifik...
-
-## [Section #].2 [Topik Besar 2]
-* Analisis komprehensif mengenai hasil diskusi atau perdebatan...
-
----
-
-# Pembagian Peran & Tanggung Jawab
-Detailkan siapa yang bertanggung jawab atas apa, gunakan nama yang disebutkan.
-| Pihak / Nama | Tanggung Jawab |
-|---|---|
-| (Jangan mengarang nama) | ... |
-
----
-
-# Rencana Kerja (Action Items)
-| No | Tugas | PIC | Deadline | Status |
-|---|---|---|---|---|
-| 1 | deskripsi tugas | nama (jangan mengarang) | tanggal | status teks |
-
----
-
-# Keputusan yang Disepakati
-1. Daftar semua keputusan penting yang disepakati selama rapat.
-
----
-
-# Isu Terbuka / Pending Discussion
-1. Daftar topik yang dibahas namun belum mencapai keputusan akhir.
-
----
-
-# Risiko & Mitigasi
-| Risiko | Dampak | Mitigasi |
-|---|---|---|
-
----
-
-# Catatan Tambahan
-Hal-hal penting lainnya yang perlu dicatat.`
-	}
 
 	prompt := fmt.Sprintf(`### ROLE & MANDATE
 You are a Chief of Staff and Strategic Analyst. Extract strategic value, risks, and recommended actions from the provided transcript.

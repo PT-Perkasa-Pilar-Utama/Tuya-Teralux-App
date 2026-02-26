@@ -46,7 +46,8 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		return
 	}
 
-	topic := "teralux/whisper"
+	baseTopic := utils.GetConfig().MqttTopic // e.g. "users/teralux"
+	topic := baseTopic + "/whisper"
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		if len(payload) == 0 {
@@ -148,7 +149,7 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 	if c.mqttSvc == nil {
 		return
 	}
-	respTopic := "teralux/whisper/answer"
+	respTopic := utils.GetConfig().MqttTopic + "/whisper/answer"
 	respData, _ := json.Marshal(resp)
 	if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 		utils.LogError("SpeechTranscribe MQTT: Failed to publish response: %v", err)
