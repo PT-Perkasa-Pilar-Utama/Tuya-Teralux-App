@@ -73,8 +73,8 @@ func (uc *mailSendUseCase) processAsync(taskID string, req *dtos.MailSendRequest
 	}
 
 	attachmentPath := req.AttachmentPath
-	if attachmentPath != nil && *attachmentPath != "" && strings.HasPrefix(*attachmentPath, "/uploads") {
-		// Resolve relative path to local disk path
+	if attachmentPath != nil && *attachmentPath != "" && (strings.HasPrefix(*attachmentPath, "/uploads") || strings.HasPrefix(*attachmentPath, "http")) {
+		// Resolve to local disk path
 		wd, _ := os.Getwd()
 		baseDir := wd
 		if !strings.HasSuffix(wd, "backend") {
@@ -83,15 +83,27 @@ func (uc *mailSendUseCase) processAsync(taskID string, req *dtos.MailSendRequest
 			}
 		}
 
-		relPath := strings.TrimPrefix(*attachmentPath, "/")
-		fullPath := filepath.Join(baseDir, relPath)
-
-		if _, err := os.Stat(fullPath); err == nil {
-			attachmentPath = &fullPath
-			utils.LogDebug("MailSendUseCase: Resolved attachment path to %s", *attachmentPath)
+		var relPath string
+		if strings.HasPrefix(*attachmentPath, "http") {
+			// Full URL — extract relative path after /uploads
+			if idx := strings.Index(*attachmentPath, "/uploads"); idx != -1 {
+				relPath = (*attachmentPath)[idx+1:] // e.g. "uploads/reports/f.pdf"
+			}
 		} else {
-			utils.LogWarn("MailSendUseCase: Attachment file not found at %s", fullPath)
+			relPath = strings.TrimPrefix(*attachmentPath, "/") // e.g. "uploads/reports/f.pdf"
+		}
+
+		if relPath == "" {
 			attachmentPath = nil
+		} else {
+			fullPath := filepath.Join(baseDir, relPath)
+			if _, err := os.Stat(fullPath); err == nil {
+				attachmentPath = &fullPath
+				utils.LogDebug("MailSendUseCase: Resolved attachment path to %s", *attachmentPath)
+			} else {
+				utils.LogWarn("MailSendUseCase: Attachment file not found at %s", fullPath)
+				attachmentPath = nil
+			}
 		}
 	}
 

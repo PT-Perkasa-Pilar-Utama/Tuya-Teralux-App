@@ -6,6 +6,7 @@ import (
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/recordings/controllers"
 	"sensio/domain/recordings/repositories"
+	"sensio/domain/recordings/services"
 	"sensio/domain/recordings/usecases"
 )
 
@@ -25,7 +26,8 @@ func NewRecordingsModule(badger *infrastructure.BadgerService) *RecordingsModule
 
 	// Inject DefaultFileService
 	fileService := infrastructure.DefaultFileService
-	saveUseCase := usecases.NewSaveRecordingUseCase(repo, fileService)
+	bigAudioService := services.NewBIGRoomAudioUpdateService()
+	saveUseCase := usecases.NewSaveRecordingUseCase(repo, fileService, bigAudioService)
 
 	getAllUseCase := usecases.NewGetAllRecordingsUseCase(repo)
 	getByIDUseCase := usecases.NewGetRecordingByIDUseCase(repo)

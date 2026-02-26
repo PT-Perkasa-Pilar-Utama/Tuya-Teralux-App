@@ -44,7 +44,7 @@ class ProcessMeetingUseCase(
 
             // 1. Transcribe
             var transcriptionText: String? = null
-            transcribeAudioUseCase(audioFile, token, "id").collect { result ->
+            transcribeAudioUseCase(audioFile, token, "id", macAddress).collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         emit(MeetingProcessState.Transcribing)
@@ -111,6 +111,10 @@ class ProcessMeetingUseCase(
                             emit(
                                 MeetingProcessState.Success(summaryData.summary, summaryData.pdfUrl)
                             )
+                            // Delete local audio file on success
+                            if (audioFile.exists()) {
+                                audioFile.delete()
+                            }
                         }
                     }
 
