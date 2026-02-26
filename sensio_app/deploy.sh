@@ -107,20 +107,6 @@ fi
 
 if [ $INSTALL_STATUS -eq 0 ]; then
     echo "✅ Installation successful!"
-    echo ""
-    echo "🚀 Launching app..."
-    adb -s "$DEVICE_ID" shell am start -n "$PACKAGE_NAME/$LAUNCHER_ACTIVITY"
-    echo "✅ App launched!"
-
-    # Launch Scrcpy if available
-    if command -v scrcpy &> /dev/null; then
-        echo ""
-        echo "🖥️  Launching scrcpy for device $DEVICE_ID..."
-        scrcpy -s "$DEVICE_ID" --window-title "Teralux - $DEVICE_ID" &
-    else
-        echo "⚠️  scrcpy not found. Install it to mirror the screen."
-    fi
-
 else
     echo "❌ Installation failed"
     exit 1
