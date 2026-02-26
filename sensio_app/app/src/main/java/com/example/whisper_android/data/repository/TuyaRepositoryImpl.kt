@@ -24,4 +24,14 @@ class TuyaRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
+
+    override suspend fun getDevices(): Result<com.example.whisper_android.data.remote.dto.TuyaDevicesResponseDto> =
+        try {
+            val response = api.getDevices(apiKey)
+            Result.success(response)
+        } catch (e: retrofit2.HttpException) {
+            Result.failure(Exception(e.getErrorMessage()))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
 }
