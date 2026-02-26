@@ -50,11 +50,18 @@ fun DashboardScreen(
     onNavigateToEdge: () -> Unit,
     viewModel: DashboardViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel {
-            DashboardViewModel(NetworkModule.authenticateUseCase)
+            DashboardViewModel(
+                NetworkModule.authenticateUseCase,
+                NetworkModule.getTuyaDevicesUseCase
+            )
         }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.fetchDevices()
+    }
 
     var hasMicPermission by remember {
         mutableStateOf(
