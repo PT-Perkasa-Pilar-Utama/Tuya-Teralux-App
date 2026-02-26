@@ -162,8 +162,20 @@ Response:`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 		}
 
 		if executedCount > 0 {
+			var combinedData interface{}
+			if executedCount == 1 {
+				// For single device execution, surface the device_id data for use case extraction
+				for _, match := range matches {
+					if len(match) < 2 {
+						continue
+					}
+					combinedData = map[string]interface{}{"device_id": match[1]}
+					break
+				}
+			}
 			return &SkillResult{
 				Message:        strings.Join(finalMessages, "\n"),
+				Data:           combinedData,
 				IsControl:      true,
 				HTTPStatusCode: lastStatus,
 			}, nil

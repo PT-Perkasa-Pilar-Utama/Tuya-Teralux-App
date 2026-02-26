@@ -165,6 +165,7 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
 // @Param language formData string false "Language code (e.g. id, en)"
+// @Param mac_address formData string false "Device MAC Address"
 // @Param diarize formData boolean false "Identify speakers in transcription"
 // @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse
@@ -211,7 +212,9 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 		return
 	}
 
-	recording, err := c.saveRecordingUC.SaveRecording(file)
+	macAddress := ctx.PostForm("mac_address")
+	baseURL := utils.GetBaseURL(ctx)
+	recording, err := c.saveRecordingUC.SaveRecording(file, macAddress, baseURL)
 	if err != nil {
 		utils.LogError("Transcribe.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

@@ -39,8 +39,11 @@ func TestRefineUseCase_Execute(t *testing.T) {
 			t.Errorf("expected 'Saya sedang makan nasi.', got '%s'", got)
 		}
 
-		if !strings.Contains(mockLLM.CapturedPrompt, "KBBI") {
-			t.Errorf("expected prompt to contain 'KBBI', got '%s'", mockLLM.CapturedPrompt)
+		if !strings.Contains(mockLLM.CapturedPrompt, "professional editor") {
+			t.Errorf("expected prompt to contain 'professional editor', got '%s'", mockLLM.CapturedPrompt)
+		}
+		if !strings.Contains(mockLLM.CapturedPrompt, "aku lagi mamam nasi") {
+			t.Errorf("expected prompt to contain the input text, got '%s'", mockLLM.CapturedPrompt)
 		}
 	})
 
@@ -59,8 +62,11 @@ func TestRefineUseCase_Execute(t *testing.T) {
 			t.Errorf("expected 'I am eating rice.', got '%s'", got)
 		}
 
-		if !strings.Contains(mockLLM.CapturedPrompt, "English editor") {
-			t.Errorf("expected prompt to contain 'English editor', got '%s'", mockLLM.CapturedPrompt)
+		if !strings.Contains(mockLLM.CapturedPrompt, "professional editor") {
+			t.Errorf("expected prompt to contain 'professional editor', got '%s'", mockLLM.CapturedPrompt)
+		}
+		if !strings.Contains(mockLLM.CapturedPrompt, "i is eating rice") {
+			t.Errorf("expected prompt to contain the input text, got '%s'", mockLLM.CapturedPrompt)
 		}
 	})
 
@@ -104,7 +110,7 @@ func TestRefineUseCase_Execute(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if !strings.Contains(mockLLM.CapturedPrompt, "English editor") {
+		if !strings.Contains(mockLLM.CapturedPrompt, "professional editor") {
 			t.Errorf("expected prompt to default to English editor for unknown lang, got %s", mockLLM.CapturedPrompt)
 		}
 	})

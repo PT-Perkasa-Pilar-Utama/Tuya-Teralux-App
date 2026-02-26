@@ -18,10 +18,10 @@ import (
 )
 
 type SummaryUseCase interface {
-	SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error)
-	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error)
-	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error)
-	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error)
+	SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL string) (string, error)
+	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL, trigger string) (string, error)
+	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL string) (string, error)
+	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL, trigger string) (string, error)
 }
 
 type summaryUseCase struct {
@@ -58,7 +58,7 @@ func NewSummaryUseCase(
 	}
 }
 
-func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -181,6 +181,9 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
+	if baseURL != "" {
+		pdfUrl = fmt.Sprintf("%s%s", baseURL, pdfUrl)
+	}
 
 	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
 	utils.LogDebug("RAG Summary Result: %q", trimmedSummary)
@@ -199,11 +202,11 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}, nil
 }
 
-func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error) {
-	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, date, location, participants, macAddress, "")
+func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL string) (string, error) {
+	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, date, location, participants, macAddress, baseURL, "")
 }
 
-func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error) {
+func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL, trigger string) (string, error) {
 	taskID := uuid.New().String()
 	status := &dtos.RAGStatusDTO{
 		Status:    "pending",
@@ -215,7 +218,7 @@ func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, 
 	_ = u.cache.Set(taskID, status)
 
 	go func() {
-		result, err := u.summaryInternal(text, language, meetingContext, style, date, location, participants, macAddress)
+		result, err := u.summaryInternal(text, language, meetingContext, style, date, location, participants, macAddress, baseURL)
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
 			u.updateStatus(taskID, "failed", err, nil)
@@ -244,11 +247,11 @@ func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, 
 //	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 //	defer cancel()
 //	taskID, err := useCase.SummarizeTextWithContext(ctx, transcript, "en", "meeting", "executive")
-func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error) {
-	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, date, location, participants, macAddress, "")
+func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL string) (string, error) {
+	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, date, location, participants, macAddress, baseURL, "")
 }
 
-func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string, trigger string) (string, error) {
+func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL, trigger string) (string, error) {
 	// Validate context is not already cancelled
 	select {
 	case <-ctx.Done():
@@ -277,7 +280,7 @@ func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context,
 		default:
 		}
 
-		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style, date, location, participants, macAddress)
+		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style, date, location, participants, macAddress, baseURL)
 		if err != nil {
 			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
 			u.updateStatus(taskID, "failed", err, nil)
@@ -305,7 +308,7 @@ func (u *summaryUseCase) SetRenderTimeout(d time.Duration) {
 }
 
 // summaryInternalWithContext adds context-aware timeout enforcement to PDF rendering and LLM calls.
-func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}

@@ -20,7 +20,8 @@ class SpeechRepositoryImpl(
     override suspend fun transcribeAudio(
         file: File,
         token: String,
-        language: String
+        language: String,
+        macAddress: String?
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
@@ -28,8 +29,11 @@ class SpeechRepositoryImpl(
                 val requestFile = file.asRequestBody(getAudioMimeType(file).toMediaTypeOrNull())
                 val body = MultipartBody.Part.createFormData("audio", file.name, requestFile)
                 val languageBody = MultipartBody.Part.createFormData("language", language)
+                val macPart = macAddress?.let {
+                    MultipartBody.Part.createFormData("mac_address", it)
+                }
 
-                val response = api.transcribeAudio(body, languageBody, "Bearer $token")
+                val response = api.transcribeAudio(body, languageBody, macPart, "Bearer $token")
                 val taskId = response.data?.taskId
 
                 if (response.status && taskId != null) {
