@@ -20,6 +20,7 @@ interface SpeechApi {
     suspend fun transcribeAudio(
         @Part audio: MultipartBody.Part,
         @Part language: MultipartBody.Part,
+        @Part macAddress: MultipartBody.Part? = null,
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
