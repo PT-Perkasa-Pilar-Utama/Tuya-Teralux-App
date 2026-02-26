@@ -108,7 +108,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 			Source:           "OpenAI",
 		}, nil)
 
-		mockMqtt.On("Publish", "users/terminal/chat", byte(0), false, mock.Anything).Return(nil)
+		mockMqtt.On("Publish", "teralux/chat", byte(0), false, mock.Anything).Return(nil)
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
@@ -122,6 +122,6 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		})
 
 		time.Sleep(50 * time.Millisecond)
-		mockMqtt.AssertCalled(t, "Publish", "users/terminal/chat", byte(0), false, mock.Anything)
+		mockMqtt.AssertCalled(t, "Publish", "teralux/chat", byte(0), false, mock.Anything)
 	})
 }

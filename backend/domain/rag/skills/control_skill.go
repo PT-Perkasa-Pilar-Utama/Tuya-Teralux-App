@@ -130,6 +130,7 @@ Response (English):`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n")
 	}
 
 	cleanRes := strings.TrimSpace(res)
+	cleanRes = strings.Trim(cleanRes, `"`) // strip LLM-added surrounding quotes (e.g. "EXECUTE:id")
 	fmt.Printf("DEBUG: ControlSkill: LLM raw response: '%s'\n", cleanRes)
 
 	if strings.HasPrefix(cleanRes, "EXECUTE:") {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sensio/domain/common/utils"
 	"time"
@@ -59,6 +60,18 @@ func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
+	// Read and log the raw response body
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		utils.LogError("MailExternalService: Failed to read response body for MAC %s: %v", macAddress, err)
+		return nil, fmt.Errorf("failed to read external API response body: %w", err)
+	}
+
+	utils.LogDebug("MailExternalService: Raw API Response for MAC %s: %s", macAddress, string(bodyBytes))
+
+	// Restore the response body for further processing
+	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if resp.StatusCode != http.StatusOK {
 		utils.LogError("MailExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
