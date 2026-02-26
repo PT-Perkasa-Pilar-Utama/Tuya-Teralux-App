@@ -47,7 +47,7 @@ class DashboardViewModel(
         }
     }
 
-    private fun fetchDevices() {
+    fun fetchDevices() {
         viewModelScope.launch {
             // Fetch devices but don't store in state as requested
             val result = getTuyaDevicesUseCase()
