@@ -30,30 +30,31 @@ object DeviceUtils {
     }
 
     fun getDeviceId(context: Context): String {
-        // 1. Try ANDROID_ID (Stable for lifetime of device reset)
+        // 1. Check SharedPreferences FIRST (Stable across restarts)
+        val prefs = context.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
+        var savedId = prefs.getString("device_id", null) ?: prefs.getString("device_uuid", null)
+
+        if (!savedId.isNullOrBlank()) {
+            return savedId.uppercase()
+        }
+
+        // 2. If first time, try ANDROID_ID
         val androidId =
             android.provider.Settings.Secure.getString(
                 context.contentResolver,
                 android.provider.Settings.Secure.ANDROID_ID
             )
 
-        if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
-            // "9774d56d682e549c" is a known broken ID on some emulators
-            return androidId.uppercase()
+        val newId = if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
+            androidId.uppercase()
+        } else {
+            // 3. Fallback to random UUID if ANDROID_ID is missing/broken
+            java.util.UUID.randomUUID().toString()
         }
 
-        // 2. Fallback to stored UUID (Persists until app uninstall/clear data)
-        val prefs = context.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
-        var uuid = prefs.getString("device_uuid", null)
+        // Save for future use
+        prefs.edit().putString("device_id", newId).apply()
 
-        if (uuid == null) {
-            uuid =
-                java.util.UUID
-                    .randomUUID()
-                    .toString()
-            prefs.edit().putString("device_uuid", uuid).apply()
-        }
-
-        return uuid!!
+        return newId.uppercase()
     }
 }

@@ -76,32 +76,24 @@ func (s *ControlSkill) selectDeviceWithLLM(ctx *SkillContext, devices []tuyaDtos
 
 	deviceList := make([]string, 0, len(devices))
 	for _, d := range devices {
-		deviceList = append(deviceList, fmt.Sprintf("- %s (ID: %s)", d.Name, d.ID))
+		// Include relevant status codes to help LLM distinguish multi-switch devices
+		codes := []string{}
+		for _, st := range d.Status {
+			// Only include common/relevant codes to keep prompt small
+			if strings.HasPrefix(st.Code, "switch") || strings.HasPrefix(st.Code, "bright") || 
+			   strings.HasPrefix(st.Code, "temp") || strings.HasPrefix(st.Code, "cur_") {
+				codes = append(codes, st.Code)
+			}
+		}
+		
+		controlsStr := ""
+		if len(codes) > 0 {
+			controlsStr = fmt.Sprintf(" [Controls: %s]", strings.Join(codes, ", "))
+		}
+		deviceList = append(deviceList, fmt.Sprintf("- %s%s (ID: %s)", d.Name, controlsStr, d.ID))
 	}
 
-	var reconcilePrompt string
-	if ctx.Language == "id" {
-		reconcilePrompt = fmt.Sprintf(`Anda adalah Sensio AI Assistant, asisten rumah pintar yang profesional.
-Tujuan Anda adalah membantu pengguna mengelola perangkat rumah pintar mereka dengan efisien.
-
-User Prompt: "%s"
-
-%s
-[Daftar Perangkat Tersedia]
-%s
-
-PANDUAN:
-1. KOCARKIR (MATCHING): Cocokkan nama perangkat yang diminta dengan nama di [Daftar Perangkat Tersedia]. Nama mungkin tidak sama persis (misal: "Terminal" cocok dengan "Terminal (Receptionist)").
-2. KONTROL: 
-   - Jika pengguna merujuk pada perangkat dari daftar, kembalikan: "EXECUTE:[Device ID]".
-   - Jika pengguna menjawab pertanyaan tindak lanjut, pilih ID-nya dan kembalikan: "EXECUTE:[Device ID]".
-3. AMBIGUITAS: Jika permintaan samar atau ada banyak kemiripan, ajukan pertanyaan klarifikasi yang sopan.
-4. KEJUJURAN: Hanya bicara tentang perangkat yang ada di daftar. Jika BENAR-BENAR tidak ada yang mirip, katakan perangkat tidak ditemukan.
-5. NO HALLUCINATION: Jangan mengarang Device ID. Gunakan hanya ID dari daftar di atas.
-
-Response (Bahasa Indonesia):`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
-	} else {
-		reconcilePrompt = fmt.Sprintf(`You are Sensio AI Assistant, a professional and interactive smart home companion by Sensio.
+	reconcilePrompt := fmt.Sprintf(`You are Sensio AI Assistant, a professional and interactive smart home companion by Sensio.
 Your goal is to help the user manage their smart home devices efficiently.
 
 User Prompt: "%s"
@@ -111,16 +103,16 @@ User Prompt: "%s"
 %s
 
 GUIDELINES:
-1. MATCHING: Match the requested device name with the names in [Available Devices]. Names might not match exactly (e.g., "Terminal" matches "Terminal (Receptionist)").
-2. CONTROL: 
+1. MATCHING: Match the requested device name with the names in [Available Devices].
+2. MULTI-SWITCH: If user asks for "switch 2" or "lamp 1", check the [Controls] section for each device.
+   - Example: If user says "turn on switch 2" and only one device has "switch_2" in its controls, select that device.
+3. CONTROL: 
    - If the user refers to a device from the list, return: "EXECUTE:[Device ID]".
    - If they are answering a follow-up question, identify it and return: "EXECUTE:[Device ID]".
-3. AMBIGUITY: If the request is vague or matches multiple devices, ask a professional follow-up question.
-4. HONESTY: Only talk about devices present in the list. If it's CLEARLY not there, say it's not found.
+4. AMBIGUITY: If the request matches multiple devices or is vague, ask a professional follow-up question.
 5. NO HALLUCINATION: Only use Device IDs from the [Available Devices] list.
 
-Response (English):`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
-	}
+Response:`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 
 	model := "high"
 
@@ -195,13 +187,13 @@ func (s *ControlSkill) selectDeviceSensor(device *tuyaDtos.TuyaDeviceDTO) sensor
 		return sensors.NewLightSensor()
 	}
 
-	// 3. Switches & Sockets (kg = switch, cz = outlet/socket, pc = power strip)
-	if category == "kg" || category == "cz" || category == "pc" {
+	// 3. Switches & Sockets (kg = switch, cz = outlet/socket, pc = power strip, dlq = breaker)
+	if category == "kg" || category == "cz" || category == "pc" || category == "dlq" {
 		return sensors.NewSwitchSensor()
 	}
 
-	// 4. Sensors (ws = temp/humidity, cs = pir/motion, mcs = door/window)
-	if category == "ws" || category == "cs" || category == "mcs" {
+	// 4. Sensors (ws = temp/humidity, cs = pir/motion, mcs = door/window, wsdcg = th sensor)
+	if category == "ws" || category == "cs" || category == "mcs" || category == "wsdcg" {
 		return sensors.NewTemperatureSensor()
 	}
 
@@ -210,7 +202,6 @@ func (s *ControlSkill) selectDeviceSensor(device *tuyaDtos.TuyaDeviceDTO) sensor
 		return sensors.NewTerminalSensor()
 	}
 
-	// Default fallback: Try to handle as a switch if it has switch capabilities,
-	// otherwise defaults to basic TerminalSensor which handles generic switches too.
-	return sensors.NewSwitchSensor()
+	// Default fallback: TerminalSensor handles generic switches and controls better than SwitchSensor
+	return sensors.NewTerminalSensor()
 }

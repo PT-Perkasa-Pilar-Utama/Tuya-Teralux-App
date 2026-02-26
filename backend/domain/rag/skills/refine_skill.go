@@ -22,26 +22,14 @@ func (s *RefineSkill) Execute(ctx *SkillContext) (*SkillResult, error) {
 		return &SkillResult{Message: ""}, nil
 	}
 
-	var prompt string
-	if strings.EqualFold(ctx.Language, "id") {
-		// Indonesian KBBI / Formal Fix
-		prompt = fmt.Sprintf(`You are a professional Indonesian editor. 
-Fix the grammar, spelling, and word choices of the following transcription to align with standard Indonesian (KBBI/PUEBI).
-Ensure the tone is clear and professional while preserving the original meaning.
-Only return the final polished text without any explanation, quotes, or additional commentary.
-
-Text: "%s"
-Sesuai KBBI:`, text)
-	} else {
-		// English / Default Grammar Fix
-		prompt = fmt.Sprintf(`You are a professional English editor. 
+	prompt := fmt.Sprintf(`You are a professional editor. 
 Fix any grammatical errors, spelling mistakes, and improve the clarity of the following transcription.
-If the text is already clear, return it as is.
+Maintain the original language of the text (e.g., if it is in Indonesian, keep it in Indonesian but fix the grammar).
+If the text is already clear and correct, return it as is.
 Only return the final polished text without any explanation, quotes, or additional commentary.
 
 Text: "%s"
-Refined English:`, text)
-	}
+Refined Text:`, text)
 
 	model := "low" // Low model is sufficient for grammar fixing
 

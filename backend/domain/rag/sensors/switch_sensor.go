@@ -21,14 +21,14 @@ func (s *SwitchSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
 		return true
 	}
 
-	// Also handle devices with multiple switch status codes
+	// Also handle devices with multiple switch status codes or a single 'switch' code
 	switchCount := 0
 	for _, status := range device.Status {
-		if strings.HasPrefix(status.Code, "switch_") {
+		if strings.HasPrefix(status.Code, "switch") {
 			switchCount++
 		}
 	}
-	return switchCount >= 2
+	return switchCount >= 1
 }
 
 func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
@@ -44,53 +44,81 @@ func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceD
 		isOn = true // Default to ON
 	}
 
-	// Extract which switch number from prompt
-	switchNum := s.extractSwitchNumber(promptLower)
+	// Detect if user wants to control ALL switches
+	isAll := strings.Contains(promptLower, "all") || strings.Contains(promptLower, "semuanya") || strings.Contains(promptLower, "semua")
 
-	// Find the target switch code
-	var switchCode string
-	if switchNum > 0 {
-		// Look for specific switch
-		targetCode := fmt.Sprintf("switch_%d", switchNum)
+	if isAll {
 		for _, status := range device.Status {
-			if status.Code == targetCode {
-				switchCode = targetCode
-				break
+			if strings.HasPrefix(status.Code, "switch") {
+				commands = append(commands, tuyaDtos.TuyaCommandDTO{
+					Code:  status.Code,
+					Value: isOn,
+				})
 			}
 		}
-	}
-
-	// If no specific switch found, use first available switch
-	if switchCode == "" {
-		for _, status := range device.Status {
-			if strings.HasPrefix(status.Code, "switch_") {
-				switchCode = status.Code
-				break
-			}
+		if isOn {
+			actionMsg = "turned on all switches"
+		} else {
+			actionMsg = "turned off all switches"
 		}
-	}
-
-	if switchCode == "" {
-		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Device %s does not have a switchable control.", device.Name),
-			HTTPStatusCode: 400,
-		}, nil
-	}
-
-	commands = append(commands, tuyaDtos.TuyaCommandDTO{
-		Code:  switchCode,
-		Value: isOn,
-	})
-
-	if isOn {
-		actionMsg = "turned on"
 	} else {
-		actionMsg = "turned off"
-	}
+		// Extract which switch number from prompt
+		switchNum := s.extractSwitchNumber(promptLower)
 
-	// Add switch number to message if multiple switches
-	if switchNum > 0 {
-		actionMsg = fmt.Sprintf("%s switch %d", actionMsg, switchNum)
+		// Find the target switch code
+		var switchCode string
+		if switchNum > 0 {
+			// Look for specific switch
+			targetCode := fmt.Sprintf("switch_%d", switchNum)
+			for _, status := range device.Status {
+				if status.Code == targetCode {
+					switchCode = targetCode
+					break
+				}
+			}
+		}
+
+		// If no specific switch found, look for generic 'switch' or first available 'switch_'
+		if switchCode == "" {
+			for _, status := range device.Status {
+				if status.Code == "switch" {
+					switchCode = "switch"
+					break
+				}
+			}
+		}
+
+		if switchCode == "" {
+			for _, status := range device.Status {
+				if strings.HasPrefix(status.Code, "switch_") {
+					switchCode = status.Code
+					break
+				}
+			}
+		}
+
+		if switchCode == "" {
+			return &dtos.ControlResultDTO{
+				Message:        fmt.Sprintf("Device %s does not have a switchable control.", device.Name),
+				HTTPStatusCode: 400,
+			}, nil
+		}
+
+		commands = append(commands, tuyaDtos.TuyaCommandDTO{
+			Code:  switchCode,
+			Value: isOn,
+		})
+
+		if isOn {
+			actionMsg = "turned on"
+		} else {
+			actionMsg = "turned off"
+		}
+
+		// Add switch number to message if multiple switches
+		if switchNum > 0 {
+			actionMsg = fmt.Sprintf("%s switch %d", actionMsg, switchNum)
+		}
 	}
 
 	success, err := executor.SendSwitchCommand(token, device.ID, commands)
