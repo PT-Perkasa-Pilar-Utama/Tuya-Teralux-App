@@ -29,7 +29,11 @@ class TuyaRepositoryImpl(
         try {
             val token = tokenManager.getAccessToken() ?: return Result.failure(Exception("No access token found"))
             val response = api.getDevices("Bearer $token", apiKey)
-            Result.success(response)
+            if (response.status && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message))
+            }
         } catch (e: retrofit2.HttpException) {
             Result.failure(Exception(e.getErrorMessage()))
         } catch (e: Exception) {
