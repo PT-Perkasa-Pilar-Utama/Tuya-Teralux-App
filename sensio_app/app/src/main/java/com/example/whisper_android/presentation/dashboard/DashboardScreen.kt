@@ -59,6 +59,10 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.fetchDevices()
+    }
+
     var hasMicPermission by remember {
         mutableStateOf(
             androidx.core.content.ContextCompat.checkSelfPermission(
