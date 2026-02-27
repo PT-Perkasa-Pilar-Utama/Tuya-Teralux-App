@@ -52,7 +52,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 
 	// Initialize Shared Store
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
-	cache := tasks.NewBadgerTaskCacheFromService(badger, "rag:task:")
+	cache := tasks.NewBadgerTaskCacheFromService(badger, "cache:rag:task:")
 
 	// Initialize Skills
 	skillRegistry := skills.NewSkillRegistry()

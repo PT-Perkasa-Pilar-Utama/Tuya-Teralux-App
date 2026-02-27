@@ -199,7 +199,7 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 			}
 
 			// 2. Try cache (inferred from recent summary)
-			cacheKey := fmt.Sprintf("agenda_mac_%s", macAddress)
+			cacheKey := fmt.Sprintf("cache:agenda_mac_%s", macAddress)
 			var cachedAgenda string
 			_, found, err := uc.cache.GetWithTTL(cacheKey, &cachedAgenda)
 			if err == nil && found && cachedAgenda != "" {

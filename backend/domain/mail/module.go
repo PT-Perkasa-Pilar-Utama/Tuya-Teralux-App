@@ -27,7 +27,7 @@ func NewMailModule(cfg *utils.Config, badgerSvc *infrastructure.BadgerService) *
 
 	// Task tracking
 	store := tasks.NewStatusStore[dtos.MailStatusDTO]()
-	cache := tasks.NewBadgerTaskCacheFromService(badgerSvc, "mail:task:")
+	cache := tasks.NewBadgerTaskCacheFromService(badgerSvc, "cache:mail:task:")
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 
 	useCase := usecases.NewMailSendUseCase(service, store, cache)

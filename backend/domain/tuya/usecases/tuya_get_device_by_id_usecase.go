@@ -3,9 +3,7 @@ package usecases
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/services"
@@ -16,19 +14,19 @@ import (
 
 // TuyaGetDeviceByIDUseCase retrieves detailed information for a specific device.
 type TuyaGetDeviceByIDUseCase struct {
-	service *services.TuyaDeviceService
-	cache   *infrastructure.BadgerService
+	service       *services.TuyaDeviceService
+	deviceStateUC DeviceStateUseCase
 }
 
 // NewTuyaGetDeviceByIDUseCase initializes a new TuyaGetDeviceByIDUseCase.
 //
 // param service The TuyaDeviceService used regarding API requests.
-// param cache The BadgerService used for caching device details.
+// param deviceStateUC The DeviceStateUseCase used for populating infrared_ac status.
 // return *TuyaGetDeviceByIDUseCase A pointer to the initialized usecase.
-func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService, cache *infrastructure.BadgerService) *TuyaGetDeviceByIDUseCase {
+func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase) *TuyaGetDeviceByIDUseCase {
 	return &TuyaGetDeviceByIDUseCase{
-		service: service,
-		cache:   cache,
+		service:       service,
+		deviceStateUC: deviceStateUC,
 	}
 }
 
@@ -40,22 +38,15 @@ func NewTuyaGetDeviceByIDUseCase(service *services.TuyaDeviceService, cache *inf
 //
 // param accessToken The valid OAuth 2.0 access token.
 // param deviceID The unique ID of the device to fetch.
+// param remoteID (optional) The unique ID of the remote sub-device.
 // return *dtos.TuyaDeviceDTO The detailed device information object.
 // return error An error if the request fails.
 // @throws error If the API returns a failure response.
-func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) (*dtos.TuyaDeviceDTO, error) {
-	// 1. Try Cache First
-	cacheKey := fmt.Sprintf("tuya_device_%s", deviceID)
-	cachedData, err := uc.cache.Get(cacheKey)
-	if err == nil && cachedData != nil {
-		var cachedDTO dtos.TuyaDeviceDTO
-		if err := json.Unmarshal(cachedData, &cachedDTO); err == nil {
-			utils.LogDebug("GetDeviceByID: Cache HIT for device %s", deviceID)
-			return &cachedDTO, nil
-		}
-		utils.LogError("GetDeviceByID: failed to unmarshal cached value: %v", err)
-	} else {
-		utils.LogDebug("GetDeviceByID: Cache MISS for device %s (err: %v)", deviceID, err)
+func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteID string) (*dtos.TuyaDeviceDTO, error) {
+	// 1. Determine Target ID (Use remoteID if provided, otherwise gateway deviceID)
+	targetID := deviceID
+	if remoteID != "" {
+		targetID = remoteID
 	}
 
 	// Get config
@@ -65,8 +56,8 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 	signMethod := "HMAC-SHA256"
 
-	// Build URL path - using /v1.0/devices/{device_id} endpoint
-	urlPath := fmt.Sprintf("/v1.0/devices/%s", deviceID)
+	// Build URL path - using /v1.0/devices/{targetID} endpoint
+	urlPath := fmt.Sprintf("/v1.0/devices/%s", targetID)
 	fullURL := config.TuyaBaseURL + urlPath
 
 	// Calculate content hash (empty for GET request)
@@ -78,7 +69,7 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 	// Generate string to sign
 	stringToSign := tuya_utils.GenerateTuyaStringToSign("GET", contentHash, "", urlPath)
 
-	utils.LogDebug("GetDeviceByID: generating signature for device=%s", deviceID)
+	utils.LogDebug("GetDeviceByID: generating signature for target=%s (hub=%s)", targetID, deviceID)
 
 	// Generate signature
 	signature := tuya_utils.GenerateTuyaSignature(config.TuyaClientID, config.TuyaClientSecret, accessToken, timestamp, stringToSign)
@@ -112,10 +103,39 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 		}
 	}
 
+	// For infrared_ac devices, populate status from saved state or use defaults
+	if deviceResponse.Result.Category == "infrared_ac" && uc.deviceStateUC != nil {
+		savedState, err := uc.deviceStateUC.GetDeviceState(targetID)
+		if err == nil && savedState != nil && len(savedState.LastCommands) > 0 {
+			// Populate statusDTOs from saved state
+			utils.LogDebug("GetDeviceByID: Populating infrared_ac status for target %s from saved state", targetID)
+			statusDTOs = make([]dtos.TuyaDeviceStatusDTO, len(savedState.LastCommands))
+			for i, cmd := range savedState.LastCommands {
+				statusDTOs[i] = dtos.TuyaDeviceStatusDTO(cmd)
+			}
+		} else {
+			// Use default values if no saved state
+			utils.LogDebug("GetDeviceByID: Using default status for infrared_ac target %s (no saved state)", targetID)
+			statusDTOs = []dtos.TuyaDeviceStatusDTO{
+				{Code: "power", Value: 0},
+				{Code: "temp", Value: 24},
+				{Code: "mode", Value: 0},
+				{Code: "wind", Value: 0},
+			}
+		}
+	}
+
+	// Determine display name (Use RemoteName if available)
+	displayName := deviceResponse.Result.Name
+	if deviceResponse.Result.RemoteName != "" {
+		displayName = deviceResponse.Result.RemoteName
+	}
+
 	// Transform entity to DTO
 	dto := &dtos.TuyaDeviceDTO{
-		ID:          deviceResponse.Result.ID,
-		Name:        deviceResponse.Result.Name,
+		ID:          deviceID, // Still use the path ID as the main ID for consistency with client expectations
+		RemoteID:    remoteID,
+		Name:        displayName,
 		Category:    deviceResponse.Result.Category,
 		ProductName: deviceResponse.Result.ProductName,
 		Online:      deviceResponse.Result.Online,
@@ -127,17 +147,6 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID string) 
 		LocalKey:    deviceResponse.Result.LocalKey,
 		CreateTime:  deviceResponse.Result.CreateTime,
 		UpdateTime:  deviceResponse.Result.UpdateTime,
-	}
-
-	// 2. Save to Cache
-	if jsonData, err := json.Marshal(dto); err == nil {
-		if err := uc.cache.Set(cacheKey, jsonData); err != nil {
-			utils.LogWarn("GetDeviceByID: failed to save device %s to cache: %v", deviceID, err)
-		} else {
-			utils.LogDebug("GetDeviceByID: Saved device %s to cache", deviceID)
-		}
-	} else {
-		utils.LogError("GetDeviceByID: Failed to marshal device for cache: %v", err)
 	}
 
 	return dto, nil

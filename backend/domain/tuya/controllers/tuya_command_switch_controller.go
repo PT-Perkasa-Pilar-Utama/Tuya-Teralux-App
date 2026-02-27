@@ -23,6 +23,18 @@ func NewTuyaCommandSwitchController(useCase usecases.TuyaCommandSwitchUseCase) *
 }
 
 // SendSwitchCommand handles the request to send switch commands to a device
+// @Summary      Send Switch Command
+// @Description  Sends a standard switch command (e.g., toggle power) to a specific Tuya device.
+// @Tags         02. Tuya
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string                 true  "Device ID"
+// @Param        body  body      tuya_dtos.TuyaCommandDTO  true  "Command Payload"
+// @Success      200   {object}  dtos.StandardResponse
+// @Failure      400   {object}  dtos.StandardResponse
+// @Failure      500   {object}  dtos.StandardResponse
+// @Security     BearerAuth
+// @Router       /api/tuya/devices/{id}/commands/switch [post]
 func (ctrl *TuyaCommandSwitchController) SendSwitchCommand(c *gin.Context) {
 	deviceID := c.Param("id")
 	accessToken := c.MustGet("access_token").(string)

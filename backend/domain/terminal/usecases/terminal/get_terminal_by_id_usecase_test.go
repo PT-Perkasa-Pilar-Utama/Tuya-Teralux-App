@@ -16,12 +16,13 @@ func TestGetTerminalByID_UserBehavior(t *testing.T) {
 	// 1. Get Terminal By ID (Success)
 	t.Run("Get Terminal By ID (Success)", func(t *testing.T) {
 		id := "t1"
-		repo.On("GetByID", id).Return(&entities.Terminal{ID: id, Name: "Living Room"}, nil).Once()
+		repo.On("GetByID", id).Return(&entities.Terminal{ID: id, Name: "Living Room", DeviceTypeID: "1"}, nil).Once()
 		devRepo.On("GetByTerminalID", id).Return([]entities.Device{{ID: "d1", Name: "Light"}}, nil).Once()
 
 		res, err := useCase.GetTerminalByID(id)
 		assert.NoError(t, err)
 		assert.Equal(t, id, res.Terminal.ID)
+		assert.Equal(t, "1", res.Terminal.DeviceTypeID)
 
 		repo.AssertExpectations(t)
 		devRepo.AssertExpectations(t)

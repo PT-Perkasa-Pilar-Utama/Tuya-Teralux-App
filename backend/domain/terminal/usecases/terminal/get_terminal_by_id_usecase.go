@@ -41,8 +41,9 @@ func (uc *GetTerminalByIDUseCase) GetTerminalByID(id string) (*dtos.TerminalSing
 			ID:         item.ID,
 			MacAddress: item.MacAddress,
 			RoomID:     item.RoomID,
-			Name:       item.Name,
-			CreatedAt:  item.CreatedAt,
+			Name:         item.Name,
+			DeviceTypeID: item.DeviceTypeID,
+			CreatedAt:    item.CreatedAt,
 			UpdatedAt:  item.UpdatedAt,
 		},
 		// Note: Depending on whether you want to include Devices in the DTO

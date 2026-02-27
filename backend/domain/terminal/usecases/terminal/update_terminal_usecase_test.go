@@ -96,4 +96,24 @@ func TestUpdateTerminal_UserBehavior(t *testing.T) {
 		assert.Contains(t, err.Error(), "Mac Address already in use")
 		repo.AssertExpectations(t)
 	})
+
+	// 7. Update Terminal (Success - DeviceTypeID)
+	t.Run("Update Terminal (Success - DeviceTypeID)", func(t *testing.T) {
+		repo := new(MockTerminalRepository)
+		useCase := NewUpdateTerminalUseCase(repo)
+		id := "t1"
+		newDeviceType := "hub-v2"
+		req := &dtos.UpdateTerminalRequestDTO{
+			DeviceTypeID: &newDeviceType,
+		}
+		repo.On("GetByID", id).Return(&entities.Terminal{ID: id, DeviceTypeID: "hub-v1"}, nil).Once()
+		repo.On("Update", mock.MatchedBy(func(terminal *entities.Terminal) bool {
+			return terminal.DeviceTypeID == newDeviceType
+		})).Return(nil).Once()
+		repo.On("InvalidateCache", id).Return(nil).Once()
+
+		err := useCase.UpdateTerminal(id, req)
+		assert.NoError(t, err)
+		repo.AssertExpectations(t)
+	})
 }

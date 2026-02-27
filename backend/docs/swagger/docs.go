@@ -997,6 +997,12 @@ const docTemplate = `{
                         "name": "file",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Device MAC Address",
+                        "name": "mac_address",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -1615,6 +1621,12 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "string",
+                        "description": "Device MAC Address",
+                        "name": "mac_address",
+                        "in": "formData"
+                    },
+                    {
                         "type": "boolean",
                         "description": "Identify speakers in transcription",
                         "name": "diarize",
@@ -2087,64 +2099,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/tuya/devices/sync": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    },
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Fetches real-time status from Tuya. Does NOT update local DB. Returns fresh device list.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Tuya"
-                ],
-                "summary": "Sync Terminal Device Status",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dtos.TuyaSyncDeviceDTO"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/tuya/devices/{id}": {
             "get": {
                 "security": [
@@ -2170,6 +2124,12 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional Remote sub-device ID",
+                        "name": "remote_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2189,6 +2149,122 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tuya/devices/{id}/commands/ir": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sends an infrared command (e.g., AC control) to an IR-enabled Tuya device.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Tuya"
+                ],
+                "summary": "Send IR AC Command",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Infrared Device ID (Hub/Remote)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "IR Command Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.TuyaIRACCommandDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tuya/devices/{id}/commands/switch": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sends a standard switch command (e.g., toggle power) to a specific Tuya device.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Tuya"
+                ],
+                "summary": "Send Switch Command",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Command Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.TuyaCommandDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
                         }
                     },
                     "400": {
@@ -2703,7 +2779,7 @@ const docTemplate = `{
             "properties": {
                 "attachment_path": {
                     "type": "string",
-                    "example": "/uploads/reports/summary_123.pdf"
+                    "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
                 },
                 "data": {
                     "$ref": "#/definitions/dtos.SwaggerEmailTemplateData"
@@ -2735,7 +2811,7 @@ const docTemplate = `{
             "properties": {
                 "attachment_path": {
                     "type": "string",
-                    "example": "/uploads/reports/summary_123.pdf"
+                    "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
                 },
                 "data": {
                     "$ref": "#/definitions/dtos.SwaggerEmailTemplateData"
@@ -2804,6 +2880,19 @@ const docTemplate = `{
                 "uid": {
                     "type": "string"
                 }
+            }
+        },
+        "dtos.TuyaCommandDTO": {
+            "type": "object",
+            "required": [
+                "code",
+                "value"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "value": {}
             }
         },
         "dtos.TuyaDeviceDTO": {
@@ -2914,22 +3003,20 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.TuyaSyncDeviceDTO": {
+        "dtos.TuyaIRACCommandDTO": {
             "type": "object",
+            "required": [
+                "code",
+                "remote_id"
+            ],
             "properties": {
-                "create_time": {
-                    "type": "integer"
-                },
-                "id": {
+                "code": {
                     "type": "string"
-                },
-                "online": {
-                    "type": "boolean"
                 },
                 "remote_id": {
                     "type": "string"
                 },
-                "update_time": {
+                "value": {
                     "type": "integer"
                 }
             }

@@ -65,6 +65,9 @@ func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTermi
 			}
 		}
 	}
+	if req.DeviceTypeID != nil {
+		item.DeviceTypeID = *req.DeviceTypeID
+	}
 
 	if len(details) > 0 {
 		return utils.NewValidationError("Validation Error", details)

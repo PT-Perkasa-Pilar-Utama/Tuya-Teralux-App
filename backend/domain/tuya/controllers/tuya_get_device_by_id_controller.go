@@ -28,7 +28,8 @@ func NewTuyaGetDeviceByIDController(useCase *usecases.TuyaGetDeviceByIDUseCase) 
 // @Tags         02. Tuya
 // @Accept       json
 // @Produce      json
-// @Param        id   path      string                 true  "Device ID"
+// @Param        id         path      string  true   "Device ID"
+// @Param        remote_id  query     string  false  "Optional Remote sub-device ID"
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaDeviceResponseDTO}
 // @Failure      400  {object}  dtos.StandardResponse
 // @Failure      500  {object}  dtos.StandardResponse
@@ -36,6 +37,7 @@ func NewTuyaGetDeviceByIDController(useCase *usecases.TuyaGetDeviceByIDUseCase) 
 // @Router       /api/tuya/devices/{id} [get]
 func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	deviceID := ctx.Param("id")
+	remoteID := ctx.Query("remote_id")
 	if deviceID == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
@@ -48,8 +50,8 @@ func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {
 	}
 
 	accessToken := ctx.MustGet("access_token").(string)
-	utils.LogDebug("GetDeviceByID: requesting device %s", deviceID)
-	device, err := c.useCase.GetDeviceByID(accessToken, deviceID)
+	utils.LogDebug("GetDeviceByID: requesting device %s (remote=%s)", deviceID, remoteID)
+	device, err := c.useCase.GetDeviceByID(accessToken, deviceID, remoteID)
 	if err != nil {
 		utils.LogError("TuyaGetDeviceByIDController.GetDeviceByID: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{

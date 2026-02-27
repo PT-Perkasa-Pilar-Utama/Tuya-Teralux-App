@@ -23,6 +23,18 @@ func NewTuyaSendIRCommandController(useCase usecases.TuyaSendIRCommandUseCase) *
 }
 
 // SendIRACCommand handles the request to send an IR AC command
+// @Summary      Send IR AC Command
+// @Description  Sends an infrared command (e.g., AC control) to an IR-enabled Tuya device.
+// @Tags         02. Tuya
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string                    true  "Infrared Device ID (Hub/Remote)"
+// @Param        body  body      tuya_dtos.TuyaIRACCommandDTO  true  "IR Command Payload"
+// @Success      200   {object}  dtos.StandardResponse
+// @Failure      400   {object}  dtos.StandardResponse
+// @Failure      500   {object}  dtos.StandardResponse
+// @Security     BearerAuth
+// @Router       /api/tuya/devices/{id}/commands/ir [post]
 func (ctrl *TuyaSendIRCommandController) SendIRACCommand(c *gin.Context) {
 	accessToken := c.MustGet("access_token").(string)
 

@@ -53,9 +53,10 @@ func (uc *GetAllTerminalUseCase) ListTerminal(filter *dtos.TerminalFilterDTO) (*
 		terminalDTOs = append(terminalDTOs, dtos.TerminalResponseDTO{
 			ID:         item.ID,
 			MacAddress: item.MacAddress,
-			Name:       item.Name,
-			RoomID:     item.RoomID,
-			CreatedAt:  item.CreatedAt,
+			Name:         item.Name,
+			RoomID:       item.RoomID,
+			DeviceTypeID: item.DeviceTypeID,
+			CreatedAt:    item.CreatedAt,
 			UpdatedAt:  item.UpdatedAt,
 		})
 	}

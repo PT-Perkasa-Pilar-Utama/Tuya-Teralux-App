@@ -114,7 +114,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
-		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, &utils.Config{}, mockMqtt)
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, &utils.Config{MqttTopic: "teralux"}, mockMqtt)
 		_, _ = uc.TranscribeAudio(audioFile, "test.wav", "id", usecases.TranscriptionMetadata{
 			Source:     "mqtt",
 			TerminalID: "TLX001",
