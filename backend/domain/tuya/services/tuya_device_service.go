@@ -368,3 +368,54 @@ func (s *TuyaDeviceService) FetchDeviceSpecification(url string, headers map[str
 
 	return &specResponse, nil
 }
+
+// FetchIRACStatus retrieves the specialized status of an IR Air Conditioner.
+//
+// param url The full API URL targeting specific infrared and remote IDs.
+// param headers A map containing required HTTP headers.
+// return *entities.TuyaIRACStatusResponse The parsed IR AC status response.
+// return error An error if the request fails.
+func (s *TuyaDeviceService) FetchIRACStatus(url string, headers map[string]string) (*entities.TuyaIRACStatusResponse, error) {
+	if gin.Mode() == gin.TestMode {
+		return &entities.TuyaIRACStatusResponse{
+			Success: true,
+			Result:  map[string]string{"power": "1", "temp": "24"},
+		}, nil
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		utils.LogError("FetchIRACStatus: failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		utils.LogError("FetchIRACStatus: failed to execute request: %v", err)
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		utils.LogError("FetchIRACStatus: failed to read response: %v", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		utils.LogError("FetchIRACStatus: API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var irStatusResponse entities.TuyaIRACStatusResponse
+	if err := json.Unmarshal(body, &irStatusResponse); err != nil {
+		utils.LogError("FetchIRACStatus: failed to parse response: %v", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &irStatusResponse, nil
+}

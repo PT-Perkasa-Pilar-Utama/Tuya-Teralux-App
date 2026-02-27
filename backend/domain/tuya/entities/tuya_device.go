@@ -118,3 +118,12 @@ type TuyaDeviceSpecification struct {
 	Functions []TuyaDeviceFunction `json:"functions"`
 	Status    []TuyaDeviceFunction `json:"status"`
 }
+
+// TuyaIRACStatusResponse represents the response for infrared AC status
+type TuyaIRACStatusResponse struct {
+	Result  map[string]string `json:"result"`
+	Success bool              `json:"success"`
+	T       int64             `json:"t"`
+	Code    int               `json:"code"`
+	Msg     string            `json:"msg"`
+}

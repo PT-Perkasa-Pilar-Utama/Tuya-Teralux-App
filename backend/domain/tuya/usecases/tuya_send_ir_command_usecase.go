@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/utils"
+	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/services"
 	tuya_utils "sensio/domain/tuya/utils"
 	"strconv"
@@ -18,13 +19,15 @@ type TuyaSendIRCommandUseCase interface {
 }
 
 type tuyaSendIRCommandUseCase struct {
-	service *services.TuyaDeviceService
+	service       *services.TuyaDeviceService
+	deviceStateUC DeviceStateUseCase
 }
 
 // NewTuyaSendIRCommandUseCase initializes a new tuyaSendIRCommandUseCase.
-func NewTuyaSendIRCommandUseCase(service *services.TuyaDeviceService) TuyaSendIRCommandUseCase {
+func NewTuyaSendIRCommandUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase) TuyaSendIRCommandUseCase {
 	return &tuyaSendIRCommandUseCase{
-		service: service,
+		service:       service,
+		deviceStateUC: deviceStateUC,
 	}
 }
 
@@ -132,6 +135,20 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 
 	if !resp.Success {
 		return false, fmt.Errorf("Gateway IR API failed: %s (code: %d)", resp.Msg, resp.Code)
+	}
+
+	// Save state after successful command
+	if uc.deviceStateUC != nil {
+		stateCommands := make([]dtos.DeviceStateCommandDTO, 0, len(params))
+		for k, v := range params {
+			stateCommands = append(stateCommands, dtos.DeviceStateCommandDTO{
+				Code:  k,
+				Value: v,
+			})
+		}
+		if err := uc.deviceStateUC.SaveDeviceState(remoteID, stateCommands); err != nil {
+			utils.LogWarn("SendIRACCommand: Failed to save device state for %s: %v", remoteID, err)
+		}
 	}
 
 	return resp.Result, nil
