@@ -26,7 +26,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	orionService := services.NewOrionService(cfg)
 
 	// Usecases
-	shortCache := tasks.NewBadgerTaskCacheFromService(badgerSvc, "transcribe:task:")
+	shortCache := tasks.NewBadgerTaskCacheFromService(badgerSvc, "cache:transcribe:task:")
 
 	// Select Whisper Client based on configuration
 	var whisperClient speechUsecases.WhisperClient

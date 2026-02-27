@@ -297,7 +297,7 @@ definitions:
   dtos.SwaggerMailSendRequestDTO:
     properties:
       attachment_path:
-        example: /uploads/reports/summary_123.pdf
+        example: /uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf
         type: string
       data:
         $ref: '#/definitions/dtos.SwaggerEmailTemplateData'
@@ -320,7 +320,7 @@ definitions:
   dtos.SwaggerSendMailByMacRequestDTO:
     properties:
       attachment_path:
-        example: /uploads/reports/summary_123.pdf
+        example: /uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf
         type: string
       data:
         $ref: '#/definitions/dtos.SwaggerEmailTemplateData'
@@ -369,6 +369,15 @@ definitions:
         type: string
       uid:
         type: string
+    type: object
+  dtos.TuyaCommandDTO:
+    properties:
+      code:
+        type: string
+      value: {}
+    required:
+    - code
+    - value
     type: object
   dtos.TuyaDeviceDTO:
     properties:
@@ -441,18 +450,17 @@ definitions:
       total_devices:
         type: integer
     type: object
-  dtos.TuyaSyncDeviceDTO:
+  dtos.TuyaIRACCommandDTO:
     properties:
-      create_time:
-        type: integer
-      id:
+      code:
         type: string
-      online:
-        type: boolean
       remote_id:
         type: string
-      update_time:
+      value:
         type: integer
+    required:
+    - code
+    - remote_id
     type: object
   dtos.UpdateSceneRequestDTO:
     properties:
@@ -1136,6 +1144,10 @@ paths:
         name: file
         required: true
         type: file
+      - description: Device MAC Address
+        in: formData
+        name: mac_address
+        type: string
       produces:
       - application/json
       responses:
@@ -1511,6 +1523,10 @@ paths:
         in: formData
         name: language
         type: string
+      - description: Device MAC Address
+        in: formData
+        name: mac_address
+        type: string
       - description: Identify speakers in transcription
         in: formData
         name: diarize
@@ -1820,6 +1836,10 @@ paths:
         name: id
         required: true
         type: string
+      - description: Optional Remote sub-device ID
+        in: query
+        name: remote_id
+        type: string
       produces:
       - application/json
       responses:
@@ -1843,6 +1863,82 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Device by ID
+      tags:
+      - 02. Tuya
+  /api/tuya/devices/{id}/commands/ir:
+    post:
+      consumes:
+      - application/json
+      description: Sends an infrared command (e.g., AC control) to an IR-enabled Tuya
+        device.
+      parameters:
+      - description: Infrared Device ID (Hub/Remote)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: IR Command Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.TuyaIRACCommandDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Send IR AC Command
+      tags:
+      - 02. Tuya
+  /api/tuya/devices/{id}/commands/switch:
+    post:
+      consumes:
+      - application/json
+      description: Sends a standard switch command (e.g., toggle power) to a specific
+        Tuya device.
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Command Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.TuyaCommandDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Send Switch Command
       tags:
       - 02. Tuya
   /api/tuya/devices/{id}/sensor:
@@ -1880,40 +1976,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Sensor Data
-      tags:
-      - 02. Tuya
-  /api/tuya/devices/sync:
-    get:
-      consumes:
-      - application/json
-      description: Fetches real-time status from Tuya. Does NOT update local DB. Returns
-        fresh device list.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/dtos.TuyaSyncDeviceDTO'
-                  type: array
-              type: object
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
-      security:
-      - ApiKeyAuth: []
-      - BearerAuth: []
-      summary: Sync Terminal Device Status
       tags:
       - 02. Tuya
 schemes:

@@ -29,7 +29,7 @@ func TestCreateDeviceUseCase_UserBehavior(t *testing.T) {
 
 		teraRepo.On("GetByID", req.TerminalID).Return(&entities.Terminal{ID: "tx-1"}, nil).Once()
 		tuyaAuth.On("Authenticate").Return(&tuya_dtos.TuyaAuthResponseDTO{AccessToken: "token"}, nil).Once()
-		tuyaGetDevice.On("GetDeviceByID", "token", req.ID).Return(&tuya_dtos.TuyaDeviceDTO{
+		tuyaGetDevice.On("GetDeviceByID", "token", req.ID, "").Return(&tuya_dtos.TuyaDeviceDTO{
 			ID:     req.ID,
 			Name:   "Mocked",
 			Status: []tuya_dtos.TuyaDeviceStatusDTO{{Code: "s1", Value: "v1"}},
@@ -207,8 +207,8 @@ type MockTuyaGetDeviceByIDUseCase struct {
 	mock.Mock
 }
 
-func (m *MockTuyaGetDeviceByIDUseCase) GetDeviceByID(token, deviceID string) (*tuya_dtos.TuyaDeviceDTO, error) {
-	args := m.Called(token, deviceID)
+func (m *MockTuyaGetDeviceByIDUseCase) GetDeviceByID(token, deviceID, remoteID string) (*tuya_dtos.TuyaDeviceDTO, error) {
+	args := m.Called(token, deviceID, remoteID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

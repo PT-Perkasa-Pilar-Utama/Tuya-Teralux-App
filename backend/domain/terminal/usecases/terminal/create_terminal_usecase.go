@@ -109,10 +109,11 @@ func (uc *CreateTerminalUseCase) CreateTerminal(req *dtos.CreateTerminalRequestD
 
 	// Create entity
 	terminal := &entities.Terminal{
-		ID:         id,
-		MacAddress: req.MacAddress,
-		RoomID:     req.RoomID,
-		Name:       req.Name,
+		ID:           id,
+		MacAddress:   req.MacAddress,
+		RoomID:       req.RoomID,
+		Name:         req.Name,
+		DeviceTypeID: req.DeviceTypeID,
 	}
 
 	// Save to database

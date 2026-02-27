@@ -19,7 +19,7 @@ type TuyaAuthUseCaseInterface interface {
 
 // TuyaGetDeviceByIDUseCaseInterface defines the interface for getting a device by ID from Tuya
 type TuyaGetDeviceByIDUseCaseInterface interface {
-	GetDeviceByID(accessToken, deviceID string) (*tuya_dtos.TuyaDeviceDTO, error)
+	GetDeviceByID(accessToken, deviceID, remoteID string) (*tuya_dtos.TuyaDeviceDTO, error)
 }
 
 // CreateDeviceUseCase handles the business logic for creating a new device
@@ -74,7 +74,7 @@ func (uc *CreateDeviceUseCase) CreateDevice(req *dtos.CreateDeviceRequestDTO) (*
 		return nil, false, fmt.Errorf("failed to authenticate with Tuya: %w", err)
 	}
 
-	tuyaDevice, err := uc.tuyaGetDeviceUC.GetDeviceByID(authResp.AccessToken, req.ID)
+	tuyaDevice, err := uc.tuyaGetDeviceUC.GetDeviceByID(authResp.AccessToken, req.ID, "")
 
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to fetch device from Tuya: %w", err)

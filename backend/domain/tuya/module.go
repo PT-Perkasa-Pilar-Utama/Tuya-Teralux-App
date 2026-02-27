@@ -20,7 +20,6 @@ type TuyaModule struct {
 	CommandSwitchController    *controllers.TuyaCommandSwitchController
 	SendIRCommandController    *controllers.TuyaSendIRCommandController
 	SensorController           *controllers.TuyaSensorController
-	SyncDeviceStatusController *controllers.SyncDeviceStatusController
 
 	// Exported Use Cases for other domains
 	AuthUseCase          usecases.TuyaAuthUseCase
@@ -40,7 +39,7 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 	deviceStateUseCase := usecases.NewDeviceStateUseCase(badger)
 
 	tuyaGetAllDevicesUseCase := usecases.NewTuyaGetAllDevicesUseCase(tuyaDeviceService, deviceStateUseCase, badger, vectorSvc, deviceRepo, terminalRepo)
-	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, badger)
+	tuyaGetDeviceByIDUseCase := usecases.NewTuyaGetDeviceByIDUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaCommandSwitchUseCase := usecases.NewTuyaCommandSwitchUseCase(tuyaDeviceService, deviceStateUseCase)
 	tuyaSendIRCommandUseCase := usecases.NewTuyaSendIRCommandUseCase(tuyaDeviceService)
 
@@ -48,7 +47,6 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 	tuyaDeviceControlBridge := usecases.NewTuyaDeviceControlBridge(tuyaCommandSwitchUseCase, tuyaSendIRCommandUseCase)
 
 	tuyaSensorUseCase := usecases.NewTuyaSensorUseCase(tuyaGetDeviceByIDUseCase)
-	syncDeviceStatusUseCase := usecases.NewSyncDeviceStatusUseCase(tuyaGetAllDevicesUseCase)
 
 	// Controllers
 	return &TuyaModule{
@@ -58,7 +56,6 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 		CommandSwitchController:    controllers.NewTuyaCommandSwitchController(tuyaCommandSwitchUseCase),
 		SendIRCommandController:    controllers.NewTuyaSendIRCommandController(tuyaSendIRCommandUseCase),
 		SensorController:           controllers.NewTuyaSensorController(tuyaSensorUseCase),
-		SyncDeviceStatusController: controllers.NewSyncDeviceStatusController(syncDeviceStatusUseCase),
 
 		AuthUseCase:          tuyaAuthUseCase,
 		GetAllDevicesUseCase: tuyaGetAllDevicesUseCase,
@@ -77,7 +74,4 @@ func (m *TuyaModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGro
 	// Protected Routes
 	routes.SetupTuyaDeviceRoutes(protected, m.GetAllDevicesController, m.GetDeviceByIDController, m.SensorController)
 	routes.SetupTuyaControlRoutes(protected, m.CommandSwitchController, m.SendIRCommandController)
-
-	// Sync Route
-	protected.GET("/api/tuya/devices/sync", m.SyncDeviceStatusController.SyncStatus)
 }

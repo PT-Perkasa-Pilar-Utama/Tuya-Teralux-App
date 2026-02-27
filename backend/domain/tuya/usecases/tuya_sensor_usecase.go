@@ -29,7 +29,7 @@ func NewTuyaSensorUseCase(getDeviceUseCase *TuyaGetDeviceByIDUseCase) *TuyaSenso
 // return *dtos.SensorDataDTO The structured sensor data containing temperature, humidity, and status.
 // return error An error if fetching the device data fails.
 func (uc *TuyaSensorUseCase) GetSensorData(accessToken, deviceID string) (*dtos.SensorDataDTO, error) {
-	device, err := uc.getDeviceUseCase.GetDeviceByID(accessToken, deviceID)
+	device, err := uc.getDeviceUseCase.GetDeviceByID(accessToken, deviceID, "")
 	if err != nil {
 		return nil, err
 	}

@@ -29,7 +29,7 @@ func TestGetAllTerminal_UserBehavior(t *testing.T) {
 		filter := &dtos.TerminalFilterDTO{Page: 1, Limit: 10}
 		expectedTerminal := make([]entities.Terminal, 10)
 		for i := 0; i < 10; i++ {
-			expectedTerminal[i] = entities.Terminal{ID: "t", Name: "Hub"}
+			expectedTerminal[i] = entities.Terminal{ID: "t", Name: "Hub", DeviceTypeID: "1"}
 		}
 
 		repo.On("GetAllPaginated", 0, 10, (*string)(nil)).Return(expectedTerminal, int64(15), nil).Once()
@@ -38,6 +38,7 @@ func TestGetAllTerminal_UserBehavior(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(15), res.Total)
 		assert.Len(t, res.Terminal, 10)
+		assert.Equal(t, "1", res.Terminal[0].DeviceTypeID)
 		repo.AssertExpectations(t)
 	})
 

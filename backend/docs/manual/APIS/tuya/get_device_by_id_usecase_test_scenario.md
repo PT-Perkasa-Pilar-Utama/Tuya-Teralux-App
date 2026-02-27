@@ -8,7 +8,10 @@ Retrieves detailed information for a specific Tuya device identified by its ID.
 - **Header**: `Authorization: Bearer <token>`
 
 ## Path Parameters
-- `id` (string, required) - Device ID
+- `id` (string, required) - Device ID (Gateway/Hub ID)
+
+## Query Parameters
+- `remote_id` (string, optional) - Target Remote ID (Sub-device ID)
 
 ## Test Scenarios
 
@@ -58,6 +61,42 @@ Retrieves detailed information for a specific Tuya device identified by its ID.
 }
 ```
   *(Status: 200 OK)*
+- **Side Effects**: None (read-only).
+
+### 2. Get Device By ID with Remote ID (Success)
+- **URL**: `http://localhost:8080/api/tuya/devices/bf0d2...?remote_id=6c2a...`
+- **Method**: `GET`
+- **Headers**:
+```json
+{
+  "Content-Type": "application/json",
+  "Authorization": "Bearer <valid_token>"
+}
+```
+- **Pre-conditions**:
+  - Hub with ID `bf0d2...` exists.
+  - Remote with ID `6c2a...` is paired with the hub.
+- **Expected Response**:
+```json
+{
+  "status": true,
+  "message": "Device retrieved successfully",
+  "data": {
+    "device": {
+      "id": "bf0d2...",
+      "remote_id": "6c2a...",
+      "name": "AC Remote Control",
+      "category": "infrared_ac",
+      "online": true,
+      "status": [
+        {"code": "power", "value": 1},
+        {"code": "temp", "value": 22}
+      ],
+      ...
+    }
+  }
+}
+```
 - **Side Effects**: None (read-only).
 
 ### 2. Validation: Device Not Found

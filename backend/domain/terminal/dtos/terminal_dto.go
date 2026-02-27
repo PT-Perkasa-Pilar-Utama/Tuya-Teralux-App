@@ -17,9 +17,10 @@ type CreateTerminalResponseDTO struct {
 
 // UpdateTerminalRequestDTO represents the request body for updating a terminal
 type UpdateTerminalRequestDTO struct {
-	RoomID     *string `json:"room_id,omitempty"`
-	MacAddress *string `json:"mac_address,omitempty"`
-	Name       *string `json:"name,omitempty"`
+	RoomID       *string `json:"room_id,omitempty"`
+	MacAddress   *string `json:"mac_address,omitempty"`
+	Name         *string `json:"name,omitempty"`
+	DeviceTypeID *string `json:"device_type_id,omitempty"`
 }
 
 // TerminalFilterDTO represents filter options for listing terminal
@@ -35,8 +36,9 @@ type TerminalResponseDTO struct {
 	ID         string    `json:"id"`
 	MacAddress string    `json:"mac_address"`
 	RoomID     string    `json:"room_id"`
-	Name       string    `json:"name"`
-	CreatedAt  time.Time `json:"created_at"`
+	Name         string    `json:"name"`
+	DeviceTypeID string    `json:"device_type_id"`
+	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 	// Devices:    []DeviceResponseDTO `json:"devices,omitempty"` // Removed to match test scenario
 }
