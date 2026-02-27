@@ -72,23 +72,8 @@ android {
         )
         buildConfigField(
             "String",
-            "MQTT_USERNAME",
-            "\"${localProperties.getProperty("mqtt.username") ?: ""}\""
-        )
-        buildConfigField(
-            "String",
-            "MQTT_PASSWORD",
-            "\"${localProperties.getProperty("mqtt.password") ?: ""}\""
-        )
-        buildConfigField(
-            "String",
             "SENSIO_API_KEY",
             "\"${localProperties.getProperty("sensio.api_key") ?: ""}\""
-        )
-        buildConfigField(
-            "String",
-            "MQTT_TOPIC_BASE",
-            "\"${localProperties.getProperty("mqtt.topic_base") ?: "teralux"}\""
         )
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
         buildConfigField("String", "BASE_HOSTNAME", "\"$baseHostname\"")
@@ -97,6 +82,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))

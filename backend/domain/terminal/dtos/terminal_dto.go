@@ -10,9 +10,11 @@ type CreateTerminalRequestDTO struct {
 	DeviceTypeID string `json:"device_type_id" binding:"required"`
 }
 
-// CreateTerminalResponseDTO represents the response for creating a terminal (only returns ID)
+// CreateTerminalResponseDTO represents the response for creating a terminal
 type CreateTerminalResponseDTO struct {
-	TerminalID string `json:"terminal_id"`
+	TerminalID   string `json:"terminal_id"`
+	MQTTUsername string `json:"mqtt_username"`
+	MQTTPassword string `json:"mqtt_password"`
 }
 
 // UpdateTerminalRequestDTO represents the request body for updating a terminal
@@ -38,6 +40,8 @@ type TerminalResponseDTO struct {
 	RoomID     string    `json:"room_id"`
 	Name         string    `json:"name"`
 	DeviceTypeID string    `json:"device_type_id"`
+	MQTTUsername string    `json:"mqtt_username"`
+	MQTTPassword string    `json:"mqtt_password,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 	// Devices:    []DeviceResponseDTO `json:"devices,omitempty"` // Removed to match test scenario

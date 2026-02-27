@@ -128,6 +128,19 @@ func (m *MockTerminalRepository) InvalidateCache(id string) error {
 	return args.Error(0)
 }
 
+func (m *MockTerminalRepository) CreateMQTTUser(user *entities.MQTTUser) error {
+	args := m.Called(user)
+	return args.Error(0)
+}
+
+func (m *MockTerminalRepository) GetMQTTUserByUsername(username string) (*entities.MQTTUser, error) {
+	args := m.Called(username)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.MQTTUser), args.Error(1)
+}
+
 type MockDeviceRepository struct {
 	mock.Mock
 }

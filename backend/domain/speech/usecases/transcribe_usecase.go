@@ -155,7 +155,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 
 	// Chaining to /chat ONLY if initiated via MQTT
 	if metadata != nil && metadata.Source == "mqtt" && metadata.TerminalID != "" && uc.mqttSvc != nil {
-		chatTopic := uc.config.MqttTopic + "/chat"
+		chatTopic := fmt.Sprintf("users/%s/chat", metadata.TerminalID)
 		prompt := finalResult.RefinedText
 		if prompt == "" {
 			prompt = finalResult.Transcription

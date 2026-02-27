@@ -37,11 +37,15 @@ object NetworkModule {
     }
 
     lateinit var tokenManager: com.example.whisper_android.data.local.TokenManager
+    lateinit var mqttCredentialManager: com.example.whisper_android.util.MqttCredentialManager
 
     fun init(context: android.content.Context) {
         tokenManager =
             com.example.whisper_android.data.local
                 .TokenManager(context)
+        mqttCredentialManager =
+            com.example.whisper_android.util
+                .MqttCredentialManager(context)
     }
 
     private val api: TerminalApi by lazy {
@@ -58,7 +62,7 @@ object NetworkModule {
 
     val repository: TerminalRepository by lazy {
         // Ensure init() is called before accessing this
-        TerminalRepositoryImpl(api, API_KEY)
+        TerminalRepositoryImpl(api, API_KEY, mqttCredentialManager, tokenManager)
     }
 
     val tuyaRepository: com.example.whisper_android.domain.repository.TuyaRepository by lazy {

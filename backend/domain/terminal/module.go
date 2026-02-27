@@ -2,6 +2,7 @@ package terminal
 
 import (
 	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/utils"
 	device "sensio/domain/terminal/controllers/device"
 	device_status "sensio/domain/terminal/controllers/device_status"
 	terminal "sensio/domain/terminal/controllers/terminal"
@@ -55,15 +56,19 @@ func NewTerminalModule(
 	// Services
 	terminalExternalService := terminal_services.NewTerminalExternalService()
 
+	// MQTT Auth Service client (points to EMQX Auth Service / Rust)
+	cfg := utils.GetConfig()
+	mqttAuthClient := terminal_services.NewMqttAuthClient(cfg.EmqxAuthBaseURL, cfg.ApiKey)
+
 	// Repositories
 	terminalRepository := repositories.NewTerminalRepository(badger)
 	deviceStatusRepository := repositories.NewDeviceStatusRepository(badger)
 
 	// Terminal Use Cases
-	createTerminalUseCase := terminal_usecases.NewCreateTerminalUseCase(terminalRepository, terminalExternalService)
+	createTerminalUseCase := terminal_usecases.NewCreateTerminalUseCase(terminalRepository, terminalExternalService, mqttAuthClient)
 	getAllTerminalUseCase := terminal_usecases.NewGetAllTerminalUseCase(terminalRepository)
 	getTerminalByIDUseCase := terminal_usecases.NewGetTerminalByIDUseCase(terminalRepository, deviceRepository)
-	getTerminalByMACUseCase := terminal_usecases.NewGetTerminalByMACUseCase(terminalRepository)
+	getTerminalByMACUseCase := terminal_usecases.NewGetTerminalByMACUseCase(terminalRepository, mqttAuthClient)
 	updateTerminalUseCase := terminal_usecases.NewUpdateTerminalUseCase(terminalRepository)
 	deleteTerminalUseCase := terminal_usecases.NewDeleteTerminalUseCase(terminalRepository)
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
@@ -46,8 +47,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		return
 	}
 
-	baseTopic := utils.GetConfig().MqttTopic // e.g. "users/teralux"
-	topic := baseTopic + "/whisper"
+	topic := "users/+/whisper"
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		if len(payload) == 0 {
@@ -57,13 +57,23 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		var req dtos.WhisperMqttRequestDTO
 		if err := json.Unmarshal(payload, &req); err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to unmarshal JSON: %v", err)
-			c.publishMqttValidationError("payload", "Invalid JSON payload: "+err.Error())
 			return
+		}
+
+		// Extract MAC from topic: users/MAC/whisper
+		// Topic parts split by '/' -> [users, teralux, devices, MAC, whisper]
+		// MAC is at index 3
+		topicParts := strings.Split(msg.Topic(), "/")
+		mac := ""
+		if len(topicParts) >= 4 {
+			mac = topicParts[3]
 		}
 
 		if req.Audio == "" || req.TerminalID == "" {
 			utils.LogError("SpeechTranscribe MQTT: Missing audio or terminal_id")
-			c.publishMqttValidationError("audio/terminal_id", "audio and terminal_id are required")
+			if mac != "" {
+				c.publishMqttValidationError(mac, "audio/terminal_id", "audio and terminal_id are required")
+			}
 			return
 		}
 
@@ -71,7 +81,9 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		audioBytes, err := base64.StdEncoding.DecodeString(req.Audio)
 		if err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to decode base64: %v", err)
-			c.publishMqttValidationError("audio", "Failed to decode base64 audio")
+			if mac != "" {
+				c.publishMqttValidationError(mac, "audio", "Failed to decode base64 audio")
+			}
 			return
 		}
 
@@ -88,7 +100,9 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		// Save audio bytes to disk manually (without DB entry)
 		if err := os.WriteFile(tempPath, audioBytes, 0644); err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to save temporary audio: %v", err)
-			c.publishMqttError("Failed to process audio")
+			if mac != "" {
+				c.publishMqttError(mac, "Failed to process audio")
+			}
 			return
 		}
 
@@ -103,21 +117,25 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		})
 		if err != nil {
 			utils.LogError("SpeechTranscribe MQTT: Failed to start transcription: %v", err)
-			c.publishMqttError("Failed to start transcription task: " + err.Error())
+			if mac != "" {
+				c.publishMqttError(mac, "Failed to start transcription task: "+err.Error())
+			}
 			_ = os.Remove(tempPath) // Clean up immediately on error
 			return
 		}
 
 		// Publish success status with empty RecordingID (since not saved in DB)
-		c.publishMqttResponse(dtos.StandardResponse{
-			Status:  true,
-			Message: "Transcription task submitted successfully (Ephemeral)",
-			Data: dtos.TranscriptionTaskResponseDTO{
-				TaskID:      taskID,
-				TaskStatus:  "pending",
-				RecordingID: "", // No DB entry
-			},
-		})
+		if mac != "" {
+			c.publishMqttResponse(mac, dtos.StandardResponse{
+				Status:  true,
+				Message: "Transcription task submitted successfully (Ephemeral)",
+				Data: dtos.TranscriptionTaskResponseDTO{
+					TaskID:      taskID,
+					TaskStatus:  "pending",
+					RecordingID: "", // No DB entry
+				},
+			})
+		}
 
 		utils.LogInfo("SpeechTranscribe MQTT: Started ephemeral task %s for file %s", taskID, tempFilename)
 	})
@@ -127,8 +145,8 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 	}
 }
 
-func (c *SpeechTranscribeController) publishMqttValidationError(field, message string) {
-	c.publishMqttResponse(dtos.StandardResponse{
+func (c *SpeechTranscribeController) publishMqttValidationError(mac, field, message string) {
+	c.publishMqttResponse(mac, dtos.StandardResponse{
 		Status:  false,
 		Message: "Validation Error",
 		Details: []utils.ValidationErrorDetail{
@@ -137,19 +155,20 @@ func (c *SpeechTranscribeController) publishMqttValidationError(field, message s
 	})
 }
 
-func (c *SpeechTranscribeController) publishMqttError(details string) {
+func (c *SpeechTranscribeController) publishMqttError(mac, details string) {
 	utils.LogError("SpeechTranscribe MQTT: %s", details)
-	c.publishMqttResponse(dtos.StandardResponse{
+	c.publishMqttResponse(mac, dtos.StandardResponse{
 		Status:  false,
 		Message: "Internal Server Error",
 	})
 }
 
-func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardResponse) {
+func (c *SpeechTranscribeController) publishMqttResponse(mac string, resp dtos.StandardResponse) {
 	if c.mqttSvc == nil {
 		return
 	}
-	respTopic := utils.GetConfig().MqttTopic + "/whisper/answer"
+	// Response topic matches device ACL: users/MAC/whisper/answer
+	respTopic := fmt.Sprintf("users/%s/whisper/answer", mac)
 	respData, _ := json.Marshal(resp)
 	if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 		utils.LogError("SpeechTranscribe MQTT: Failed to publish response: %v", err)
@@ -174,6 +193,7 @@ func (c *SpeechTranscribeController) publishMqttResponse(resp dtos.StandardRespo
 // @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/transcribe [post]
 func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
+	macAddress := ctx.PostForm("mac_address")
 	file, err := ctx.FormFile("audio")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
@@ -187,7 +207,7 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 	}
 
 	if file.Size > c.config.MaxFileSize {
-		c.publishMqttError(fmt.Sprintf("File too large: %d bytes", file.Size))
+		c.publishMqttError(macAddress, fmt.Sprintf("File too large: %d bytes", file.Size))
 		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
 			Status:  false,
 			Message: "File too large",
@@ -212,7 +232,7 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 		return
 	}
 
-	macAddress := ctx.PostForm("mac_address")
+	macAddress = ctx.PostForm("mac_address")
 	baseURL := utils.GetBaseURL(ctx)
 	recording, err := c.saveRecordingUC.SaveRecording(file, macAddress, baseURL)
 	if err != nil {
@@ -260,7 +280,7 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 	}
 
 	// Also publish to MQTT if service is available
-	c.publishMqttResponse(resp)
+	c.publishMqttResponse(macAddress, resp)
 
 	ctx.JSON(http.StatusAccepted, resp)
 }

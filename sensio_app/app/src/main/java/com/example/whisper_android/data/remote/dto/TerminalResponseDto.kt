@@ -10,6 +10,8 @@ data class TerminalResponseDto(
 
 data class TerminalDataDto(
     @SerializedName("terminal_id") val terminalId: String? = null, // From Register response
+    @SerializedName("mqtt_username") val mqttUsername: String? = null,
+    @SerializedName("mqtt_password") val mqttPassword: String? = null,
     @SerializedName("terminal") val terminal: TerminalItemDto? = null, // From GetByID/MAC response
     // Maintain flat fields for immediate backward compatibility in case they are used
     @SerializedName("id") val id: String? = null,
@@ -23,6 +25,8 @@ data class TerminalItemDto(
     @SerializedName("mac_address") val macAddress: String,
     @SerializedName("room_id") val roomId: String,
     @SerializedName("name") val name: String,
+    @SerializedName("mqtt_username") val mqttUsername: String? = null,
+    @SerializedName("mqtt_password") val mqttPassword: String? = null,
     @SerializedName("created_at") val createdAt: String? = null,
     @SerializedName("updated_at") val updatedAt: String? = null
 )

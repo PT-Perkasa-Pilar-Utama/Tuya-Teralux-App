@@ -18,10 +18,12 @@ class MqttHelper(
     context: Context
 ) {
     private var mqttAndroidClient: MqttAndroidClient
+    private val mqttCredentialManager = MqttCredentialManager(context)
+    private val tokenManager = com.example.whisper_android.data.local.TokenManager(context)
+    
     private val serverUri = BuildConfig.MQTT_BROKER_URL
     private val clientID = "WhisperAndroid_" + UUID.randomUUID().toString()
-    private val username = BuildConfig.MQTT_USERNAME
-    private val password = BuildConfig.MQTT_PASSWORD
+    
     private val tag = "MqttHelper"
     var onMessageReceived: ((topic: String, message: String) -> Unit)? = null
     var onConnectionStatusChanged: ((status: MqttConnectionStatus) -> Unit)? = null
@@ -59,6 +61,15 @@ class MqttHelper(
     fun connect() {
         if (mqttAndroidClient.isConnected) return
 
+        val username = mqttCredentialManager.getUsername()
+        val password = mqttCredentialManager.getPassword()
+
+        if (username == null || password == null) {
+            Log.w(tag, "Connect attempt failed: MQTT credentials not found")
+            onConnectionStatusChanged?.invoke(MqttConnectionStatus.FAILED)
+            return
+        }
+
         val mqttConnectOptions = MqttConnectOptions()
         mqttConnectOptions.isAutomaticReconnect = true
         mqttConnectOptions.isCleanSession = false
@@ -81,11 +92,14 @@ class MqttHelper(
                         mqttAndroidClient.setBufferOpts(disconnectedBufferOptions)
                         Log.d(tag, "Success Connected to $serverUri")
 
-                        // Subscribe to chat and answer topics
-                        val baseTopic = BuildConfig.MQTT_TOPIC_BASE
-                        subscribe("$baseTopic/chat/answer")
-                        subscribe("$baseTopic/whisper/answer")
-                        subscribe("$baseTopic/chat")
+                        // Subscribe to chat and answer topics using the dynamic username as base
+                        val username = mqttCredentialManager.getUsername()
+                        if (username != null) {
+                            subscribe("users/$username/chat/answer")
+                            subscribe("users/$username/whisper/answer")
+                        } else {
+                            Log.e(tag, "Connect success but username is null - cannot subscribe to topics")
+                        }
                         onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTED)
                     }
 
@@ -144,30 +158,34 @@ class MqttHelper(
         language: String = "id"
     ) {
         val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
+        val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
         val json =
             """
             {
                 "audio": "$base64Audio",
-                "terminal_id": "tx-1",
+                "terminal_id": "$terminalId",
                 "language": "$language"
             }
             """.trimIndent()
-        publish("${BuildConfig.MQTT_TOPIC_BASE}/whisper", json.toByteArray())
+        val username = mqttCredentialManager.getUsername() ?: return
+        publish("users/$username/whisper", json.toByteArray())
     }
 
     fun publishChat(
         text: String,
         language: String = "id"
     ) {
+        val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
         val json =
             """
             {
                 "prompt": "$text",
-                "terminal_id": "tx-1",
+                "terminal_id": "$terminalId",
                 "language": "$language"
             }
             """.trimIndent()
-        publish("${BuildConfig.MQTT_TOPIC_BASE}/chat", json.toByteArray())
+        val username = mqttCredentialManager.getUsername() ?: return
+        publish("users/$username/chat", json.toByteArray())
     }
 
     private fun publish(
