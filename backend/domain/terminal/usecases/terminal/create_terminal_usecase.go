@@ -7,6 +7,7 @@ import (
 	"sensio/domain/terminal/dtos"
 	"sensio/domain/terminal/entities"
 	"sensio/domain/terminal/repositories"
+	"sensio/domain/terminal/services"
 	"strings"
 
 	"strconv"
@@ -23,16 +24,19 @@ type ITerminalExternalService interface {
 type CreateTerminalUseCase struct {
 	repository      repositories.ITerminalRepository
 	externalService ITerminalExternalService
+	mqttClient      *services.MqttAuthClient
 }
 
 // NewCreateTerminalUseCase creates a new instance of CreateTerminalUseCase
 func NewCreateTerminalUseCase(
 	repository repositories.ITerminalRepository,
 	externalService ITerminalExternalService,
+	mqttClient *services.MqttAuthClient,
 ) *CreateTerminalUseCase {
 	return &CreateTerminalUseCase{
 		repository:      repository,
 		externalService: externalService,
+		mqttClient:      mqttClient,
 	}
 }
 
@@ -107,6 +111,25 @@ func (uc *CreateTerminalUseCase) CreateTerminal(req *dtos.CreateTerminalRequestD
 	// Generate UUID for the new terminal
 	id := uuid.New().String()
 
+	// MQTTUsername = MAC
+	mqttUsername := req.MacAddress
+	mqttPasswordPlain := strings.ReplaceAll(uuid.New().String(), "-", "")
+
+	// Delegate MQTT user creation to the Rust Auth Service
+	// The auth service stores the password encrypted (AES-256-GCM)
+	alreadyExists, err := uc.mqttClient.CreateMQTTUser(mqttUsername, mqttPasswordPlain)
+	if err != nil {
+		utils.LogError("CreateTerminalUseCase: Failed to create MQTT user via auth service for MAC %s: %v", req.MacAddress, err)
+		return nil, false, fmt.Errorf("failed to create mqtt user: %w", err)
+	}
+
+	if alreadyExists {
+		utils.LogDebug("CreateTerminalUseCase: MQTT user already exists for MAC %s (Scenario C)", mqttUsername)
+		mqttPasswordPlain = "" // Auth service owns the credential; client must call GET /mqtt/credentials/{username}
+	} else {
+		utils.LogDebug("CreateTerminalUseCase: MQTT user created via auth service for MAC: %s", req.MacAddress)
+	}
+
 	// Create entity
 	terminal := &entities.Terminal{
 		ID:           id,
@@ -124,8 +147,10 @@ func (uc *CreateTerminalUseCase) CreateTerminal(req *dtos.CreateTerminalRequestD
 
 	utils.LogDebug("CreateTerminalUseCase: Successfully created Terminal ID %s for MAC %s", id, req.MacAddress)
 
-	// Return response DTO with only ID
+	// Return response DTO with ID and MQTT credentials
 	return &dtos.CreateTerminalResponseDTO{
-		TerminalID: terminal.ID,
+		TerminalID:   terminal.ID,
+		MQTTUsername: mqttUsername,
+		MQTTPassword: mqttPasswordPlain,
 	}, true, nil
 }

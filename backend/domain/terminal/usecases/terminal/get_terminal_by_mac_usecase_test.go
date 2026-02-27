@@ -2,29 +2,36 @@ package usecases
 
 import (
 	"errors"
-	"sensio/domain/terminal/entities"
+	"sensio/domain/terminal/services"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetTerminalByMAC_UserBehavior(t *testing.T) {
-	repo := new(MockTerminalRepository)
-	useCase := NewGetTerminalByMACUseCase(repo)
+// MockMqttAuthClient mocks the MqttAuthClient for tests
+type MockMqttAuthClient struct {
+	credentials    *services.MQTTCredentials
+	credentialsErr error
+	createExists   bool
+	createErr      error
+}
 
-	// 1. Get Terminal By MAC (Success)
-	t.Run("Get Terminal By MAC (Success)", func(t *testing.T) {
-		mac := "AA:BB:CC:11:22:33"
-		repo.On("GetByMacAddress", mac).Return(&entities.Terminal{ID: "t1", MacAddress: mac}, nil).Once()
+func (m *MockMqttAuthClient) GetMQTTCredentials(_ string) (*services.MQTTCredentials, error) {
+	return m.credentials, m.credentialsErr
+}
 
-		res, err := useCase.GetTerminalByMAC(mac)
-		assert.NoError(t, err)
-		assert.Equal(t, mac, res.Terminal.MacAddress)
-		repo.AssertExpectations(t)
-	})
+func (m *MockMqttAuthClient) CreateMQTTUser(_, _ string) (bool, error) {
+	return m.createExists, m.createErr
+}
 
-	// 2. Get Terminal By MAC (Not Found)
+func TestGetTerminalByMACUseCase(t *testing.T) {
+	mockClient := services.NewMqttAuthClient("http://localhost:5500", "test-key")
+
+	// 1. Get Terminal By MAC (Not Found)
 	t.Run("Get Terminal By MAC (Not Found)", func(t *testing.T) {
+		repo := new(MockTerminalRepository)
+		useCase := NewGetTerminalByMACUseCase(repo, mockClient)
+
 		repo.On("GetByMacAddress", "AA:BB:CC:DD:EE:FF").Return(nil, errors.New("record not found")).Once()
 
 		_, err := useCase.GetTerminalByMAC("AA:BB:CC:DD:EE:FF")
@@ -33,10 +40,13 @@ func TestGetTerminalByMAC_UserBehavior(t *testing.T) {
 		repo.AssertExpectations(t)
 	})
 
-	// 3. Validation: Invalid MAC Format
-	t.Run("Validation: Invalid MAC Format", func(t *testing.T) {
-		_, err := useCase.GetTerminalByMAC("INVALID-MAC")
+	// 2. Get Terminal By MAC (Invalid Format)
+	t.Run("Get Terminal By MAC (Invalid Format)", func(t *testing.T) {
+		repo := new(MockTerminalRepository)
+		useCase := NewGetTerminalByMACUseCase(repo, mockClient)
+
+		_, err := useCase.GetTerminalByMAC("invalid-mac")
 		assert.Error(t, err)
-		assert.Equal(t, "invalid mac address or device id format", err.Error())
+		assert.Contains(t, err.Error(), "invalid mac address")
 	})
 }

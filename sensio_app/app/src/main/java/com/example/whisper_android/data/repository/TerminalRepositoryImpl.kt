@@ -8,7 +8,9 @@ import com.example.whisper_android.domain.repository.TerminalRepository
 
 class TerminalRepositoryImpl(
     private val api: TerminalApi,
-    private val apiKey: String
+    private val apiKey: String,
+    private val mqttCredentialManager: com.example.whisper_android.util.MqttCredentialManager,
+    private val tokenManager: com.example.whisper_android.data.local.TokenManager
 ) : TerminalRepository {
     override suspend fun registerTerminal(
         name: String,
@@ -26,12 +28,24 @@ class TerminalRepositoryImpl(
             val response = api.registerTerminal(apiKey, request)
 
             if (response.status && response.data?.terminalId != null) {
+                val tId = response.data.terminalId
+                tokenManager.saveTerminalId(tId)
+
+                // Save MQTT credentials if present
+                response.data.mqttUsername?.let { username ->
+                    response.data.mqttPassword?.let { password ->
+                        mqttCredentialManager.saveCredentials(username, password)
+                    }
+                }
+
                 Result.success(
                     TerminalRegistration(
-                        id = response.data.terminalId,
+                        id = tId,
                         name = name,
                         roomId = roomId,
-                        macAddress = macAddress
+                        macAddress = macAddress,
+                        mqttUsername = response.data.mqttUsername,
+                        mqttPassword = response.data.mqttPassword
                     )
                 )
             } else {
@@ -50,12 +64,26 @@ class TerminalRepositoryImpl(
             if (response.status && response.data != null) {
                 // Success - Found
                 val terminalItem = response.data.terminal
+                val tId = terminalItem?.id ?: response.data.id ?: ""
+                if (tId.isNotEmpty()) {
+                    tokenManager.saveTerminalId(tId)
+                }
+
+                // Save MQTT credentials if present
+                val mUsername = terminalItem?.mqttUsername ?: response.data.mqttUsername
+                val mPassword = terminalItem?.mqttPassword ?: response.data.mqttPassword
+                if (mUsername != null && mPassword != null && mPassword != "SECRET_PASSWORD") {
+                    mqttCredentialManager.saveCredentials(mUsername, mPassword)
+                }
+
                 Result.success(
                     TerminalRegistration(
-                        id = terminalItem?.id ?: response.data.id ?: "",
+                        id = tId,
                         name = terminalItem?.name ?: response.data.name ?: "",
                         roomId = terminalItem?.roomId ?: response.data.roomId ?: "",
-                        macAddress = terminalItem?.macAddress ?: response.data.macAddress ?: macAddress
+                        macAddress = terminalItem?.macAddress ?: response.data.macAddress ?: macAddress,
+                        mqttUsername = mUsername,
+                        mqttPassword = mPassword
                     )
                 )
             } else {

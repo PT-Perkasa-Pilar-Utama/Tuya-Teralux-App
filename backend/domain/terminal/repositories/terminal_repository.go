@@ -20,6 +20,10 @@ type ITerminalRepository interface {
 	Update(terminal *entities.Terminal) error
 	Delete(id string) error
 	InvalidateCache(id string) error
+
+	// MQTT User methods
+	CreateMQTTUser(user *entities.MQTTUser) error
+	GetMQTTUserByUsername(username string) (*entities.MQTTUser, error)
 }
 
 // TerminalRepository handles database operations for Terminal entities
@@ -251,4 +255,25 @@ func (r *TerminalRepository) InvalidateCache(id string) error {
 	}
 
 	return nil
+}
+
+// CreateMQTTUser inserts a new MQTT user into the mqtt_users table
+func (r *TerminalRepository) CreateMQTTUser(user *entities.MQTTUser) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	return r.db.Create(user).Error
+}
+
+// GetMQTTUserByUsername retrieves an MQTT user by username
+func (r *TerminalRepository) GetMQTTUserByUsername(username string) (*entities.MQTTUser, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	var user entities.MQTTUser
+	err := r.db.Where("username = ? AND is_deleted = false", username).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

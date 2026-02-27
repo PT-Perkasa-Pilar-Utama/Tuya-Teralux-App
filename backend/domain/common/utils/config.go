@@ -54,10 +54,11 @@ type Config struct {
 	Port                string
 
 	// MQTT
-	MqttBroker   string
-	MqttUsername string
-	MqttPassword string
-	MqttTopic    string
+	MqttBroker              string
+	MqttUsername            string
+	MqttPassword            string
+	MqttPassEncryptionKey   string
+	EmqxAuthBaseURL         string
 
 	// SMTP
 	SMTPHost     string
@@ -164,10 +165,11 @@ func LoadConfig() {
 		MaxFileSize:         maxFileSize,
 		Port:                os.Getenv("PORT"),
 
-		MqttBroker:   os.Getenv("MQTT_BROKER"),
-		MqttUsername: os.Getenv("MQTT_USERNAME"),
-		MqttPassword: os.Getenv("MQTT_PASSWORD"),
-		MqttTopic:    os.Getenv("MQTT_TOPIC"),
+		MqttBroker:              os.Getenv("MQTT_BROKER"),
+		MqttUsername:            os.Getenv("MQTT_USERNAME"),
+		MqttPassword:            os.Getenv("MQTT_PASSWORD"),
+		MqttPassEncryptionKey:   os.Getenv("MQTT_PASS_ENCRYPTION_KEY"),
+		EmqxAuthBaseURL:         os.Getenv("EMQX_AUTH_BASE_URL"),
 
 		// SMTP
 		SMTPHost:     os.Getenv("SMTP_HOST"),

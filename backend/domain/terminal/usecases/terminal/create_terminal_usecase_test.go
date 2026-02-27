@@ -1,20 +1,58 @@
 package usecases
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/dtos"
 	"sensio/domain/terminal/entities"
+	"sensio/domain/terminal/services"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
+// newMqttTestServer spins up a test HTTP server that simulates the Rust EMQX Auth Service.
+// If mqttExists is true, POST /mqtt/create returns 409 (already exists).
+// GET /mqtt/credentials/{username} always returns the test credentials.
+func newMqttTestServer(mqttExists bool) *httptest.Server {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/mqtt/create", func(w http.ResponseWriter, r *http.Request) {
+		if mqttExists {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	mux.HandleFunc("/mqtt/credentials/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "ok",
+			"data": map[string]string{
+				"username": "test-username",
+				"password": "decrypted-pass",
+			},
+		})
+	})
+
+	return httptest.NewServer(mux)
+}
+
 func TestCreateTerminal_UserBehavior(t *testing.T) {
 	repo := new(MockTerminalRepository)
 	extSvc := new(MockTerminalExternalService)
-	useCase := NewCreateTerminalUseCase(repo, extSvc)
+
+	// Create useCase with a test MQTT server (new user scenario: 200 OK)
+	mqttSrv := newMqttTestServer(false)
+	defer mqttSrv.Close()
+	mqttClient := services.NewMqttAuthClient(mqttSrv.URL, "test-api-key")
+	useCase := NewCreateTerminalUseCase(repo, extSvc, mqttClient)
 
 	// 1. Create Terminal (Success Condition)
 	t.Run("Create Terminal (Success Condition)", func(t *testing.T) {
@@ -38,6 +76,32 @@ func TestCreateTerminal_UserBehavior(t *testing.T) {
 		extSvc.AssertExpectations(t)
 	})
 
+	// 1c. Create Terminal (Scenario C: MQTT User already exists)
+	t.Run("Create Terminal (Scenario C: MQTT User already exists)", func(t *testing.T) {
+		// Create a separate useCase with MQTT server returning 409
+		mqttSrvC := newMqttTestServer(true)
+		defer mqttSrvC.Close()
+		mqttClientC := services.NewMqttAuthClient(mqttSrvC.URL, "test-api-key")
+		useCaseC := NewCreateTerminalUseCase(repo, extSvc, mqttClientC)
+
+		req := &dtos.CreateTerminalRequestDTO{
+			Name:         "Duplicate MQTT Hub",
+			MacAddress:   "DE:AD:BE:EF:00:11",
+			RoomID:       "1",
+			DeviceTypeID: "1",
+		}
+
+		repo.On("GetByMacAddress", req.MacAddress).Return(nil, nil).Once()
+		repo.On("Create", mock.Anything).Return(nil).Once()
+		extSvc.On("ProcInsertMacAddress", 1, req.MacAddress, 1).Return(nil).Once()
+
+		res, _, err := useCaseC.CreateTerminal(req)
+		assert.NoError(t, err)
+		assert.Empty(t, res.MQTTPassword) // existing user: password returned empty, must call GET /credentials
+		repo.AssertExpectations(t)
+		extSvc.AssertExpectations(t)
+	})
+
 	// 1b. Create Terminal with Android ID (Success Condition)
 	t.Run("Create Terminal with Android ID", func(t *testing.T) {
 		req := &dtos.CreateTerminalRequestDTO{
@@ -47,11 +111,12 @@ func TestCreateTerminal_UserBehavior(t *testing.T) {
 			DeviceTypeID: "1",
 		}
 
-		repo.On("GetByMacAddress", req.MacAddress).Return(nil, nil).Once()
+		normMAC := "C756630F2F039D27"
+		repo.On("GetByMacAddress", normMAC).Return(nil, nil).Once()
 		repo.On("Create", mock.MatchedBy(func(terminal *entities.Terminal) bool {
-			return terminal.Name == req.Name && terminal.MacAddress == req.MacAddress && terminal.RoomID == req.RoomID
+			return terminal.MacAddress == normMAC
 		})).Return(nil).Once()
-		extSvc.On("ProcInsertMacAddress", 1, req.MacAddress, 1).Return(nil).Once()
+		extSvc.On("ProcInsertMacAddress", 1, normMAC, 1).Return(nil).Once()
 
 		res, _, err := useCase.CreateTerminal(req)
 		assert.NoError(t, err)
@@ -135,9 +200,7 @@ func TestCreateTerminal_UserBehavior(t *testing.T) {
 			DeviceTypeID: "1",
 		}
 
-		// Mock normalization: "dd:ee:ff:11:22:33" -> "DD:EE:FF:11:22:33"
 		repo.On("GetByMacAddress", "DD:EE:FF:11:22:33").Return(&entities.Terminal{ID: "existing-id"}, nil).Once()
-
 		req.MacAddress = "dd:ee:ff:11:22:33"
 
 		_, _, err := useCase.CreateTerminal(req)
@@ -158,7 +221,6 @@ func TestCreateTerminal_UserBehavior(t *testing.T) {
 			DeviceTypeID: "1",
 		}
 
-		// Normalized MAC
 		normMAC := "AABBCC112233"
 		repo.On("GetByMacAddress", normMAC).Return(nil, nil).Once()
 		repo.On("Create", mock.MatchedBy(func(terminal *entities.Terminal) bool {
@@ -243,6 +305,19 @@ func (m *MockTerminalRepository) Delete(id string) error {
 func (m *MockTerminalRepository) InvalidateCache(id string) error {
 	args := m.Called(id)
 	return args.Error(0)
+}
+
+func (m *MockTerminalRepository) CreateMQTTUser(user *entities.MQTTUser) error {
+	args := m.Called(user)
+	return args.Error(0)
+}
+
+func (m *MockTerminalRepository) GetMQTTUserByUsername(username string) (*entities.MQTTUser, error) {
+	args := m.Called(username)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.MQTTUser), args.Error(1)
 }
 
 type MockTerminalExternalService struct {

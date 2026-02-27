@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/usecases"
+	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
@@ -29,8 +31,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 		return
 	}
 
-	baseTopic := utils.GetConfig().MqttTopic // e.g. "users/teralux"
-	topic := baseTopic + "/chat"
+	topic := "users/+/chat"
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		utils.LogInfo("RAGChat MQTT: Received message on %s, payload size: %d", topic, len(payload))
@@ -43,33 +44,31 @@ func (c *RAGChatController) StartMqttSubscription() {
 		err := json.Unmarshal(payload, &req)
 		if err != nil {
 			utils.LogError("RAGChat MQTT: Failed to unmarshal message: %v", err)
-			respTopic := baseTopic + "/chat/answer"
-			respData, _ := json.Marshal(dtos.StandardResponse{
-				Status:  false,
-				Message: "Validation Error",
-				Details: []utils.ValidationErrorDetail{
-					{Field: "payload", Message: "Invalid JSON payload: " + err.Error()},
-				},
-			})
-			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-				utils.LogError("RAGChat MQTT: Failed to publish error response: %v", err)
-			}
 			return
+		}
+
+		// Extract MAC from topic: users/MAC/chat
+		topicParts := strings.Split(msg.Topic(), "/")
+		mac := ""
+		if len(topicParts) >= 4 {
+			mac = topicParts[3]
 		}
 
 		if req.Prompt == "" || req.TerminalID == "" {
 			utils.LogError("RAGChat MQTT: Missing prompt or terminal_id")
-			respTopic := baseTopic + "/chat/answer"
-			respData, _ := json.Marshal(dtos.StandardResponse{
-				Status:  false,
-				Message: "Validation Error",
-				Details: []utils.ValidationErrorDetail{
-					{Field: "prompt", Message: "prompt is required"},
-					{Field: "terminal_id", Message: "terminal_id is required"},
-				},
-			})
-			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-				utils.LogError("RAGChat MQTT: Failed to publish validation error response: %v", err)
+			if mac != "" {
+				respTopic := fmt.Sprintf("users/%s/chat/answer", mac)
+				respData, _ := json.Marshal(dtos.StandardResponse{
+					Status:  false,
+					Message: "Validation Error",
+					Details: []utils.ValidationErrorDetail{
+						{Field: "prompt", Message: "prompt is required"},
+						{Field: "terminal_id", Message: "terminal_id is required"},
+					},
+				})
+				if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+					utils.LogError("RAGChat MQTT: Failed to publish validation error response: %v", err)
+				}
 			}
 			return
 		}
@@ -84,28 +83,32 @@ func (c *RAGChatController) StartMqttSubscription() {
 		res, err := c.chatUC.Chat(uid, req.TerminalID, req.Prompt, req.Language)
 		if err != nil {
 			utils.LogError("RAGChat MQTT: Chat processing failed: %v", err)
-			respTopic := baseTopic + "/chat/answer"
-			respData, _ := json.Marshal(dtos.StandardResponse{
-				Status:  false,
-				Message: "Internal Server Error",
-			})
-			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-				utils.LogError("RAGChat MQTT: Failed to publish internal error response: %v", err)
+			if mac != "" {
+				respTopic := fmt.Sprintf("users/%s/chat/answer", mac)
+				respData, _ := json.Marshal(dtos.StandardResponse{
+					Status:  false,
+					Message: "Internal Server Error",
+				})
+				if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+					utils.LogError("RAGChat MQTT: Failed to publish internal error response: %v", err)
+				}
 			}
 			return
 		}
 
 		// Publish result back
-		respTopic := baseTopic + "/chat/answer"
-		resp := dtos.StandardResponse{
-			Status:  true,
-			Message: "Chat processed successfully",
-			Data:    res,
-		}
-		respData, _ := json.Marshal(resp)
-		utils.LogInfo("RAGChat MQTT: Publishing answer to %s. Response: %s", respTopic, res.Response)
-		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-			utils.LogError("RAGChat MQTT: Failed to publish chat response: %v", err)
+		if mac != "" {
+			respTopic := fmt.Sprintf("users/%s/chat/answer", mac)
+			resp := dtos.StandardResponse{
+				Status:  true,
+				Message: "Chat processed successfully",
+				Data:    res,
+			}
+			respData, _ := json.Marshal(resp)
+			utils.LogInfo("RAGChat MQTT: Publishing answer to %s. Response: %s", respTopic, res.Response)
+			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+				utils.LogError("RAGChat MQTT: Failed to publish chat response: %v", err)
+			}
 		}
 	})
 
@@ -176,7 +179,9 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 
 	// Also publish to MQTT if service is available (for unified view on mobile apps)
 	if c.mqttSvc != nil {
-		respTopic := utils.GetConfig().MqttTopic + "/chat/answer"
+		// TerminalID in request for REST usually contains MAC or actual terminal ID
+		// Using req.TerminalID as the identifier for MQTT response topic
+		respTopic := fmt.Sprintf("users/%s/chat/answer", req.TerminalID)
 		respData, _ := json.Marshal(resp)
 		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 			utils.LogError("RAGChatController.Chat: Failed to publish to MQTT: %v", err)
