@@ -103,24 +103,67 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 		}
 	}
 
-	// For infrared_ac devices, populate status from saved state or use defaults
-	if deviceResponse.Result.Category == "infrared_ac" && uc.deviceStateUC != nil {
-		savedState, err := uc.deviceStateUC.GetDeviceState(targetID)
-		if err == nil && savedState != nil && len(savedState.LastCommands) > 0 {
-			// Populate statusDTOs from saved state
-			utils.LogDebug("GetDeviceByID: Populating infrared_ac status for target %s from saved state", targetID)
-			statusDTOs = make([]dtos.TuyaDeviceStatusDTO, len(savedState.LastCommands))
-			for i, cmd := range savedState.LastCommands {
-				statusDTOs[i] = dtos.TuyaDeviceStatusDTO(cmd)
+	// For infrared_ac devices, fetch specialized status from Tuya V2 API
+	if deviceResponse.Result.Category == "infrared_ac" {
+		utils.LogDebug("GetDeviceByID: Fetching specialized status for infrared_ac %s (hub=%s)", targetID, deviceID)
+		
+		irUrlPath := fmt.Sprintf("/v2.0/infrareds/%s/remotes/%s/ac/status", deviceID, targetID)
+		irFullURL := config.TuyaBaseURL + irUrlPath
+		
+		// Generate signature for IR status request
+		irTimestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		irStringToSign := tuya_utils.GenerateTuyaStringToSign("GET", contentHash, "", irUrlPath)
+		irSignature := tuya_utils.GenerateTuyaSignature(config.TuyaClientID, config.TuyaClientSecret, accessToken, irTimestamp, irStringToSign)
+		
+		irHeaders := map[string]string{
+			"client_id":    config.TuyaClientID,
+			"sign":         irSignature,
+			"t":            irTimestamp,
+			"sign_method":  signMethod,
+			"access_token": accessToken,
+		}
+		
+		irResp, err := uc.service.FetchIRACStatus(irFullURL, irHeaders)
+		if err == nil && irResp.Success {
+			utils.LogDebug("GetDeviceByID: Successfully fetched real IR status for %s", targetID)
+			statusDTOs = make([]dtos.TuyaDeviceStatusDTO, 0, len(irResp.Result))
+			for code, val := range irResp.Result {
+				// Convert string values to appropriate types if needed (Tuya returns strings for IR status)
+				var typedVal interface{} = val
+				if intVal, err := strconv.Atoi(val); err == nil {
+					typedVal = intVal
+				}
+				
+				statusDTOs = append(statusDTOs, dtos.TuyaDeviceStatusDTO{
+					Code:  code,
+					Value: typedVal,
+				})
 			}
 		} else {
-			// Use default values if no saved state
-			utils.LogDebug("GetDeviceByID: Using default status for infrared_ac target %s (no saved state)", targetID)
-			statusDTOs = []dtos.TuyaDeviceStatusDTO{
-				{Code: "power", Value: 0},
-				{Code: "temp", Value: 24},
-				{Code: "mode", Value: 0},
-				{Code: "wind", Value: 0},
+			if err != nil {
+				utils.LogWarn("GetDeviceByID: Failed to fetch IR status from API: %v", err)
+			} else {
+				utils.LogWarn("GetDeviceByID: Tuya IR API returned failure: %s", irResp.Msg)
+			}
+			
+			// Fallback to saved state
+			if uc.deviceStateUC != nil {
+				savedState, err := uc.deviceStateUC.GetDeviceState(targetID)
+				if err == nil && savedState != nil && len(savedState.LastCommands) > 0 {
+					utils.LogDebug("GetDeviceByID: Falling back to saved state for %s", targetID)
+					statusDTOs = make([]dtos.TuyaDeviceStatusDTO, len(savedState.LastCommands))
+					for i, cmd := range savedState.LastCommands {
+						statusDTOs[i] = dtos.TuyaDeviceStatusDTO(cmd)
+					}
+				} else {
+					utils.LogDebug("GetDeviceByID: Using default status for %s (no API status and no saved state)", targetID)
+					statusDTOs = []dtos.TuyaDeviceStatusDTO{
+						{Code: "power", Value: 0},
+						{Code: "temp", Value: 24},
+						{Code: "mode", Value: 0},
+						{Code: "wind", Value: 0},
+					}
+				}
 			}
 		}
 	}
