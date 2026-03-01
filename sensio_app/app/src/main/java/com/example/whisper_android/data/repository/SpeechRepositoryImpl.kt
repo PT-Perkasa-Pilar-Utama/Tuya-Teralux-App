@@ -86,7 +86,7 @@ class SpeechRepositoryImpl(
                         }
 
                         "failed" -> {
-                            emit(Resource.Error("Transcription task failed"))
+                            emit(Resource.Error(statusDto.error ?: "Transcription task failed"))
                             return@flow
                         }
 

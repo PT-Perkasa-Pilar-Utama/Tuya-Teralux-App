@@ -50,8 +50,8 @@ func (c *RAGChatController) StartMqttSubscription() {
 		// Extract MAC from topic: users/MAC/chat
 		topicParts := strings.Split(msg.Topic(), "/")
 		mac := ""
-		if len(topicParts) >= 4 {
-			mac = topicParts[3]
+		if len(topicParts) >= 2 && topicParts[0] == "users" {
+			mac = topicParts[1]
 		}
 
 		if req.Prompt == "" || req.TerminalID == "" {

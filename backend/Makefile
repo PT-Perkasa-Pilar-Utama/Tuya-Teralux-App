@@ -38,12 +38,10 @@ stop-mysql-dev:
 
 # Run development server with hot reload (requires air)
 dev: kill
-	@trap 'make stop-mysql-dev; cd services/EMQX-Auth-Service && make kill' EXIT INT TERM; \
+	@trap 'make stop-mysql-dev' EXIT INT TERM; \
 	set -e; \
 	make start-mysql-dev; \
 	echo "🟢 MySQL started"; \
-	echo "🚀 Starting EMQX Auth Service..."; \
-	(cd services/EMQX-Auth-Service && make dev) & \
 	echo "🚀 Starting development server with hot reload..."; \
 	if [ ! -f bin/whisper-cli ] || [ ! -f bin/llama-cli ] || [ ! -f bin/llama-server ]; then \
 		echo "🛠️ Some AI binaries missing. Running setup..."; \

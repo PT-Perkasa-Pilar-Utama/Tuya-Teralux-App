@@ -44,7 +44,7 @@ func (c *RAGStatusController) GetStatus(ctx *gin.Context) {
 	httpStatus := http.StatusOK
 
 	if status.Status == "failed" {
-		message = "Task failed"
+		message = "Task failed: " + status.Error
 		if status.HTTPStatusCode != 0 {
 			httpStatus = status.HTTPStatusCode
 		}

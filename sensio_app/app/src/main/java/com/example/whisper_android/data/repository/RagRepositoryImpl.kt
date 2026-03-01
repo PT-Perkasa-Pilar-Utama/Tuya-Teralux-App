@@ -68,7 +68,7 @@ class RagRepositoryImpl(
                         }
 
                         "failed" -> {
-                            emit(Resource.Error("Translation task failed"))
+                            emit(Resource.Error(statusData.error ?: "Translation task failed"))
                             return@flow
                         }
 
@@ -157,7 +157,7 @@ class RagRepositoryImpl(
                         }
 
                         "failed" -> {
-                            emit(Resource.Error("Summary task failed"))
+                            emit(Resource.Error(statusData.error ?: "Summary task failed"))
                             return@flow
                         }
 

@@ -58,7 +58,7 @@ func NewTerminalModule(
 
 	// MQTT Auth Service client (points to EMQX Auth Service / Rust)
 	cfg := utils.GetConfig()
-	mqttAuthClient := terminal_services.NewMqttAuthClient(cfg.EmqxAuthBaseURL, cfg.ApiKey)
+	mqttAuthClient := terminal_services.NewMqttAuthClient(cfg.EmqxAuthBaseURL, cfg.EmqxAuthApiKey)
 
 	// Repositories
 	terminalRepository := repositories.NewTerminalRepository(badger)
