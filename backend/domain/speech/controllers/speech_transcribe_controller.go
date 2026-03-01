@@ -61,12 +61,10 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		}
 
 		// Extract MAC from topic: users/MAC/whisper
-		// Topic parts split by '/' -> [users, teralux, devices, MAC, whisper]
-		// MAC is at index 3
 		topicParts := strings.Split(msg.Topic(), "/")
 		mac := ""
-		if len(topicParts) >= 4 {
-			mac = topicParts[3]
+		if len(topicParts) >= 2 && topicParts[0] == "users" {
+			mac = topicParts[1]
 		}
 
 		if req.Audio == "" || req.TerminalID == "" {
@@ -109,7 +107,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		// Start transcription task using usecase
 		taskID, err := c.transcribeUC.TranscribeAudio(tempPath, tempFilename, language, usecases.TranscriptionMetadata{
 			UID:         req.UID,
-			TerminalID:  req.TerminalID,
+			TerminalID:  mac,
 			Source:      "mqtt",
 			Trigger:     "mqtt:tera/transcribe",
 			DeleteAfter: true, // Delete file after transcription

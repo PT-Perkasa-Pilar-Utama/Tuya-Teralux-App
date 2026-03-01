@@ -59,6 +59,7 @@ type Config struct {
 	MqttPassword            string
 	MqttPassEncryptionKey   string
 	EmqxAuthBaseURL         string
+	EmqxAuthApiKey          string
 
 	// SMTP
 	SMTPHost     string
@@ -170,6 +171,7 @@ func LoadConfig() {
 		MqttPassword:            os.Getenv("MQTT_PASSWORD"),
 		MqttPassEncryptionKey:   os.Getenv("MQTT_PASS_ENCRYPTION_KEY"),
 		EmqxAuthBaseURL:         os.Getenv("EMQX_AUTH_BASE_URL"),
+		EmqxAuthApiKey:          os.Getenv("EMQX_AUTH_API_KEY"),
 
 		// SMTP
 		SMTPHost:     os.Getenv("SMTP_HOST"),

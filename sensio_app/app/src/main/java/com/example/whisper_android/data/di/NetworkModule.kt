@@ -21,9 +21,11 @@ object NetworkModule {
             HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             }
-        OkHttpClient
-            .Builder()
+        OkHttpClient.Builder()
             .addInterceptor(logging)
+            .connectTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
+            .readTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
+            .writeTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
             .build()
     }
 
