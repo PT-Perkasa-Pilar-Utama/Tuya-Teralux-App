@@ -3,7 +3,7 @@
 ############################################
 # Base Builder
 ############################################
-FROM golang:1.25-bookworm AS base-builder
+FROM golang:1.26-bookworm AS base-builder
 
 WORKDIR /app
 ARG TARGETARCH
