@@ -14,7 +14,11 @@ LAUNCHER_ACTIVITY=".MainActivity"
 echo "=== Whisper Android Build & Deploy ==="
 echo ""
 
-# Check if ADB is available
+# Check if ADB is available and prefer SDK version
+if [ -f "/opt/android-sdk/platform-tools/adb" ]; then
+    export PATH="/opt/android-sdk/platform-tools:$PATH"
+fi
+
 if ! command -v adb &> /dev/null; then
     echo "❌ ADB not found. Please install Android SDK platform tools."
     exit 1
@@ -85,7 +89,8 @@ echo ""
 
 echo "📲 Installing APK on $DEVICE_ID..."
 set +e
-INSTALL_OUTPUT=$(adb -s "$DEVICE_ID" install -r "$APK_PATH" 2>&1)
+# Added -t flag for debug builds
+INSTALL_OUTPUT=$(adb -s "$DEVICE_ID" install -t -r -g "$APK_PATH" 2>&1)
 INSTALL_STATUS=$?
 set -e
 
