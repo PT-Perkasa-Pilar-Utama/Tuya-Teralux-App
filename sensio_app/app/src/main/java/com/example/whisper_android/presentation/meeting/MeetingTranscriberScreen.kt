@@ -68,9 +68,30 @@ fun MeetingTranscriberScreen(
     val emailState by viewModel.emailState.collectAsState()
     var summaryLanguage by remember { mutableStateOf("id") }
     var showEmailDialog by remember { mutableStateOf(false) }
+    var hasAutoSent by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // Reset auto-send flag when process starts (Idle/Recording)
+    LaunchedEffect(uiState) {
+        if (uiState is MeetingProcessState.Idle || uiState is MeetingProcessState.Recording) {
+            hasAutoSent = false
+        }
+    }
+
+    // Auto-send summary when success
+    LaunchedEffect(uiState) {
+        if (uiState is MeetingProcessState.Success && !hasAutoSent) {
+            val deviceId = DeviceUtils.getDeviceId(context)
+            viewModel.sendEmailSummaryByMac(
+                macAddress = deviceId,
+                subject = "Auto-generated",
+                targetLang = summaryLanguage
+            )
+            hasAutoSent = true
+        }
+    }
 
     val token =
         remember {

@@ -18,16 +18,8 @@ fun EmailInputDialog(
     onDismiss: () -> Unit,
     onSend: (isMacMode: Boolean, target: String, subject: String) -> Unit
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val deviceMacAddress = remember {
-        com.example.whisper_android.util.DeviceUtils.getDeviceId(
-            context
-        )
-    }
-
-    var isMacMode by remember { mutableStateOf(true) }
-    var targetInput by remember { mutableStateOf(deviceMacAddress) }
-    var subject by remember { mutableStateOf("Auto-generated") }
+    var targetInput by remember { mutableStateOf("") }
+    var subject by remember { mutableStateOf("Meeting Summary") }
     var targetError by remember { mutableStateOf<String?>(null) }
     var subjectError by remember { mutableStateOf<String?>(null) }
 
@@ -36,119 +28,32 @@ fun EmailInputDialog(
         title = { Text("Send via Email") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Mode Selector
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(
-                                if (isMacMode) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    Color.Transparent
-                                }
-                            )
-                            .clickable {
-                                isMacMode = true
-                                targetInput = deviceMacAddress
-                                subject = "Auto-generated"
-                                targetError = null
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Automatic",
-                            color = if (isMacMode) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            fontWeight = if (isMacMode) FontWeight.Bold else FontWeight.Normal,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(
-                                if (!isMacMode) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    Color.Transparent
-                                }
-                            )
-                            .clickable {
-                                isMacMode = false
-                                targetInput = ""
-                                subject = "Meeting Summary"
-                                targetError = null
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Custom Email",
-                            color = if (!isMacMode) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            fontWeight = if (!isMacMode) FontWeight.Bold else FontWeight.Normal,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                }
-
-                if (!isMacMode) {
-                    OutlinedTextField(
-                        value = targetInput,
-                        onValueChange = { newValue ->
-                            if (!isMacMode) {
-                                targetInput = newValue
-                                if (newValue.isNotBlank()) targetError = null
-                            }
-                        },
-                        readOnly = isMacMode,
-                        label = { Text(if (isMacMode) "MAC Address" else "Recipient Email(s)") },
-                        placeholder = {
-                            Text(
-                                if (isMacMode) "e.g., AA:BB:CC:DD:EE:FF" else "user1@a.com, user2@b.com"
-                            )
-                        },
-                        singleLine = true,
-                        isError = targetError != null,
-                        supportingText = {
-                            if (targetError != null) {
-                                Text(text = targetError!!)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                OutlinedTextField(
+                    value = targetInput,
+                    onValueChange = { newValue ->
+                        targetInput = newValue
+                        if (newValue.isNotBlank()) targetError = null
+                    },
+                    label = { Text("Recipient Email(s)") },
+                    placeholder = {
+                        Text("user1@a.com, user2@b.com")
+                    },
+                    singleLine = true,
+                    isError = targetError != null,
+                    supportingText = {
+                        if (targetError != null) {
+                            Text(text = targetError!!)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 OutlinedTextField(
                     value = subject,
                     onValueChange = { newValue ->
-                        if (!isMacMode) {
-                            subject = newValue
-                            if (newValue.isNotBlank()) subjectError = null
-                        }
+                        subject = newValue
+                        if (newValue.isNotBlank()) subjectError = null
                     },
-                    readOnly = isMacMode,
-                    enabled = !isMacMode,
                     label = { Text("Subject") },
                     singleLine = true,
                     isError = subjectError != null,
@@ -166,11 +71,7 @@ fun EmailInputDialog(
                 onClick = {
                     var isValid = true
                     if (targetInput.isBlank()) {
-                        targetError = if (isMacMode) {
-                            "MAC Address is required"
-                        } else {
-                            "Email is required"
-                        }
+                        targetError = "Email is required"
                         isValid = false
                     }
                     if (subject.isBlank()) {
@@ -179,7 +80,7 @@ fun EmailInputDialog(
                     }
 
                     if (isValid) {
-                        onSend(isMacMode, targetInput, subject)
+                        onSend(false, targetInput, subject)
                     }
                 }
             ) {
