@@ -32,8 +32,8 @@
   useMpi ? false,
   useRocm ? config.rocmSupport,
   rocmGpuTargets ? builtins.concatStringsSep ";" rocmPackages.clr.gpuTargets,
+  enableCurl ? true,
   useVulkan ? false,
-  useRpc ? false,
   llamaVersion ? "0.0.0", # Arbitrary version, substituted by the flake
 
   # It's necessary to consistently use backendStdenv when building with CUDA support,
@@ -47,7 +47,6 @@ let
   inherit (lib)
     cmakeBool
     cmakeFeature
-    optionalAttrs
     optionals
     strings
     ;
@@ -128,6 +127,10 @@ effectiveStdenv.mkDerivation (finalAttrs: {
   };
 
   postPatch = ''
+    substituteInPlace ./ggml/src/ggml-metal/ggml-metal.m \
+      --replace '[bundle pathForResource:@"ggml-metal" ofType:@"metal"];' "@\"$out/bin/ggml-metal.metal\";"
+    substituteInPlace ./ggml/src/ggml-metal/ggml-metal.m \
+      --replace '[bundle pathForResource:@"default" ofType:@"metallib"];' "@\"$out/bin/default.metallib\";"
   '';
 
   # With PR#6015 https://github.com/ggml-org/llama.cpp/pull/6015,
@@ -159,13 +162,15 @@ effectiveStdenv.mkDerivation (finalAttrs: {
     ++ optionals useMpi [ mpi ]
     ++ optionals useRocm rocmBuildInputs
     ++ optionals useBlas [ blas ]
-    ++ optionals useVulkan vulkanBuildInputs;
+    ++ optionals useVulkan vulkanBuildInputs
+    ++ optionals enableCurl [ curl ];
 
   cmakeFlags =
     [
       (cmakeBool "LLAMA_BUILD_SERVER" true)
       (cmakeBool "BUILD_SHARED_LIBS" (!enableStatic))
       (cmakeBool "CMAKE_SKIP_BUILD_RPATH" true)
+      (cmakeBool "LLAMA_CURL" enableCurl)
       (cmakeBool "GGML_NATIVE" false)
       (cmakeBool "GGML_BLAS" useBlas)
       (cmakeBool "GGML_CUDA" useCuda)
@@ -173,7 +178,6 @@ effectiveStdenv.mkDerivation (finalAttrs: {
       (cmakeBool "GGML_METAL" useMetalKit)
       (cmakeBool "GGML_VULKAN" useVulkan)
       (cmakeBool "GGML_STATIC" enableStatic)
-      (cmakeBool "GGML_RPC" useRpc)
     ]
     ++ optionals useCuda [
       (
@@ -193,7 +197,7 @@ effectiveStdenv.mkDerivation (finalAttrs: {
     ];
 
   # Environment variables needed for ROCm
-  env = optionalAttrs useRocm {
+  env = optionals useRocm {
     ROCM_PATH = "${rocmPackages.clr}";
     HIP_DEVICE_LIB_PATH = "${rocmPackages.rocm-device-libs}/amdgcn/bitcode";
   };

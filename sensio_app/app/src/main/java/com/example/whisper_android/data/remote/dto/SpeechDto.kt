@@ -46,7 +46,8 @@ data class TranscriptionResultText(
  */
 data class RAGRequestDto(
     @SerializedName("text") val text: String,
-    @SerializedName("language") val language: String? = null
+    @SerializedName("language") val language: String? = null,
+    @SerializedName("mac_address") val macAddress: String? = null
 )
 
 data class RAGSummaryRequestDto(

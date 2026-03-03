@@ -3,7 +3,8 @@ require_relative "extsources"
 Gem::Specification.new do |s|
   s.name    = "whispercpp"
   s.authors = ["Georgi Gerganov", "Todd A. Fisher"]
-  s.version = '1.3.5'
+  s.version = '1.3.1'
+  s.date    = '2024-12-19'
   s.description = %q{High-performance inference of OpenAI's Whisper automatic speech recognition (ASR) model via Ruby}
   s.email   = 'todd.fisher@gmail.com'
   s.extra_rdoc_files = ['LICENSE', 'README.md']
@@ -14,19 +15,18 @@ Gem::Specification.new do |s|
                 if s.extra_rdoc_files.include?(basename)
                   basename
                 else
-                  file.sub("../..", "ext/sources")
-                      .sub("../javascript", "ext/sources/bindings/javascript")
+                  file.sub("../..", "ext")
                 end
               }
 
   s.summary = %q{Ruby whisper.cpp bindings}
-  s.test_files = s.files.select {|file| file.start_with? "test/"}
+  s.test_files = s.files.select {|file| file.start_with? "tests/"}
 
   s.extensions << 'ext/extconf.rb'
   s.required_ruby_version = '>= 3.1.0'
 
   #### Documentation and testing.
-  s.homepage = 'https://github.com/ggml-org/whisper.cpp'
+  s.homepage = 'https://github.com/ggerganov/whisper.cpp'
   s.rdoc_options = ['--main', 'README.md']
 
 

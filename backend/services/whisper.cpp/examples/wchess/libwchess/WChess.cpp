@@ -2,7 +2,7 @@
 #include "Chessboard.h"
 #include "grammar-parser.h"
 #include "common.h"
-#include <chrono>
+#include <thread>
 
 WChess::WChess(whisper_context * ctx,
         const whisper_full_params & wparams,

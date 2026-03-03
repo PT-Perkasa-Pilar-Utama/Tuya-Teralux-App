@@ -11,8 +11,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+
 /// Model Prediction Input Type
-API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((visibility("hidden")))
+API_AVAILABLE(macos(12.0), ios(15.0), watchos(8.0), tvos(15.0)) __attribute__((visibility("hidden")))
 @interface whisper_encoder_implInput : NSObject<MLFeatureProvider>
 
 /// logmel_data as 1 × 80 × 3000 3-dimensional array of floats
@@ -22,8 +23,9 @@ API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((
 
 @end
 
+
 /// Model Prediction Output Type
-API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((visibility("hidden")))
+API_AVAILABLE(macos(12.0), ios(15.0), watchos(8.0), tvos(15.0)) __attribute__((visibility("hidden")))
 @interface whisper_encoder_implOutput : NSObject<MLFeatureProvider>
 
 /// output as multidimensional array of floats
@@ -33,8 +35,9 @@ API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((
 
 @end
 
+
 /// Class for model loading and prediction
-API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((visibility("hidden")))
+API_AVAILABLE(macos(12.0), ios(15.0), watchos(8.0), tvos(15.0)) __attribute__((visibility("hidden")))
 @interface whisper_encoder_impl : NSObject
 @property (readonly, nonatomic, nullable) MLModel * model;
 
@@ -88,7 +91,7 @@ API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((
     @param configuration The model configuration
     @param handler When the model load completes successfully or unsuccessfully, the completion handler is invoked with a valid whisper_encoder_impl instance or NSError object.
 */
-+ (void)loadWithConfiguration:(MLModelConfiguration *)configuration completionHandler:(void (^)(whisper_encoder_impl * _Nullable model, NSError * _Nullable error))handler API_AVAILABLE(macos(11.0), ios(14.0), watchos(7.0), tvos(14.0)) __attribute__((visibility("hidden")));
++ (void)loadWithConfiguration:(MLModelConfiguration *)configuration completionHandler:(void (^)(whisper_encoder_impl * _Nullable model, NSError * _Nullable error))handler;
 
 /**
     Construct whisper_encoder_impl instance asynchronously with URL of .mlmodelc directory and optional configuration.
@@ -99,7 +102,7 @@ API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((
     @param configuration The model configuration
     @param handler When the model load completes successfully or unsuccessfully, the completion handler is invoked with a valid whisper_encoder_impl instance or NSError object.
 */
-+ (void)loadContentsOfURL:(NSURL *)modelURL configuration:(MLModelConfiguration *)configuration completionHandler:(void (^)(whisper_encoder_impl * _Nullable model, NSError * _Nullable error))handler API_AVAILABLE(macos(11.0), ios(14.0), watchos(7.0), tvos(14.0)) __attribute__((visibility("hidden")));
++ (void)loadContentsOfURL:(NSURL *)modelURL configuration:(MLModelConfiguration *)configuration completionHandler:(void (^)(whisper_encoder_impl * _Nullable model, NSError * _Nullable error))handler;
 
 /**
     Make a prediction using the standard interface
@@ -119,23 +122,8 @@ API_AVAILABLE(macos(10.15), ios(13.0), watchos(6.0), tvos(13.0)) __attribute__((
 - (nullable whisper_encoder_implOutput *)predictionFromFeatures:(whisper_encoder_implInput *)input options:(MLPredictionOptions *)options error:(NSError * _Nullable __autoreleasing * _Nullable)error;
 
 /**
-    Make an asynchronous prediction using the standard interface
-    @param input an instance of whisper_encoder_implInput to predict from
-    @param completionHandler a block that will be called upon completion of the prediction. error will be nil if no error occurred.
-*/
-- (void)predictionFromFeatures:(whisper_encoder_implInput *)input completionHandler:(void (^)(whisper_encoder_implOutput * _Nullable output, NSError * _Nullable error))completionHandler API_AVAILABLE(macos(14.0), ios(17.0), watchos(10.0), tvos(17.0)) __attribute__((visibility("hidden")));
-
-/**
-    Make an asynchronous prediction using the standard interface
-    @param input an instance of whisper_encoder_implInput to predict from
-    @param options prediction options
-    @param completionHandler a block that will be called upon completion of the prediction. error will be nil if no error occurred.
-*/
-- (void)predictionFromFeatures:(whisper_encoder_implInput *)input options:(MLPredictionOptions *)options completionHandler:(void (^)(whisper_encoder_implOutput * _Nullable output, NSError * _Nullable error))completionHandler API_AVAILABLE(macos(14.0), ios(17.0), watchos(10.0), tvos(17.0)) __attribute__((visibility("hidden")));
-
-/**
     Make a prediction using the convenience interface
-    @param logmel_data 1 × 80 × 3000 3-dimensional array of floats
+    @param logmel_data as 1 × n_mel × 3000 3-dimensional array of floats:
     @param error If an error occurs, upon return contains an NSError object that describes the problem. If you are not interested in possible errors, pass in NULL.
     @return the prediction as whisper_encoder_implOutput
 */

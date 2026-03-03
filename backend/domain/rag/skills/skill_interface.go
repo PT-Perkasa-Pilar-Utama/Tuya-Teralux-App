@@ -53,6 +53,6 @@ type Skill interface {
 // TranslateService defines the translation capability required by the Orchestrator.
 // This interface decouples the skills package from the usecases package to avoid circular dependencies.
 type TranslateService interface {
-	TranslateText(text, targetLang string) (string, error)
+	TranslateText(text, targetLang string, macAddress ...string) (string, error)
 	TranslateTextSync(text, targetLang string) (string, error)
 }

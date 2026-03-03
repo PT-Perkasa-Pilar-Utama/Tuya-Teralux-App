@@ -138,6 +138,13 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		utils.LogInfo("SpeechTranscribe MQTT: Started ephemeral task %s for file %s", taskID, tempFilename)
 	})
 
+	// Subscribe to general task signaling as well
+	taskTopic := "users/+/task"
+	_ = c.mqttSvc.Subscribe(taskTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
+		payload := msg.Payload()
+		utils.LogInfo("Task Signaling MQTT: Received message on %s: %s", msg.Topic(), string(payload))
+	})
+
 	if err != nil {
 		utils.LogError("SpeechTranscribe MQTT: Failed to subscribe to %s: %v", topic, err)
 	}
@@ -254,9 +261,10 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 
 	// Use the same TranscribeAudio with REST metadata
 	taskID, err := c.transcribeUC.TranscribeAudio(finalInputPath, file.Filename, language, usecases.TranscriptionMetadata{
-		Source:  "rest",
-		Trigger: ctx.Request.URL.Path,
-		Diarize: diarize,
+		Source:     "rest",
+		Trigger:    ctx.Request.URL.Path,
+		TerminalID: macAddress,
+		Diarize:    diarize,
 	})
 	if err != nil {
 		utils.LogError("Transcribe.TranscribeAudio: %v", err)

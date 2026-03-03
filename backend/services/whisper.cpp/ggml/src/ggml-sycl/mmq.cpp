@@ -3017,6 +3017,7 @@ void ggml_sycl_op_mul_mat_q(
             break;
         default:
             GGML_ABORT("fatal error");
+            break;
     }
 
     GGML_UNUSED(src1);

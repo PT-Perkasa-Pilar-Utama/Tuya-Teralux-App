@@ -23,12 +23,13 @@ import (
 // TerminalModule encapsulates Terminal domain components
 type TerminalModule struct {
 	// Terminal Controllers
-	CreateController   *terminal.CreateTerminalController
-	GetAllController   *terminal.GetAllTerminalController
-	GetByIDController  *terminal.GetTerminalByIDController
-	GetByMACController *terminal.GetTerminalByMACController
-	UpdateController   *terminal.UpdateTerminalController
-	DeleteController   *terminal.DeleteTerminalController
+	CreateController             *terminal.CreateTerminalController
+	GetAllController             *terminal.GetAllTerminalController
+	GetByIDController            *terminal.GetTerminalByIDController
+	GetByMACController           *terminal.GetTerminalByMACController
+	GetMQTTCredentialsController *terminal.GetMQTTCredentialsController
+	UpdateController             *terminal.UpdateTerminalController
+	DeleteController             *terminal.DeleteTerminalController
 
 	// Device Controllers
 	CreateDeviceController           *device.CreateDeviceController
@@ -88,12 +89,13 @@ func NewTerminalModule(
 
 	// Controllers
 	return &TerminalModule{
-		CreateController:   terminal.NewCreateTerminalController(createTerminalUseCase),
-		GetAllController:   terminal.NewGetAllTerminalController(getAllTerminalUseCase),
-		GetByIDController:  terminal.NewGetTerminalByIDController(getTerminalByIDUseCase),
-		GetByMACController: terminal.NewGetTerminalByMACController(getTerminalByMACUseCase),
-		UpdateController:   terminal.NewUpdateTerminalController(updateTerminalUseCase),
-		DeleteController:   terminal.NewDeleteTerminalController(deleteTerminalUseCase),
+		CreateController:             terminal.NewCreateTerminalController(createTerminalUseCase),
+		GetAllController:             terminal.NewGetAllTerminalController(getAllTerminalUseCase),
+		GetByIDController:            terminal.NewGetTerminalByIDController(getTerminalByIDUseCase),
+		GetByMACController:           terminal.NewGetTerminalByMACController(getTerminalByMACUseCase),
+		GetMQTTCredentialsController: terminal.NewGetMQTTCredentialsController(mqttAuthClient),
+		UpdateController:             terminal.NewUpdateTerminalController(updateTerminalUseCase),
+		DeleteController:             terminal.NewDeleteTerminalController(deleteTerminalUseCase),
 
 		CreateDeviceController:           device.NewCreateDeviceController(createDeviceUseCase),
 		GetAllDevicesController:          device.NewGetAllDevicesController(getAllDevicesUseCase),
@@ -122,6 +124,7 @@ func (m *TerminalModule) RegisterRoutes(router *gin.Engine, protected *gin.Route
 		m.GetAllController,
 		m.GetByIDController,
 		m.GetByMACController,
+		m.GetMQTTCredentialsController,
 		m.UpdateController,
 		m.DeleteController,
 

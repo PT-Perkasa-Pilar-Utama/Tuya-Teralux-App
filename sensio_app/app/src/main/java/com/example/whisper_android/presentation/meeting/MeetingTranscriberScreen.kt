@@ -66,6 +66,7 @@ fun MeetingTranscriberScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val emailState by viewModel.emailState.collectAsState()
+    val mqttStatus by viewModel.mqttStatus.collectAsState()
     var summaryLanguage by remember { mutableStateOf("id") }
     var showEmailDialog by remember { mutableStateOf(false) }
     var hasAutoSent by remember { mutableStateOf(false) }
@@ -216,6 +217,10 @@ fun MeetingTranscriberScreen(
                                 uiState = uiState,
                                 emailState = emailState,
                                 summaryLanguage = summaryLanguage,
+                                mqttStatus = mqttStatus,
+                                onReconnectClick = {
+                                    viewModel.reconnectMqtt(DeviceUtils.getDeviceId(context))
+                                },
                                 onLanguageSelected = { summaryLanguage = it },
                                 onDownloadClick = { url ->
                                     val isLegacyStorage =

@@ -35,7 +35,6 @@ class DashboardViewModel(
             result
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(isAuthenticated = true, isLoading = false)
-                    fetchDevices()
                 }.onFailure { e ->
                     _uiState.value =
                         _uiState.value.copy(

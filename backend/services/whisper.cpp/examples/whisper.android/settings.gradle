@@ -12,6 +12,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "WhisperCppExampleAndroid"
+rootProject.name = "WhisperCppDemo"
 include ':app'
 include ':lib'

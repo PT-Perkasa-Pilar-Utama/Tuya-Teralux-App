@@ -8,36 +8,26 @@ import kotlinx.coroutines.flow.flow
 class TranslateTextUseCase(
     private val ragRepository: RagRepository
 ) {
-    suspend operator fun invoke(
+    suspend fun initiate(
         text: String,
         targetLang: String,
+        macAddress: String?,
         token: String
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-
-            var taskId: String? = null
-            ragRepository.translate(text, targetLang, token).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        taskId = result.data
-                    }
-
-                    is Resource.Error -> {
-                        emit(Resource.Error(result.message ?: "Translation request failed"))
-                        return@collect
-                    }
-
-                    is Resource.Loading -> {
-                        emit(Resource.Loading())
-                    }
-                }
+            ragRepository.translate(text, targetLang, macAddress, token).collect { result ->
+                emit(result)
             }
+        }
 
-            if (taskId == null) return@flow
-
-            // Start Polling
-            ragRepository.pollTranslation(taskId!!, token).collect { result ->
+    suspend fun getResult(
+        taskId: String,
+        token: String
+    ): Flow<Resource<String>> =
+        flow {
+            emit(Resource.Loading())
+            ragRepository.pollTranslation(taskId, token).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         val translatedText = result.data
@@ -47,11 +37,9 @@ class TranslateTextUseCase(
                             emit(Resource.Error("Translation completed but result is null"))
                         }
                     }
-
                     is Resource.Error -> {
-                        emit(Resource.Error(result.message ?: "Translation polling failed"))
+                        emit(Resource.Error(result.message ?: "Translation fetch failed"))
                     }
-
                     is Resource.Loading -> {
                         emit(Resource.Loading())
                     }

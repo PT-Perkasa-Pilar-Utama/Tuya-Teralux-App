@@ -30,12 +30,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -170,8 +170,8 @@ fun AiAssistantScreen(
             contentWindowInsets = WindowInsets.systemBars, // Handle status and navigation bars
             topBar = {
                 // Customized TopAppBar instead of FeatureHeader for better Android look
-                OptIn(ExperimentalMaterial3Api::class)
-                CenterAlignedTopAppBar(
+                @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                androidx.compose.material3.CenterAlignedTopAppBar(
                     title = {
                         Text(
                             "Sensio Intelligence",
@@ -184,8 +184,7 @@ fun AiAssistantScreen(
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons
-                                    .AutoMirrored.Filled.ArrowBack,
+                                imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
                                 contentDescription = "Back",
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
@@ -235,7 +234,10 @@ fun AiAssistantScreen(
                                 }
                             }
 
-                            MqttStatusBadge(viewModel.mqttStatus)
+                            MqttStatusBadge(
+                                status = viewModel.mqttStatus,
+                                onReconnectClick = { viewModel.reconnectMqtt() }
+                            )
                         }
                     },
                     colors =
@@ -461,7 +463,13 @@ private fun ConversationList(
 }
 
 @Composable
-private fun MqttStatusBadge(status: MqttHelper.MqttConnectionStatus) {
+private fun MqttStatusBadge(
+    status: MqttHelper.MqttConnectionStatus,
+    onReconnectClick: () -> Unit = {}
+) {
+    val isError = status == MqttHelper.MqttConnectionStatus.DISCONNECTED ||
+        status == MqttHelper.MqttConnectionStatus.FAILED
+
     val color =
         when (status) {
             MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
@@ -484,6 +492,13 @@ private fun MqttStatusBadge(status: MqttHelper.MqttConnectionStatus) {
         Modifier
             .padding(start = 4.dp)
             .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            .then(
+                if (isError) {
+                    Modifier.clickable { onReconnectClick() }
+                } else {
+                    Modifier
+                }
+            )
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Box(
@@ -496,8 +511,17 @@ private fun MqttStatusBadge(status: MqttHelper.MqttConnectionStatus) {
         Text(
             text = text,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Bold,
             color = color
         )
+        if (isError) {
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
+                contentDescription = "Reconnect",
+                tint = color,
+                modifier = Modifier.size(12.dp)
+            )
+        }
     }
 }

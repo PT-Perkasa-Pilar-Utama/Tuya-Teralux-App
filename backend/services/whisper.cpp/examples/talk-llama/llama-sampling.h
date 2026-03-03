@@ -2,9 +2,7 @@
 
 // TODO: rename llama-sampling.h/.cpp to llama-sampler.h/.cpp ?
 
-#include "llama.h"
-
-#include <vector>
+#include "llama-grammar.h"
 
 struct llama_vocab;
 struct llama_grammar;
@@ -14,19 +12,7 @@ struct llama_grammar;
 struct llama_sampler_chain {
     llama_sampler_chain_params params;
 
-    // has .backend_init() been called?
-    bool is_init = false;
-
-    struct info {
-        bool is_backend;
-
-        llama_sampler * ptr;
-    };
-
-    std::vector<info> samplers;
-
-    // pre-allocated buffer for llama_sampler_sample to avoid repeated allocations
-    std::vector<llama_token_data> cur;
+    std::vector<struct llama_sampler *> samplers;
 
     // timing
 
@@ -35,10 +21,28 @@ struct llama_sampler_chain {
     mutable int32_t n_sample;
 };
 
+struct llama_sampler * llama_sampler_init_grammar_impl(
+        const struct llama_vocab & vocab,
+                      const char * grammar_str,
+                      const char * grammar_root);
+
+struct llama_sampler * llama_sampler_init_infill_impl(
+        const struct llama_vocab & vocab);
+
+struct llama_sampler * llama_sampler_init_dry_impl(
+        const struct llama_vocab &  vocab,
+                         int32_t    context_size,
+                           float    dry_multiplier,
+                           float    dry_base,
+                         int32_t    dry_allowed_length,
+                         int32_t    dry_penalty_last_n,
+                      const char ** seq_breakers,
+                          size_t    num_breakers);
+
 struct llama_sampler * llama_sampler_init_dry_testing(
-        int32_t context_size,
-        float   dry_multiplier,
-        float   dry_base,
-        int32_t dry_allowed_length,
-        int32_t dry_penalty_last_n,
-        const std::vector<std::vector<llama_token>> & seq_breakers);
+                         int32_t   context_size,
+                           float   dry_multiplier,
+                           float   dry_base,
+                         int32_t   dry_allowed_length,
+                         int32_t   dry_penalty_last_n,
+  const std::vector<std::vector<llama_token>>& seq_breakers);

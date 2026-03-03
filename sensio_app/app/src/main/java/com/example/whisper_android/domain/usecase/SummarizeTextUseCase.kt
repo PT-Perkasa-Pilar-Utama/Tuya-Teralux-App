@@ -9,38 +9,27 @@ import kotlinx.coroutines.flow.flow
 class SummarizeTextUseCase(
     private val ragRepository: RagRepository
 ) {
-    suspend operator fun invoke(
+    suspend fun initiate(
         text: String,
         language: String?,
         style: String,
         macAddress: String?,
         token: String
+    ): Flow<Resource<String>> =
+        flow {
+            emit(Resource.Loading())
+            ragRepository.generateSummary(text, style, language, null, macAddress, token).collect { result ->
+                emit(result)
+            }
+        }
+
+    suspend fun getResult(
+        taskId: String,
+        token: String
     ): Flow<Resource<RAGSummaryResponseDto>> =
         flow {
             emit(Resource.Loading())
-
-            var taskId: String? = null
-            ragRepository.generateSummary(text, style, language, null, macAddress, token).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        taskId = result.data
-                    }
-
-                    is Resource.Error -> {
-                        emit(Resource.Error(result.message ?: "Summary request failed"))
-                        return@collect
-                    }
-
-                    is Resource.Loading -> {
-                        emit(Resource.Loading())
-                    }
-                }
-            }
-
-            if (taskId == null) return@flow
-
-            // Start Polling
-            ragRepository.pollSummary(taskId!!, token).collect { result ->
+            ragRepository.pollSummary(taskId, token).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         val summaryData = result.data
@@ -50,11 +39,9 @@ class SummarizeTextUseCase(
                             emit(Resource.Error("Summary completed but data is null"))
                         }
                     }
-
                     is Resource.Error -> {
-                        emit(Resource.Error(result.message ?: "Summary polling failed"))
+                        emit(Resource.Error(result.message ?: "Summary fetch failed"))
                     }
-
                     is Resource.Loading -> {
                         emit(Resource.Loading())
                     }

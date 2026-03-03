@@ -25,43 +25,25 @@ sourceSets {
 }
 
 tasks.register('copyLibwhisperDynlib', Copy) {
-    from '../../build/src'
-    include 'libwhisper.dylib'
-    into 'build/generated/resources/main'
+    from '../../build'
+    include 'libwhisper.dynlib'
+    into 'build/generated/resources/main/darwin'
 }
 
 tasks.register('copyLibwhisperSo', Copy) {
-    from '../../build/src'
+    from '../../build'
     include 'libwhisper.so'
-    into 'build/generated/resources/main'
+    into 'build/generated/resources/main/linux-x86-64'
 }
 
-tasks.register('copyWhisperDLL', Copy) {
-    from '../../build/bin/Release'
+tasks.register('copyWhisperDll', Copy) {
+    from '../../build/Release'
     include 'whisper.dll'
-    into 'build/generated/resources/main'
-}
-
-tasks.register('copyGGML_BASE_DLL', Copy) {
-    from '../../build/bin/Release'
-    include 'ggml-base.dll'
-    into 'build/generated/resources/main'
-}
-
-tasks.register('copyGGML_DLL', Copy) {
-    from '../../build/bin/Release'
-    include 'ggml.dll'
-    into 'build/generated/resources/main'
-}
-
-tasks.register('copyGGML_CPU_DLL', Copy) {
-    from '../../build/bin/Release'
-    include 'ggml-cpu.dll'
-    into 'build/generated/resources/main'
+    into 'build/generated/resources/main/windows-x86-64'
 }
 
 tasks.register('copyLibs') {
-    dependsOn copyLibwhisperDynlib, copyLibwhisperSo, copyWhisperDLL, copyGGML_BASE_DLL, copyGGML_DLL, copyGGML_CPU_DLL
+    dependsOn copyLibwhisperDynlib, copyLibwhisperSo, copyWhisperDll
 }
 
 test {
@@ -73,12 +55,7 @@ java {
     withJavadocJar()
 }
 
-sourcesJar() {
-    dependsOn copyLibs
-}
-
 jar {
-    dependsOn copyLibs
     exclude '**/whisper_java.exp', '**/whisper_java.lib'
 }
 
@@ -90,15 +67,15 @@ tasks.withType(Test) {
     useJUnitPlatform()
 }
 
-test.dependsOn copyLibs
-processResources.dependsOn copyLibs
-
 dependencies {
     implementation "net.java.dev.jna:jna:5.13.0"
     testImplementation "org.junit.jupiter:junit-jupiter:5.9.2"
     testImplementation "org.assertj:assertj-core:3.24.2"
 }
 
+repositories {
+    mavenCentral()
+}
 
 publishing {
     publications {
