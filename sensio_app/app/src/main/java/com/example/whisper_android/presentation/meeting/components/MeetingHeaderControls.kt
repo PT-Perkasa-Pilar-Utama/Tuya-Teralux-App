@@ -19,6 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -192,21 +197,21 @@ fun MqttStatusBadge(
         modifier =
         Modifier
             .padding(start = 4.dp)
-            .androidx.compose.foundation.background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
             .then(
                 if (isError) {
-                    androidx.compose.foundation.clickable { onReconnectClick() }
+                    Modifier.clickable { onReconnectClick() }
                 } else {
                     Modifier
                 }
             )
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        androidx.compose.foundation.layout.Box(
+        Box(
             modifier =
             Modifier
                 .size(8.dp)
-                .androidx.compose.foundation.background(color, androidx.compose.foundation.shape.CircleShape)
+                .background(color, CircleShape)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
@@ -218,7 +223,7 @@ fun MqttStatusBadge(
         if (isError) {
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
-                imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
+                imageVector = Icons.Default.Refresh,
                 contentDescription = "Reconnect",
                 tint = color,
                 modifier = Modifier.size(12.dp)
