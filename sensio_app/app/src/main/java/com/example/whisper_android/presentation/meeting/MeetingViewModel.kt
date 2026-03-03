@@ -85,7 +85,7 @@ class MeetingViewModel(
                     targetLang = targetLang,
                     macAddress = macAddress,
                     waitSignal = { taskName ->
-                        mqttStatus = com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED // Assume connected
+                        _mqttStatus.value = com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED // Assume connected
                         
                         // Publish Start signal
                         mqttHelper.publishTaskMessage("start", taskName)
