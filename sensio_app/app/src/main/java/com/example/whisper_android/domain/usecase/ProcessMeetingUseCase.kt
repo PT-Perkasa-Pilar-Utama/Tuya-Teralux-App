@@ -12,11 +12,9 @@ sealed class MeetingProcessState {
 
     object Uploading : MeetingProcessState()
 
-    object Transcribing : MeetingProcessState()
-
-    object Translating : MeetingProcessState()
-
-    object Summarizing : MeetingProcessState()
+    data class Transcribing(val taskId: String) : MeetingProcessState()
+    data class Translating(val taskId: String) : MeetingProcessState()
+    data class Summarizing(val taskId: String) : MeetingProcessState()
 
     data class Success(
         val summary: String,
@@ -29,6 +27,8 @@ sealed class MeetingProcessState {
 }
 
 class ProcessMeetingUseCase(
+    private val speechRepository: com.example.whisper_android.domain.repository.SpeechRepository,
+    private val ragRepository: com.example.whisper_android.domain.repository.RagRepository,
     private val transcribeAudioUseCase: TranscribeAudioUseCase,
     private val translateTextUseCase: TranslateTextUseCase,
     private val summarizeTextUseCase: SummarizeTextUseCase
@@ -37,27 +37,41 @@ class ProcessMeetingUseCase(
         audioFile: File,
         token: String,
         targetLang: String = "English",
-        macAddress: String? = null
+        macAddress: String? = null,
+        waitSignal: suspend (String) -> Unit // message to wait for
     ): Flow<MeetingProcessState> =
         flow {
             emit(MeetingProcessState.Uploading)
 
             // 1. Transcribe
-            var transcriptionText: String? = null
-            transcribeAudioUseCase(audioFile, token, "id", macAddress).collect { result ->
+            var transcribeTaskId: String? = null
+            transcribeAudioUseCase.initiate(audioFile, token, "id", macAddress).collect { result ->
                 when (result) {
-                    is Resource.Loading -> {
-                        emit(MeetingProcessState.Transcribing)
+                    is Resource.Success -> {
+                        transcribeTaskId = result.data
                     }
+                    is Resource.Error -> {
+                        emit(MeetingProcessState.Error("Transcription initiation failed: ${result.message}"))
+                    }
+                    else -> {}
+                }
+            }
 
+            if (transcribeTaskId == null) return@flow
+
+            emit(MeetingProcessState.Transcribing(transcribeTaskId!!))
+            waitSignal("Transcribe")
+
+            var transcriptionText: String? = null
+            transcribeAudioUseCase.getResult(transcribeTaskId!!, token).collect { result ->
+                when (result) {
                     is Resource.Success -> {
                         transcriptionText = result.data
                     }
-
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Transcription failed: ${result.message}"))
-                        return@collect
+                        emit(MeetingProcessState.Error("Transcription fetch failed: ${result.message}"))
                     }
+                    else -> {}
                 }
             }
 
@@ -70,30 +84,42 @@ class ProcessMeetingUseCase(
                     else -> "English"
                 }
 
-            emit(MeetingProcessState.Translating)
-            var translatedText: String? = null
-            translateTextUseCase(transcriptionText!!, translateTarget, token).collect { result ->
+            var translateTaskId: String? = null
+            translateTextUseCase.initiate(transcriptionText!!, translateTarget, macAddress, token).collect { result ->
                 when (result) {
-                    is Resource.Loading -> {
-                        emit(MeetingProcessState.Translating)
+                    is Resource.Success -> {
+                        translateTaskId = result.data
                     }
+                    is Resource.Error -> {
+                        emit(MeetingProcessState.Error("Translation initiation failed: ${result.message}"))
+                    }
+                    else -> {}
+                }
+            }
 
+            if (translateTaskId == null) return@flow
+
+            emit(MeetingProcessState.Translating(translateTaskId!!))
+            waitSignal("RAG")
+
+            var translatedText: String? = null
+            translateTextUseCase.getResult(translateTaskId!!, token).collect { result ->
+                when (result) {
                     is Resource.Success -> {
                         translatedText = result.data
                     }
-
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Translation failed: ${result.message}"))
-                        return@collect
+                        emit(MeetingProcessState.Error("Translation fetch failed: ${result.message}"))
                     }
+                    else -> {}
                 }
             }
 
             if (translatedText == null) return@flow
 
             // 3. Summarize
-            emit(MeetingProcessState.Summarizing)
-            summarizeTextUseCase(
+            var summarizeTaskId: String? = null
+            summarizeTextUseCase.initiate(
                 translatedText!!,
                 targetLang.lowercase(),
                 "meeting_minutes",
@@ -101,10 +127,23 @@ class ProcessMeetingUseCase(
                 token
             ).collect { result ->
                 when (result) {
-                    is Resource.Loading -> {
-                        emit(MeetingProcessState.Summarizing)
+                    is Resource.Success -> {
+                        summarizeTaskId = result.data
                     }
+                    is Resource.Error -> {
+                        emit(MeetingProcessState.Error("Summary initiation failed: ${result.message}"))
+                    }
+                    else -> {}
+                }
+            }
 
+            if (summarizeTaskId == null) return@flow
+
+            emit(MeetingProcessState.Summarizing(summarizeTaskId!!))
+            waitSignal("RAG")
+
+            summarizeTextUseCase.getResult(summarizeTaskId!!, token).collect { result ->
+                when (result) {
                     is Resource.Success -> {
                         val summaryData = result.data
                         if (summaryData != null) {
@@ -117,10 +156,10 @@ class ProcessMeetingUseCase(
                             }
                         }
                     }
-
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Summary failed: ${result.message}"))
+                        emit(MeetingProcessState.Error("Summary fetch failed: ${result.message}"))
                     }
+                    else -> {}
                 }
             }
         }

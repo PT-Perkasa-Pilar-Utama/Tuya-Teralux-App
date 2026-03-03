@@ -14,6 +14,10 @@ if (WHISPER_SDL2)
     message(STATUS "SDL2_LIBRARIES    = ${SDL2_LIBRARIES}")
 endif()
 
+if (WHISPER_CLBLAST)
+    find_package(CLBlast REQUIRED)
+endif()
+
 # common
 
 set(TARGET common)
@@ -52,8 +56,6 @@ add_library(${TARGET} STATIC
     common.cpp
     common-ggml.h
     common-ggml.cpp
-    common-whisper.h
-    common-whisper.cpp
     grammar-parser.h
     grammar-parser.cpp
     ${COMMON_SOURCES_FFMPEG}
@@ -61,7 +63,7 @@ add_library(${TARGET} STATIC
 
 include(DefaultTargetOptions)
 
-target_link_libraries(${TARGET} PRIVATE whisper ${COMMON_EXTRA_LIBS} ${CMAKE_DL_LIBS})
+target_link_libraries(${TARGET} PRIVATE whisper ${COMMON_EXTRA_LIBS})
 
 set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${TARGET} PROPERTIES FOLDER "libs")
@@ -98,15 +100,13 @@ if (EMSCRIPTEN)
     add_subdirectory(stream.wasm)
     add_subdirectory(command.wasm)
     add_subdirectory(bench.wasm)
-    add_subdirectory(wchess)
 elseif(CMAKE_JS_VERSION)
     add_subdirectory(addon.node)
 else()
     add_subdirectory(cli)
     add_subdirectory(bench)
-    # add_subdirectory(server)
+    add_subdirectory(server)
     add_subdirectory(quantize)
-    add_subdirectory(vad-speech-segments)
     if (WHISPER_SDL2)
         add_subdirectory(stream)
         add_subdirectory(command)

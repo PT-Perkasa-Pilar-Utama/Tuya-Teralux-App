@@ -15,13 +15,7 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    if (params.n_parallel == 1) {
-        // the example uses 2 sequences, so when n_parallel == 1, we need to enable unified kv cache
-        printf("%s: n_parallel == 1, enabling unified kv cache\n", __func__);
-        params.kv_unified = true;
-    }
-
-    common_init();
+    print_build_info();
 
     if (params.n_predict < 0) {
         params.n_predict = 16;
@@ -34,10 +28,10 @@ int main(int argc, char ** argv) {
     std::string result2;
 
     // init
-    auto llama_init = common_init_from_params(params);
+    common_init_result llama_init = common_init_from_params(params);
 
-    auto * model = llama_init->model();
-    auto * ctx   = llama_init->context();
+    llama_model * model = llama_init.model.get();
+    llama_context * ctx = llama_init.context.get();
 
     if (model == nullptr || ctx == nullptr) {
         fprintf(stderr, "%s : failed to init\n", __func__);
@@ -202,7 +196,7 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "%s : seq 0 copied, %zd bytes\n", __func__, ncopy);
 
         // erase whole kv
-        llama_memory_clear(llama_get_memory(ctx3), true);
+        llama_kv_cache_clear(ctx3);
         fprintf(stderr, "%s : kv cache cleared\n", __func__);
 
         // restore kv into seq 1
@@ -240,12 +234,6 @@ int main(int argc, char ** argv) {
     llama_sampler_free(smpl3);
 
     llama_batch_free(batch);
-
-    // this one is managed by common_init_result
-    //llama_free(ctx);
-
-    llama_free(ctx2);
-    llama_free(ctx3);
 
     if (result0 != result2) {
         fprintf(stderr, "\n%s : error : the seq restore generation is different\n", __func__);

@@ -5,8 +5,6 @@
 #   - src/coreml/whisper-decoder-impl.h and src/coreml/whisper-decoder-impl.m
 #
 
-set -e
-
 wd=$(dirname "$0")
 cd "$wd/../" || exit
 

@@ -1,8 +1,9 @@
 package dtos
 
 type RAGRequestDTO struct {
-	Text     string `json:"text" binding:"required"`
-	Language string `json:"language,omitempty"`
+	Text       string `json:"text" binding:"required"`
+	Language   string `json:"language,omitempty"`
+	MacAddress string `json:"mac_address,omitempty"`
 }
 
 type RAGSummaryRequestDTO struct {
@@ -21,6 +22,7 @@ type RAGStatusDTO struct {
 	Result          string            `json:"result,omitempty" example:"The meeting discussed..."`
 	Error           string            `json:"error,omitempty" example:"gemini api returned status 503"`
 	Trigger         string            `json:"trigger,omitempty" example:"/api/rag/summary"`
+	MacAddress      string            `json:"mac_address,omitempty"`
 	HTTPStatusCode  int               `json:"-"`
 	StartedAt       string            `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`
 	DurationSeconds float64           `json:"duration_seconds,omitempty" example:"2.5"`

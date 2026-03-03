@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,11 +54,12 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 @Composable
 fun SummaryPreviewScreen(
     onNavigateBack: () -> Unit,
-    viewModel: SummaryViewModel = remember { SummaryViewModel() }
+    viewModel: SummaryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val context = LocalContext.current
     val summaries by viewModel.summaries.collectAsState()
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
+    val mqttStatus by viewModel.mqttStatus.collectAsState()
     var showEmailDialog by remember { mutableStateOf(false) }
 
     val currentSummary =
@@ -153,6 +156,15 @@ fun SummaryPreviewScreen(
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    MqttStatusBadge(
+                        status = mqttStatus,
+                        onReconnectClick = { viewModel.reconnectMqtt() }
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
 
                     // Email Button
                     Button(
@@ -287,3 +299,68 @@ fun SummaryPreviewScreen(
         }
     }
 }
+
+@Composable
+private fun MqttStatusBadge(
+    status: com.example.whisper_android.util.MqttHelper.MqttConnectionStatus,
+    onReconnectClick: () -> Unit = {}
+) {
+    val isError = status == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED ||
+        status == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED
+
+    val color =
+        when (status) {
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
+        }
+
+    val text =
+        when (status) {
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> "Error"
+        }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+        Modifier
+            .padding(start = 4.dp)
+            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            .then(
+                if (isError) {
+                    Modifier.clickable { onReconnectClick() }
+                } else {
+                    Modifier
+                }
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Box(
+            modifier =
+            Modifier
+                .size(8.dp)
+                .background(color, androidx.compose.foundation.shape.CircleShape)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        if (isError) {
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Reconnect",
+                tint = color,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+    }
+}
+

@@ -20,13 +20,13 @@ concurrency:
 
 jobs:
   python-check-requirements:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     name: check-requirements
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
       - name: Set up Python environment
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Run check-requirements.sh script

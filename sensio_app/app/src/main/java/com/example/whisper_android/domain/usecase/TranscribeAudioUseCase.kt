@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.flow
 class TranscribeAudioUseCase(
     private val speechRepository: SpeechRepository
 ) {
-    suspend operator fun invoke(
+    suspend fun initiate(
         audioFile: File,
         token: String,
         language: String,
@@ -17,29 +17,18 @@ class TranscribeAudioUseCase(
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-
-            var taskId: String? = null
             speechRepository.transcribeAudio(audioFile, token, language, macAddress).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        taskId = result.data
-                    }
-
-                    is Resource.Error -> {
-                        emit(Resource.Error(result.message ?: "Transcription request failed"))
-                        return@collect
-                    }
-
-                    is Resource.Loading -> {
-                        emit(Resource.Loading())
-                    }
-                }
+                emit(result)
             }
+        }
 
-            if (taskId == null) return@flow
-
-            // Start Polling
-            speechRepository.pollTranscription(taskId!!, token).collect { result ->
+    suspend fun getResult(
+        taskId: String,
+        token: String
+    ): Flow<Resource<String>> =
+        flow {
+            emit(Resource.Loading())
+            speechRepository.pollTranscription(taskId, token).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         val text = result.data?.transcription
@@ -49,11 +38,9 @@ class TranscribeAudioUseCase(
                             emit(Resource.Error("Transcription completed but text is null"))
                         }
                     }
-
                     is Resource.Error -> {
-                        emit(Resource.Error(result.message ?: "Transcription polling failed"))
+                        emit(Resource.Error(result.message ?: "Transcription fetch failed"))
                     }
-
                     is Resource.Loading -> {
                         emit(Resource.Loading())
                     }

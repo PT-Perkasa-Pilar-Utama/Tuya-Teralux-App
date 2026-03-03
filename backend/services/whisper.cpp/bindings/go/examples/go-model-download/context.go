@@ -13,13 +13,13 @@ func ContextForSignal(signals ...os.Signal) context.Context {
 		return nil
 	}
 
-	ch := make(chan os.Signal, 1) // Buffered channel with space for 1 signal
+	ch := make(chan os.Signal)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Send message on channel when signal received
 	signal.Notify(ch, signals...)
 
-	// When any signal is received, call cancel
+	// When any signal received, call cancel
 	go func() {
 		<-ch
 		cancel()

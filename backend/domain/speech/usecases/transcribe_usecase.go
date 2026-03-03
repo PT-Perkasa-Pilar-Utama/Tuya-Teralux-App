@@ -82,8 +82,13 @@ func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, 
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
 
-	if meta != nil && meta.Trigger != "" {
-		status.Trigger = meta.Trigger
+	if meta != nil {
+		if meta.Trigger != "" {
+			status.Trigger = meta.Trigger
+		}
+		if meta.TerminalID != "" {
+			status.TerminalID = meta.TerminalID
+		}
 	}
 
 	// Mark as pending
@@ -176,16 +181,17 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 }
 
 func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, result *speechdtos.AsyncTranscriptionResultDTO, err error) {
-	// Try to get existing status to preserve StartedAt
+	// Try to get existing status to preserve StartedAt and TerminalID
 	var existing speechdtos.AsyncTranscriptionStatusDTO
 	_, _, _ = uc.cache.GetWithTTL(taskID, &existing)
 
 	status := &speechdtos.AsyncTranscriptionStatusDTO{
-		Status:    statusStr,
-		Result:    result,
-		StartedAt: existing.StartedAt,
-		Trigger:   existing.Trigger,
-		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+		Status:     statusStr,
+		Result:     result,
+		StartedAt:  existing.StartedAt,
+		Trigger:    existing.Trigger,
+		TerminalID: existing.TerminalID,
+		ExpiresAt:  time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
 
 	if err != nil {
@@ -200,6 +206,21 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 		if existing.StartedAt != "" {
 			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
 			status.DurationSeconds = time.Since(startTime).Seconds()
+		}
+
+		// Send MQTT "stop" signal if TerminalID is available
+		if status.TerminalID != "" && uc.mqttSvc != nil {
+			taskTopic := fmt.Sprintf("users/%s/task", status.TerminalID)
+			msg := map[string]string{
+				"event": "stop",
+				"task":  "Transcribe",
+			}
+			payload, _ := json.Marshal(msg)
+			if err := uc.mqttSvc.Publish(taskTopic, 0, false, payload); err != nil {
+				utils.LogError("Transcribe Task %s: Failed to publish stop signal to MQTT: %v", taskID, err)
+			} else {
+				utils.LogInfo("Transcribe Task %s: Published stop signal to %s", taskID, taskTopic)
+			}
 		}
 	}
 

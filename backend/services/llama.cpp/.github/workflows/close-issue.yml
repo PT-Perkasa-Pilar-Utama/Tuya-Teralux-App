@@ -10,14 +10,14 @@ permissions:
 
 jobs:
   close-issues:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/stale@v10
+      - uses: actions/stale@v5
         with:
-          exempt-issue-labels: "refactoring,help wanted,good first issue,research 🔬,bug,roadmap"
+          exempt-issue-labels: "refactor,help wanted,good first issue,research,bug,roadmap"
           days-before-issue-stale: 30
           days-before-issue-close: 14
           stale-issue-label: "stale"

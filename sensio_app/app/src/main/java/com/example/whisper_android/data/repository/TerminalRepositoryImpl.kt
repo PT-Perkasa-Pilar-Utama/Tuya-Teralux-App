@@ -9,7 +9,6 @@ import com.example.whisper_android.domain.repository.TerminalRepository
 class TerminalRepositoryImpl(
     private val api: TerminalApi,
     private val apiKey: String,
-    private val mqttCredentialManager: com.example.whisper_android.util.MqttCredentialManager,
     private val tokenManager: com.example.whisper_android.data.local.TokenManager
 ) : TerminalRepository {
     override suspend fun registerTerminal(
@@ -30,13 +29,6 @@ class TerminalRepositoryImpl(
             if (response.status && response.data?.terminalId != null) {
                 val tId = response.data.terminalId
                 tokenManager.saveTerminalId(tId)
-
-                // Save MQTT credentials if present
-                response.data.mqttUsername?.let { username ->
-                    response.data.mqttPassword?.let { password ->
-                        mqttCredentialManager.saveCredentials(username, password)
-                    }
-                }
 
                 Result.success(
                     TerminalRegistration(
@@ -72,9 +64,6 @@ class TerminalRepositoryImpl(
                 // Save MQTT credentials if present
                 val mUsername = terminalItem?.mqttUsername ?: response.data.mqttUsername
                 val mPassword = terminalItem?.mqttPassword ?: response.data.mqttPassword
-                if (mUsername != null && mPassword != null && mPassword != "SECRET_PASSWORD") {
-                    mqttCredentialManager.saveCredentials(mUsername, mPassword)
-                }
 
                 Result.success(
                     TerminalRegistration(
@@ -101,6 +90,20 @@ class TerminalRepositoryImpl(
             } else {
                 Result.failure(Exception(e.getErrorMessage()))
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+
+    override suspend fun fetchMqttPassword(username: String): Result<String> =
+        try {
+            val response = api.getMqttCredentials("Bearer ${tokenManager.getAccessToken()}", username)
+            if (response.status && response.data != null) {
+                Result.success(response.data.password)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: retrofit2.HttpException) {
+            Result.failure(Exception(e.getErrorMessage()))
         } catch (e: Exception) {
             Result.failure(e)
         }

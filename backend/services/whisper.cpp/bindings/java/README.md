@@ -23,42 +23,26 @@ import io.github.ggerganov.whispercpp.WhisperCpp;
 public class Example {
 
     public static void main(String[] args) {
-        
         WhisperCpp whisper = new WhisperCpp();
+        // By default, models are loaded from ~/.cache/whisper/ and are usually named "ggml-${name}.bin"
+        // or you can provide the absolute path to the model file.
+        long context = whisper.initContext("base.en");
         try {
-            // By default, models are loaded from ~/.cache/whisper/ and are usually named "ggml-${name}.bin"
-            // or you can provide the absolute path to the model file.
-            whisper.initContext("../ggml-base.en.bin"); 
-            WhisperFullParams.ByValue whisperParams = whisper.getFullDefaultParams(WhisperSamplingStrategy.WHISPER_SAMPLING_BEAM_SEARCH); 
+            var whisperParams = whisper.getFullDefaultParams(WhisperSamplingStrategy.WHISPER_SAMPLING_GREEDY);
+            // custom configuration if required
+            whisperParams.temperature_inc = 0f;
             
-            // custom configuration if required      
-            //whisperParams.n_threads = 8;
-            whisperParams.temperature = 0.0f;
-            whisperParams.temperature_inc = 0.2f;
-            //whisperParams.language = "en";
-                            
-            float[] samples = readAudio(); // divide each value by 32767.0f
-            List<WhisperSegment> whisperSegmentList = whisper.fullTranscribeWithTime(whisperParams, samples);
+            var samples = readAudio(); // divide each value by 32767.0f
+            whisper.fullTranscribe(whisperParams, samples);
             
-            for (WhisperSegment whisperSegment : whisperSegmentList) {
-
-                long start = whisperSegment.getStart();
-                long end = whisperSegment.getEnd();
-
-                String text = whisperSegment.getSentence();
-                    
-                System.out.println("start: "+start);
-                System.out.println("end: "+end);
-                System.out.println("text: "+text);
-                
+            int segmentCount = whisper.getTextSegmentCount(context);
+            for (int i = 0; i < segmentCount; i++) {
+                String text = whisper.getTextSegment(context, i);
+                System.out.println(segment.getText());
             }
-    
-        } catch (IOException e) {
-            e.printStackTrace();
         } finally {
-            whisper.close();
+             whisper.freeContext(context);
         }
-        
      }
 }
 ```
@@ -68,7 +52,7 @@ public class Example {
 In order to build, you need to have the JDK 8 or higher installed. Run the tests with:
 
 ```bash
-git clone https://github.com/ggml-org/whisper.cpp.git
+git clone https://github.com/ggerganov/whisper.cpp.git
 cd whisper.cpp/bindings/java
 
 ./gradlew build

@@ -4,7 +4,7 @@ import com.example.whisper_android.data.remote.dto.RAGSummaryResponseDto
 import kotlinx.coroutines.flow.Flow
 
 interface RagRepository {
-    suspend fun translate(text: String, targetLang: String, token: String): Flow<Resource<String>> // Returns Task ID
+    suspend fun translate(text: String, targetLang: String, macAddress: String?, token: String): Flow<Resource<String>> // Returns Task ID
 
     suspend fun pollTranslation(taskId: String, token: String): Flow<Resource<String>> // Returns Translated Text
 

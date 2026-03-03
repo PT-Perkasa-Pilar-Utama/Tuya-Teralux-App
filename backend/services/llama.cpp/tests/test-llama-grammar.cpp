@@ -3,8 +3,7 @@
 #endif
 
 #include "llama.h"
-
-#include "../src/llama-grammar.h"
+#include "llama-grammar.h"
 
 #include <cassert>
 #include <stdexcept>
@@ -202,7 +201,7 @@ int main()
         uint32_t *cp = new uint32_t[2]; // dynamically allocate memory for code_point
         cp[0] = 37 + i;
         cp[1] = 0;
-        next_candidates[i] = {i, cp, {}, 0};
+        next_candidates[i] = {i, cp, {}};
     }
 
     std::vector<std::vector<std::pair<uint32_t, uint16_t>>> expected_reject = {

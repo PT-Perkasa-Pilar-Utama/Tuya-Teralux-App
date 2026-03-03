@@ -13,20 +13,36 @@ import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttException
 import org.eclipse.paho.client.mqttv3.MqttMessage
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class MqttHelper(
-    context: Context
+    private val context: Context
 ) {
     private var mqttAndroidClient: MqttAndroidClient
-    private val mqttCredentialManager = MqttCredentialManager(context)
     private val tokenManager = com.example.whisper_android.data.local.TokenManager(context)
     
     private val serverUri = BuildConfig.MQTT_BROKER_URL
     private val clientID = "WhisperAndroid_" + UUID.randomUUID().toString()
     
     private val tag = "MqttHelper"
-    var onMessageReceived: ((topic: String, message: String) -> Unit)? = null
+    
+    private val _messages = kotlinx.coroutines.flow.MutableSharedFlow<Pair<String, String>>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
+    )
+    val messages = _messages.asSharedFlow()
+
     var onConnectionStatusChanged: ((status: MqttConnectionStatus) -> Unit)? = null
+
+    private fun getUsername(): String {
+        return com.example.whisper_android.util.DeviceUtils.getDeviceId(context)
+    }
+
+    fun getTaskTopic(): String? {
+        val username = getUsername()
+        return "users/$username/task"
+    }
 
     enum class MqttConnectionStatus {
         DISCONNECTED,
@@ -50,7 +66,7 @@ class MqttHelper(
                     message: MqttMessage
                 ) {
                     Log.d(tag, "Message arrived: $topic -> $message")
-                    onMessageReceived?.invoke(topic, message.toString())
+                    _messages.tryEmit(topic to message.toString())
                 }
 
                 override fun deliveryComplete(token: IMqttDeliveryToken?) {}
@@ -58,17 +74,10 @@ class MqttHelper(
         )
     }
 
-    fun connect() {
+    fun connect(password: String) {
         if (mqttAndroidClient.isConnected) return
 
-        val username = mqttCredentialManager.getUsername()
-        val password = mqttCredentialManager.getPassword()
-
-        if (username == null || password == null) {
-            Log.w(tag, "Connect attempt failed: MQTT credentials not found")
-            onConnectionStatusChanged?.invoke(MqttConnectionStatus.FAILED)
-            return
-        }
+        val username = getUsername()
 
         val mqttConnectOptions = MqttConnectOptions()
         mqttConnectOptions.isAutomaticReconnect = true
@@ -92,14 +101,11 @@ class MqttHelper(
                         mqttAndroidClient.setBufferOpts(disconnectedBufferOptions)
                         Log.d(tag, "Success Connected to $serverUri")
 
-                        // Subscribe to chat and answer topics using the dynamic username as base
-                        val username = mqttCredentialManager.getUsername()
-                        if (username != null) {
-                            subscribe("users/$username/chat/answer")
-                            subscribe("users/$username/whisper/answer")
-                        } else {
-                            Log.e(tag, "Connect success but username is null - cannot subscribe to topics")
-                        }
+                        val username = getUsername()
+                        subscribe("users/$username/chat/answer")
+                        subscribe("users/$username/whisper/answer")
+                        subscribe("users/$username/task")
+                        subscribe("users/$username/chat")
                         onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTED)
                     }
 
@@ -167,7 +173,7 @@ class MqttHelper(
                 "language": "$language"
             }
             """.trimIndent()
-        val username = mqttCredentialManager.getUsername() ?: return
+        val username = getUsername()
         publish("users/$username/whisper", json.toByteArray())
     }
 
@@ -184,16 +190,27 @@ class MqttHelper(
                 "language": "$language"
             }
             """.trimIndent()
-        val username = mqttCredentialManager.getUsername() ?: return
+        val username = getUsername()
         publish("users/$username/chat", json.toByteArray())
+    }
+
+    fun publishTaskMessage(event: String, task: String) {
+        val username = getUsername()
+        val json = """{"event": "$event", "task": "$task"}"""
+        publish("users/$username/task", json.toByteArray())
     }
 
     private fun publish(
         topic: String,
         payload: ByteArray
     ) {
-        val isConnected = mqttAndroidClient.isConnected
+        val isConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
         Log.d(tag, "Attempting to publish to $topic. Client connected state: $isConnected")
+
+        if (!isConnected) {
+            Log.e(tag, "Cannot publish to $topic: MQTT client is not connected")
+            return
+        }
 
         val message = MqttMessage(payload)
         message.qos = 0
@@ -202,7 +219,7 @@ class MqttHelper(
         try {
             mqttAndroidClient.publish(topic, message)
             Log.d(tag, "Successfully published to $topic: ${payload.size} bytes")
-        } catch (e: MqttException) {
+        } catch (e: Exception) {
             Log.e(tag, "Error publishing to $topic: ${e.message}")
             e.printStackTrace()
         }

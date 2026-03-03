@@ -112,6 +112,13 @@ func (c *RAGChatController) StartMqttSubscription() {
 		}
 	})
 
+	// Subscribe to general task signaling
+	taskTopic := "users/+/task"
+	_ = c.mqttSvc.Subscribe(taskTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
+		payload := msg.Payload()
+		utils.LogInfo("RAG Task Signaling MQTT: Received message on %s: %s", msg.Topic(), string(payload))
+	})
+
 	if err != nil {
 		utils.LogError("RAGChat MQTT: Failed to subscribe to %s: %v", topic, err)
 	}
