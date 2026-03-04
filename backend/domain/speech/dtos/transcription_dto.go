@@ -57,6 +57,7 @@ type AsyncTranscriptionStatusDTO struct {
 	Result          *AsyncTranscriptionResultDTO `json:"result,omitempty"`
 	Error           string                       `json:"error,omitempty" example:"service unavailable"`
 	Trigger         string                       `json:"trigger,omitempty" example:"/api/speech/models/gemini"`
+	TerminalID      string                       `json:"terminal_id,omitempty"`
 	HTTPStatusCode  int                          `json:"-"`
 	StartedAt       string                       `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`
 	DurationSeconds float64                      `json:"duration_seconds,omitempty" example:"1.5"`

@@ -1,8 +1,9 @@
 package dtos
 
 type RAGRequestDTO struct {
-	Text     string `json:"text" binding:"required"`
-	Language string `json:"language,omitempty"`
+	Text       string `json:"text" binding:"required"`
+	Language   string `json:"language,omitempty"`
+	MacAddress string `json:"mac_address,omitempty"`
 }
 
 type RAGSummaryRequestDTO struct {
@@ -21,6 +22,7 @@ type RAGStatusDTO struct {
 	Result          string            `json:"result,omitempty" example:"The meeting discussed..."`
 	Error           string            `json:"error,omitempty" example:"gemini api returned status 503"`
 	Trigger         string            `json:"trigger,omitempty" example:"/api/rag/summary"`
+	MacAddress      string            `json:"mac_address,omitempty"`
 	HTTPStatusCode  int               `json:"-"`
 	StartedAt       string            `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`
 	DurationSeconds float64           `json:"duration_seconds,omitempty" example:"2.5"`
@@ -71,7 +73,10 @@ type RAGChatResponseDTO struct {
 	Response       string       `json:"response"`
 	IsControl      bool         `json:"is_control"`
 	Redirect       *RedirectDTO `json:"redirect,omitempty"`
-	HTTPStatusCode int          `json:"-"` // HTTP status code to return (not exposed in JSON)
+	HTTPStatusCode int          `json:"-"`                     // HTTP status code to return (not exposed in JSON)
+	RequestID      string       `json:"request_id,omitempty"`  // Tracking ID
+	Source         string       `json:"source,omitempty"`      // e.g., "MQTT", "HTTP"
+	InstanceID     string       `json:"instance_id,omitempty"` // Server start time
 }
 
 type RedirectDTO struct {

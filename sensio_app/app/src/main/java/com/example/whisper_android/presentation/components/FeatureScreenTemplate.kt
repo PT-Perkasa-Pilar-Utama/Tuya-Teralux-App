@@ -49,12 +49,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class MessageRole { USER, ASSISTANT }
+// Moved to ChatModels.kt
 
-data class TranscriptionMessage(
-    val text: String,
-    val role: MessageRole
-)
+// Moved to ChatModels.kt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

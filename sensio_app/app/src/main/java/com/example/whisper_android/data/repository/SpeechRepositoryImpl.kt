@@ -7,7 +7,6 @@ import com.example.whisper_android.data.remote.dto.TranscriptionResultText
 import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.domain.repository.SpeechRepository
 import java.io.File
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -65,41 +64,35 @@ class SpeechRepositoryImpl(
     ): Flow<Resource<TranscriptionResultText>> =
         flow {
             emit(Resource.Loading())
-            while (true) {
-                try {
-                    val response = api.getTranscriptionStatus(taskId, "Bearer $token")
-                    val statusDto = response.data
-                    val status = statusDto?.status?.lowercase()
+            try {
+                val response = api.getTranscriptionStatus(taskId, "Bearer $token")
+                val statusDto = response.data
+                val status = statusDto?.status?.lowercase()
 
-                    Log.d("SpeechRepo", "Polling Task $taskId: $status")
+                Log.d("SpeechRepo", "Check Task $taskId: $status")
 
-                    when (status) {
-                        "completed" -> {
-                            val result = statusDto.result
-                            if (result != null) {
-                                emit(Resource.Success(result))
-                                return@flow
-                            } else {
-                                emit(Resource.Error("Completed but no result found"))
-                                return@flow
-                            }
-                        }
-
-                        "failed" -> {
-                            emit(Resource.Error(statusDto.error ?: "Transcription task failed"))
-                            return@flow
-                        }
-
-                        else -> {
-                            // Pending or Processing, continue polling
-                            delay(2000)
+                when (status) {
+                    "completed" -> {
+                        val result = statusDto.result
+                        if (result != null) {
+                            emit(Resource.Success(result))
+                        } else {
+                            emit(Resource.Error("Completed but no result found"))
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e("SpeechRepo", "Polling error: ${e.message}")
-                    // Retry on error instead of failing immediately
-                    delay(2000)
+
+                    "failed" -> {
+                        emit(Resource.Error(statusDto.error ?: "Transcription task failed"))
+                    }
+
+                    else -> {
+                        // Pending or Processing, emit Loading once
+                        emit(Resource.Loading())
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("SpeechRepo", "Check error: ${e.message}")
+                emit(Resource.Error("Check error: ${e.message}"))
             }
         }
 }

@@ -66,12 +66,12 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 
 	// Initialize Usecases
 	refineUC := usecases.NewRefineUseCase(llmClient, llamaService, cfg)
-	translateUC := usecases.NewTranslateUseCase(llmClient, llamaService, cfg, cache, store)
+	translateUC := usecases.NewTranslateUseCase(llmClient, llamaService, cfg, cache, store, mqttSvc)
 
 	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
 	pdfRenderer := services.NewHTMLSummaryPDFRenderer()
 	mailExternalService := mailServices.NewMailExternalService()
-	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, mailExternalService)
+	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, mailExternalService, mqttSvc)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
 	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, orchestrator)

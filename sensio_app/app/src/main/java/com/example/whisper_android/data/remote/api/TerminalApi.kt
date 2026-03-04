@@ -18,4 +18,10 @@ interface TerminalApi {
         @Header("X-API-KEY") apiKey: String,
         @retrofit2.http.Path("mac") mac: String
     ): TerminalResponseDto
+
+    @retrofit2.http.GET("/api/mqtt/credentials/{username}")
+    suspend fun getMqttCredentials(
+        @retrofit2.http.Header("Authorization") token: String,
+        @retrofit2.http.Path("username") username: String
+    ): com.example.whisper_android.data.remote.dto.MqttCredentialsResponseDto
 }

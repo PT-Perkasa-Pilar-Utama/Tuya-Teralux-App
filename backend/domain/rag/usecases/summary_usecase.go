@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,6 +33,7 @@ type summaryUseCase struct {
 	store         *tasks.StatusStore[dtos.RAGStatusDTO]
 	renderer      services.SummaryPDFRenderer
 	mailExternal  *mailServices.MailExternalService
+	mqttSvc       mqttPublisher
 	llmTimeout    time.Duration // Timeout for LLM calls
 	renderTimeout time.Duration // Timeout for PDF rendering
 }
@@ -44,6 +46,7 @@ func NewSummaryUseCase(
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
 	renderer services.SummaryPDFRenderer,
 	mailExternal *mailServices.MailExternalService,
+	mqttSvc mqttPublisher,
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:           llm,
@@ -53,6 +56,7 @@ func NewSummaryUseCase(
 		store:         store,
 		renderer:      renderer,
 		mailExternal:  mailExternal,
+		mqttSvc:       mqttSvc,
 		llmTimeout:    5 * time.Minute,  // Increased for strategic reasoning depth
 		renderTimeout: 30 * time.Second, // Default PDF render timeout
 	}
@@ -209,9 +213,10 @@ func (u *summaryUseCase) SummarizeText(text string, language string, meetingCont
 func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL, trigger string) (string, error) {
 	taskID := uuid.New().String()
 	status := &dtos.RAGStatusDTO{
-		Status:    "pending",
-		Trigger:   trigger,
-		StartedAt: time.Now().Format(time.RFC3339),
+		Status:     "pending",
+		Trigger:    trigger,
+		MacAddress: macAddress,
+		StartedAt:  time.Now().Format(time.RFC3339),
 	}
 	u.store.Set(taskID, status)
 
@@ -261,9 +266,10 @@ func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context,
 
 	taskID := uuid.New().String()
 	status := &dtos.RAGStatusDTO{
-		Status:    "pending",
-		Trigger:   trigger,
-		StartedAt: time.Now().Format(time.RFC3339),
+		Status:     "pending",
+		Trigger:    trigger,
+		MacAddress: macAddress,
+		StartedAt:  time.Now().Format(time.RFC3339),
 	}
 	u.store.Set(taskID, status)
 	_ = u.cache.Set(taskID, status)
@@ -462,10 +468,11 @@ func (u *summaryUseCase) updateStatus(taskID string, statusStr string, err error
 	_, _, _ = u.cache.GetWithTTL(taskID, &existing)
 
 	status := &dtos.RAGStatusDTO{
-		Status:    statusStr,
-		StartedAt: existing.StartedAt,
-		Trigger:   existing.Trigger,
-		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+		Status:     statusStr,
+		StartedAt:  existing.StartedAt,
+		Trigger:    existing.Trigger,
+		MacAddress: existing.MacAddress,
+		ExpiresAt:  time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
 
 	if err != nil {
@@ -484,6 +491,21 @@ func (u *summaryUseCase) updateStatus(taskID string, statusStr string, err error
 		if existing.StartedAt != "" {
 			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
 			status.DurationSeconds = time.Since(startTime).Seconds()
+		}
+
+		// Send MQTT "stop" signal if MacAddress is available
+		if status.MacAddress != "" && u.mqttSvc != nil {
+			taskTopic := fmt.Sprintf("users/%s/task", status.MacAddress)
+			msg := map[string]string{
+				"event": "stop",
+				"task":  "RAG",
+			}
+			payload, _ := json.Marshal(msg)
+			if err := u.mqttSvc.Publish(taskTopic, 0, false, payload); err != nil {
+				utils.LogError("RAG Summary Task %s: Failed to publish stop signal to MQTT: %v", taskID, err)
+			} else {
+				utils.LogInfo("RAG Summary Task %s: Published stop signal to %s", taskID, taskTopic)
+			}
 		}
 	}
 

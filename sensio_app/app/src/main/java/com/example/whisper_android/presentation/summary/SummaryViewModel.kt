@@ -1,6 +1,7 @@
 package com.example.whisper_android.presentation.summary
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.presentation.components.UiState
@@ -14,15 +15,43 @@ data class SummariesData(
     val enSummary: String = ""
 )
 
-class SummaryViewModel : ViewModel() {
+class SummaryViewModel(application: Application) : AndroidViewModel(application) {
     private val _summaries = MutableStateFlow(SummariesData())
     val summaries: StateFlow<SummariesData> = _summaries
 
     private val _selectedLanguage = MutableStateFlow("id")
     val selectedLanguage: StateFlow<String> = _selectedLanguage
 
+    private val mqttHelper = com.example.whisper_android.data.di.NetworkModule.mqttHelper
+
+    private val _mqttStatus = MutableStateFlow(
+        com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED
+    )
+    val mqttStatus: StateFlow<com.example.whisper_android.util.MqttHelper.MqttConnectionStatus> = _mqttStatus
+
     init {
         loadSummaries()
+
+        mqttHelper.onConnectionStatusChanged = { status ->
+            viewModelScope.launch {
+                _mqttStatus.value = status
+            }
+        }
+        reconnectMqtt()
+    }
+
+    fun reconnectMqtt() {
+        viewModelScope.launch {
+            val username = com.example.whisper_android.util.DeviceUtils.getDeviceId(
+                getApplication()
+            )
+            val pwdResult = com.example.whisper_android.data.di.NetworkModule.repository.fetchMqttPassword(
+                username
+            )
+            if (pwdResult.isSuccess) {
+                mqttHelper.connect(pwdResult.getOrNull()!!)
+            }
+        }
     }
 
     private fun loadSummaries() {

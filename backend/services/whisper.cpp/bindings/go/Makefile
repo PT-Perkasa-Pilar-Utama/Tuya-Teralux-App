@@ -11,11 +11,11 @@ UNAME_M := $(shell uname -m)
 endif
 
 GGML_METAL_PATH_RESOURCES := $(abspath ../..)
-BUILD_DIR := build_go
+BUILD_DIR := build
 MODELS_DIR := models
 EXAMPLES_DIR := $(wildcard examples/*)
 INCLUDE_PATH := $(abspath ../../include):$(abspath ../../ggml/include)
-LIBRARY_PATH := $(abspath ../../${BUILD_DIR}/src):$(abspath ../../${BUILD_DIR}/ggml/src)
+LIBRARY_PATH := $(abspath ../..)
 
 ifeq ($(GGML_CUDA),1)
 	LIBRARY_PATH := $(LIBRARY_PATH):$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib/
@@ -23,17 +23,14 @@ ifeq ($(GGML_CUDA),1)
 endif
 
 ifeq ($(UNAME_S),Darwin)
-	LIBRARY_PATH := $(LIBRARY_PATH):$(abspath ../../${BUILD_DIR}/ggml/src/ggml-blas):$(abspath ../../${BUILD_DIR}/ggml/src/ggml-metal)
-	EXT_LDFLAGS := -framework Foundation -framework Metal -framework MetalKit -lggml-metal -lggml-blas
+	EXT_LDFLAGS := -framework Foundation -framework Metal -framework MetalKit
 endif
 
 all: clean whisper examples
 
 whisper: mkdir
-	cmake -S ../.. -B ../../${BUILD_DIR} \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DBUILD_SHARED_LIBS=OFF
-	cmake --build ../../${BUILD_DIR} --target whisper
+	@echo Build whisper
+	@${MAKE} -C ../.. libwhisper.a
 
 test: model-small whisper modtidy
 ifeq ($(UNAME_S),Darwin)
