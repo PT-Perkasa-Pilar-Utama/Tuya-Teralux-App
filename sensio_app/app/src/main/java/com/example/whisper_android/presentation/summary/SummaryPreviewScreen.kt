@@ -1,6 +1,7 @@
 package com.example.whisper_android.presentation.summary
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
@@ -310,10 +310,18 @@ private fun MqttStatusBadge(
 
     val color =
         when (status) {
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> Color(
+                0xFF4CAF50
+            )
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> Color(
+                0xFFFFC107
+            )
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(
+                0xFFF44336
+            )
+            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> Color(
+                0xFFD32F2F
+            )
         }
 
     val text =
@@ -363,4 +371,3 @@ private fun MqttStatusBadge(
         }
     }
 }
-

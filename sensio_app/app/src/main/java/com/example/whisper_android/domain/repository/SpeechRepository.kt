@@ -5,7 +5,12 @@ import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 interface SpeechRepository {
-    suspend fun transcribeAudio(file: File, token: String, language: String, macAddress: String? = null): Flow<Resource<String>> // Returns Task ID
+    suspend fun transcribeAudio(
+        file: File,
+        token: String,
+        language: String,
+        macAddress: String? = null
+    ): Flow<Resource<String>> // Returns Task ID
 
     suspend fun pollTranscription(
         taskId: String,
