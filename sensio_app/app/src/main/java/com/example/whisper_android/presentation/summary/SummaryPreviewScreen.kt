@@ -1,6 +1,7 @@
 package com.example.whisper_android.presentation.summary
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.whisper_android.presentation.components.EmailInputDialog
 import com.example.whisper_android.presentation.components.FeatureBackground
 import com.example.whisper_android.presentation.components.FeatureHeader
+import com.example.whisper_android.presentation.components.MqttStatusBadge
 import com.example.whisper_android.presentation.components.UiState
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
@@ -52,11 +55,12 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 @Composable
 fun SummaryPreviewScreen(
     onNavigateBack: () -> Unit,
-    viewModel: SummaryViewModel = remember { SummaryViewModel() }
+    viewModel: SummaryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val context = LocalContext.current
     val summaries by viewModel.summaries.collectAsState()
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
+    val mqttStatus by viewModel.mqttStatus.collectAsState()
     var showEmailDialog by remember { mutableStateOf(false) }
 
     val currentSummary =
@@ -153,6 +157,15 @@ fun SummaryPreviewScreen(
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    MqttStatusBadge(
+                        status = mqttStatus,
+                        onReconnectClick = { viewModel.reconnectMqtt() }
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
 
                     // Email Button
                     Button(

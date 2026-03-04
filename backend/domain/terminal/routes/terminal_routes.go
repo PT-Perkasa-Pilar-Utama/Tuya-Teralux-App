@@ -16,6 +16,7 @@ func SetupTerminalRoutes(
 	getAllController *terminal.GetAllTerminalController,
 	getByIDController *terminal.GetTerminalByIDController,
 	getByMACController *terminal.GetTerminalByMACController,
+	getMqttCredentialsController *terminal.GetMQTTCredentialsController,
 	updateController *terminal.UpdateTerminalController,
 	deleteController *terminal.DeleteTerminalController,
 
@@ -44,6 +45,11 @@ func SetupTerminalRoutes(
 		terminalPublicAPI.GET("/mac/:mac", getByMACController.GetTerminalByMAC)
 	}
 
+	// Public MQTT Routes (Kept for future use if needed, but credentials moved)
+	// mqttPublicAPI := publicRouter.Group("/api/mqtt")
+	// {
+	// }
+
 	// Protected Terminal Routes
 	terminalProtectedAPI := protectedRouter.Group("/api/terminal")
 	{
@@ -55,6 +61,13 @@ func SetupTerminalRoutes(
 
 		// DELETE /api/terminal/:id - Delete terminal (soft delete)
 		terminalProtectedAPI.DELETE("/:id", deleteController.DeleteTerminal)
+	}
+
+	// Protected MQTT Routes
+	mqttProtectedAPI := protectedRouter.Group("/api/mqtt")
+	{
+		// GET /api/mqtt/credentials/:username - Get MQTT credentials
+		mqttProtectedAPI.GET("/credentials/:username", getMqttCredentialsController.GetMQTTCredentials)
 	}
 
 	// Device Routes (Protected)

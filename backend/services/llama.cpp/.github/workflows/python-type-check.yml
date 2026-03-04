@@ -24,12 +24,14 @@ jobs:
     name: pyright type-check
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
       - name: Set up Python environment
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          pip-install: -r requirements/requirements-all.txt
+      - name: Install Python dependencies
+        # TODO: use a venv
+        run: pip install -r requirements/requirements-all.txt
       - name: Type-check with Pyright
         uses: jakebailey/pyright-action@v2
         with:

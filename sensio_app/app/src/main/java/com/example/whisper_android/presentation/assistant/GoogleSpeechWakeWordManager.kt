@@ -27,7 +27,12 @@ class GoogleSpeechWakeWordManager(
         "sensyo",
         "sensus",
         "essence",
-        "hi sensio"
+        "hi sensio",
+        "since you",
+        "send you",
+        "jason show",
+        "hey since you",
+        "hey send you"
     )
 
     private val recognitionListener =
@@ -119,12 +124,15 @@ class GoogleSpeechWakeWordManager(
         handler.postDelayed({
             if (!isDestroyed && isListening) {
                 try {
+                    Log.d("GoogleWakeWord", "Restarting listener...")
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
                     startListeningInternal()
                 } catch (e: Exception) {
                     Log.e("GoogleWakeWord", "Restart failed", e)
                 }
             }
-        }, 100) // Small delay to prevent tight loops
+        }, 300) // Increased delay to allow proper cleanup
     }
 
     private fun startListeningInternal() {

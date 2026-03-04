@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisper_android.domain.usecase.AuthenticateUseCase
-import com.example.whisper_android.domain.usecase.RegisterTerminalUseCase
 import com.example.whisper_android.domain.usecase.GetTerminalByMacUseCase
+import com.example.whisper_android.domain.usecase.RegisterTerminalUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

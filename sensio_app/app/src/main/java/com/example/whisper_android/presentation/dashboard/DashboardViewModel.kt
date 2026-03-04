@@ -35,7 +35,6 @@ class DashboardViewModel(
             result
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(isAuthenticated = true, isLoading = false)
-                    fetchDevices()
                 }.onFailure { e ->
                     _uiState.value =
                         _uiState.value.copy(
@@ -52,7 +51,10 @@ class DashboardViewModel(
             // Fetch devices but don't store in state as requested
             val result = getTuyaDevicesUseCase()
             result.onSuccess { response ->
-                android.util.Log.d("DashboardViewModel", "Devices synced with backend (Found ${response.devices.size})")
+                android.util.Log.d(
+                    "DashboardViewModel",
+                    "Devices synced with backend (Found ${response.devices.size})"
+                )
             }.onFailure { e ->
                 android.util.Log.e("DashboardViewModel", "Failed to sync devices", e)
             }

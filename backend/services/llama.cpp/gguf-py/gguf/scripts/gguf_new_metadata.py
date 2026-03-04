@@ -8,6 +8,7 @@ import sys
 import json
 from pathlib import Path
 
+import numpy as np
 from tqdm import tqdm
 from typing import Any, Sequence, NamedTuple
 
@@ -24,13 +25,47 @@ class MetadataDetails(NamedTuple):
     type: gguf.GGUFValueType
     value: Any
     description: str = ''
-    sub_type: gguf.GGUFValueType | None = None
+
+
+def get_byteorder(reader: gguf.GGUFReader) -> gguf.GGUFEndian:
+    if np.uint32(1) == np.uint32(1).newbyteorder("<"):
+        # Host is little endian
+        host_endian = gguf.GGUFEndian.LITTLE
+        swapped_endian = gguf.GGUFEndian.BIG
+    else:
+        # Sorry PDP or other weird systems that don't use BE or LE.
+        host_endian = gguf.GGUFEndian.BIG
+        swapped_endian = gguf.GGUFEndian.LITTLE
+
+    if reader.byte_order == "S":
+        return swapped_endian
+    else:
+        return host_endian
+
+
+def decode_field(field: gguf.ReaderField | None) -> Any:
+    if field and field.types:
+        main_type = field.types[0]
+
+        if main_type == gguf.GGUFValueType.ARRAY:
+            sub_type = field.types[-1]
+
+            if sub_type == gguf.GGUFValueType.STRING:
+                return [str(bytes(field.parts[idx]), encoding='utf-8') for idx in field.data]
+            else:
+                return [pv for idx in field.data for pv in field.parts[idx].tolist()]
+        if main_type == gguf.GGUFValueType.STRING:
+            return str(bytes(field.parts[-1]), encoding='utf-8')
+        else:
+            return field.parts[-1][0]
+
+    return None
 
 
 def get_field_data(reader: gguf.GGUFReader, key: str) -> Any:
     field = reader.get_field(key)
 
-    return field.contents() if field else None
+    return decode_field(field)
 
 
 def find_token(token_list: Sequence[int], token: str) -> Sequence[int]:
@@ -58,9 +93,7 @@ def copy_with_new_metadata(reader: gguf.GGUFReader, writer: gguf.GGUFWriter, new
             logger.debug(f'Removing {field.name}')
             continue
 
-        val_type = field.types[0]
-        sub_type = field.types[-1] if val_type == gguf.GGUFValueType.ARRAY else None
-        old_val = MetadataDetails(val_type, field.contents(), sub_type=sub_type)
+        old_val = MetadataDetails(field.types[0], decode_field(field))
         val = new_metadata.get(field.name, old_val)
 
         if field.name in new_metadata:
@@ -70,7 +103,7 @@ def copy_with_new_metadata(reader: gguf.GGUFReader, writer: gguf.GGUFWriter, new
             logger.debug(f'Copying {field.name}')
 
         if val.value is not None:
-            writer.add_key_value(field.name, val.value, val.type, sub_type=sub_type if val.sub_type is None else val.sub_type)
+            writer.add_key_value(field.name, val.value, val.type)
 
     if gguf.Keys.Tokenizer.CHAT_TEMPLATE in new_metadata:
         logger.debug('Adding chat template(s)')
@@ -94,7 +127,7 @@ def copy_with_new_metadata(reader: gguf.GGUFReader, writer: gguf.GGUFWriter, new
     writer.write_ti_data_to_file()
 
     for tensor in reader.tensors:
-        writer.write_tensor_data(tensor.data, tensor_endianess=reader.endianess)
+        writer.write_tensor_data(tensor.data)
         bar.update(tensor.n_bytes)
 
     writer.close()
@@ -111,7 +144,6 @@ def main() -> None:
     parser.add_argument("--general-description",                       type=str,  help="The models general.description", metavar='"Description ..."')
     parser.add_argument("--chat-template",                             type=str,  help="Chat template string (or JSON string containing templates)", metavar='"{% ... %} ..."')
     parser.add_argument("--chat-template-config",                      type=Path, help="Config file containing chat template(s)", metavar='tokenizer_config.json')
-    parser.add_argument("--chat-template-file",                        type=Path, help="Jinja file containing chat template", metavar='chat_template.jinja')
     parser.add_argument("--pre-tokenizer",                             type=str,  help="The models tokenizer.ggml.pre", metavar='"pre tokenizer"')
     parser.add_argument("--remove-metadata",      action="append",     type=str,  help="Remove metadata (by key name) from output model", metavar='general.url')
     parser.add_argument("--special-token",        action="append",     type=str,  help="Special token by value", nargs=2, metavar=(' | '.join(token_names.keys()), '"<token>"'))
@@ -135,16 +167,11 @@ def main() -> None:
         new_metadata[gguf.Keys.Tokenizer.CHAT_TEMPLATE] = MetadataDetails(gguf.GGUFValueType.STRING, json.loads(args.chat_template) if args.chat_template.startswith('[') else args.chat_template)
 
     if args.chat_template_config:
-        with open(args.chat_template_config, 'r', encoding='utf-8') as fp:
+        with open(args.chat_template_config, 'r') as fp:
             config = json.load(fp)
             template = config.get('chat_template')
             if template:
                 new_metadata[gguf.Keys.Tokenizer.CHAT_TEMPLATE] = MetadataDetails(gguf.GGUFValueType.STRING, template)
-
-    if args.chat_template_file:
-        with open(args.chat_template_file, 'r', encoding='utf-8') as fp:
-            template = fp.read()
-            new_metadata[gguf.Keys.Tokenizer.CHAT_TEMPLATE] = MetadataDetails(gguf.GGUFValueType.STRING, template)
 
     if args.pre_tokenizer:
         new_metadata[gguf.Keys.Tokenizer.PRE] = MetadataDetails(gguf.GGUFValueType.STRING, args.pre_tokenizer)
@@ -165,6 +192,7 @@ def main() -> None:
     reader = gguf.GGUFReader(args.input, 'r')
 
     arch = get_field_data(reader, gguf.Keys.General.ARCHITECTURE)
+    endianess = get_byteorder(reader)
 
     token_list = get_field_data(reader, gguf.Keys.Tokenizer.LIST) or []
 
@@ -202,7 +230,7 @@ def main() -> None:
             sys.exit(0)
 
     logger.info(f'* Writing: {args.output}')
-    writer = gguf.GGUFWriter(args.output, arch=arch, endianess=reader.endianess)
+    writer = gguf.GGUFWriter(args.output, arch=arch, endianess=endianess)
 
     alignment = get_field_data(reader, gguf.Keys.General.ALIGNMENT)
     if alignment is not None:

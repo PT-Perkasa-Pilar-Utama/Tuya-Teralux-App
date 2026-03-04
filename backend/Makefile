@@ -23,6 +23,7 @@ help:
 	@echo "  make migrate-down     - Rollback last migration"
 	@echo "  make migrate-force VERSION=3 - Force database to version 3"
 	@echo "  make emqx-dev         - Start EMQX Auth Service for development"
+	@echo "  make adb-reverse      - Expose backend port (8081) to Android device via ADB"
 	@echo ""
 
 # Start MySQL for development
@@ -137,53 +138,83 @@ start-docker: stop-docker
 	@echo "🚀 Starting Docker container locally..."
 	docker run --rm -it -d -p 8081:8080 --name $(IMAGE_BASE) --env-file .env $(IMAGE_BASE):$(IMAGE_TAG)
 
-# --- Development (Docker) & Ollama helpers (migrated from stt-service)
-OLLAMA_IMAGE ?= ollama/ollama:latest
-OLLAMA_DATA_DIR ?= $(HOME)/ollama
-WHISPER_MODEL ?= whisper
-LLM_MODEL ?= gemma
+# --- AI Components Configuration ---
+WHISPER_TAG ?= v1.7.4
+LLAMA_TAG   ?= b4765
 
-# Local Inference (whisper.cpp & llama.cpp)
+# Model Metadata (Pinned from entrypoint.sh)
+WHISPER_URL = https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-base.bin
+WHISPER_SHA = 60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe
+
+LLAMA_URL = https://huggingface.co/unsloth/Llama-3.2-1B-Instruct-GGUF/resolve/b9a1b2bae395064b27533b8a56b1306f4d2d2f5f/Llama-3.2-1B-Instruct-Q4_K_M.gguf
+LLAMA_SHA = 3f5a22426976ab26cfe84dba63c1d08391717abb1af893e10f1b2968d862dcc1
+
+# Paths
 WHISPER_SRC_DIR = services/whisper.cpp
 WHISPER_BUILD_DIR = $(WHISPER_SRC_DIR)/build
 LLAMA_SRC_DIR = services/llama.cpp
 LLAMA_BUILD_DIR = $(LLAMA_SRC_DIR)/build
 
-# Run backend setup (whisper & llama build) - Non Interactive
-setup-dev:
-	@echo "🚀 Running backend setup (whisper & llama build)..."
-	@echo "🧹 Cleaning previous build artifacts to avoid CMake cache issues..."
+# Run backend setup (whisper & llama build) - Comprehensive Setup
+setup:
+	@echo "🚀 Running comprehensive backend setup..."
+	@# Check for dependencies
+	@command -v cmake >/dev/null 2>&1 || { echo >&2 "❌ Error: cmake is not installed. Please install it (e.g., 'sudo pacman -S cmake' or 'sudo apt install cmake')."; exit 1; }
+	@mkdir -p bin
+	@if [ ! -d $(WHISPER_SRC_DIR)/.git ]; then \
+		echo "📥 Cloning whisper.cpp $(WHISPER_TAG)..."; \
+		rm -rf $(WHISPER_SRC_DIR); \
+		git clone --depth 1 --branch $(WHISPER_TAG) https://github.com/ggerganov/whisper.cpp.git $(WHISPER_SRC_DIR); \
+	fi
+	@if [ ! -d $(LLAMA_SRC_DIR)/.git ]; then \
+		echo "📥 Cloning llama.cpp $(LLAMA_TAG)..."; \
+		rm -rf $(LLAMA_SRC_DIR); \
+		git clone --depth 1 --branch $(LLAMA_TAG) https://github.com/ggerganov/llama.cpp.git $(LLAMA_SRC_DIR); \
+	fi
+	@echo "🔨 Building AI binaries..."
 	@rm -rf $(WHISPER_BUILD_DIR) $(LLAMA_BUILD_DIR)
 	@mkdir -p $(WHISPER_BUILD_DIR)
-	@cd $(WHISPER_BUILD_DIR) && cmake .. && make whisper-cli -j$$(nproc)
+	@cd $(WHISPER_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && make whisper-cli -j$$(nproc)
 	@mkdir -p $(LLAMA_BUILD_DIR)
-	@cd $(LLAMA_BUILD_DIR) && cmake .. && make llama-cli llama-server -j$$(nproc)
-	@mkdir -p bin
+	@cd $(LLAMA_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && make llama-cli llama-server -j$$(nproc)
 	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
 	@cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli
 	@cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server
 	@$(MAKE) download-models
-	@echo "✅ Setup complete. use 'make dev' to start."
+	@echo "✅ Setup complete. Use 'make dev' to start."
 
-# Run setup script (build whisper.cpp + tools)
-setup: 
-	@echo "🚀 Running backend setup (build + tools)"
-	@chmod +x setup.sh || true
-	@./setup.sh || true
+# Legacy target for backward compatibility or simple setup
+setup-dev: setup
 
-# Download default models for dev
+# Download and verify default models
 download-models:
-	@echo "📥 Downloading models to bin/..."
+	@echo "📥 Downloading and verifying models..."
 	@mkdir -p bin
-	@if [ ! -f bin/ggml-base.bin ]; then \
+	@# Verify or download Whisper model
+	@if [ -f bin/ggml-base.bin ]; then \
+		echo "Verifying Whisper model checksum..."; \
+		if ! echo "$(WHISPER_SHA)  bin/ggml-base.bin" | sha256sum -c --status; then \
+			echo "⚠️ Whisper checksum mismatch! Re-downloading..."; \
+			curl -L $(WHISPER_URL) -o bin/ggml-base.bin; \
+		fi; \
+	else \
 		echo "Downloading Whisper base model..."; \
-		curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -o bin/ggml-base.bin; \
+		curl -L $(WHISPER_URL) -o bin/ggml-base.bin; \
 	fi
-	@if [ ! -f bin/llama-model.gguf ]; then \
+	@echo "✅ Whisper model verified."
+	
+	@# Verify or download Llama model
+	@if [ -f bin/llama-model.gguf ]; then \
+		echo "Verifying Llama model checksum..."; \
+		if ! echo "$(LLAMA_SHA)  bin/llama-model.gguf" | sha256sum -c --status; then \
+			echo "⚠️ Llama checksum mismatch! Re-downloading..."; \
+			curl -L $(LLAMA_URL) -o bin/llama-model.gguf; \
+		fi; \
+	else \
 		echo "Downloading Llama-3.2-1B model..."; \
-		curl -L https://huggingface.co/unsloth/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf -o bin/llama-model.gguf; \
+		curl -L $(LLAMA_URL) -o bin/llama-model.gguf; \
 	fi
-	@echo "✅ Models downloaded."
+	@echo "✅ Llama model verified."
 
 # Conveniences
 # Usage: make rag text="turn on the lamp"
@@ -232,6 +263,12 @@ kill:
 	@docker stop sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@docker rm sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@echo "✅ Kill completed"
+
+# Expose backend port to Android device via ADB
+adb-reverse:
+	@echo "📲 Exposing backend port (8081) to Android device..."
+	@adb reverse tcp:8081 tcp:8081
+	@echo "✅ ADB reverse completed"
 
 # --- Database Migration Configuration ---
 # Note: We build from source to include required support

@@ -39,10 +39,20 @@ if(Git_FOUND)
     endif()
 endif()
 
-set(BUILD_COMPILER "${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
-
-if(CMAKE_VS_PLATFORM_NAME)
+if(MSVC)
+    set(BUILD_COMPILER "${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
     set(BUILD_TARGET ${CMAKE_VS_PLATFORM_NAME})
 else()
-    set(BUILD_TARGET "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}")
+    execute_process(
+        COMMAND sh -c "\"$@\" --version | head -1" _ ${CMAKE_C_COMPILER}
+        OUTPUT_VARIABLE OUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(BUILD_COMPILER ${OUT})
+    execute_process(
+        COMMAND ${CMAKE_C_COMPILER} -dumpmachine
+        OUTPUT_VARIABLE OUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(BUILD_TARGET ${OUT})
 endif()

@@ -1,6 +1,4 @@
 add_executable(main ./deprecation-warning.cpp)
 add_executable(bench ./deprecation-warning.cpp)
-if (WHISPER_SDL2)
-    add_executable(stream ./deprecation-warning.cpp)
-    add_executable(command ./deprecation-warning.cpp)
-endif()
+add_executable(stream ./deprecation-warning.cpp)
+add_executable(command ./deprecation-warning.cpp)

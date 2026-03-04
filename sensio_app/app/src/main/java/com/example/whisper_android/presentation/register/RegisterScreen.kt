@@ -45,10 +45,10 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.whisper_android.data.di.NetworkModule
-import com.example.whisper_android.presentation.components.ToastObserver
 import com.example.whisper_android.presentation.components.SensioButton
 import com.example.whisper_android.presentation.components.SensioLogo
 import com.example.whisper_android.presentation.components.SensioTextField
+import com.example.whisper_android.presentation.components.ToastObserver
 
 @Composable
 fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
