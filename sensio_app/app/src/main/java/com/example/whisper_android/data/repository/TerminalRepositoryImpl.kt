@@ -96,7 +96,10 @@ class TerminalRepositoryImpl(
 
     override suspend fun fetchMqttPassword(username: String): Result<String> =
         try {
-            val response = api.getMqttCredentials("Bearer ${tokenManager.getAccessToken()}", username)
+            val response = api.getMqttCredentials(
+                "Bearer ${tokenManager.getAccessToken()}",
+                username
+            )
             if (response.status && response.data != null) {
                 Result.success(response.data.password)
             } else {

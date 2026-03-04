@@ -5,6 +5,8 @@ import android.util.Log
 import com.example.whisper_android.BuildConfig
 import info.mqtt.android.service.MqttAndroidClient
 import java.util.UUID
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
@@ -13,20 +15,18 @@ import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttException
 import org.eclipse.paho.client.mqttv3.MqttMessage
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 
 class MqttHelper(
     private val context: Context
 ) {
     private var mqttAndroidClient: MqttAndroidClient
     private val tokenManager = com.example.whisper_android.data.local.TokenManager(context)
-    
+
     private val serverUri = BuildConfig.MQTT_BROKER_URL
     private val clientID = "WhisperAndroid_" + UUID.randomUUID().toString()
-    
+
     private val tag = "MqttHelper"
-    
+
     private val _messages = kotlinx.coroutines.flow.MutableSharedFlow<Pair<String, String>>(
         extraBufferCapacity = 64,
         onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
