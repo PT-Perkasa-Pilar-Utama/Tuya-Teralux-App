@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
-	mailServices "sensio/domain/mail/services"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/services"
 	"sensio/domain/rag/skills"
@@ -32,7 +32,7 @@ type summaryUseCase struct {
 	cache         *tasks.BadgerTaskCache
 	store         *tasks.StatusStore[dtos.RAGStatusDTO]
 	renderer      services.SummaryPDFRenderer
-	mailExternal  *mailServices.MailExternalService
+	bigExternal   *commonServices.BigExternalService
 	mqttSvc       mqttPublisher
 	llmTimeout    time.Duration // Timeout for LLM calls
 	renderTimeout time.Duration // Timeout for PDF rendering
@@ -45,7 +45,7 @@ func NewSummaryUseCase(
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
 	renderer services.SummaryPDFRenderer,
-	mailExternal *mailServices.MailExternalService,
+	bigExternal *commonServices.BigExternalService,
 	mqttSvc mqttPublisher,
 ) SummaryUseCase {
 	return &summaryUseCase{
@@ -55,7 +55,7 @@ func NewSummaryUseCase(
 		cache:         cache,
 		store:         store,
 		renderer:      renderer,
-		mailExternal:  mailExternal,
+		bigExternal:   bigExternal,
 		mqttSvc:       mqttSvc,
 		llmTimeout:    5 * time.Minute,  // Increased for strategic reasoning depth
 		renderTimeout: 30 * time.Second, // Default PDF render timeout
@@ -79,8 +79,8 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	// If MacAddress is provided, fetch booking info to complement metadata
 	if macAddress != "" {
 		macAddress = strings.ToUpper(strings.TrimSpace(macAddress)) // Normalize MAC
-		if u.mailExternal != nil {
-			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
+		if u.bigExternal != nil {
+			info, err := u.bigExternal.GetDeviceInfoByMac(macAddress)
 			if err == nil {
 				if date == "" {
 					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
@@ -326,8 +326,8 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	// If MacAddress is provided, fetch booking info
 	if macAddress != "" {
 		macAddress = strings.ToUpper(strings.TrimSpace(macAddress)) // Normalize MAC
-		if u.mailExternal != nil {
-			info, err := u.mailExternal.GetDeviceInfoByMac(macAddress)
+		if u.bigExternal != nil {
+			info, err := u.bigExternal.GetDeviceInfoByMac(macAddress)
 			if err == nil {
 				if date == "" {
 					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
