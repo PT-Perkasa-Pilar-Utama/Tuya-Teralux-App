@@ -23,6 +23,7 @@ help:
 	@echo "  make migrate-down     - Rollback last migration"
 	@echo "  make migrate-force VERSION=3 - Force database to version 3"
 	@echo "  make emqx-dev         - Start EMQX Auth Service for development"
+	@echo "  make adb-reverse      - Expose backend port (8081) to Android device via ADB"
 	@echo ""
 
 # Start MySQL for development
@@ -262,6 +263,12 @@ kill:
 	@docker stop sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@docker rm sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@echo "✅ Kill completed"
+
+# Expose backend port to Android device via ADB
+adb-reverse:
+	@echo "📲 Exposing backend port (8081) to Android device..."
+	@adb reverse tcp:8081 tcp:8081
+	@echo "✅ ADB reverse completed"
 
 # --- Database Migration Configuration ---
 # Note: We build from source to include required support

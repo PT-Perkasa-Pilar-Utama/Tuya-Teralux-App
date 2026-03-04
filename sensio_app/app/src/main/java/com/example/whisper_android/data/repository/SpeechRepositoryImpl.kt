@@ -7,7 +7,6 @@ import com.example.whisper_android.data.remote.dto.TranscriptionResultText
 import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.domain.repository.SpeechRepository
 import java.io.File
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull

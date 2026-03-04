@@ -24,12 +24,14 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
     private val mqttHelper = com.example.whisper_android.data.di.NetworkModule.mqttHelper
 
-    private val _mqttStatus = MutableStateFlow(com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED)
+    private val _mqttStatus = MutableStateFlow(
+        com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED
+    )
     val mqttStatus: StateFlow<com.example.whisper_android.util.MqttHelper.MqttConnectionStatus> = _mqttStatus
 
     init {
         loadSummaries()
-        
+
         mqttHelper.onConnectionStatusChanged = { status ->
             viewModelScope.launch {
                 _mqttStatus.value = status
@@ -40,8 +42,12 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
     fun reconnectMqtt() {
         viewModelScope.launch {
-            val username = com.example.whisper_android.util.DeviceUtils.getDeviceId(getApplication())
-            val pwdResult = com.example.whisper_android.data.di.NetworkModule.repository.fetchMqttPassword(username)
+            val username = com.example.whisper_android.util.DeviceUtils.getDeviceId(
+                getApplication()
+            )
+            val pwdResult = com.example.whisper_android.data.di.NetworkModule.repository.fetchMqttPassword(
+                username
+            )
             if (pwdResult.isSuccess) {
                 mqttHelper.connect(pwdResult.getOrNull()!!)
             }

@@ -6,7 +6,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,14 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,17 +40,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisper_android.domain.usecase.MeetingProcessState
-import com.example.whisper_android.presentation.components.LanguagePillToggle
+import com.example.whisper_android.presentation.components.MqttStatusBadge
 import com.example.whisper_android.presentation.components.UiState
 
 @Composable
 fun MeetingHeaderControls(
     uiState: MeetingProcessState,
     emailState: UiState<Boolean>,
-    summaryLanguage: String,
-    mqttStatus: com.example.whisper_android.util.MqttHelper.MqttConnectionStatus,
-    onReconnectClick: () -> Unit,
-    onLanguageSelected: (String) -> Unit,
     onDownloadClick: (String) -> Unit,
     onEmailClick: () -> Unit
 ) {
@@ -73,7 +69,7 @@ fun MeetingHeaderControls(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (uiState is MeetingProcessState.Success) {
@@ -150,84 +146,8 @@ fun MeetingHeaderControls(
                     }
                 }
             }
-        } else {
-            Spacer(modifier = Modifier.width(1.dp))
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            MqttStatusBadge(
-                status = mqttStatus,
-                onReconnectClick = onReconnectClick
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            LanguagePillToggle(
-                selectedLanguage = summaryLanguage,
-                onLanguageSelected = onLanguageSelected
-            )
         }
     }
 }
 
-@Composable
-fun MqttStatusBadge(
-    status: com.example.whisper_android.util.MqttHelper.MqttConnectionStatus,
-    onReconnectClick: () -> Unit = {}
-) {
-    val isError = status == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED ||
-        status == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED
-
-    val color =
-        when (status) {
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
-        }
-
-    val text =
-        when (status) {
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> "Error"
-        }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-        Modifier
-            .padding(start = 4.dp)
-            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-            .then(
-                if (isError) {
-                    Modifier.clickable { onReconnectClick() }
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Box(
-            modifier =
-            Modifier
-                .size(8.dp)
-                .background(color, CircleShape)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        if (isError) {
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Reconnect",
-                tint = color,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-    }
-}
+// Removed duplicate MqttStatusBadge

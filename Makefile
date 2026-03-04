@@ -1,6 +1,6 @@
 # Sensio App - Root Makefile for Project-Wide Automation
 
-.PHONY: help setup backend-setup dev clean kill test vet push-local
+.PHONY: help setup backend-setup dev clean kill test vet push-local adb-reverse
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make dev            - Run Backend in dev mode"
 	@echo "  make clean          - Clean backend artifacts"
 	@echo "  make kill           - Kill backend service (port 8081)"
+	@echo "  make adb-reverse    - Expose backend port (8081) to Android device via ADB"
 	@echo ""
 
 # Setup everything
@@ -55,3 +56,7 @@ vet:
 push-local:
 	@echo "🚀 Pushing Docker image locally..."
 	@$(MAKE) -C backend push-local TAG=$(TAG)
+
+# Expose backend port to Android device via ADB
+adb-reverse:
+	@$(MAKE) -C backend adb-reverse

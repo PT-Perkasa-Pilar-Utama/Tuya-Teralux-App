@@ -7,7 +7,6 @@ import com.example.whisper_android.data.remote.dto.RAGSummaryRequestDto
 import com.example.whisper_android.data.remote.dto.RAGSummaryResponseDto
 import com.example.whisper_android.domain.repository.RagRepository
 import com.example.whisper_android.domain.repository.Resource
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 

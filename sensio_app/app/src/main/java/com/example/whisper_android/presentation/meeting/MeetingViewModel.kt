@@ -1,7 +1,6 @@
 package com.example.whisper_android.presentation.meeting
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,15 +9,15 @@ import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.domain.usecase.MeetingProcessState
 import com.example.whisper_android.domain.usecase.ProcessMeetingUseCase
 import com.example.whisper_android.presentation.components.UiState
+import com.google.gson.JsonParser
 import java.io.File
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.channels.Channel
-import com.google.gson.JsonParser
 
 class MeetingViewModel(
     private val processMeetingUseCase: ProcessMeetingUseCase
@@ -29,7 +28,9 @@ class MeetingViewModel(
     private val _emailState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val emailState: StateFlow<UiState<Boolean>> = _emailState.asStateFlow()
 
-    private val _mqttStatus = MutableStateFlow(com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED)
+    private val _mqttStatus = MutableStateFlow(
+        com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED
+    )
     val mqttStatus: StateFlow<com.example.whisper_android.util.MqttHelper.MqttConnectionStatus> = _mqttStatus
 
     private val mqttHelper = com.example.whisper_android.data.di.NetworkModule.mqttHelper
@@ -59,15 +60,27 @@ class MeetingViewModel(
     ) {
         viewModelScope.launch {
             val signalChannel = Channel<String>(1)
-            
+
             val messageJob = launch {
                 mqttHelper.messages.collect { (topic, msg) ->
                     val taskTopic = mqttHelper.getTaskTopic()
                     if (taskTopic != null && topic == taskTopic) {
                         try {
                             val json = JsonParser.parseString(msg).asJsonObject
-                            val event = if (json.has("event") && !json.get("event").isJsonNull) json.get("event").getAsString() else null
-                            val taskLabel = if (json.has("task") && !json.get("task").isJsonNull) json.get("task").getAsString() else null
+                            val event = if (json.has("event") && !json.get("event").isJsonNull) {
+                                json.get(
+                                    "event"
+                                ).getAsString()
+                            } else {
+                                null
+                            }
+                            val taskLabel = if (json.has("task") && !json.get("task").isJsonNull) {
+                                json.get(
+                                    "task"
+                                ).getAsString()
+                            } else {
+                                null
+                            }
                             if (event == "stop" && taskLabel != null) {
                                 signalChannel.trySend(taskLabel)
                             }
@@ -86,10 +99,10 @@ class MeetingViewModel(
                     macAddress = macAddress,
                     waitSignal = { taskName ->
                         _mqttStatus.value = com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED // Assume connected
-                        
+
                         // Publish Start signal
                         mqttHelper.publishTaskMessage("start", taskName)
-                        
+
                         // Wait for stop signal
                         while (true) {
                             val receivedTaskName = signalChannel.receive()

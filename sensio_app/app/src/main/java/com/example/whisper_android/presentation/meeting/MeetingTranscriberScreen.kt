@@ -14,14 +14,20 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,13 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.whisper_android.domain.usecase.MeetingProcessState
 import com.example.whisper_android.presentation.components.EmailInputDialog
-import com.example.whisper_android.presentation.components.FeatureBackground
-import com.example.whisper_android.presentation.components.FeatureHeader
-import com.example.whisper_android.presentation.components.FeatureMainCard
+import com.example.whisper_android.presentation.components.LanguagePillToggle
+import com.example.whisper_android.presentation.components.MqttStatusBadge
+import com.example.whisper_android.presentation.components.SensioFeatureLayout
 import com.example.whisper_android.presentation.components.UiState
 import com.example.whisper_android.presentation.meeting.components.MeetingControlPill
 import com.example.whisper_android.presentation.meeting.components.MeetingErrorContent
@@ -113,7 +121,10 @@ fun MeetingTranscriberScreen(
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 0.8f,
-        animationSpec = infiniteRepeatable(tween(1500, easing = LinearEasing), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(
+            tween(1500, easing = LinearEasing),
+            RepeatMode.Reverse
+        ),
         label = "glowAlpha"
     )
 
@@ -197,152 +208,149 @@ fun MeetingTranscriberScreen(
         Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
-    FeatureBackground {
-        Scaffold(
-            containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets.systemBars,
-            topBar = { FeatureHeader(title = "Meeting Insights", onNavigateBack = onNavigateBack) }
-        ) { paddingValues ->
-            Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                        .padding(bottom = 60.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    FeatureMainCard(modifier = Modifier.weight(1f)) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            MeetingHeaderControls(
-                                uiState = uiState,
-                                emailState = emailState,
-                                summaryLanguage = summaryLanguage,
-                                mqttStatus = mqttStatus,
-                                onReconnectClick = {
-                                    viewModel.reconnectMqtt(DeviceUtils.getDeviceId(context))
-                                },
-                                onLanguageSelected = { summaryLanguage = it },
-                                onDownloadClick = { url ->
-                                    val isLegacyStorage =
-                                        android.os.Build.VERSION.SDK_INT <
-                                            android.os.Build.VERSION_CODES.TIRAMISU
-                                    if (isLegacyStorage) {
-                                        if (ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                            ) ==
-                                            PackageManager.PERMISSION_GRANTED
-                                        ) {
-                                            downloadPdf(
-                                                context,
-                                                url,
-                                                "Meeting_Summary_${System.currentTimeMillis()}"
-                                            )
-                                        } else {
-                                            storagePermissionLauncher.launch(
-                                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                            )
-                                        }
-                                    } else {
-                                        downloadPdf(
-                                            context,
-                                            url,
-                                            "Meeting_Summary_${System.currentTimeMillis()}"
-                                        )
-                                    }
-                                },
-                                onEmailClick = { showEmailDialog = true }
-                            )
+    SensioFeatureLayout(
+        title = "Meeting Insights",
+        onNavigateBack = onNavigateBack,
+        headerActions = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                LanguagePillToggle(
+                    selectedLanguage = summaryLanguage,
+                    onLanguageSelected = { summaryLanguage = it }
+                )
 
-                            Box(
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                when (uiState) {
-                                    is MeetingProcessState.Idle -> MeetingIdleContent()
-                                    is MeetingProcessState.Recording -> MeetingRecordingContent()
-                                    is MeetingProcessState.Success -> MeetingSuccessContent(
-                                        uiState as MeetingProcessState.Success
-                                    )
-                                    is MeetingProcessState.Error -> MeetingErrorContent(
-                                        uiState as MeetingProcessState.Error
-                                    )
-                                    else -> MeetingLoadingContent(uiState, glowAlpha)
-                                }
-                            }
-                        }
+                MqttStatusBadge(
+                    status = mqttStatus,
+                    onReconnectClick = {
+                        viewModel.reconnectMqtt(DeviceUtils.getDeviceId(context))
                     }
-                }
-
-                MeetingControlPill(
-                    isRecording = isRecording,
-                    hasPermission = hasPermission,
-                    uiState = uiState,
-                    pulseScale = pulseScale,
-                    onMicClick = {
-                        val canRecord = uiState is MeetingProcessState.Idle ||
-                            uiState is MeetingProcessState.Success ||
-                            uiState is MeetingProcessState.Error
-                        if (!isRecording && canRecord) {
-                            if (!hasPermission) {
-                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            } else {
-                                val file = java.io.File(context.cacheDir, "meeting_audio.wav")
-                                audioRecorder.start(file)
-                                audioFile = file
-                                isRecording = true
-                                viewModel.resetState()
-                            }
-                        }
-                    },
-                    onUploadClick = {
-                        val canUpload = uiState is MeetingProcessState.Idle ||
-                            uiState is MeetingProcessState.Success ||
-                            uiState is MeetingProcessState.Error
-                        if (canUpload) {
-                            launcher.launch("audio/*")
-                        }
-                    },
-                    onStopClick = {
-                        audioRecorder.stop()
-                        audioFile?.let { file -> audioRecorder.finalizeWav(file) }
-                        isRecording = false
-                        audioFile?.let { file ->
-                            if (token.isNotEmpty()) {
-                                viewModel.processRecording(
-                                    file,
-                                    token,
-                                    summaryLanguage,
-                                    DeviceUtils.getDeviceId(context)
-                                )
-                            }
-                        }
-                    },
-                    onClearClick = {
-                        if (isRecording) {
-                            audioRecorder.stop()
-                            audioFile?.let { file -> audioRecorder.finalizeWav(file) }
-                        }
-                        isRecording = false
-                        viewModel.resetState()
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
-        }
-
-        if (showEmailDialog) {
-            EmailInputDialog(
-                onDismiss = { showEmailDialog = false },
-                onSend = { isMacMode, target, subject ->
-                    if (isMacMode) {
-                        viewModel.sendEmailSummaryByMac(target, subject, summaryLanguage)
-                    } else {
-                        viewModel.sendEmailSummary(target, subject, summaryLanguage)
+        },
+        bottomContent = {
+            MeetingControlPill(
+                isRecording = isRecording,
+                hasPermission = hasPermission,
+                uiState = uiState,
+                pulseScale = pulseScale,
+                onMicClick = {
+                    val canRecord = uiState is MeetingProcessState.Idle ||
+                        uiState is MeetingProcessState.Success ||
+                        uiState is MeetingProcessState.Error
+                    if (!isRecording && canRecord) {
+                        if (!hasPermission) {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            val file = java.io.File(context.cacheDir, "meeting_audio.wav")
+                            audioRecorder.start(file)
+                            audioFile = file
+                            isRecording = true
+                            viewModel.resetState()
+                        }
                     }
-                    showEmailDialog = false
-                }
+                },
+                onUploadClick = {
+                    val canUpload = uiState is MeetingProcessState.Idle ||
+                        uiState is MeetingProcessState.Success ||
+                        uiState is MeetingProcessState.Error
+                    if (canUpload) {
+                        launcher.launch("audio/*")
+                    }
+                },
+                onStopClick = {
+                    audioRecorder.stop()
+                    audioFile?.let { file -> audioRecorder.finalizeWav(file) }
+                    isRecording = false
+                    audioFile?.let { file ->
+                        if (token.isNotEmpty()) {
+                            viewModel.processRecording(
+                                file,
+                                token,
+                                summaryLanguage,
+                                DeviceUtils.getDeviceId(context)
+                            )
+                        }
+                    }
+                },
+                onClearClick = {
+                    if (isRecording) {
+                        audioRecorder.stop()
+                        audioFile?.let { file -> audioRecorder.finalizeWav(file) }
+                    }
+                    isRecording = false
+                    viewModel.resetState()
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            MeetingHeaderControls(
+                uiState = uiState,
+                emailState = emailState,
+                onDownloadClick = { url ->
+                    val isLegacyStorage =
+                        android.os.Build.VERSION.SDK_INT <
+                            android.os.Build.VERSION_CODES.TIRAMISU
+                    if (isLegacyStorage) {
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                            ) ==
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            downloadPdf(
+                                context,
+                                url,
+                                "Meeting_Summary_${System.currentTimeMillis()}"
+                            )
+                        } else {
+                            storagePermissionLauncher.launch(
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                            )
+                        }
+                    } else {
+                        downloadPdf(
+                            context,
+                            url,
+                            "Meeting_Summary_${System.currentTimeMillis()}"
+                        )
+                    }
+                },
+                onEmailClick = { showEmailDialog = true }
+            )
+
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                when (uiState) {
+                    is MeetingProcessState.Idle -> MeetingIdleContent()
+                    is MeetingProcessState.Recording -> MeetingRecordingContent()
+                    is MeetingProcessState.Success -> MeetingSuccessContent(
+                        uiState as MeetingProcessState.Success
+                    )
+                    is MeetingProcessState.Error -> MeetingErrorContent(
+                        uiState as MeetingProcessState.Error
+                    )
+                    else -> MeetingLoadingContent(uiState, glowAlpha)
+                }
+            }
+        }
+    }
+
+    if (showEmailDialog) {
+        EmailInputDialog(
+            onDismiss = { showEmailDialog = false },
+            onSend = { isMacMode, target, subject ->
+                if (isMacMode) {
+                    viewModel.sendEmailSummaryByMac(target, subject, summaryLanguage)
+                } else {
+                    viewModel.sendEmailSummary(target, subject, summaryLanguage)
+                }
+            }
+        )
     }
 }

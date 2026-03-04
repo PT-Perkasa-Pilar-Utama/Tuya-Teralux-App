@@ -51,7 +51,11 @@ class ProcessMeetingUseCase(
                         transcribeTaskId = result.data
                     }
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Transcription initiation failed: ${result.message}"))
+                        emit(
+                            MeetingProcessState.Error(
+                                "Transcription initiation failed: ${result.message}"
+                            )
+                        )
                     }
                     else -> {}
                 }
@@ -69,7 +73,11 @@ class ProcessMeetingUseCase(
                         transcriptionText = result.data
                     }
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Transcription fetch failed: ${result.message}"))
+                        emit(
+                            MeetingProcessState.Error(
+                                "Transcription fetch failed: ${result.message}"
+                            )
+                        )
                     }
                     else -> {}
                 }
@@ -91,7 +99,11 @@ class ProcessMeetingUseCase(
                         translateTaskId = result.data
                     }
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Translation initiation failed: ${result.message}"))
+                        emit(
+                            MeetingProcessState.Error(
+                                "Translation initiation failed: ${result.message}"
+                            )
+                        )
                     }
                     else -> {}
                 }
@@ -109,7 +121,9 @@ class ProcessMeetingUseCase(
                         translatedText = result.data
                     }
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Translation fetch failed: ${result.message}"))
+                        emit(
+                            MeetingProcessState.Error("Translation fetch failed: ${result.message}")
+                        )
                     }
                     else -> {}
                 }
@@ -131,7 +145,11 @@ class ProcessMeetingUseCase(
                         summarizeTaskId = result.data
                     }
                     is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Summary initiation failed: ${result.message}"))
+                        emit(
+                            MeetingProcessState.Error(
+                                "Summary initiation failed: ${result.message}"
+                            )
+                        )
                     }
                     else -> {}
                 }
@@ -150,10 +168,6 @@ class ProcessMeetingUseCase(
                             emit(
                                 MeetingProcessState.Success(summaryData.summary, summaryData.pdfUrl)
                             )
-                            // Delete local audio file on success
-                            if (audioFile.exists()) {
-                                audioFile.delete()
-                            }
                         }
                     }
                     is Resource.Error -> {

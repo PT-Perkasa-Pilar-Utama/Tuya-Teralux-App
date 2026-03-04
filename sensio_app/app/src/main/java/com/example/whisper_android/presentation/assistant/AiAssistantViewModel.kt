@@ -52,33 +52,49 @@ class AiAssistantViewModel(
                                 "AiAssistantViewModel",
                                 "Received chat/answer: $message"
                             )
-                            val json = com.google.gson.JsonParser.parseString(message).asJsonObject
-                            val data = if (json.has("data") && !json.get("data").isJsonNull) json.getAsJsonObject("data") else null
-                            val responseText = if (data != null && data.has("response") && !data.get("response").isJsonNull) {
-                                data.get("response").asString
-                            } else if (json.has("message") && !json.get("message").isJsonNull) {
-                                json.get("message").asString
-                            } else {
-                                message
+                            val json = try {
+                                com.google.gson.JsonParser.parseString(message).asJsonObject
+                            } catch (e: Exception) {
+                                null
                             }
 
-                            val isValidationError = json.has("message") && !json.get("message").isJsonNull && json.get("message").asString == "Validation Error"
-                            
-                            val cleanMessage = if (isValidationError) {
-                                "Maaf, suara tidak terdengar dengan jelas. Silakan coba lagi."
+                            val responseText = if (json != null) {
+                                val data = if (json.has("data") && !json.get("data").isJsonNull) {
+                                    json.getAsJsonObject("data")
+                                } else {
+                                    null
+                                }
+                                if (data != null && data.has("response") && !data.get("response").isJsonNull) {
+                                    data.get("response").asString
+                                } else if (json.has("message") && !json.get("message").isJsonNull) {
+                                    json.get("message").asString
+                                } else {
+                                    null
+                                }
                             } else {
-                                parseMarkdownToText(responseText).trim().removeSurrounding("\"")
+                                // Fallback for log-style strings as shown in user example
+                                if (message.contains("Response: \"")) {
+                                    message.substringAfter("Response: \"").substringBeforeLast("\"")
+                                } else {
+                                    null
+                                }
                             }
 
-                            val lastRole = transcriptionResults.lastOrNull()?.role
-                            val isDuplicateAnswer = !isProcessing && lastRole == MessageRole.ASSISTANT
-                            
-                            if (!isDuplicateAnswer) {
-                                transcriptionResults = transcriptionResults +
-                                        TranscriptionMessage(
-                                            text = cleanMessage,
-                                            role = MessageRole.ASSISTANT
-                                        )
+                            val isValidationError = json != null && json.has("message") && 
+                                !json.get("message").isJsonNull && 
+                                json.get("message").asString == "Validation Error"
+
+                            val cleanMessage = when {
+                                isValidationError -> "Maaf, suara tidak terdengar dengan jelas. Silakan coba lagi."
+                                responseText != null -> parseMarkdownToText(responseText).trim().removeSurrounding("\"")
+                                else -> ""
+                            }
+
+                            if (cleanMessage.isNotBlank()) {
+                                transcriptionResults = transcriptionResults + TranscriptionMessage(
+                                    text = cleanMessage, 
+                                    role = MessageRole.ASSISTANT
+                                )
                             }
                             isProcessing = false
                             android.util.Log.d("AiAssistantViewModel", "isProcessing set to false")
@@ -113,16 +129,15 @@ class AiAssistantViewModel(
                                 transcriptionResults.any {
                                     it.role == MessageRole.USER && it.text == cleanPrompt
                                 }
-                            
+
                             val lastRole = transcriptionResults.lastOrNull()?.role
                             val isDuplicateTranscription = isProcessing && lastRole == MessageRole.USER
 
                             if (!alreadyExists && !isDuplicateTranscription) {
-                                transcriptionResults = transcriptionResults +
-                                    TranscriptionMessage(
-                                        text = cleanPrompt,
-                                        role = MessageRole.USER
-                                    )
+                                transcriptionResults = transcriptionResults + TranscriptionMessage(
+                                    text = cleanPrompt,
+                                    role = MessageRole.USER
+                                )
                             }
                         }
 
@@ -143,7 +158,7 @@ class AiAssistantViewModel(
                 mqttStatus = status
             }
         }
-        
+
         // Auto-connect when the ViewModel is initialized
         reconnectMqtt()
     }
@@ -151,12 +166,21 @@ class AiAssistantViewModel(
     fun reconnectMqtt() {
         viewModelScope.launch {
             android.util.Log.d("AiAssistantViewModel", "Manual MQTT Reconnection...")
-            val username = com.example.whisper_android.util.DeviceUtils.getDeviceId(getApplication())
-            val pwdResult = com.example.whisper_android.data.di.NetworkModule.repository.fetchMqttPassword(username)
+            mqttStatus = MqttHelper.MqttConnectionStatus.CONNECTING
+            val username = com.example.whisper_android.util.DeviceUtils.getDeviceId(
+                getApplication()
+            )
+            val pwdResult = com.example.whisper_android.data.di.NetworkModule.repository.fetchMqttPassword(
+                username
+            )
             if (pwdResult.isSuccess) {
                 mqttHelper.connect(pwdResult.getOrNull()!!)
             } else {
-                android.util.Log.e("AiAssistantViewModel", "Failed to fetch MQTT password: ${pwdResult.exceptionOrNull()?.message}")
+                android.util.Log.e(
+                    "AiAssistantViewModel",
+                    "Failed to fetch MQTT password: ${pwdResult.exceptionOrNull()?.message}"
+                )
+                mqttStatus = MqttHelper.MqttConnectionStatus.NO_INTERNET
             }
         }
     }
@@ -174,10 +198,7 @@ class AiAssistantViewModel(
                     it.role == MessageRole.USER && it.text == text
                 }
             if (!alreadyExists) {
-                transcriptionResults = transcriptionResults + TranscriptionMessage(
-                    text,
-                    MessageRole.USER
-                )
+                transcriptionResults = transcriptionResults + TranscriptionMessage(text = text, role = MessageRole.USER)
             }
             isProcessing = true
             viewModelScope.launch {
