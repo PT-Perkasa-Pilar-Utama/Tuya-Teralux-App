@@ -75,6 +75,19 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			return
 		}
 
+		// Immediately mark as active to prevent chat handler race condition.
+		// It will be deleted either in the defer below (on failure) or by TranscribeAudio async processor.
+		utils.ActiveTranscriptions.Store(req.TerminalID, true)
+
+		// Create a local error flag to determine if we should clean up the transcription flag.
+		// If we successfully start TranscribeAudio, it takes ownership of deleting the flag.
+		var taskStarted bool
+		defer func() {
+			if !taskStarted {
+				utils.ActiveTranscriptions.Delete(req.TerminalID)
+			}
+		}()
+
 		// Decode Base64 audio
 		audioBytes, err := base64.StdEncoding.DecodeString(req.Audio)
 		if err != nil {
@@ -121,6 +134,8 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			_ = os.Remove(tempPath) // Clean up immediately on error
 			return
 		}
+
+		taskStarted = true
 
 		// Publish success status with empty RecordingID (since not saved in DB)
 		if mac != "" {

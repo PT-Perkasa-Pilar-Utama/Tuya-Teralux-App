@@ -73,7 +73,10 @@ type RAGChatResponseDTO struct {
 	Response       string       `json:"response"`
 	IsControl      bool         `json:"is_control"`
 	Redirect       *RedirectDTO `json:"redirect,omitempty"`
-	HTTPStatusCode int          `json:"-"` // HTTP status code to return (not exposed in JSON)
+	HTTPStatusCode int          `json:"-"`                     // HTTP status code to return (not exposed in JSON)
+	RequestID      string       `json:"request_id,omitempty"`  // Tracking ID
+	Source         string       `json:"source,omitempty"`      // e.g., "MQTT", "HTTP"
+	InstanceID     string       `json:"instance_id,omitempty"` // Server start time
 }
 
 type RedirectDTO struct {

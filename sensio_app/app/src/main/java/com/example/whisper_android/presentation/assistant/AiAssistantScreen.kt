@@ -63,6 +63,8 @@ import com.example.whisper_android.presentation.components.TranscriptionMessage
 import com.example.whisper_android.util.MqttHelper
 import java.io.File
 import kotlinx.coroutines.delay
+import com.example.whisper_android.presentation.components.LanguagePillToggle
+import com.example.whisper_android.presentation.components.MqttStatusBadge
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -165,44 +167,10 @@ fun AiAssistantScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 8.dp)
             ) {
-                // Language Switcher
-                Row(
-                    modifier =
-                    Modifier
-                        .padding(end = 8.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(20.dp)
-                        ).padding(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    listOf("id", "en").forEach { lang ->
-                        val isSelected = viewModel.selectedLanguage == lang
-                        Surface(
-                            onClick = { viewModel.selectLanguage(lang) },
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                Color.Transparent
-                            },
-                            modifier = Modifier.size(width = 36.dp, height = 24.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = lang.uppercase(),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) {
-                                        Color.White
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+                LanguagePillToggle(
+                    selectedLanguage = viewModel.selectedLanguage,
+                    onLanguageSelected = { viewModel.selectLanguage(it) }
+                )
 
                 MqttStatusBadge(
                     status = viewModel.mqttStatus,
@@ -414,66 +382,4 @@ private fun ConversationList(
     }
 }
 
-@Composable
-private fun MqttStatusBadge(
-    status: MqttHelper.MqttConnectionStatus,
-    onReconnectClick: () -> Unit = {}
-) {
-    val isError = status == MqttHelper.MqttConnectionStatus.DISCONNECTED ||
-        status == MqttHelper.MqttConnectionStatus.FAILED
-
-    val color =
-        when (status) {
-            MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
-            MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
-            MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
-            MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
-        }
-
-    val text =
-        when (status) {
-            MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
-            MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
-            MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
-            MqttHelper.MqttConnectionStatus.FAILED -> "Error"
-        }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-        Modifier
-            .padding(start = 4.dp)
-            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-            .then(
-                if (isError) {
-                    Modifier.clickable { onReconnectClick() }
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Box(
-            modifier =
-            Modifier
-                .size(8.dp)
-                .background(color, androidx.compose.foundation.shape.CircleShape)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        if (isError) {
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
-                contentDescription = "Reconnect",
-                tint = color,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-    }
-}
+// Removed duplicate MqttStatusBadge (moved to MqttStatusBadge.kt)

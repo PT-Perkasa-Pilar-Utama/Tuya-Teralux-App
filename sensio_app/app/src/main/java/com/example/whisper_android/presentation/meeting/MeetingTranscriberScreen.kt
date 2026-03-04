@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.whisper_android.domain.usecase.MeetingProcessState
 import com.example.whisper_android.presentation.components.EmailInputDialog
+import com.example.whisper_android.presentation.components.LanguagePillToggle
+import com.example.whisper_android.presentation.components.MqttStatusBadge
 import com.example.whisper_android.presentation.components.SensioFeatureLayout
 import com.example.whisper_android.presentation.components.UiState
 import com.example.whisper_android.presentation.meeting.components.MeetingControlPill
@@ -214,45 +216,12 @@ fun MeetingTranscriberScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 8.dp)
             ) {
-                // Language Switcher
-                Row(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(20.dp)
-                        ).padding(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    listOf("id", "en").forEach { lang ->
-                        val isSelected = summaryLanguage == lang
-                        androidx.compose.material3.Surface(
-                            onClick = { summaryLanguage = lang },
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                Color.Transparent
-                            },
-                            modifier = Modifier.size(width = 36.dp, height = 24.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = lang.uppercase(),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) {
-                                        Color.White
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+                LanguagePillToggle(
+                    selectedLanguage = summaryLanguage,
+                    onLanguageSelected = { summaryLanguage = it }
+                )
 
-                com.example.whisper_android.presentation.meeting.components.MqttStatusBadge(
+                MqttStatusBadge(
                     status = mqttStatus,
                     onReconnectClick = {
                         viewModel.reconnectMqtt(DeviceUtils.getDeviceId(context))
