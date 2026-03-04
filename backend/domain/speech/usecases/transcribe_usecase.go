@@ -166,7 +166,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 
 	// Chaining to /chat ONLY if initiated via MQTT
 	if metadata != nil && metadata.Source == "mqtt" && metadata.TerminalID != "" && uc.mqttSvc != nil {
-		chatTopic := fmt.Sprintf("users/%s/chat", metadata.TerminalID)
+		chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.TerminalID, uc.config.ApplicationEnvironment)
 		prompt := finalResult.RefinedText
 		if prompt == "" {
 			prompt = finalResult.Transcription
@@ -216,7 +216,7 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 
 		// Send MQTT "stop" signal if TerminalID is available
 		if status.TerminalID != "" && uc.mqttSvc != nil {
-			taskTopic := fmt.Sprintf("users/%s/task", status.TerminalID)
+			taskTopic := fmt.Sprintf("users/%s/%s/task", status.TerminalID, uc.config.ApplicationEnvironment)
 			msg := map[string]string{
 				"event": "stop",
 				"task":  "Transcribe",

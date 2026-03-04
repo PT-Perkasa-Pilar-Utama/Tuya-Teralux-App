@@ -166,3 +166,42 @@ func TestMqttService_Subscribe(t *testing.T) {
 	err := s.Subscribe(topic, 0, handler)
 	assert.NoError(t, err)
 }
+
+func TestMqttService_Subscribe_Wildcard(t *testing.T) {
+	mockClient := new(MockMqttClient)
+	mockToken := new(MockToken)
+
+	s := &MqttService{
+		client: mockClient,
+		config: &utils.Config{},
+	}
+
+	handler := func(client mqtt.Client, msg mqtt.Message) {}
+
+	// Test with + wildcard
+	topic1 := "users/+/DEVELOPMENT/chat"
+	expectedTopic1 := "$share/sensio/users/+/DEVELOPMENT/chat"
+	mockToken.On("Wait").Return(true)
+	mockToken.On("Error").Return(nil)
+	mockClient.On("Subscribe", expectedTopic1, byte(0), mock.Anything).Return(mockToken)
+
+	err := s.Subscribe(topic1, 0, handler)
+	assert.NoError(t, err)
+
+	// Test with # wildcard
+	topic2 := "logs/#"
+	expectedTopic2 := "$share/sensio/logs/#"
+	mockClient.On("Subscribe", expectedTopic2, byte(0), mock.Anything).Return(mockToken)
+
+	err = s.Subscribe(topic2, 0, handler)
+	assert.NoError(t, err)
+
+	// Test with already shared topic (should not prepend again)
+	topic3 := "$share/othergroup/data/+"
+	mockClient.On("Subscribe", topic3, byte(0), mock.Anything).Return(mockToken)
+
+	err = s.Subscribe(topic3, 0, handler)
+	assert.NoError(t, err)
+
+	mockClient.AssertExpectations(t)
+}

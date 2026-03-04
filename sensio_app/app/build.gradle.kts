@@ -77,6 +77,11 @@ android {
         )
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
         buildConfigField("String", "BASE_HOSTNAME", "\"$baseHostname\"")
+        buildConfigField(
+            "String",
+            "APPLICATION_ENVIRONMENT",
+            "\"${localProperties.getProperty("mqtt.application_environment") ?: "DEVELOPMENT"}\""
+        )
     }
 }
 
