@@ -24,6 +24,69 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/big/device/{mac_address}": {
+            "get": {
+                "description": "Fetches specific device information including booking_id, time_start, and time_stop directly from the Big API.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "01. Common"
+                ],
+                "summary": "Fetch device and booking info by MAC address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "MAC Address",
+                        "name": "mac_address",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/cache/flush": {
             "delete": {
                 "security": [
@@ -2408,6 +2471,9 @@ const docTemplate = `{
                     "type": "string",
                     "example": "completed"
                 },
+                "terminal_id": {
+                    "type": "string"
+                },
                 "trigger": {
                     "type": "string",
                     "example": "/api/speech/models/gemini"
@@ -2563,6 +2629,9 @@ const docTemplate = `{
                 "language": {
                     "type": "string"
                 },
+                "mac_address": {
+                    "type": "string"
+                },
                 "text": {
                     "type": "string"
                 }
@@ -2597,6 +2666,9 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "mac_address": {
+                    "type": "string"
                 },
                 "method": {
                     "type": "string"

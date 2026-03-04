@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"sensio/domain/common/utils"
@@ -49,18 +50,28 @@ func (s *MqttService) Connect() error {
 	return nil
 }
 
-// Subscribe subscribes to a topic
+// Subscribe subscribes to a topic. If the topic contains wildcards (+ or #), it uses Shared Subscription with group 'sensio'.
 func (s *MqttService) Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error {
-	if token := s.client.Subscribe(topic, qos, handler); token.Wait() && token.Error() != nil {
+	modifiedTopic := topic
+	if (strings.Contains(topic, "+") || strings.Contains(topic, "#")) && !strings.HasPrefix(topic, "$share/") {
+		modifiedTopic = "$share/sensio/" + topic
+	}
+
+	if token := s.client.Subscribe(modifiedTopic, qos, handler); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
-	utils.LogDebug("Subscribed to MQTT topic: %s", topic)
+	utils.LogDebug("Subscribed to MQTT topic: %s", modifiedTopic)
 	return nil
 }
 
-// Unsubscribe unsubscribes from a topic
+// Unsubscribe unsubscribes from a topic. Handles shared subscription topics automatically.
 func (s *MqttService) Unsubscribe(topic string) error {
-	if token := s.client.Unsubscribe(topic); token.Wait() && token.Error() != nil {
+	modifiedTopic := topic
+	if (strings.Contains(topic, "+") || strings.Contains(topic, "#")) && !strings.HasPrefix(topic, "$share/") {
+		modifiedTopic = "$share/sensio/" + topic
+	}
+
+	if token := s.client.Unsubscribe(modifiedTopic); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
 	return nil

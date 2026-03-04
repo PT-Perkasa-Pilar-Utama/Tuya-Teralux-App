@@ -108,13 +108,14 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 			Source:           "OpenAI",
 		}, nil)
 
-		mockMqtt.On("Publish", "users/TLX001/chat", byte(0), false, mock.Anything).Return(nil)
+		mockMqtt.On("Publish", "users/TLX001/DEVELOPMENT/chat", byte(0), false, mock.Anything).Return(nil)
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
-		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, &utils.Config{}, mockMqtt)
+		config := &utils.Config{ApplicationEnvironment: "DEVELOPMENT"}
+		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, config, mockMqtt)
 		_, _ = uc.TranscribeAudio(audioFile, "test.wav", "id", usecases.TranscriptionMetadata{
 			Source:     "mqtt",
 			TerminalID: "TLX001",
@@ -122,6 +123,6 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		})
 
 		time.Sleep(50 * time.Millisecond)
-		mockMqtt.AssertCalled(t, "Publish", "users/TLX001/chat", byte(0), false, mock.Anything)
+		mockMqtt.AssertCalled(t, "Publish", "users/TLX001/DEVELOPMENT/chat", byte(0), false, mock.Anything)
 	})
 }
