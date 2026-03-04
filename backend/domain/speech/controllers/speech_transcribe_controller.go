@@ -47,7 +47,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 		return
 	}
 
-	topic := "users/+/whisper"
+	topic := fmt.Sprintf("users/+/%s/whisper", c.config.ApplicationEnvironment)
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		if len(payload) == 0 {
@@ -154,7 +154,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 	})
 
 	// Subscribe to general task signaling as well
-	taskTopic := "users/+/task"
+	taskTopic := fmt.Sprintf("users/+/%s/task", c.config.ApplicationEnvironment)
 	_ = c.mqttSvc.Subscribe(taskTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		utils.LogInfo("Task Signaling MQTT: Received message on %s: %s", msg.Topic(), string(payload))
@@ -187,8 +187,8 @@ func (c *SpeechTranscribeController) publishMqttResponse(mac string, resp dtos.S
 	if c.mqttSvc == nil {
 		return
 	}
-	// Response topic matches device ACL: users/MAC/whisper/answer
-	respTopic := fmt.Sprintf("users/%s/whisper/answer", mac)
+	// Response topic matches device ACL: users/MAC/env/whisper/answer
+	respTopic := fmt.Sprintf("users/%s/%s/whisper/answer", mac, c.config.ApplicationEnvironment)
 	respData, _ := json.Marshal(resp)
 	if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 		utils.LogError("SpeechTranscribe MQTT: Failed to publish response: %v", err)

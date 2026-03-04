@@ -5,7 +5,6 @@ import (
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
-	mailServices "sensio/domain/mail/services"
 	"sensio/domain/rag/controllers"
 	ragdtos "sensio/domain/rag/dtos"
 	"sensio/domain/rag/routes"
@@ -70,8 +69,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 
 	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
 	pdfRenderer := services.NewHTMLSummaryPDFRenderer()
-	mailExternalService := mailServices.NewMailExternalService()
-	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, mailExternalService, mqttSvc)
+	bigExternalService := commonServices.NewBigExternalService()
+	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, bigExternalService, mqttSvc)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
 	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, orchestrator)

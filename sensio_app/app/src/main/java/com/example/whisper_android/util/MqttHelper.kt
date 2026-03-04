@@ -41,7 +41,8 @@ class MqttHelper(
 
     fun getTaskTopic(): String? {
         val username = getUsername()
-        return "users/$username/task"
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        return "users/$username/$env/task"
     }
 
     enum class MqttConnectionStatus {
@@ -116,10 +117,11 @@ class MqttHelper(
                         Log.d(tag, "Success Connected to $serverUri")
 
                         val username = getUsername()
-                        subscribe("users/$username/chat/answer")
-                        subscribe("users/$username/whisper/answer")
-                        subscribe("users/$username/task")
-                        subscribe("users/$username/chat")
+                        val env = BuildConfig.APPLICATION_ENVIRONMENT
+                        subscribe("users/$username/$env/chat/answer")
+                        subscribe("users/$username/$env/whisper/answer")
+                        subscribe("users/$username/$env/task")
+                        subscribe("users/$username/$env/chat")
                         onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTED)
                     }
 
@@ -195,7 +197,8 @@ class MqttHelper(
             }
             """.trimIndent()
         val username = getUsername()
-        publish("users/$username/whisper", json.toByteArray())
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        publish("users/$username/$env/whisper", json.toByteArray())
     }
 
     fun publishChat(
@@ -212,13 +215,15 @@ class MqttHelper(
             }
             """.trimIndent()
         val username = getUsername()
-        publish("users/$username/chat", json.toByteArray())
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        publish("users/$username/$env/chat", json.toByteArray())
     }
 
     fun publishTaskMessage(event: String, task: String) {
         val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
         val json = """{"event": "$event", "task": "$task"}"""
-        publish("users/$username/task", json.toByteArray())
+        publish("users/$username/$env/task", json.toByteArray())
     }
 
     private fun publish(

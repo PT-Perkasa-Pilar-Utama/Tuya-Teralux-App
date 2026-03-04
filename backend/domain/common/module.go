@@ -5,6 +5,7 @@ import (
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/routes"
+	"sensio/domain/common/services"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -13,19 +14,22 @@ import (
 
 // CommonModule encapsulates common domain components
 type CommonModule struct {
-	HealthController *controllers.HealthController
-	CacheController  *controllers.CacheController
-	DocsController   *controllers.DocsController
-	MqttService      *infrastructure.MqttService
+	HealthController      *controllers.HealthController
+	CacheController       *controllers.CacheController
+	DocsController        *controllers.DocsController
+	MqttService           *infrastructure.MqttService
+	BigExternalController *controllers.BigExternalController
 }
 
 // NewCommonModule initializes the common domain components
 func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService) *CommonModule {
+	bigSvc := services.NewBigExternalService()
 	return &CommonModule{
-		HealthController: controllers.NewHealthController(),
-		CacheController:  controllers.NewCacheController(badger, vector),
-		DocsController:   controllers.NewDocsController(),
-		MqttService:      mqttSvc,
+		HealthController:      controllers.NewHealthController(),
+		CacheController:       controllers.NewCacheController(badger, vector),
+		DocsController:        controllers.NewDocsController(),
+		MqttService:           mqttSvc,
+		BigExternalController: controllers.NewBigExternalController(bigSvc),
 	}
 }
 
@@ -57,4 +61,5 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)
+	routes.SetupBigExternalRoutes(protected, m.BigExternalController)
 }
