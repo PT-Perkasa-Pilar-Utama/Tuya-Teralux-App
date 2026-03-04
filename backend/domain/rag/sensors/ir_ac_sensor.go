@@ -67,7 +67,12 @@ func (s *IRACsensor) prepareACParams(isOff bool, promptLower string, history []s
 
 	// 2. Search in history for missing values
 	if !tempFound || !modeFound || !windFound {
-		for i := len(history) - 1; i >= 0 && i >= len(history)-3; i-- {
+		for i := len(history) - 1; i >= 0 && i >= len(history)-6; i-- {
+			// Skip assistant messages to avoid context poisoning from its own descriptions (e.g., "kecepatan", "otomatis")
+			if strings.HasPrefix(history[i], "Assistant:") {
+				continue
+			}
+
 			hLower := strings.ToLower(history[i])
 			if !tempFound {
 				if hTemp, found := s.parseTemperature(hLower); found {
@@ -90,6 +95,18 @@ func (s *IRACsensor) prepareACParams(isOff bool, promptLower string, history []s
 					utils.LogDebug("IRACsensor: Inherited wind %d from history", wind)
 				}
 			}
+		}
+	}
+
+	// Override inherited mode if user explicitly provides temperature in the prompt
+	// but the inherited mode (from history) does not support manual temperature.
+	_, tempInPrompt := s.parseTemperature(promptLower)
+	_, modeInPrompt := s.parseMode(promptLower)
+
+	if tempInPrompt && !modeInPrompt && modeFound {
+		if mode == 2 || mode == 3 || mode == 4 { // Auto, Wind, Humidity
+			mode = 0 // Override to Cool
+			utils.LogDebug("IRACsensor: Explicit temperature requested, overriding inherited mode to %d (Cool)", mode)
 		}
 	}
 
@@ -212,7 +229,8 @@ func (s *IRACsensor) parseFanSpeed(promptLower string) (int, bool) {
 	if strings.Contains(promptLower, "medium") || strings.Contains(promptLower, "sedang") {
 		return 2, true
 	}
-	if strings.Contains(promptLower, "high") || strings.Contains(promptLower, "kencang") || strings.Contains(promptLower, "cepat") || strings.Contains(promptLower, "besar") {
+	// Note: avoided "cepat" as it matches "kecepatan", which causes false positives for High speed
+	if strings.Contains(promptLower, "high") || strings.Contains(promptLower, "kencang") || strings.Contains(promptLower, "maksimal") || strings.Contains(promptLower, "besar") {
 		return 3, true
 	}
 	if strings.Contains(promptLower, "auto") || strings.Contains(promptLower, "otomatis") {

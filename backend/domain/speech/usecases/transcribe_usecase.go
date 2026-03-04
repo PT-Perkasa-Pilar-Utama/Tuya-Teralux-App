@@ -95,7 +95,10 @@ func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, 
 	uc.store.Set(taskID, status)
 	_ = uc.cache.Set(taskID, status)
 
-	utils.LogInfo("Transcribe: Started task %s for file %s", taskID, fileName)
+	// Mark terminal as actively transcribing if applicable
+	if meta != nil && meta.TerminalID != "" && meta.Source == "mqtt" {
+		utils.ActiveTranscriptions.Store(meta.TerminalID, true)
+	}
 
 	go uc.processAsync(taskID, inputPath, language, meta)
 
@@ -104,6 +107,9 @@ func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, 
 
 func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLanguage string, metadata *TranscriptionMetadata) {
 	defer func() {
+		if metadata != nil && metadata.TerminalID != "" && metadata.Source == "mqtt" {
+			utils.ActiveTranscriptions.Delete(metadata.TerminalID)
+		}
 		if r := recover(); r != nil {
 			utils.LogError("Transcribe Task %s: Panic recovered: %v", taskID, r)
 			uc.updateStatus(taskID, "failed", nil, fmt.Errorf("internal panic: %v", r))

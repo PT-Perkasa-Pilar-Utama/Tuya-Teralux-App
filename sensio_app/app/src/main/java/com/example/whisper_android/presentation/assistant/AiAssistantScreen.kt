@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,33 +18,26 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -64,12 +58,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.whisper_android.presentation.components.FeatureBackground
-import com.example.whisper_android.presentation.components.FeatureMainCard
+import com.example.whisper_android.presentation.components.SensioFeatureLayout
 import com.example.whisper_android.presentation.components.TranscriptionMessage
 import com.example.whisper_android.util.MqttHelper
 import java.io.File
 import kotlinx.coroutines.delay
+import com.example.whisper_android.presentation.components.LanguagePillToggle
+import com.example.whisper_android.presentation.components.MqttStatusBadge
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,155 +158,80 @@ fun AiAssistantScreen(
         }
     }
 
-    FeatureBackground {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets.systemBars, // Handle status and navigation bars
-            topBar = {
-                // Customized TopAppBar instead of FeatureHeader for better Android look
-                @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-                androidx.compose.material3.CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            "Sensio Intelligence",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
-                    actions = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            // Language Switcher
-                            Row(
-                                modifier =
-                                Modifier
-                                    .padding(end = 8.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        RoundedCornerShape(20.dp)
-                                    ).padding(2.dp),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                listOf("id", "en").forEach { lang ->
-                                    val isSelected = viewModel.selectedLanguage == lang
-                                    Surface(
-                                        onClick = { viewModel.selectLanguage(lang) },
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            Color.Transparent
-                                        },
-                                        modifier = Modifier.size(width = 36.dp, height = 24.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = lang.uppercase(),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) {
-                                                    Color.White
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+    SensioFeatureLayout(
+        title = "Sensio Intelligence",
+        onNavigateBack = onNavigateBack,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        headerActions = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                LanguagePillToggle(
+                    selectedLanguage = viewModel.selectedLanguage,
+                    onLanguageSelected = { viewModel.selectLanguage(it) }
+                )
 
-                            MqttStatusBadge(
-                                status = viewModel.mqttStatus,
-                                onReconnectClick = { viewModel.reconnectMqtt() }
-                            )
-                        }
-                    },
-                    colors =
-                    TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
-                    )
+                MqttStatusBadge(
+                    status = viewModel.mqttStatus,
+                    onReconnectClick = { viewModel.reconnectMqtt() }
                 )
             }
-        ) { padding ->
-            Column(
+        },
+        bottomContent = {
+            Box(
                 modifier =
                 Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 4.dp, vertical = 0.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                FeatureMainCard(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (transcriptionResults.isEmpty() && !isProcessing) {
-                        EmptyAssistantState(
-                            isProcessing = isProcessing,
-                            enabled = isMqttOnline,
-                            onSuggestedAction = { prompt ->
-                                viewModel.sendChat(prompt)
-                            }
-                        )
-                    } else {
-                        ConversationList(
-                            scrollState = scrollState,
-                            messages = transcriptionResults,
-                            isProcessing = isProcessing
-                        )
-                    }
-                }
-
-                Box(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AssistantInputPill(
-                        inputValue = userInput,
-                        onValueChange = { userInput = it },
-                        isRecording = isRecording,
-                        isProcessing = isProcessing,
-                        hasPermission = hasPermission,
-                        onMicClick = {
-                            if (!hasPermission) {
-                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            } else if (!isRecording && !isProcessing) {
-                                viewModel.startRecording(File(context.cacheDir, "recording.wav"))
-                            }
-                        },
-                        onStopClick = {
-                            if (isRecording) {
-                                viewModel.stopRecording()
-                            } else if (isProcessing) {
-                                viewModel.abortProcessing()
-                            }
-                        },
-                        onSendClick = {
-                            if (userInput.isNotBlank()) {
-                                viewModel.sendChat(userInput)
-                                userInput = ""
-                            }
-                        },
-                        enabled = isMqttOnline
-                    )
-                }
+                AssistantInputPill(
+                    inputValue = userInput,
+                    onValueChange = { userInput = it },
+                    isRecording = isRecording,
+                    isProcessing = isProcessing,
+                    hasPermission = hasPermission,
+                    onMicClick = {
+                        if (!hasPermission) {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else if (!isRecording && !isProcessing) {
+                            viewModel.startRecording(File(context.cacheDir, "recording.wav"))
+                        }
+                    },
+                    onStopClick = {
+                        if (isRecording) {
+                            viewModel.stopRecording()
+                        } else if (isProcessing) {
+                            viewModel.abortProcessing()
+                        }
+                    },
+                    onSendClick = {
+                        if (userInput.isNotBlank()) {
+                            viewModel.sendChat(userInput)
+                            userInput = ""
+                        }
+                    },
+                    enabled = isMqttOnline
+                )
             }
+        }
+    ) {
+        if (transcriptionResults.isEmpty() && !isProcessing) {
+            EmptyAssistantState(
+                isProcessing = isProcessing,
+                enabled = isMqttOnline,
+                onSuggestedAction = { prompt ->
+                    viewModel.sendChat(prompt)
+                }
+            )
+        } else {
+            ConversationList(
+                scrollState = scrollState,
+                messages = transcriptionResults,
+                isProcessing = isProcessing
+            )
         }
     }
 }
@@ -462,66 +382,4 @@ private fun ConversationList(
     }
 }
 
-@Composable
-private fun MqttStatusBadge(
-    status: MqttHelper.MqttConnectionStatus,
-    onReconnectClick: () -> Unit = {}
-) {
-    val isError = status == MqttHelper.MqttConnectionStatus.DISCONNECTED ||
-        status == MqttHelper.MqttConnectionStatus.FAILED
-
-    val color =
-        when (status) {
-            MqttHelper.MqttConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
-            MqttHelper.MqttConnectionStatus.CONNECTING -> Color(0xFFFFC107)
-            MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(0xFFF44336)
-            MqttHelper.MqttConnectionStatus.FAILED -> Color(0xFFD32F2F)
-        }
-
-    val text =
-        when (status) {
-            MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
-            MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
-            MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
-            MqttHelper.MqttConnectionStatus.FAILED -> "Error"
-        }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-        Modifier
-            .padding(start = 4.dp)
-            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-            .then(
-                if (isError) {
-                    Modifier.clickable { onReconnectClick() }
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Box(
-            modifier =
-            Modifier
-                .size(8.dp)
-                .background(color, androidx.compose.foundation.shape.CircleShape)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        if (isError) {
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
-                contentDescription = "Reconnect",
-                tint = color,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-    }
-}
+// Removed duplicate MqttStatusBadge (moved to MqttStatusBadge.kt)

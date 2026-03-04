@@ -9,20 +9,30 @@ import (
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/usecases"
 	"strings"
+	"sync"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type RAGChatController struct {
-	chatUC  usecases.ChatUseCase
-	mqttSvc *infrastructure.MqttService
+	chatUC         usecases.ChatUseCase
+	mqttSvc        *infrastructure.MqttService
+	lastPrompt     map[string]string    // terminalID -> lastPrompt (deduplication)
+	lastPromptTime map[string]time.Time // terminalID -> lastTime
+	instanceID     string               // server start time identifier
+	mu             sync.Mutex
 }
 
 func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService) *RAGChatController {
 	return &RAGChatController{
-		chatUC:  chatUC,
-		mqttSvc: mqttSvc,
+		chatUC:         chatUC,
+		mqttSvc:        mqttSvc,
+		lastPrompt:     make(map[string]string),
+		lastPromptTime: make(map[string]time.Time),
+		instanceID:     time.Now().Format("2006-01-02 15:04:05"),
 	}
 }
 
@@ -73,43 +83,103 @@ func (c *RAGChatController) StartMqttSubscription() {
 			return
 		}
 
-		// Process chat
-		uid := req.UID
-		if uid == "" {
-			uid = utils.GetConfig().TuyaUserID
-		}
+		// Debounce: if the Tuya terminal sent BOTH an audio file (whisper) AND text (chat) simultaneously,
+		// we run the chat processing in a goroutine with a start delay. This prevents blocking the MQTT
+		// client thread and gives the whisper handler enough time to download audio and set the active flag.
+		go func(mac string, req dtos.RAGChatRequestDTO) {
+			if mac != "" || req.TerminalID != "" {
+				time.Sleep(500 * time.Millisecond)
 
-		utils.LogInfo("RAGChat MQTT: Starting chat process for UID: %s, Prompt: '%s'", uid, req.Prompt)
-		res, err := c.chatUC.Chat(uid, req.TerminalID, req.Prompt, req.Language)
-		if err != nil {
-			utils.LogError("RAGChat MQTT: Chat processing failed: %v", err)
+				// 1. Check if Whisper is active (using both MAC from topic and TerminalID from payload)
+				isWhisperActive := false
+				if mac != "" {
+					if _, active := utils.ActiveTranscriptions.Load(mac); active {
+						isWhisperActive = true
+					}
+				}
+				if !isWhisperActive && req.TerminalID != "" {
+					if _, active := utils.ActiveTranscriptions.Load(req.TerminalID); active {
+						isWhisperActive = true
+					}
+				}
+
+				if isWhisperActive {
+					utils.LogInfo("RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s", mac, req.TerminalID)
+					return
+				}
+
+				// 2. Exact Deduplication (prevent processing the SAME prompt 3x)
+				c.mu.Lock()
+				terminalKey := req.TerminalID
+				if terminalKey == "" {
+					terminalKey = mac
+				}
+				last := c.lastPrompt[terminalKey]
+				lastTime := c.lastPromptTime[terminalKey]
+				now := time.Now()
+
+				// If prompt is exactly same as last one and happened < 3 seconds ago, drop it.
+				if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
+					c.mu.Unlock()
+					utils.LogInfo("RAGChat MQTT: Dropping duplicate prompt for %s: '%s'", terminalKey, req.Prompt)
+					return
+				}
+
+				// Update cache
+				c.lastPrompt[terminalKey] = req.Prompt
+				c.lastPromptTime[terminalKey] = now
+				c.mu.Unlock()
+			}
+
+			// Process chat
+			requestID := uuid.New().String()
+			uid := req.UID
+			if uid == "" {
+				uid = utils.GetConfig().TuyaUserID
+			}
+
+			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
+			res, err := c.chatUC.Chat(uid, req.TerminalID, req.Prompt, req.Language)
+			if err != nil {
+				utils.LogError("[%s] RAGChat MQTT: Chat processing failed: %v", requestID, err)
+				if mac != "" {
+					respTopic := fmt.Sprintf("users/%s/chat/answer", mac)
+					respData, _ := json.Marshal(dtos.StandardResponse{
+						Status:  false,
+						Message: "Internal Server Error",
+					})
+					if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
+						utils.LogError("[%s] RAGChat MQTT: Failed to publish internal error response: %v", requestID, err)
+					}
+				}
+				return
+			}
+
+			// Add tracking metadata to response
+			res.RequestID = requestID
+			res.Source = "MQTT_SUBSCRIBER"
+			res.InstanceID = c.instanceID
+
+			// Publish result back
 			if mac != "" {
 				respTopic := fmt.Sprintf("users/%s/chat/answer", mac)
-				respData, _ := json.Marshal(dtos.StandardResponse{
-					Status:  false,
-					Message: "Internal Server Error",
-				})
+				// Use req.TerminalID if mac from topic is generic (security/consistency check)
+				if mac != req.TerminalID && req.TerminalID != "" {
+					utils.LogDebug("[%s] [Instance: %s] RAGChat MQTT: Response topic override check: TopicMAC=%s, PayloadID=%s", requestID, c.instanceID, mac, req.TerminalID)
+				}
+
+				resp := dtos.StandardResponse{
+					Status:  true,
+					Message: "Chat processed successfully",
+					Data:    res,
+				}
+				respData, _ := json.Marshal(resp)
+				utils.LogInfo("[%s] [Instance: %s] RAGChat MQTT [Handler: StartMqttSubscription]: Publishing answer to %s. Response: %s", requestID, c.instanceID, respTopic, res.Response)
 				if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-					utils.LogError("RAGChat MQTT: Failed to publish internal error response: %v", err)
+					utils.LogError("[%s] RAGChat MQTT: Failed to publish chat response: %v", requestID, err)
 				}
 			}
-			return
-		}
-
-		// Publish result back
-		if mac != "" {
-			respTopic := fmt.Sprintf("users/%s/chat/answer", mac)
-			resp := dtos.StandardResponse{
-				Status:  true,
-				Message: "Chat processed successfully",
-				Data:    res,
-			}
-			respData, _ := json.Marshal(resp)
-			utils.LogInfo("RAGChat MQTT: Publishing answer to %s. Response: %s", respTopic, res.Response)
-			if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-				utils.LogError("RAGChat MQTT: Failed to publish chat response: %v", err)
-			}
-		}
+		}(mac, req)
 	})
 
 	// Subscribe to general task signaling
@@ -155,15 +225,46 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		uidStr = uid.(string)
 	}
 
+	// Apply deduplication to HTTP path as well
+	c.mu.Lock()
+	terminalKey := req.TerminalID
+	last := c.lastPrompt[terminalKey]
+	lastTime := c.lastPromptTime[terminalKey]
+	now := time.Now()
+
+	if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
+		c.mu.Unlock()
+		utils.LogInfo("RAGChat HTTP: Dropping duplicate prompt for %s (from HTTP): '%s'", terminalKey, req.Prompt)
+		// Return previous success but don't re-process
+		ctx.JSON(http.StatusOK, dtos.StandardResponse{
+			Status:  true,
+			Message: "Chat request received (duplicate dropped)",
+		})
+		return
+	}
+
+	// Update cache
+	c.lastPrompt[terminalKey] = req.Prompt
+	c.lastPromptTime[terminalKey] = now
+	c.mu.Unlock()
+
+	requestID := uuid.New().String()
+	utils.LogInfo("[%s] RAGChat HTTP [Handler: Chat]: Starting chat process for UID: %s, Terminal: %s, Prompt: '%s'", requestID, uidStr, req.TerminalID, req.Prompt)
+
 	res, err := c.chatUC.Chat(uidStr, req.TerminalID, req.Prompt, req.Language)
 	if err != nil {
-		utils.LogError("RAGChatController.Chat: %v", err)
+		utils.LogError("[%s] RAGChatController.Chat: %v", requestID, err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
 		return
 	}
+
+	// Add tracking metadata
+	res.Source = "HTTP_HANDLER"
+	res.RequestID = requestID
+	res.InstanceID = c.instanceID
 
 	// For control commands, check status code
 	// 400 (ambiguity) is a valid response requiring clarification, not an error
@@ -190,8 +291,9 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		// Using req.TerminalID as the identifier for MQTT response topic
 		respTopic := fmt.Sprintf("users/%s/chat/answer", req.TerminalID)
 		respData, _ := json.Marshal(resp)
+		utils.LogInfo("[%s] [Instance: %s] RAGChat HTTP [Handler: Chat]: Publishing answer to %s. Response: %s", requestID, c.instanceID, respTopic, res.Response)
 		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-			utils.LogError("RAGChatController.Chat: Failed to publish to MQTT: %v", err)
+			utils.LogError("[%s] RAGChatController.Chat: Failed to publish to MQTT: %v", requestID, err)
 		}
 	}
 
