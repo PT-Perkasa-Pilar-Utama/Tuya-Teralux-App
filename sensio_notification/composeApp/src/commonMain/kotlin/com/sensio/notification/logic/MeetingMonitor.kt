@@ -8,7 +8,7 @@ import kotlin.time.Duration.Companion.minutes
 
 class MeetingMonitor(
     private var activeSession: MeetingSession?,
-    private val reminderOffset: Duration = 5.minutes,
+    private val reminderOffset: Duration = 10.minutes,
 ) {
     fun updateSession(session: MeetingSession?) {
         activeSession = session
@@ -23,8 +23,8 @@ class MeetingMonitor(
 
         if (timeUntilEnd <= reminderOffset && timeUntilEnd > Duration.ZERO) {
             showNotification(
-                title = "Meeting Ending Soon",
-                message = "${session.title} will end in ${timeUntilEnd.inWholeMinutes} min",
+                title = "Sensio Notification",
+                message = "You have 10 minutes remaining",
             )
             session.reminderTriggered = true
         }

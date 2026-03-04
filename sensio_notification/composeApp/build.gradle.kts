@@ -48,7 +48,6 @@ kotlin {
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(compose.materialIconsExtended)
         }
     }
 }
@@ -56,6 +55,7 @@ kotlin {
 android {
     namespace = "com.sensio.notification"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    buildToolsVersion = "35.0.0"
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
