@@ -135,12 +135,21 @@ Response:`, ctx.Prompt, historyContext, strings.Join(deviceList, "\n"))
 		var finalMessages []string
 		var lastStatus int = 200
 		executedCount := 0
+		executedDevices := make(map[string]bool)
 
 		for _, match := range matches {
 			if len(match) < 2 {
 				continue
 			}
 			deviceID := match[1]
+
+			// Deduplicate execution to prevent hitting Tuya API multiple times
+			// for the same device in a single workflow.
+			if executedDevices[deviceID] {
+				continue
+			}
+			executedDevices[deviceID] = true
+
 			var targetDevice *tuyaDtos.TuyaDeviceDTO
 			for _, d := range devices {
 				if d.ID == deviceID {

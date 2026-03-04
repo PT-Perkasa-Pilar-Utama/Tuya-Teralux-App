@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisper_android.domain.usecase.MeetingProcessState
+import com.example.whisper_android.presentation.components.MqttStatusBadge
 import com.example.whisper_android.presentation.components.UiState
 
 @Composable
@@ -149,74 +150,4 @@ fun MeetingHeaderControls(
     }
 }
 
-@Composable
-fun MqttStatusBadge(
-    status: com.example.whisper_android.util.MqttHelper.MqttConnectionStatus,
-    onReconnectClick: () -> Unit = {}
-) {
-    val isError = status == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED ||
-        status == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED
-
-    val color =
-        when (status) {
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> Color(
-                0xFF4CAF50
-            )
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> Color(
-                0xFFFFC107
-            )
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> Color(
-                0xFFF44336
-            )
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> Color(
-                0xFFD32F2F
-            )
-        }
-
-    val text =
-        when (status) {
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED -> "Online"
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING -> "Connecting"
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> "Offline"
-            com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.FAILED -> "Error"
-        }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-        Modifier
-            .padding(start = 4.dp)
-            .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-            .then(
-                if (isError) {
-                    Modifier.clickable { onReconnectClick() }
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Box(
-            modifier =
-            Modifier
-                .size(8.dp)
-                .background(color, CircleShape)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        if (isError) {
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Reconnect",
-                tint = color,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-    }
-}
+// Removed duplicate MqttStatusBadge

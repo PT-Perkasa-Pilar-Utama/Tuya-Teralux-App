@@ -48,7 +48,8 @@ class MqttHelper(
         DISCONNECTED,
         CONNECTING,
         CONNECTED,
-        FAILED
+        FAILED,
+        NO_INTERNET
     }
 
     init {
@@ -74,8 +75,21 @@ class MqttHelper(
         )
     }
 
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
     fun connect(password: String) {
         if (mqttAndroidClient.isConnected) return
+
+        if (!isNetworkAvailable()) {
+            Log.w(tag, "No internet connection available. Skipping MQTT connect.")
+            onConnectionStatusChanged?.invoke(MqttConnectionStatus.NO_INTERNET)
+            return
+        }
 
         val username = getUsername()
 
@@ -115,7 +129,14 @@ class MqttHelper(
                     ) {
                         Log.w(tag, "Failed to connect to: $serverUri")
                         exception.printStackTrace()
-                        onConnectionStatusChanged?.invoke(MqttConnectionStatus.FAILED)
+                        
+                        val status = if (exception is java.net.UnknownHostException || 
+                            exception.cause is java.net.UnknownHostException) {
+                            MqttConnectionStatus.NO_INTERNET
+                        } else {
+                            MqttConnectionStatus.FAILED
+                        }
+                        onConnectionStatusChanged?.invoke(status)
                     }
                 }
             )
