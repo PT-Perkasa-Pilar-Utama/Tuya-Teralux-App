@@ -12,12 +12,13 @@ import (
 // These are loaded from environment variables or a .env file.
 type Config struct {
 	// Tuya / general
-	TuyaClientID     string
-	TuyaClientSecret string
-	TuyaBaseURL      string
-	TuyaUserID       string
-	ApiKey           string
-	CacheTTL         string
+	TuyaClientID           string
+	TuyaClientSecret       string
+	TuyaBaseURL            string
+	TuyaUserID             string
+	ApiKey                 string
+	CacheTTL               string
+	ApplicationEnvironment string
 
 	// Speech / RAG
 	// LLM
@@ -54,12 +55,12 @@ type Config struct {
 	Port                string
 
 	// MQTT
-	MqttBroker              string
-	MqttUsername            string
-	MqttPassword            string
-	MqttPassEncryptionKey   string
-	EmqxAuthBaseURL         string
-	EmqxAuthApiKey          string
+	MqttBroker            string
+	MqttUsername          string
+	MqttPassword          string
+	MqttPassEncryptionKey string
+	EmqxAuthBaseURL       string
+	EmqxAuthApiKey        string
 
 	// SMTP
 	SMTPHost     string
@@ -132,14 +133,15 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		TuyaClientID:     os.Getenv("TUYA_CLIENT_ID"),
-		TuyaClientSecret: os.Getenv("TUYA_ACCESS_SECRET"),
-		TuyaBaseURL:      os.Getenv("TUYA_BASE_URL"),
-		TuyaUserID:       os.Getenv("TUYA_USER_ID"),
-		ApiKey:           os.Getenv("API_KEY"),
-		JWTSecret:        os.Getenv("JWT_SECRET"),
-		LogLevel:         os.Getenv("LOG_LEVEL"),
-		LLMProvider:      os.Getenv("LLM_PROVIDER"),
+		TuyaClientID:           os.Getenv("TUYA_CLIENT_ID"),
+		TuyaClientSecret:       os.Getenv("TUYA_ACCESS_SECRET"),
+		TuyaBaseURL:            os.Getenv("TUYA_BASE_URL"),
+		TuyaUserID:             os.Getenv("TUYA_USER_ID"),
+		ApiKey:                 os.Getenv("API_KEY"),
+		JWTSecret:              os.Getenv("JWT_SECRET"),
+		LogLevel:               os.Getenv("LOG_LEVEL"),
+		ApplicationEnvironment: os.Getenv("APPLICATION_ENVIRONMENT"),
+		LLMProvider:            os.Getenv("LLM_PROVIDER"),
 
 		GeminiApiKey:       os.Getenv("GEMINI_API_KEY"),
 		GeminiModelHigh:    os.Getenv("GEMINI_MODEL_HIGH"),
@@ -166,12 +168,12 @@ func LoadConfig() {
 		MaxFileSize:         maxFileSize,
 		Port:                os.Getenv("PORT"),
 
-		MqttBroker:              os.Getenv("MQTT_BROKER"),
-		MqttUsername:            os.Getenv("MQTT_USERNAME"),
-		MqttPassword:            os.Getenv("MQTT_PASSWORD"),
-		MqttPassEncryptionKey:   os.Getenv("MQTT_PASS_ENCRYPTION_KEY"),
-		EmqxAuthBaseURL:         os.Getenv("EMQX_AUTH_BASE_URL"),
-		EmqxAuthApiKey:          os.Getenv("EMQX_AUTH_API_KEY"),
+		MqttBroker:            os.Getenv("MQTT_BROKER"),
+		MqttUsername:          os.Getenv("MQTT_USERNAME"),
+		MqttPassword:          os.Getenv("MQTT_PASSWORD"),
+		MqttPassEncryptionKey: os.Getenv("MQTT_PASS_ENCRYPTION_KEY"),
+		EmqxAuthBaseURL:       os.Getenv("EMQX_AUTH_BASE_URL"),
+		EmqxAuthApiKey:        os.Getenv("EMQX_AUTH_API_KEY"),
 
 		// SMTP
 		SMTPHost:     os.Getenv("SMTP_HOST"),
