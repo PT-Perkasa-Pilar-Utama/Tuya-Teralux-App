@@ -7,6 +7,7 @@ import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.presentation.components.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -32,8 +33,8 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     init {
         loadSummaries()
 
-        mqttHelper.onConnectionStatusChanged = { status ->
-            viewModelScope.launch {
+        viewModelScope.launch {
+            mqttHelper.connectionStatus.collect { status: com.example.whisper_android.util.MqttHelper.MqttConnectionStatus ->
                 _mqttStatus.value = status
             }
         }
@@ -42,6 +43,10 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
     fun reconnectMqtt() {
         viewModelScope.launch {
+            if (mqttHelper.connectionStatus.value == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED ||
+                mqttHelper.connectionStatus.value == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING) {
+                return@launch
+            }
             val username = com.example.whisper_android.util.DeviceUtils.getDeviceId(
                 getApplication()
             )
