@@ -11,6 +11,7 @@ import (
 	"sensio/domain/rag/routes"
 	"sensio/domain/rag/services"
 	"sensio/domain/rag/skills"
+	"sensio/domain/rag/skills/orchestrator"
 	"sensio/domain/rag/usecases"
 	tuyaUsecases "sensio/domain/tuya/usecases"
 
@@ -60,8 +61,24 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	if envPath := utils.FindEnvFile(); envPath != "" {
 		basePath = filepath.Dir(envPath)
 	}
+	// Initialize Specialized Orchestrators
+	baseOrch := orchestrator.NewBaseOrchestrator()
+	controlOrch := orchestrator.NewControlOrchestrator(tuyaExecutor, tuyaAuth)
+	summaryOrch := orchestrator.NewSummaryOrchestrator()
+
 	skillsDir := filepath.Join(basePath, "domain", "rag", "skills", "definitions")
-	if err := skills.LoadSkillsFromDirectory(skillsDir, skillRegistry, tuyaExecutor, tuyaAuth); err != nil {
+	orchestratorResolver := func(name string) skills.MarkdownOrchestrator {
+		switch name {
+		case "Control":
+			return controlOrch
+		case "Summary":
+			return summaryOrch
+		default:
+			return baseOrch
+		}
+	}
+
+	if err := skills.LoadSkillsFromDirectory(skillsDir, skillRegistry, orchestratorResolver); err != nil {
 		utils.LogError("RAG: Failed to load skills: %v", err)
 	}
 
@@ -75,13 +92,17 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	refineUC := usecases.NewRefineUseCase(llmClient, llamaService, cfg, refineSkill)
 	translateUC := usecases.NewTranslateUseCase(llmClient, llamaService, cfg, cache, store, mqttSvc, translateSkill)
 
-	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
+	// Initialize Guard Orchestrator
+	guardSkill, _ := skillRegistry.Get("Guard")
+	guardOrch := orchestrator.NewGuardOrchestrator(guardSkill)
+
+	router := orchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := services.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewBigExternalService()
 	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, bigExternalService, mqttSvc, summarySkill)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill)
-	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, orchestrator)
+	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, router)
 
 	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)
 	chatController.StartMqttSubscription()

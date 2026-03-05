@@ -64,6 +64,9 @@ android {
         val baseHostname = baseUrl.removePrefix("https://").removePrefix("http://").substringBefore(
             "/"
         )
+        val appName = localProperties.getProperty("app.name") ?: "Sensio"
+
+        resValue("string", "app_name", appName)
 
         buildConfigField(
             "String",

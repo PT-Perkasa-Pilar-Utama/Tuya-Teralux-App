@@ -81,26 +81,57 @@ class AiAssistantViewModel(
                                 }
                             }
 
+                            // Check if the response was blocked by the guard
+                            val isBlocked = if (json != null) {
+                                val data = if (json.has("data") && !json.get("data").isJsonNull) {
+                                    json.getAsJsonObject("data")
+                                } else {
+                                    null
+                                }
+                                data != null && data.has("is_blocked") && !data.get("is_blocked").isJsonNull && data.get("is_blocked").asBoolean
+                            } else {
+                                false
+                            }
+
+                            // ALWAYS stop active states when any answer arrives
+                            isProcessing = false
+                            android.util.Log.d("AiAssistantViewModel", "isProcessing set to false (answer received)")
+                            
+                            if (isBlocked) {
+                                // Remove BOTH the preemptively-added USER bubble 
+                                // and any sync USER bubble from previous prompt
+                                val userMessages = transcriptionResults.filter { it.role == MessageRole.USER }
+                                if (userMessages.isNotEmpty()) {
+                                    transcriptionResults = transcriptionResults.toMutableList().apply {
+                                        val lastUserIndex = indexOfLast { it.role == MessageRole.USER }
+                                        if (lastUserIndex >= 0) removeAt(lastUserIndex)
+                                    }
+                                }
+                                
+                                if (isRecording) {
+                                    stopRecording()
+                                }
+                                
+                                android.util.Log.d("AiAssistantViewModel", "Guard blocked prompt: $message, showing identity fallback")
+                            }
+                            
                             val isValidationError = json != null && json.has("message") && !json.get(
                                 "message"
                             ).isJsonNull && json.get("message").asString == "Validation Error"
 
                             val cleanMessage = when {
                                 isValidationError -> "Maaf, suara tidak terdengar dengan jelas. Silakan coba lagi."
-                                responseText != null -> parseMarkdownToText(responseText).trim().removeSurrounding(
-                                    "\""
-                                )
-                                else -> ""
+                                responseText != null && responseText.isNotBlank() -> parseMarkdownToText(responseText).trim().removeSurrounding("\"")
+                                isBlocked -> "Halo! Saya Sensio, asisten rumah pintar Anda. Ada yang bisa saya bantu?"
+                                else -> null
                             }
 
-                            if (cleanMessage.isNotBlank()) {
+                            if (cleanMessage != null) {
                                 transcriptionResults = transcriptionResults + TranscriptionMessage(
                                     text = cleanMessage,
                                     role = MessageRole.ASSISTANT
                                 )
                             }
-                            isProcessing = false
-                            android.util.Log.d("AiAssistantViewModel", "isProcessing set to false")
                         }
 
                         topic.endsWith("chat") -> {
@@ -151,6 +182,9 @@ class AiAssistantViewModel(
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("AiAssistantViewModel", "Error parsing MQTT message", e)
+                    // Robust reset on error
+                    isProcessing = false
+                    isRecording = false
                 }
             }
         }

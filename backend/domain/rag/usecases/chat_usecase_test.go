@@ -3,6 +3,7 @@ package usecases
 import (
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/skills"
+	"sensio/domain/rag/skills/orchestrator"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,9 +55,9 @@ func TestChatUseCase_Chat(t *testing.T) {
 	registry.Register(mockControlSkill)
 	registry.Register(mockIdentitySkill)
 
-	orchestrator := skills.NewOrchestrator(registry, nil)
+	router := orchestrator.NewRouter(registry, nil, nil)
 	cfg := &utils.Config{GeminiModelHigh: "test-model-chat"}
-	uc := NewChatUseCase(mockLLM, nil, cfg, nil, nil, orchestrator)
+	uc := NewChatUseCase(mockLLM, nil, cfg, nil, nil, router)
 	uid := "test-user"
 	terminalID := "terminal-1"
 

@@ -23,14 +23,9 @@ class GoogleSpeechWakeWordManager(
     // Similar keywords to Vosk to maintain consistency
     private val wakeWords = listOf(
         "hey sensio",
-        "sensio",
-        "sensyo",
-        "sensus",
-        "essence",
-        "hi sensio",
-        "since you",
-        "send you",
-        "jason show",
+        "hey senso",
+        "hey census",
+        "hey essence",
         "hey since you",
         "hey send you"
     )
