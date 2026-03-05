@@ -111,7 +111,6 @@ func (uc *CreateTerminalUseCase) CreateTerminal(req *dtos.CreateTerminalRequestD
 	// Generate UUID for the new terminal
 	id := uuid.New().String()
 
-	// MQTTUsername = MAC
 	mqttUsername := req.MacAddress
 	mqttPasswordPlain := strings.ReplaceAll(uuid.New().String(), "-", "")
 

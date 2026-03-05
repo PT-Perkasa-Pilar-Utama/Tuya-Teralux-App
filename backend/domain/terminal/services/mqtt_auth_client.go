@@ -62,7 +62,7 @@ func (c *MqttAuthClient) CreateMQTTUser(username, password string) (alreadyExist
 	if err != nil {
 		return false, fmt.Errorf("mqtt create request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode == http.StatusConflict {
 		return true, nil // Scenario C: already exists
@@ -89,7 +89,7 @@ func (c *MqttAuthClient) GetMQTTCredentials(username string) (*MQTTCredentials, 
 	if err != nil {
 		return nil, fmt.Errorf("mqtt credentials request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil // MQTT user not found
