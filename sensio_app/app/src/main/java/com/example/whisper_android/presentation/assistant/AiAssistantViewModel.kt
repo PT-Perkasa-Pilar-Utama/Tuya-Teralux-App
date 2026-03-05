@@ -12,6 +12,7 @@ import com.example.whisper_android.presentation.meeting.AudioRecorder
 import com.example.whisper_android.util.MqttHelper
 import com.example.whisper_android.util.parseMarkdownToText
 import java.io.File
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class AiAssistantViewModel(
@@ -80,20 +81,19 @@ class AiAssistantViewModel(
                                 }
                             }
 
-                            val isValidationError = json != null && json.has("message") && 
-                                !json.get("message").isJsonNull && 
-                                json.get("message").asString == "Validation Error"
+                            val isValidationError = json != null && json.has("message") && !json.get("message").isJsonNull && json.get("message").asString == "Validation Error"
 
                             val cleanMessage = when {
                                 isValidationError -> "Maaf, suara tidak terdengar dengan jelas. Silakan coba lagi."
-                                responseText != null -> parseMarkdownToText(responseText).trim().removeSurrounding("\"")
+                                responseText != null -> parseMarkdownToText(responseText).trim().removeSurrounding(
+                                    "\""
+                                )
                                 else -> ""
                             }
 
                             if (cleanMessage.isNotBlank()) {
                                 transcriptionResults = transcriptionResults + TranscriptionMessage(
-                                    text = cleanMessage, 
-                                    role = MessageRole.ASSISTANT
+                                    text = cleanMessage, role = MessageRole.ASSISTANT
                                 )
                             }
                             isProcessing = false
@@ -152,8 +152,8 @@ class AiAssistantViewModel(
             }
         }
 
-        mqttHelper.onConnectionStatusChanged = { status ->
-            viewModelScope.launch {
+        viewModelScope.launch {
+            mqttHelper.connectionStatus.collect { status ->
                 android.util.Log.d("AiAssistantViewModel", "MQTT Status Changed: $status")
                 mqttStatus = status
             }
@@ -165,8 +165,11 @@ class AiAssistantViewModel(
 
     fun reconnectMqtt() {
         viewModelScope.launch {
+            if (mqttHelper.connectionStatus.value == MqttHelper.MqttConnectionStatus.CONNECTED ||
+                mqttHelper.connectionStatus.value == MqttHelper.MqttConnectionStatus.CONNECTING) {
+                return@launch
+            }
             android.util.Log.d("AiAssistantViewModel", "Manual MQTT Reconnection...")
-            mqttStatus = MqttHelper.MqttConnectionStatus.CONNECTING
             val username = com.example.whisper_android.util.DeviceUtils.getDeviceId(
                 getApplication()
             )
@@ -198,7 +201,10 @@ class AiAssistantViewModel(
                     it.role == MessageRole.USER && it.text == text
                 }
             if (!alreadyExists) {
-                transcriptionResults = transcriptionResults + TranscriptionMessage(text = text, role = MessageRole.USER)
+                transcriptionResults = transcriptionResults + TranscriptionMessage(
+                    text = text,
+                    role = MessageRole.USER
+                )
             }
             isProcessing = true
             viewModelScope.launch {
