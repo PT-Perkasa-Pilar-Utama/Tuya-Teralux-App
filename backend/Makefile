@@ -1,6 +1,6 @@
 # Sensio App Backend - Makefile for Development Automation
 
-.PHONY: help dev build-docker push pull run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint vet
+.PHONY: help dev build-docker push pull run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint vet push-remote
 
 # Default target
 help:
@@ -108,6 +108,10 @@ push:
 		--build-arg AUTO_MIGRATE=true \
 		-t $(REPO):$(IMAGE_TAG) --push .
 	@echo "✅ Successfully pushed to $(REPO):$(IMAGE_TAG)"
+
+# Build and Push Multi-Arch Image from remote host (arch)
+push-remote:
+	@bash scripts/push_remote_arch.sh
 
 # Pull latest image from Registry
 pull:
@@ -242,6 +246,14 @@ vet:
 lint:
 	@echo "🔍 Running golangci-lint..."
 	@$(GOLANGCI_LINT) run ./domain/... || (echo "❌ golangci-lint not found. Installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && $(GOLANGCI_LINT) run ./domain/...)
+
+# Run complete deploy-remote pipeline: lint, build, and fetch binary from remote host
+deploy-remote:
+	@bash scripts/deploy_remote_arch.sh
+
+# Run remote lint and build on arch host (compatibility alias/standalone workflow)
+remote-lint-build:
+	@bash scripts/remote_lint_build_arch.sh
 
 # Clean build artifacts
 clean:

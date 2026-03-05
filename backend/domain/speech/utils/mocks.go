@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"sensio/domain/speech/dtos"
 	"time"
 
@@ -42,8 +43,8 @@ func (m *GenericMockClient) WhisperHealthCheck() bool {
 	return m.Called().Bool(0)
 }
 
-func (m *GenericMockClient) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
-	args := m.Called(audioPath, language, diarize)
+func (m *GenericMockClient) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+	args := m.Called(ctx, audioPath, language, diarize)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

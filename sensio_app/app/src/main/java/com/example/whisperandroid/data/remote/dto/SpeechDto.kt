@@ -69,6 +69,11 @@ data class RAGSummaryResponseDto(
 data class RAGStatusDto(
     @SerializedName("status") val status: String,
     @SerializedName("result") val result: String? = null,
+    @SerializedName("summary") val summary: String? = null,
+    @SerializedName("pdf_url") val pdfUrl: String? = null,
+    @SerializedName("agenda_context") val agendaContext: String? = null,
+    @SerializedName("meeting_context") val meetingContext: String? = null,
+    @SerializedName("language") val language: String? = null,
     @SerializedName("error") val error: String? = null,
     @SerializedName("trigger") val trigger: String? = null,
     @SerializedName("started_at") val startedAt: String? = null,
@@ -109,4 +114,23 @@ data class ControlResultDto(
     @SerializedName("message") val message: String,
     @SerializedName("device_id") val deviceId: String? = null,
     @SerializedName("command") val command: String? = null
+)
+
+/**
+ * Unified Pipeline DTOs
+ */
+data class PipelineStatusDto(
+    @SerializedName("task_id") val taskId: String,
+    @SerializedName("overall_status") val overallStatus: String,
+    @SerializedName("stages") val stages: Map<String, PipelineStageStatus>? = null,
+    @SerializedName("started_at") val startedAt: String? = null,
+    @SerializedName("duration_seconds") val durationSeconds: Double? = null
+)
+
+data class PipelineStageStatus(
+    @SerializedName("status") val status: String,
+    @SerializedName("result") val result: Any? = null,
+    @SerializedName("error") val error: String? = null,
+    @SerializedName("started_at") val startedAt: String? = null,
+    @SerializedName("duration_seconds") val durationSeconds: Double? = null
 )

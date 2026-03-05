@@ -52,7 +52,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -69,19 +69,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -109,13 +109,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -182,7 +182,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -198,13 +198,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -252,7 +252,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -268,19 +268,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -316,7 +316,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -332,13 +332,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -379,7 +379,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -395,19 +395,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -448,7 +448,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -464,19 +464,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -517,7 +517,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -533,19 +533,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -586,7 +586,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -602,19 +602,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -655,7 +655,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -671,19 +671,192 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pipeline/job": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submits a single job that orchestrates multiple AI stages.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. RAG"
+                ],
+                "summary": "Run unified AI pipeline (Transcribe -\u003e Refine -\u003e Translate -\u003e Summarize)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source language (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target language for translation/summary",
+                        "name": "target_language",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Whether to generate a summary",
+                        "name": "summarize",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Whether to refine text (grammar/spelling)",
+                        "name": "refine",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Whether to diarize speakers",
+                        "name": "diarize",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Meeting context (for summary)",
+                        "name": "context",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Summary style",
+                        "name": "style",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Meeting date",
+                        "name": "date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Meeting location",
+                        "name": "location",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated participants",
+                        "name": "participants",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Device MAC Address",
+                        "name": "mac_address",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key",
+                        "name": "Idempotency-Key",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.PipelineResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/pipeline/status/{task_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Poll for status and results of a unified pipeline job.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. RAG"
+                ],
+                "summary": "Get unified pipeline job status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.PipelineStatusDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -722,19 +895,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -773,19 +946,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -818,6 +991,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dtos.RAGSummaryRequestDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key to deduplicate requests",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -826,7 +1005,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -845,13 +1024,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -884,6 +1063,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dtos.RAGRequestDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key to deduplicate requests",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -892,7 +1077,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -911,13 +1096,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -952,7 +1137,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -968,7 +1153,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_rag_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1009,7 +1194,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1025,13 +1210,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1074,7 +1259,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1090,19 +1275,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1138,7 +1323,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1154,19 +1339,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1198,19 +1383,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/recordings_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1237,7 +1422,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1295,7 +1480,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1311,25 +1496,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1374,7 +1559,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1390,25 +1575,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1453,7 +1638,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1469,25 +1654,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1532,7 +1717,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1548,25 +1733,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1611,7 +1796,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1627,25 +1812,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1694,6 +1879,12 @@ const docTemplate = `{
                         "description": "Identify speakers in transcription",
                         "name": "diarize",
                         "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Idempotency key to deduplicate requests",
+                        "name": "Idempotency-Key",
+                        "in": "header"
                     }
                 ],
                 "responses": {
@@ -1702,7 +1893,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1718,25 +1909,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "413": {
                         "description": "Request Entity Too Large",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "415": {
                         "description": "Unsupported Media Type",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1772,7 +1963,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1788,13 +1979,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_speech_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1830,7 +2021,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -1887,19 +2078,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Scene created",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1952,13 +2143,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Scene updated",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "404": {
                         "description": "Scene not found",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -1997,7 +2188,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Scene deleted",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2038,7 +2229,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Scene applied",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2068,7 +2259,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2084,7 +2275,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2140,7 +2331,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2156,7 +2347,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2201,7 +2392,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2217,13 +2408,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2269,19 +2460,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2327,19 +2518,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2378,7 +2569,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                                    "$ref": "#/definitions/dtos.StandardResponse"
                                 },
                                 {
                                     "type": "object",
@@ -2394,13 +2585,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/sensio_domain_common_dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.StandardResponse"
                         }
                     }
                 }
@@ -2542,6 +2733,68 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.PipelineResponseDTO": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string"
+                },
+                "task_status": {
+                    "$ref": "#/definitions/dtos.PipelineStatusDTO"
+                }
+            }
+        },
+        "dtos.PipelineStageStatus": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {
+                    "type": "number"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "result": {},
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "pending, processing, completed, failed, skipped",
+                    "type": "string",
+                    "example": "pending"
+                }
+            }
+        },
+        "dtos.PipelineStatusDTO": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {
+                    "type": "number"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "expires_in_seconds": {
+                    "type": "integer"
+                },
+                "overall_status": {
+                    "description": "pending, processing, completed, failed",
+                    "type": "string",
+                    "example": "processing"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/dtos.PipelineStageStatus"
+                    }
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.RAGChatRequestDTO": {
             "type": "object",
             "required": [
@@ -2640,6 +2893,9 @@ const docTemplate = `{
         "dtos.RAGStatusDTO": {
             "type": "object",
             "properties": {
+                "agenda_context": {
+                    "type": "string"
+                },
                 "body": {},
                 "duration_seconds": {
                     "type": "number",
@@ -2667,10 +2923,19 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "language": {
+                    "type": "string"
+                },
                 "mac_address": {
                     "type": "string"
                 },
+                "meeting_context": {
+                    "type": "string"
+                },
                 "method": {
+                    "type": "string"
+                },
+                "pdf_url": {
                     "type": "string"
                 },
                 "result": {
@@ -2684,6 +2949,10 @@ const docTemplate = `{
                 "status": {
                     "type": "string",
                     "example": "completed"
+                },
+                "summary": {
+                    "description": "Alias for Result in summary tasks",
+                    "type": "string"
                 },
                 "trigger": {
                     "type": "string",
@@ -2792,6 +3061,23 @@ const docTemplate = `{
                 },
                 "temperature": {
                     "type": "number"
+                }
+            }
+        },
+        "dtos.StandardResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "details": {
+                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -3147,66 +3433,6 @@ const docTemplate = `{
                 },
                 "original_name": {
                     "type": "string"
-                }
-            }
-        },
-        "recordings_dtos.StandardResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "details": {
-                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
-                },
-                "message": {
-                    "type": "string",
-                    "example": "Success"
-                },
-                "status": {
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        },
-        "sensio_domain_common_dtos.StandardResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "details": {
-                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
-                },
-                "message": {
-                    "type": "string",
-                    "example": "Success"
-                },
-                "status": {
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        },
-        "sensio_domain_rag_dtos.StandardResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "details": {},
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "sensio_domain_speech_dtos.StandardResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "details": {},
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "boolean"
                 }
             }
         }

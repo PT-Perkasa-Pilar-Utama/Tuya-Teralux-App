@@ -1,0 +1,195 @@
+package controllers
+
+import (
+	"net/http"
+	"path/filepath"
+	commonDtos "sensio/domain/common/dtos"
+	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
+	pipelineDtos "sensio/domain/pipeline/dtos"
+	pipelineUsecases "sensio/domain/pipeline/usecases"
+	recordingUsecases "sensio/domain/recordings/usecases"
+	"strconv"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+type PipelineController struct {
+	pipelineUC      pipelineUsecases.PipelineUseCase
+	statusUC        tasks.GenericStatusUseCase[pipelineDtos.PipelineStatusDTO]
+	saveRecordingUC recordingUsecases.SaveRecordingUseCase
+	config          *utils.Config
+}
+
+func NewPipelineController(
+	pipelineUC pipelineUsecases.PipelineUseCase,
+	statusUC tasks.GenericStatusUseCase[pipelineDtos.PipelineStatusDTO],
+	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
+	cfg *utils.Config,
+) *PipelineController {
+	return &PipelineController{
+		pipelineUC:      pipelineUC,
+		statusUC:        statusUC,
+		saveRecordingUC: saveRecordingUC,
+		config:          cfg,
+	}
+}
+
+// ExecuteJob handles POST /api/pipeline/job
+// @Summary Run unified AI pipeline (Transcribe -> Refine -> Translate -> Summarize)
+// @Description Submits a single job that orchestrates multiple AI stages.
+// @Tags 05. RAG
+// @Security BearerAuth
+// @Accept multipart/form-data
+// @Produce json
+// @Param audio formData file true "Audio file"
+// @Param language formData string false "Source language (e.g. id, en)"
+// @Param target_language formData string false "Target language for translation/summary"
+// @Param summarize formData boolean false "Whether to generate a summary"
+// @Param refine formData boolean false "Whether to refine text (grammar/spelling)"
+// @Param diarize formData boolean false "Whether to diarize speakers"
+// @Param context formData string false "Meeting context (for summary)"
+// @Param style formData string false "Summary style"
+// @Param date formData string false "Meeting date"
+// @Param location formData string false "Meeting location"
+// @Param participants formData string false "Comma-separated participants"
+// @Param mac_address formData string false "Device MAC Address"
+// @Param Idempotency-Key header string false "Idempotency key"
+// @Success 202 {object} commonDtos.StandardResponse{data=pipelineDtos.PipelineResponseDTO}
+// @Router /api/pipeline/job [post]
+func (c *PipelineController) ExecuteJob(ctx *gin.Context) {
+	file, err := ctx.FormFile("audio")
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "audio file is required",
+		})
+		return
+	}
+
+	if file.Size > c.config.MaxFileSize {
+		ctx.JSON(http.StatusRequestEntityTooLarge, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "file too large",
+		})
+		return
+	}
+
+	macAddress := ctx.PostForm("mac_address")
+	baseURL := utils.GetBaseURL(ctx)
+
+	// Parse parameters
+	summarize, _ := strconv.ParseBool(ctx.PostForm("summarize"))
+	diarize, _ := strconv.ParseBool(ctx.PostForm("diarize"))
+
+	var refine *bool
+	refineStr := ctx.PostForm("refine")
+	if refineStr != "" {
+		b, _ := strconv.ParseBool(refineStr)
+		refine = &b
+	}
+
+	participants := []string{}
+	pStr := ctx.PostForm("participants")
+	if pStr != "" {
+		participants = strings.Split(pStr, ",")
+		for i, p := range participants {
+			participants[i] = strings.TrimSpace(p)
+		}
+	}
+
+	req := pipelineDtos.PipelineRequestDTO{
+		Language:       ctx.PostForm("language"),
+		TargetLanguage: ctx.PostForm("target_language"),
+		Context:        ctx.PostForm("context"),
+		Style:          ctx.PostForm("style"),
+		Date:           ctx.PostForm("date"),
+		Location:       ctx.PostForm("location"),
+		Participants:   participants,
+		Diarize:        diarize,
+		Refine:         refine,
+		Summarize:      summarize,
+		MacAddress:     macAddress,
+	}
+
+	idempotencyKey := ctx.GetHeader("Idempotency-Key")
+
+	// 1. Check Idempotency BEFORE saving recording
+	if idempotencyKey != "" {
+		f, err := file.Open()
+		if err == nil {
+			audioHash, _ := utils.HashReader(f)
+			f.Close()
+			if taskID, exists := c.pipelineUC.CheckIdempotency(idempotencyKey, audioHash, req); exists {
+				utils.LogInfo("Pipeline.ExecuteJob: Duplicate request detected (pre-save) for key %s. Returning TaskID %s", idempotencyKey, taskID)
+				ctx.JSON(http.StatusAccepted, commonDtos.StandardResponse{
+					Status:  true,
+					Message: "Pipeline job already submitted",
+					Data: pipelineDtos.PipelineResponseDTO{
+						TaskID: taskID,
+					},
+				})
+				return
+			}
+		}
+	}
+
+	// 2. Not a duplicate (or no key), proceed to save
+	recording, err := c.saveRecordingUC.SaveRecording(file, macAddress, baseURL)
+	if err != nil {
+		utils.LogError("Pipeline.SaveRecording: %v", err)
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "failed to save recording",
+		})
+		return
+	}
+
+	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
+
+	taskID, err := c.pipelineUC.ExecutePipeline(ctx.Request.Context(), finalInputPath, req, idempotencyKey)
+	if err != nil {
+		utils.LogError("Pipeline.ExecutePipeline: %v", err)
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "pipeline execution failed",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, commonDtos.StandardResponse{
+		Status:  true,
+		Message: "Pipeline job submitted successfully",
+		Data: pipelineDtos.PipelineResponseDTO{
+			TaskID: taskID,
+		},
+	})
+}
+
+// GetStatus handles GET /api/pipeline/status/:task_id
+// @Summary Get unified pipeline job status
+// @Description Poll for status and results of a unified pipeline job.
+// @Tags 05. RAG
+// @Security BearerAuth
+// @Produce json
+// @Param task_id path string true "Task ID"
+// @Success 200 {object} commonDtos.StandardResponse{data=pipelineDtos.PipelineStatusDTO}
+// @Failure 404 {object} commonDtos.StandardResponse
+// @Router /api/pipeline/status/{task_id} [get]
+func (c *PipelineController) GetStatus(ctx *gin.Context) {
+	taskID := ctx.Param("task_id")
+	status, err := c.statusUC.GetTaskStatus(taskID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Task not found",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
+		Status: true,
+		Data:   status,
+	})
+}

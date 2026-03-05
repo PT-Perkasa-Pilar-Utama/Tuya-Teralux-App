@@ -1,23 +1,25 @@
 package usecases_test
 
 import (
+	"context"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/usecases"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestQueryOrionModelUseCase_Query(t *testing.T) {
 	t.Run("Success path - Matches Manual Scenario", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("Hello! As an AI residing on the Orion platform, I am fully operational.", nil)
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("Hello! As an AI residing on the Orion platform, I am fully operational.", nil)
 
 		uc := usecases.NewQueryOrionModelUseCase(mockLLM)
 
 		startTime := time.Now()
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/orion")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/orion")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
@@ -38,11 +40,11 @@ func TestQueryOrionModelUseCase_Query(t *testing.T) {
 		mockLLM := new(MockLLMClient)
 
 		apiErr := utils.NewAPIError(500, "orion api returned status 500: Server Error")
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("", apiErr)
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("", apiErr)
 
 		uc := usecases.NewQueryOrionModelUseCase(mockLLM)
 
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/orion")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/orion")
 
 		assert.Error(t, err)
 		assert.NotNil(t, res)

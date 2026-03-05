@@ -53,34 +53,7 @@ class MeetingForegroundService : Service() {
                     token = token,
                     targetLang = targetLang,
                     macAddress = macAddress,
-                    waitSignal = { taskName ->
-                        // If we need to wait for MQTT signals, we do it here
-                        // For simplicity in background, we might assume MqttHelper handles it
-                        // but since ProcessMeetingUseCase needs a waitSignal block,
-                        // we can reuse the logic or simplify for service.
-                        // Currently, ProcessMeetingUseCase.invoke needs this.
-                        android.util.Log.d("MeetingService", "Waiting for signal: $taskName")
-                        // Implementation of waitSignal logic for service
-                        val signalChannel = kotlinx.coroutines.channels.Channel<String>(1)
-                        val job = launch {
-                            NetworkModule.mqttHelper.messages.collect { (topic, msg) ->
-                                val taskTopic = NetworkModule.mqttHelper.getTaskTopic()
-                                if (topic == taskTopic) {
-                                    val json = com.google.gson.JsonParser.parseString(msg).asJsonObject
-                                    if (json.has("event") && json.get("event").asString == "stop") {
-                                        val receivedTask = json.get("task").asString
-                                        signalChannel.trySend(receivedTask)
-                                    }
-                                }
-                            }
-                        }
-
-                        NetworkModule.mqttHelper.publishTaskMessage("start", taskName)
-                        while (true) {
-                            if (signalChannel.receive() == taskName) break
-                        }
-                        job.cancel()
-                    }
+                    idempotencyKey = "meeting_${audioFile.lastModified()}" 
                 ).collect { state ->
                     MeetingProcessManager.updateState(state)
                     updateNotification(state)

@@ -9,7 +9,8 @@ interface SpeechRepository {
         file: File,
         token: String,
         language: String,
-        macAddress: String? = null
+        macAddress: String? = null,
+        idempotencyKey: String? = null
     ): Flow<Resource<String>> // Returns Task ID
 
     suspend fun pollTranscription(

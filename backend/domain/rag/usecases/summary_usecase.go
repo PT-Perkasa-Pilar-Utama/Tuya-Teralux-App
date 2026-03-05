@@ -19,10 +19,11 @@ import (
 )
 
 type SummaryUseCase interface {
-	SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error)
-	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, trigger string) (string, error)
-	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error)
-	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, trigger string) (string, error)
+	SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, args ...string) (string, error)
+	SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string, args ...string) (string, error)
+	SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, args ...string) (string, error)
+	SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string, args ...string) (string, error)
+	SummarizeTextSync(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error)
 }
 
 type summaryUseCase struct {
@@ -37,6 +38,7 @@ type summaryUseCase struct {
 	llmTimeout    time.Duration
 	renderTimeout time.Duration
 	skill         skills.Skill
+	chunkSkill    skills.Skill
 }
 
 func NewSummaryUseCase(
@@ -49,6 +51,7 @@ func NewSummaryUseCase(
 	bigExternal *commonServices.BigExternalService,
 	mqttSvc mqttPublisher,
 	skill skills.Skill,
+	chunkSkill skills.Skill,
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:           llm,
@@ -62,10 +65,11 @@ func NewSummaryUseCase(
 		llmTimeout:    5 * time.Minute,
 		renderTimeout: 30 * time.Second,
 		skill:         skill,
+		chunkSkill:    chunkSkill,
 	}
 }
 
-func (u *summaryUseCase) summaryInternal(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
+func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
 	if strings.TrimSpace(text) == "" {
 		return nil, fmt.Errorf("text is empty")
 	}
@@ -79,16 +83,16 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 		targetLangName = "English"
 	}
 
-	// If MacAddress is provided, fetch booking info to complement metadata
+	// Fetch booking info via BigExternal if MAC provided
 	if macAddress != "" {
-		macAddress = strings.ToUpper(strings.TrimSpace(macAddress)) // Normalize MAC
+		macAddress = strings.ToUpper(strings.TrimSpace(macAddress))
 		if u.bigExternal != nil {
 			info, err := u.bigExternal.GetDeviceInfoByMac(macAddress)
 			if err == nil {
 				if date == "" {
 					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
 					if date == "" || date == "<nil>" {
-						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback to other key
+						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"])
 					}
 				}
 				if location == "" {
@@ -103,18 +107,15 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 						meetingContext = apiAgenda
 					}
 				}
-				utils.LogDebug("SummaryUseCase: Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
-			} else {
-				utils.LogWarn("SummaryUseCase: Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
 			}
 		}
 	}
 
-	// Delegate prompt generation and LLM call to SummarySkill
 	if u.skill == nil {
 		return nil, fmt.Errorf("summary skill not configured")
 	}
-	ctx := &skills.SkillContext{
+
+	skillCtx := &skills.SkillContext{
 		Prompt:       text,
 		Language:     language,
 		LLM:          u.llm,
@@ -126,285 +127,46 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 		Context:      meetingContext,
 	}
 
-	res, err := u.skill.Execute(ctx)
-	if err != nil && u.fallbackLLM != nil {
-		utils.LogWarn("SummaryTask: Primary LLM failed, falling back to local model: %v", err)
-		ctx.LLM = u.fallbackLLM
-		res, err = u.skill.Execute(ctx)
-	}
+	var trimmedSummary string
+	var inferredAgenda string
+	var res *skills.SkillResult
+	var err error
 
-	if err != nil {
-		return nil, err
-	}
-
-	trimmedSummary := res.Message
-	inferredAgenda := ""
-
-	// Extract # AGENDA: [content] if present
-	if strings.Contains(trimmedSummary, "# AGENDA:") {
-		lines := strings.Split(trimmedSummary, "\n")
-		for i, line := range lines {
-			if strings.HasPrefix(line, "# AGENDA:") {
-				inferredAgenda = strings.TrimSpace(strings.TrimPrefix(line, "# AGENDA:"))
-				// Remove the specific agenda line from the summary body
-				trimmedSummary = strings.Join(append(lines[:i], lines[i+1:]...), "\n")
-				break
-			}
-		}
-	}
-
-	if meetingContext == "" && inferredAgenda != "" {
-		meetingContext = inferredAgenda
-	}
-
-	// Generate PDF
-	uuidStr, _ := uuid.NewV7()
-	pdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
-
-	// Determine backend root to ensure uploads are correctly placed
-	basePath := "."
-	if envPath := utils.FindEnvFile(); envPath != "" {
-		basePath = filepath.Dir(envPath)
-	}
-	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
-
-	// Create reports directory if not exists
-	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
-
-	if u.renderer != nil {
-		meta := services.SummaryPDFMeta{
-			Language:     targetLangName,
-			Context:      meetingContext,
-			Style:        style,
-			Date:         date,
-			Location:     location,
-			Participants: participants,
-			CustomerName: "Internal User", // Default or fetch from somewhere if available
-			CompanyName:  "Sensio",        // Matching mail domain default
-		}
-		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
-			utils.LogWarn("Warning: Failed to generate PDF: %v", err)
-		}
-	} else {
-		utils.LogWarn("Warning: PDF renderer is not configured")
-	}
-
-	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
-	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
-
-	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
-	utils.LogDebug("RAG Summary Result: %q", trimmedSummary)
-
-	// Cache inferred agenda if MAC is provided to share with mail domain
-	if macAddress != "" && inferredAgenda != "" {
-		cacheKey := fmt.Sprintf("agenda_mac_%s", macAddress)
-		_ = u.cache.Set(cacheKey, inferredAgenda)
-		utils.LogDebug("SummaryUseCase: Cached inferred agenda for MAC %s: %s", macAddress, inferredAgenda)
-	}
-
-	return &dtos.RAGSummaryResponseDTO{
-		Summary:       trimmedSummary,
-		PDFUrl:        pdfUrl,
-		AgendaContext: meetingContext,
-	}, nil
-}
-
-func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error) {
-	return u.SummarizeTextWithTrigger(text, language, meetingContext, style, date, location, participants, macAddress, "")
-}
-
-func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, trigger string) (string, error) {
-	if strings.TrimSpace(text) == "" {
-		return "", nil
-	}
-	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{
-		Status:     "pending",
-		Trigger:    trigger,
-		MacAddress: macAddress,
-		StartedAt:  time.Now().Format(time.RFC3339),
-	}
-	u.store.Set(taskID, status)
-
-	_ = u.cache.Set(taskID, status)
-
-	go func() {
-		result, err := u.summaryInternal(text, language, meetingContext, style, date, location, participants, macAddress)
-		if err != nil {
-			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
-			u.updateStatus(taskID, "failed", err, nil)
-		} else {
-			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
-			u.updateStatus(taskID, "completed", nil, result)
-		}
-	}()
-
-	return taskID, nil
-}
-
-// SummarizeTextWithContext provides context-aware processing with built-in timeout and cancellation support.
-// This method should be preferred over SummarizeText for API-driven use cases.
-//
-// Parameters:
-//   - ctx: Cancellation context (can define timeout: ctx, cancel := context.WithTimeout(...))
-//   - text, language, context, style: Same as SummarizeText
-//
-// Returns:
-//   - Task ID (use status polling)
-//   - Error if context is invalid or task startup fails
-//
-// Example:
-//
-//	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-//	defer cancel()
-//	taskID, err := useCase.SummarizeTextWithContext(ctx, transcript, "en", "meeting", "executive")
-func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (string, error) {
-	return u.SummarizeTextWithContextAndTrigger(ctx, text, language, meetingContext, style, date, location, participants, macAddress, "")
-}
-
-func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, trigger string) (string, error) {
-	// Validate context is not already cancelled
-	select {
-	case <-ctx.Done():
-		return "", ctx.Err()
-	default:
-	}
-
-	taskID := uuid.New().String()
-	status := &dtos.RAGStatusDTO{
-		Status:     "pending",
-		Trigger:    trigger,
-		MacAddress: macAddress,
-		StartedAt:  time.Now().Format(time.RFC3339),
-	}
-	u.store.Set(taskID, status)
-	_ = u.cache.Set(taskID, status)
-
-	go func() {
-		// Use parent context directly for cancellation, but remove the internal time-based limit
-		internalCtx := ctx
-
-		// Check if parent context was cancelled before starting
-		select {
-		case <-ctx.Done():
-			u.updateStatus(taskID, "cancelled", ctx.Err(), nil)
-			return
-		default:
-		}
-
-		result, err := u.summaryInternalWithContext(internalCtx, text, language, meetingContext, style, date, location, participants, macAddress)
-		if err != nil {
-			utils.LogError("RAG Summary Task %s: Failed with error: %v", taskID, err)
-			u.updateStatus(taskID, "failed", err, nil)
-		} else {
-			utils.LogInfo("RAG Summary Task %s: Completed successfully", taskID)
-			u.updateStatus(taskID, "completed", nil, result)
-		}
-	}()
-
-	return taskID, nil
-}
-
-// SetLLMTimeout configures the timeout for LLM calls
-func (u *summaryUseCase) SetLLMTimeout(d time.Duration) {
-	if d > 0 {
-		u.llmTimeout = d
-	}
-}
-
-// SetRenderTimeout configures the timeout for PDF rendering
-func (u *summaryUseCase) SetRenderTimeout(d time.Duration) {
-	if d > 0 {
-		u.renderTimeout = d
-	}
-}
-
-// summaryInternalWithContext adds context-aware timeout enforcement to PDF rendering and LLM calls.
-func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
-	if strings.TrimSpace(text) == "" {
-		return nil, fmt.Errorf("text is empty")
-	}
-
-	if language == "" {
-		language = "id"
-	}
-
-	// If MacAddress is provided, fetch booking info
-	if macAddress != "" {
-		macAddress = strings.ToUpper(strings.TrimSpace(macAddress)) // Normalize MAC
-		if u.bigExternal != nil {
-			info, err := u.bigExternal.GetDeviceInfoByMac(macAddress)
+	// Phase 3: Chunked Summarization for long transcripts
+	if len(text) > 4000*4 { // Heuristic: ~4000 tokens
+		utils.LogInfo("SummaryUseCase: Text too long (%d chars), using chunked summarization", len(text))
+		chunkedSummary, chunkErr := u.summarizeInChunks(ctx, text, language, meetingContext)
+		if chunkErr == nil {
+			skillCtx.Prompt = chunkedSummary
+			res, err = u.skill.Execute(skillCtx)
 			if err == nil {
-				if date == "" {
-					date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxByendDate"])
-					if date == "" || date == "<nil>" {
-						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"]) // Fallback
-					}
-				}
-				if location == "" {
-					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
-				}
-				if participants == "" {
-					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
-				}
-				if meetingContext == "" {
-					apiAgenda := fmt.Sprintf("%v", info["SDTGetRoomTeraluxMeetingAgenda"])
-					if apiAgenda != "" && apiAgenda != "<nil>" {
-						meetingContext = apiAgenda
-					}
-				}
-				utils.LogDebug("SummaryUseCase (WithContext): Fetched booking metadata for MAC %s: Date=%s, Location=%s", macAddress, date, location)
-			} else {
-				utils.LogWarn("SummaryUseCase (WithContext): Failed to fetch booking metadata for MAC %s: %v", macAddress, err)
+				trimmedSummary = res.Message
 			}
+		} else {
+			utils.LogError("SummaryUseCase: Chunked summarization failed: %v. Falling back to single-pass.", chunkErr)
 		}
 	}
 
-	// Delegate prompt generation and LLM call to SummarySkill with context (manually enforced for now)
-	if u.skill == nil {
-		return nil, fmt.Errorf("summary skill not configured")
-	}
-	ctxSkill := &skills.SkillContext{
-		Prompt:       text,
-		Language:     language,
-		LLM:          u.llm,
-		Config:       u.config,
-		Date:         date,
-		Location:     location,
-		Participants: participants,
-		Style:        style,
-		Context:      meetingContext,
+	// Single-pass execution
+	if trimmedSummary == "" {
+		res, err = u.skill.Execute(skillCtx)
+		if err != nil && u.fallbackLLM != nil {
+			utils.LogWarn("SummaryTask: Primary LLM failed, falling back to local: %v", err)
+			skillCtx.LLM = u.fallbackLLM
+			res, err = u.skill.Execute(skillCtx)
+		}
+		if err != nil {
+			return nil, err
+		}
+		trimmedSummary = res.Message
 	}
 
-	// Calculate targetLangName for PDF Meta (logic moved from deleted block)
-	targetLangName := "Indonesian"
-	if strings.EqualFold(language, "en") {
-		targetLangName = "English"
-	}
-
-	// We can't easily pass the context cancellation to Skill.Execute yet without modifying Skill interface.
-	// For now, we rely on the skill execution.
-	res, err := u.skill.Execute(ctxSkill)
-	if err != nil && u.fallbackLLM != nil {
-		utils.LogWarn("SummaryTask (WithContext): Primary LLM failed, falling back to local model: %v", err)
-		ctxSkill.LLM = u.fallbackLLM
-		res, err = u.skill.Execute(ctxSkill)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("SummarySkill execution failed: %w", err)
-	}
-
-	trimmedSummary := res.Message
-	inferredAgenda := ""
-
-	// Extract # AGENDA: Tag if present
+	// Post-processing: Extract Agenda
 	if strings.Contains(trimmedSummary, "# AGENDA:") {
 		lines := strings.Split(trimmedSummary, "\n")
 		for i, line := range lines {
 			if strings.HasPrefix(line, "# AGENDA:") {
 				inferredAgenda = strings.TrimSpace(strings.TrimPrefix(line, "# AGENDA:"))
-				// Remove the header from result
 				trimmedSummary = strings.Join(append(lines[:i], lines[i+1:]...), "\n")
 				break
 			}
@@ -415,11 +177,9 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 		meetingContext = inferredAgenda
 	}
 
-	// PDF rendering with timeout
+	// PDF Generation
 	uuidStr, _ := uuid.NewV7()
 	pdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
-
-	// Determine backend root
 	basePath := "."
 	if envPath := utils.FindEnvFile(); envPath != "" {
 		basePath = filepath.Dir(envPath)
@@ -428,16 +188,6 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
 	if u.renderer != nil {
-		// Use parent context directly
-		renderCtx := ctx
-
-		// Check render context before starting
-		select {
-		case <-renderCtx.Done():
-			utils.LogWarn("Warning: PDF render timeout will trigger during rendering")
-		default:
-		}
-
 		meta := services.SummaryPDFMeta{
 			Language:     targetLangName,
 			Context:      meetingContext,
@@ -448,20 +198,16 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 			CustomerName: "Internal User",
 			CompanyName:  "Sensio",
 		}
-
 		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
-			utils.LogWarn("Warning: Failed to generate PDF: %v (will continue with text-only response)", err)
+			utils.LogWarn("Warning: Failed to generate PDF: %v", err)
 		}
 	}
 
 	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
-	utils.LogDebug("RAG Summary: language='%s', summary_len=%d, pdf='%s'", language, len(trimmedSummary), pdfUrl)
 
-	// Cache inferred agenda if MAC is provided
+	// Cache inferred agenda
 	if macAddress != "" && inferredAgenda != "" {
-		cacheKey := fmt.Sprintf("agenda_mac_%s", macAddress)
-		_ = u.cache.Set(cacheKey, inferredAgenda)
-		utils.LogDebug("SummaryUseCase (WithContext): Cached inferred agenda for MAC %s: %s", macAddress, inferredAgenda)
+		_ = u.cache.Set(fmt.Sprintf("agenda_mac_%s", macAddress), inferredAgenda)
 	}
 
 	return &dtos.RAGSummaryResponseDTO{
@@ -471,49 +217,183 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	}, nil
 }
 
-func (u *summaryUseCase) updateStatus(taskID string, statusStr string, err error, result *dtos.RAGSummaryResponseDTO) {
-	var existing dtos.RAGStatusDTO
-	_, _, _ = u.cache.GetWithTTL(taskID, &existing)
-
-	status := &dtos.RAGStatusDTO{
-		Status:     statusStr,
-		StartedAt:  existing.StartedAt,
-		Trigger:    existing.Trigger,
-		MacAddress: existing.MacAddress,
-		ExpiresAt:  time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, language string, meetingContext string) (string, error) {
+	if u.chunkSkill == nil {
+		return "", fmt.Errorf("chunk summary skill not configured")
 	}
 
-	if err != nil {
-		status.Error = err.Error()
-		status.Result = err.Error()
-		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
-	}
-
-	if result != nil {
-		status.ExecutionResult = result
-		status.Result = result.Summary
-		status.HTTPStatusCode = 200
-	}
-
-	if statusStr == "completed" || statusStr == "failed" {
-		if existing.StartedAt != "" {
-			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
-			status.DurationSeconds = time.Since(startTime).Seconds()
+	chunks := u.splitText(text, 16000) // ~4000 tokens
+	var intermediateSummaries []string
+	for idx, chunk := range chunks {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		default:
 		}
+		utils.LogInfo("summarizeInChunks: Processing chunk %d/%d", idx+1, len(chunks))
+		sCtx := &skills.SkillContext{
+			Prompt:   chunk,
+			Language: language,
+			LLM:      u.llm,
+			Config:   u.config,
+			Context:  meetingContext,
+		}
+		res, err := u.chunkSkill.Execute(sCtx)
+		if err != nil {
+			utils.LogError("summarizeInChunks: Chunk %d failed: %v", idx+1, err)
+			continue
+		}
+		intermediateSummaries = append(intermediateSummaries, res.Message)
+	}
 
-		// Send MQTT "stop" signal if MacAddress is available
+	if len(intermediateSummaries) == 0 {
+		return "", fmt.Errorf("all chunk summaries failed")
+	}
+
+	return strings.Join(intermediateSummaries, "\n\n---\n\n"), nil
+}
+
+func (u *summaryUseCase) splitText(text string, maxChars int) []string {
+	var chunks []string
+	for len(text) > maxChars {
+		splitIdx := strings.LastIndex(text[:maxChars], "\n")
+		if splitIdx == -1 {
+			splitIdx = strings.LastIndex(text[:maxChars], ". ")
+		}
+		if splitIdx == -1 {
+			splitIdx = maxChars
+		} else {
+			splitIdx += 1
+		}
+		chunks = append(chunks, text[:splitIdx])
+		text = text[splitIdx:]
+	}
+	if len(text) > 0 {
+		chunks = append(chunks, text)
+	}
+	return chunks
+}
+
+func (u *summaryUseCase) SummarizeTextSync(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress string) (*dtos.RAGSummaryResponseDTO, error) {
+	return u.summaryInternal(ctx, text, language, meetingContext, style, date, location, participants, macAddress)
+}
+
+func (u *summaryUseCase) SummarizeText(text string, language string, meetingContext string, style string, date string, location string, participants string, args ...string) (string, error) {
+	return u.summarizeWithTrigger(context.Background(), text, language, meetingContext, style, date, location, participants, "", args...)
+}
+
+func (u *summaryUseCase) SummarizeTextWithContext(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, args ...string) (string, error) {
+	return u.summarizeWithTrigger(ctx, text, language, meetingContext, style, date, location, participants, "", args...)
+}
+
+func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string, args ...string) (string, error) {
+	return u.summarizeWithTrigger(context.Background(), text, language, meetingContext, style, date, location, participants, trigger, args...)
+}
+
+func (u *summaryUseCase) SummarizeTextWithContextAndTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string, args ...string) (string, error) {
+	return u.summarizeWithTrigger(ctx, text, language, meetingContext, style, date, location, participants, trigger, args...)
+}
+
+func (u *summaryUseCase) summarizeWithTrigger(ctx context.Context, text string, language string, meetingContext string, style string, date string, location string, participants string, trigger string, args ...string) (string, error) {
+	if strings.TrimSpace(text) == "" {
+		return "", nil
+	}
+
+	macAddress := ""
+	idempotencyKey := ""
+	if len(args) > 0 {
+		macAddress = args[0]
+	}
+	if len(args) > 1 {
+		idempotencyKey = args[1]
+	}
+
+	// Idempotency check with content hash
+	var idempHash string
+	if idempotencyKey != "" {
+		idempHash = "idemp_summary_" + utils.HashString(fmt.Sprintf("%s_%s_%s_%s", idempotencyKey, language, macAddress, utils.HashString(text)))
+		var existingID string
+		if _, exists, _ := u.cache.GetWithTTL(idempHash, &existingID); exists && existingID != "" {
+			// Check task state - only return if NOT failed
+			status, ok := u.store.Get(existingID)
+			if !ok || status == nil {
+				// Fallback to cache if memory store is empty (after restart)
+				var cachedStatus dtos.RAGStatusDTO
+				if _, cachedExists, _ := u.cache.GetWithTTL(existingID, &cachedStatus); cachedExists {
+					status = &cachedStatus
+					u.store.Set(existingID, status)
+					ok = true
+				}
+			}
+
+			if ok && status != nil && status.Status != "failed" {
+				utils.LogInfo("Summary Task: Duplicate request detected for IdempotencyKey %s. Returning existing TaskID %s (Status: %s)", idempotencyKey, existingID, status.Status)
+				return existingID, nil
+			}
+			utils.LogInfo("Summary Task: Found existing task %s for key %s but it failed or could not be loaded. Proceeding with new task.", existingID, idempotencyKey)
+		}
+	}
+
+	taskID := uuid.New().String()
+	status := &dtos.RAGStatusDTO{
+		Status:         "pending",
+		Trigger:        trigger,
+		MeetingContext: meetingContext,
+		Language:       language,
+		MacAddress:     macAddress,
+		StartedAt:      time.Now().Format(time.RFC3339),
+	}
+
+	u.store.Set(taskID, status)
+	if idempHash != "" {
+		_ = u.cache.Set(idempHash, taskID)
+	}
+
+	// Use a background context as parent if none provided
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	go u.runSummaryAsync(ctx, taskID, text, language, meetingContext, style, date, location, participants)
+
+	return taskID, nil
+}
+
+func (u *summaryUseCase) runSummaryAsync(ctx context.Context, taskID string, text string, language string, meetingContext string, style string, date string, location string, participants string) {
+	status, _ := u.store.Get(taskID)
+	if status == nil {
+		return
+	}
+
+	// Check for early cancellation
+	select {
+	case <-ctx.Done():
+		status.Status = "failed"
+		status.Error = "task cancelled: " + ctx.Err().Error()
+		u.store.Set(taskID, status)
+		return
+	default:
+	}
+
+	status.Status = "processing"
+	u.store.Set(taskID, status)
+
+	res, err := u.summaryInternal(ctx, text, language, meetingContext, style, date, location, participants, status.MacAddress)
+	if err != nil {
+		utils.LogError("RAG Summary Task %s failed: %v", taskID, err)
+		status.Status = "failed"
+		status.Error = err.Error()
+	} else {
+		status.Status = "completed"
+		status.Summary = res.Summary
+		status.PDFUrl = res.PDFUrl
+		status.AgendaContext = res.AgendaContext
+
 		if status.MacAddress != "" && u.mqttSvc != nil {
-			taskTopic := fmt.Sprintf("users/%s/%s/task", status.MacAddress, u.config.ApplicationEnvironment)
-			msg := map[string]string{
-				"event": "stop",
-				"task":  "RAG",
-			}
+			topic := fmt.Sprintf("users/%s/%s/task", status.MacAddress, u.config.ApplicationEnvironment)
+			msg := map[string]interface{}{"event": "stop", "task": "RAG"}
 			payload, _ := json.Marshal(msg)
-			if err := u.mqttSvc.Publish(taskTopic, 0, false, payload); err != nil {
-				utils.LogError("RAG Summary Task %s: Failed to publish stop signal to MQTT: %v", taskID, err)
-			} else {
-				utils.LogInfo("RAG Summary Task %s: Published stop signal to %s", taskID, taskTopic)
-			}
+			_ = u.mqttSvc.Publish(topic, 0, false, payload)
 		}
 	}
 

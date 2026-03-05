@@ -21,10 +21,30 @@ class AiAssistantViewModel(
     var transcriptionResults by mutableStateOf(listOf<TranscriptionMessage>())
         private set
 
-    var isRecording by mutableStateOf(false)
+    enum class AssistantState {
+        Idle, Recording, Publishing, WaitingResponse, FallbackRunning, Completed, Failed
+    }
+
+    var assistantState by mutableStateOf(AssistantState.Idle)
         private set
 
-    var isProcessing by mutableStateOf(false)
+    val isRecording: Boolean
+        get() = assistantState == AssistantState.Recording
+
+    val isProcessing: Boolean
+        get() = assistantState == AssistantState.Publishing || 
+                assistantState == AssistantState.WaitingResponse || 
+                assistantState == AssistantState.FallbackRunning
+
+    var activeRequestId by mutableStateOf<String?>(null)
+        private set
+
+    enum class RequestType { Audio, Chat }
+    
+    var activeRequestType by mutableStateOf<RequestType?>(null)
+        private set
+        
+    var activeRequestText by mutableStateOf<String?>(null)
         private set
 
     var selectedLanguage by mutableStateOf("id")
@@ -93,9 +113,12 @@ class AiAssistantViewModel(
                                 false
                             }
 
+                            val wasRecording = assistantState == AssistantState.Recording
+
                             // ALWAYS stop active states when any answer arrives
-                            isProcessing = false
-                            android.util.Log.d("AiAssistantViewModel", "isProcessing set to false (answer received)")
+                            assistantState = AssistantState.Completed
+                            activeRequestId = null
+                            android.util.Log.d("AiAssistantViewModel", "assistantState set to Completed (answer received)")
                             
                             if (isBlocked) {
                                 // Remove BOTH the preemptively-added USER bubble 
@@ -108,8 +131,8 @@ class AiAssistantViewModel(
                                     }
                                 }
                                 
-                                if (isRecording) {
-                                    stopRecording()
+                                if (wasRecording) {
+                                    audioRecorder.stop()
                                 }
                                 
                                 android.util.Log.d("AiAssistantViewModel", "Guard blocked prompt: $message, showing identity fallback")
@@ -183,8 +206,8 @@ class AiAssistantViewModel(
                 } catch (e: Exception) {
                     android.util.Log.e("AiAssistantViewModel", "Error parsing MQTT message", e)
                     // Robust reset on error
-                    isProcessing = false
-                    isRecording = false
+                    assistantState = AssistantState.Failed
+                    activeRequestId = null
                 }
             }
         }
@@ -231,6 +254,12 @@ class AiAssistantViewModel(
     }
 
     fun sendChat(text: String) {
+        if (assistantState == AssistantState.Recording || assistantState == AssistantState.Publishing || 
+            assistantState == AssistantState.WaitingResponse || assistantState == AssistantState.FallbackRunning) {
+            android.util.Log.w("AiAssistantViewModel", "sendChat: Request already in progress, ignoring")
+            return
+        }
+        
         if (text.isNotBlank()) {
             android.util.Log.d("AiAssistantViewModel", "sendChat: $text")
             // Avoid duplicate if we just sent this
@@ -244,39 +273,285 @@ class AiAssistantViewModel(
                     role = MessageRole.USER
                 )
             }
-            isProcessing = true
+            
+            activeRequestId = java.util.UUID.randomUUID().toString()
+            activeRequestType = RequestType.Chat
+            activeRequestText = text
+            assistantState = AssistantState.Publishing
+            
             viewModelScope.launch {
-                mqttHelper.publishChat(text, selectedLanguage)
-            }
-        }
-    }
-
-    fun startRecording(file: File) {
-        isRecording = true
-        currentRecordingFile = file
-        audioRecorder.start(file)
-    }
-
-    fun stopRecording() {
-        if (isRecording) {
-            isRecording = false
-            isProcessing = true
-            audioRecorder.stop()
-
-            val file = currentRecordingFile
-            if (file != null && file.exists()) {
-                audioRecorder.finalizeWav(file)
-                viewModelScope.launch {
-                    val bytes = file.readBytes()
-                    mqttHelper.publishAudio(bytes, selectedLanguage)
+                val result = mqttHelper.publishChat(text, selectedLanguage)
+                if (result.isSuccess) {
+                    assistantState = AssistantState.WaitingResponse
+                    startResponseTimeout(activeRequestId)
+                } else {
+                    assistantState = AssistantState.Failed
+                    activeRequestId = null
+                    android.util.Log.e("AiAssistantViewModel", "publishChat failed")
                 }
             }
         }
     }
 
+    fun startRecording(file: File) {
+        if (assistantState == AssistantState.Recording || assistantState == AssistantState.Publishing || 
+            assistantState == AssistantState.WaitingResponse || assistantState == AssistantState.FallbackRunning) {
+            android.util.Log.w("AiAssistantViewModel", "startRecording: Request already in progress, ignoring")
+            return
+        }
+        
+        activeRequestId = java.util.UUID.randomUUID().toString()
+        activeRequestType = RequestType.Audio
+        activeRequestText = null
+        assistantState = AssistantState.Recording
+        currentRecordingFile = file
+        val started = audioRecorder.start(file)
+        if (!started) {
+            assistantState = AssistantState.Failed
+            activeRequestId = null
+            activeRequestType = null
+            android.util.Log.e("AiAssistantViewModel", "startRecording failed to initialize")
+        }
+    }
+
+    fun stopRecording() {
+        if (assistantState == AssistantState.Recording) {
+            audioRecorder.stop()
+
+            val file = currentRecordingFile
+            if (file != null && audioRecorder.isWavValid(file)) {
+                audioRecorder.finalizeWav(file)
+                assistantState = AssistantState.Publishing
+                viewModelScope.launch {
+                    val bytes = file.readBytes()
+                    val result = mqttHelper.publishAudio(bytes, selectedLanguage)
+                    if (result.isSuccess) {
+                        assistantState = AssistantState.WaitingResponse
+                        startResponseTimeout(activeRequestId)
+                    } else {
+                        assistantState = AssistantState.Failed
+                        activeRequestId = null
+                        android.util.Log.e("AiAssistantViewModel", "publishAudio failed")
+                    }
+                }
+            } else {
+                android.util.Log.e("AiAssistantViewModel", "Recording file is invalid or too small")
+                assistantState = AssistantState.Failed
+                activeRequestId = null
+            }
+        }
+    }
+
     fun abortProcessing() {
-        isProcessing = false
-        android.util.Log.d("AiAssistantViewModel", "abortProcessing: isProcessing set to false")
+        assistantState = AssistantState.Idle
+        activeRequestId = null
+        android.util.Log.d("AiAssistantViewModel", "abortProcessing: reset to Idle")
+    }
+
+    private fun startResponseTimeout(requestId: String?) {
+        if (requestId == null) return
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(25000L) // 25s
+            if (activeRequestId == requestId && assistantState == AssistantState.WaitingResponse) {
+                android.util.Log.e("AiAssistantViewModel", "Response timeout reached for active request, transitioning to fallback")
+                assistantState = AssistantState.FallbackRunning
+                runHttpFallback()
+            }
+        }
+    }
+
+    private fun runHttpFallback() {
+        val requestId = activeRequestId ?: return
+        val type = activeRequestType
+        val fallbackIdempotencyKey = "fallback_$requestId"
+        
+        android.util.Log.d("AiAssistantViewModel", "Starting HTTP Fallback for request: $requestId, type: $type")
+        
+        viewModelScope.launch {
+            val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+            val token = com.example.whisperandroid.data.di.NetworkModule.tokenManager.getAccessToken()
+            val terminalId = com.example.whisperandroid.data.di.NetworkModule.tokenManager.getTerminalId() ?: username
+            
+            if (token == null) {
+                assistantState = AssistantState.Failed
+                activeRequestId = null
+                return@launch
+            }
+            
+            if (type == RequestType.Chat) {
+                val text = activeRequestText
+                if (text != null) {
+                    com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
+                        prompt = text,
+                        language = selectedLanguage,
+                        terminalId = terminalId,
+                        uid = null,
+                        token = token,
+                        idempotencyKey = fallbackIdempotencyKey
+                    ).collect { result ->
+                        if (activeRequestId != requestId) return@collect
+                        when (result) {
+                            is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                                val data = result.data
+                                if (data != null) {
+                                    handleHttpChatResponse(data.response, false)
+                                } else {
+                                    assistantState = AssistantState.Failed
+                                    activeRequestId = null
+                                }
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                assistantState = AssistantState.Failed
+                                activeRequestId = null
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                        }
+                    }
+                } else {
+                    assistantState = AssistantState.Failed
+                    activeRequestId = null
+                }
+            } else if (type == RequestType.Audio) {
+                val file = currentRecordingFile
+                if (file != null && file.exists()) {
+                    com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase.initiate(
+                        audioFile = file,
+                        token = token,
+                        language = selectedLanguage,
+                        macAddress = terminalId,
+                        idempotencyKey = fallbackIdempotencyKey
+                    ).collect { result ->
+                        if (activeRequestId != requestId) return@collect
+                        when (result) {
+                            is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                                val taskId = result.data
+                                if (taskId != null) {
+                                    pollHttpTranscription(taskId, requestId, token, terminalId, fallbackIdempotencyKey)
+                                } else {
+                                    assistantState = AssistantState.Failed
+                                    activeRequestId = null
+                                }
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                assistantState = AssistantState.Failed
+                                activeRequestId = null
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                        }
+                    }
+                } else {
+                    assistantState = AssistantState.Failed
+                    activeRequestId = null
+                }
+            } else {
+                assistantState = AssistantState.Failed
+                activeRequestId = null
+            }
+        }
+    }
+
+    private fun pollHttpTranscription(taskId: String, requestId: String, token: String, terminalId: String, fallbackIdempotencyKey: String) {
+        viewModelScope.launch {
+            var isCompleted = false
+            var attempts = 0
+            while (!isCompleted && attempts < 10) {
+                if (activeRequestId != requestId) return@launch
+                var currentSuccessText: String? = null
+                var hasError = false
+                
+                com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase.getResult(
+                    taskId = taskId,
+                    token = token
+                ).collect { result ->
+                    when (result) {
+                        is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                            currentSuccessText = result.data
+                            isCompleted = true
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                            hasError = true
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                    }
+                }
+                
+                if (isCompleted && currentSuccessText != null) {
+                    val transcribedText = currentSuccessText!!
+                    val alreadyExists = transcriptionResults.any { it.role == MessageRole.USER && it.text == transcribedText }
+                    if (!alreadyExists) {
+                        transcriptionResults = transcriptionResults + TranscriptionMessage(
+                            text = transcribedText,
+                            role = MessageRole.USER
+                        )
+                    }
+                    
+                    com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
+                        prompt = transcribedText,
+                        language = selectedLanguage,
+                        terminalId = terminalId,
+                        uid = null,
+                        token = token,
+                        idempotencyKey = fallbackIdempotencyKey + "_chat"
+                    ).collect { chatResult ->
+                        if (activeRequestId != requestId) return@collect
+                        when (chatResult) {
+                            is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                                val data = chatResult.data
+                                if (data != null) {
+                                    handleHttpChatResponse(data.response, false)
+                                } else {
+                                    assistantState = AssistantState.Failed
+                                    activeRequestId = null
+                                }
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                assistantState = AssistantState.Failed
+                                activeRequestId = null
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                        }
+                    }
+                } else if (hasError) {
+                    assistantState = AssistantState.Failed
+                    activeRequestId = null
+                    return@launch
+                } else {
+                    attempts++
+                    kotlinx.coroutines.delay(2000L)
+                }
+            }
+            if (!isCompleted) {
+                assistantState = AssistantState.Failed
+                activeRequestId = null
+            }
+        }
+    }
+
+    private fun handleHttpChatResponse(responseText: String, isBlocked: Boolean) {
+        assistantState = AssistantState.Completed
+        activeRequestId = null
+        
+        if (isBlocked) {
+            val userMessages = transcriptionResults.filter { it.role == MessageRole.USER }
+            if (userMessages.isNotEmpty()) {
+                transcriptionResults = transcriptionResults.toMutableList().apply {
+                    val lastUserIndex = indexOfLast { it.role == MessageRole.USER }
+                    if (lastUserIndex >= 0) removeAt(lastUserIndex)
+                }
+            }
+            android.util.Log.d("AiAssistantViewModel", "HTTP Fallback: Guard blocked prompt")
+        }
+        
+        val cleanMessage = when {
+            responseText.isNotBlank() -> com.example.whisperandroid.util.parseMarkdownToText(responseText).trim().removeSurrounding("\"")
+            isBlocked -> "Halo! Saya Sensio, asisten rumah pintar Anda. Ada yang bisa saya bantu?"
+            else -> "Maaf, terjadi kesalahan pada koneksi fallback."
+        }
+        
+        transcriptionResults = transcriptionResults + TranscriptionMessage(
+            text = cleanMessage,
+            role = MessageRole.ASSISTANT
+        )
     }
 
     override fun onCleared() {

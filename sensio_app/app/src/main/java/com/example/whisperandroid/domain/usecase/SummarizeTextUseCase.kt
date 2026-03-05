@@ -14,11 +14,12 @@ class SummarizeTextUseCase(
         language: String?,
         style: String,
         macAddress: String?,
-        token: String
+        token: String,
+        idempotencyKey: String? = null
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-            ragRepository.generateSummary(text, style, language, null, macAddress, token).collect { result ->
+            ragRepository.generateSummary(text, style, language, null, macAddress, token, idempotencyKey).collect { result ->
                 emit(result)
             }
         }

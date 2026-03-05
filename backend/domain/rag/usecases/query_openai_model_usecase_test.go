@@ -1,23 +1,25 @@
 package usecases_test
 
 import (
+	"context"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/usecases"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestQueryOpenAIModelUseCase_Query(t *testing.T) {
 	t.Run("Success path - Matches Manual Scenario", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("I am just a computer program, but I'm functioning perfectly.", nil)
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("I am just a computer program, but I'm functioning perfectly.", nil)
 
 		uc := usecases.NewQueryOpenAIModelUseCase(mockLLM)
 
 		startTime := time.Now()
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/openai")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/openai")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
@@ -39,11 +41,11 @@ func TestQueryOpenAIModelUseCase_Query(t *testing.T) {
 
 		// Simulate a wrapped utils.APIError as often returned by services
 		apiErr := utils.NewAPIError(401, "openai api returned status 401: unauthorized")
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("", apiErr)
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("", apiErr)
 
 		uc := usecases.NewQueryOpenAIModelUseCase(mockLLM)
 
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/openai")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/openai")
 
 		assert.Error(t, err)
 		assert.NotNil(t, res)

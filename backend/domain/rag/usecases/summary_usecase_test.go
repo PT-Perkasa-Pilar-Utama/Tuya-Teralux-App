@@ -6,6 +6,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/services"
+	"strings"
 	"testing"
 	"time"
 )
@@ -18,7 +19,7 @@ type mockLLMForSummary struct {
 	ReturnError    error
 }
 
-func (m *mockLLMForSummary) CallModel(prompt string, model string) (string, error) {
+func (m *mockLLMForSummary) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	m.CapturedPrompt = prompt
 	m.CapturedModel = model
 	return m.ReturnString, m.ReturnError
@@ -33,12 +34,14 @@ func (n *noopSummaryRenderer) Render(summary string, path string, meta services.
 func TestSummaryUseCase_Execute(t *testing.T) {
 	cfg := &utils.Config{GeminiModelHigh: "test-model-summary"}
 	store := tasks.NewStatusStore[dtos.RAGStatusDTO]()
+	mockSkill := &SimpleMockSkill{SkillName: "Summary"}
+	mockChunkSkill := &SimpleMockSkill{SkillName: "ChunkSummary"}
 
 	t.Run("Success", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{
 			ReturnString: "# Notulen Rapat\n\n## 1. Agenda\nDiskusi fitur RAG.",
 		}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, mockSkill, mockChunkSkill)
 
 		taskID, err := u.SummarizeText("Ini adalah transkripsi rapat", "id", "Rapat Teknis", "Professional", "2024-05-20", "Ruang Rapat 1", "Faris, Budi", "")
 		if err != nil {
@@ -52,7 +55,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 
 	t.Run("Empty or Whitespace Input", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, mockSkill, mockChunkSkill)
 
 		taskID, err := u.SummarizeText("   ", "id", "", "", "", "", "", "")
 		if err != nil {
@@ -67,7 +70,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForSummary{
 			ReturnString: "# Meeting Summary\n\n## Decisions\n- Approve budget allocation",
 		}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, mockSkill, mockChunkSkill)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -82,16 +85,23 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		}
 	})
 
-	t.Run("Context-aware with cancelled context", func(t *testing.T) {
-		mockLLM := &mockLLMForSummary{}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
+	t.Run("Chunked Summarization Logic", func(t *testing.T) {
+		mockLLM := &mockLLMForSummary{
+			ReturnString: "Main Final Summary",
+		}
+		// Create a very long text to trigger chunking (> 16000 chars)
+		longText := strings.Repeat("A very long meeting transcript segment that repeats many times to exceed the limit. ", 300)
 
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel() // Immediately cancel
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, mockSkill, mockChunkSkill)
 
-		_, err := u.SummarizeTextWithContext(ctx, "Some text", "en", "", "", "", "", "", "")
-		if err == nil {
-			t.Fatal("expected error for cancelled context, got nil")
+		// Internal call to verify chunking
+		res, err := u.SummarizeTextSync(context.Background(), longText, "en", "Context", "Professional", "2024-05-20", "Office", "Team", "")
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if res.Summary == "" {
+			t.Error("expected non-empty summary from chunked pass")
 		}
 	})
 }

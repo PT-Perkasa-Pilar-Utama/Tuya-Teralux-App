@@ -24,8 +24,8 @@ class AudioRecorder(
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
 
     @android.annotation.SuppressLint("MissingPermission")
-    fun start(outputFile: File) {
-        if (isRecording.get()) return
+    fun start(outputFile: File): Boolean {
+        if (isRecording.get()) return false
 
         val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
         val bufferSize = (minBufferSize * 2).coerceAtLeast(sampleRate)
@@ -42,14 +42,27 @@ class AudioRecorder(
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.e("AudioRecorder", "AudioRecord init failed")
             recorder.release()
-            return
+            return false
         }
 
         audioRecord = recorder
         bytesWritten = 0
 
-        val outputStream = DataOutputStream(FileOutputStream(outputFile))
-        writeWavHeader(outputStream, 1, sampleRate, 16, 0)
+        val outputStream = try {
+            DataOutputStream(FileOutputStream(outputFile))
+        } catch (e: Exception) {
+            Log.e("AudioRecorder", "Failed to open output stream", e)
+            recorder.release()
+            return false
+        }
+
+        try {
+            writeWavHeader(outputStream, 1, sampleRate, 16, 0)
+        } catch (e: Exception) {
+            Log.e("AudioRecorder", "Failed to write WAV header", e)
+            recorder.release()
+            return false
+        }
 
         isRecording.set(true)
         recorder.startRecording()
@@ -76,6 +89,8 @@ class AudioRecorder(
                     }
                 }
             }.also { it.start() }
+            
+        return true
     }
 
     fun stop() {
@@ -112,6 +127,12 @@ class AudioRecorder(
         if (isRecording.get()) {
             stop()
         }
+    }
+
+    fun isWavValid(outputFile: File): Boolean {
+        if (!outputFile.exists()) return false
+        // Basic minimum length check (44 bytes header + some audio payload > 1000 bytes total)
+        return outputFile.length() > 1000L
     }
 
     private fun writeWavHeader(

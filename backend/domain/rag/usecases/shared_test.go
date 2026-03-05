@@ -1,7 +1,10 @@
 package usecases
 
 import (
+	"context"
+	"errors"
 	"sensio/domain/rag/skills"
+	"strings"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -27,6 +30,16 @@ func (m *UseCaseMockSkill) Execute(ctx *skills.SkillContext) (*skills.SkillResul
 	return args.Get(0).(*skills.SkillResult), args.Error(1)
 }
 
+// MockLLM is a mock implementation of the LLM interface for testing.
+type MockLLM struct {
+	mock.Mock
+}
+
+func (m *MockLLM) CallModel(ctx context.Context, prompt string, model string) (string, error) {
+	args := m.Called(ctx, prompt, model)
+	return args.String(0), args.Error(1)
+}
+
 // SimpleMockSkill is a non-testify based mock for simpler tests.
 type SimpleMockSkill struct {
 	SkillName string
@@ -34,12 +47,20 @@ type SimpleMockSkill struct {
 
 func (m *SimpleMockSkill) Name() string        { return m.SkillName }
 func (m *SimpleMockSkill) Description() string { return "" }
-func (m *SimpleMockSkill) Execute(ctx *skills.SkillContext) (*skills.SkillResult, error) {
-	// Wrap the prompt to satisfy the test expectation that it contains 'professional editor'
-	wrappedPrompt := "Act as a professional editor. Refine: " + ctx.Prompt
-	res, err := ctx.LLM.CallModel(wrappedPrompt, "low")
-	if err != nil {
-		return nil, err
+func (s *SimpleMockSkill) Execute(ctx *skills.SkillContext) (*skills.SkillResult, error) {
+	if s.SkillName == "Translation" {
+		return &skills.SkillResult{Message: "Translated!"}, nil
 	}
-	return &skills.SkillResult{Message: res, HTTPStatusCode: 200}, nil
+	// For Refine
+	lowerPrompt := strings.ToLower(ctx.Prompt)
+	if lowerPrompt == "test" {
+		return nil, errors.New("llm failure")
+	}
+	if strings.Contains(lowerPrompt, "mamam") {
+		return &skills.SkillResult{Message: "Saya sedang makan nasi."}, nil
+	}
+	if strings.Contains(lowerPrompt, "eating") {
+		return &skills.SkillResult{Message: "I am eating rice."}, nil
+	}
+	return &skills.SkillResult{Message: "Mocked!"}, nil
 }

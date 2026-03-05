@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"fmt"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/skills"
@@ -81,7 +82,7 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 	model := "high"
 
 	utils.LogDebug("Router: Routing prompt for '%s'", ctx.Prompt)
-	chosenSkillName, err := ctx.LLM.CallModel(routingPrompt, model)
+	chosenSkillName, err := ctx.LLM.CallModel(ctx.Ctx, routingPrompt, model)
 	if err != nil {
 		return nil, fmt.Errorf("orchestrator routing failed: %w", err)
 	}
@@ -108,7 +109,7 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 	// 4. Translate response if needed
 	if ctx.Language != "" && ctx.Language != "en" && r.translator != nil && res.Message != "" {
 		utils.LogDebug("Router: Translating response to '%s'", ctx.Language)
-		translated, err := r.translator.TranslateTextSync(res.Message, ctx.Language)
+		translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language)
 		if err == nil {
 			res.Message = translated
 		} else {

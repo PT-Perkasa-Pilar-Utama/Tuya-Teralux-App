@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sensio/domain/common/tasks"
@@ -13,7 +14,7 @@ import (
 
 type groqServiceClient interface {
 	HealthCheck() bool
-	Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
+	Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
 }
 
 type TranscribeGroqModelUseCase interface {
@@ -77,7 +78,7 @@ func (u *transcribeGroqModelUseCase) TranscribeAsync(filePath, fileName, languag
 		}
 
 		// Step 2: Transcribe
-		result, err := u.service.Transcribe(filePath, language, false)
+		result, err := u.service.Transcribe(context.Background(), filePath, language, false)
 		if err != nil {
 			utils.LogError("Groq Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

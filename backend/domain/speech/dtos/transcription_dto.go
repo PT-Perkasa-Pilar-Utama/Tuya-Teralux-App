@@ -34,13 +34,6 @@ type TranscriptionTaskResponseDTO struct {
 	RecordingID string `json:"recording_id,omitempty" example:"uuid-v4"`
 }
 
-type StandardResponse struct {
-	Status  bool        `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Details interface{} `json:"details,omitempty"`
-}
-
 type MqttPublishRequest struct {
 	Message string `json:"message" binding:"required"`
 }

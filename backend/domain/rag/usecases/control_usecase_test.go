@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,8 +20,8 @@ type mockLLMForControl struct {
 	mock.Mock
 }
 
-func (m *mockLLMForControl) CallModel(prompt string, model string) (string, error) {
-	args := m.Called(prompt, model)
+func (m *mockLLMForControl) CallModel(ctx context.Context, prompt string, model string) (string, error) {
+	args := m.Called(ctx, prompt, model)
 	return args.String(0), args.Error(1)
 }
 

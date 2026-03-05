@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,7 +77,7 @@ func (s *OrionService) HealthCheck() bool {
 	return true
 }
 
-func (s *OrionService) CallModel(prompt string, model string) (string, error) {
+func (s *OrionService) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	if s.config.OrionApiKey == "" {
 		return "", fmt.Errorf("ORION_API_KEY is not configured")
 	}
@@ -100,7 +101,7 @@ func (s *OrionService) CallModel(prompt string, model string) (string, error) {
 		return "", fmt.Errorf("failed to marshal orion request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
 	if err != nil {
 		return "", fmt.Errorf("failed to create orion request: %w", err)
 	}
@@ -186,7 +187,7 @@ func (s *OrionService) WhisperHealthCheck() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func (s *OrionService) Transcribe(audioPath string, lang string, diarize bool) (*dtos.WhisperResult, error) {
+func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang string, diarize bool) (*dtos.WhisperResult, error) {
 	outsystemsURL := s.config.OrionWhisperBaseURL
 	if outsystemsURL == "" {
 		return nil, fmt.Errorf("ORION_WHISPER_BASE_URL not configured")
@@ -222,7 +223,7 @@ func (s *OrionService) Transcribe(audioPath string, lang string, diarize bool) (
 	}
 
 	// Create HTTP request
-	req, err := http.NewRequest("POST", outsystemsURL, bodyBuf)
+	req, err := http.NewRequestWithContext(ctx, "POST", outsystemsURL, bodyBuf)
 	if err != nil {
 		return nil, fmt.Errorf("request creation failed: %w", err)
 	}

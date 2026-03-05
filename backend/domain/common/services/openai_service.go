@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -68,7 +69,7 @@ func (s *OpenAIService) HealthCheck() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
+func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	if s.config.OpenAIApiKey == "" {
 		return "", fmt.Errorf("OPENAI_API_KEY is not configured")
 	}
@@ -100,7 +101,7 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 		return "", fmt.Errorf("failed to marshal openai request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
 	if err != nil {
 		return "", fmt.Errorf("failed to create openai request: %w", err)
 	}
@@ -108,7 +109,7 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+s.config.OpenAIApiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 0}
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to call openai api: %w", err)
@@ -140,7 +141,7 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 
 // Whisper Implementation
 
-func (s *OpenAIService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.config.OpenAIApiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY is not configured")
 	}
@@ -179,7 +180,7 @@ func (s *OpenAIService) Transcribe(audioPath string, language string, diarize bo
 		return nil, fmt.Errorf("failed to close writer: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sensio/domain/common/tasks"
@@ -13,7 +14,7 @@ import (
 
 type openAIServiceClient interface {
 	HealthCheck() bool
-	Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
+	Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
 }
 
 type TranscribeOpenAIModelUseCase interface {
@@ -77,7 +78,7 @@ func (u *transcribeOpenAIModelUseCase) TranscribeAsync(filePath, fileName, langu
 		}
 
 		// Step 2: Transcribe
-		result, err := u.service.Transcribe(filePath, language, false)
+		result, err := u.service.Transcribe(context.Background(), filePath, language, false)
 		if err != nil {
 			utils.LogError("OpenAI Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

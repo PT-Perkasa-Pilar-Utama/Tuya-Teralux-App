@@ -1,6 +1,7 @@
 package usecases_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"sensio/domain/common/utils"
 	speechdtos "sensio/domain/speech/dtos"
 	"sensio/domain/speech/usecases"
+	speechusecases "sensio/domain/speech/usecases"
 	speechUtils "sensio/domain/speech/utils"
 	"testing"
 	"time"
@@ -17,12 +19,12 @@ import (
 )
 
 type MockRefineUseCase struct {
-	RefineTextFunc func(text string, lang string) (string, error)
+	RefineTextFunc func(ctx context.Context, text string, lang string) (string, error)
 }
 
-func (m *MockRefineUseCase) RefineText(text string, lang string) (string, error) {
+func (m *MockRefineUseCase) RefineText(ctx context.Context, text string, lang string) (string, error) {
 	if m.RefineTextFunc != nil {
-		return m.RefineTextFunc(text, lang)
+		return m.RefineTextFunc(ctx, text, lang)
 	}
 	return text, nil
 }
@@ -46,7 +48,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 			Source:           "Gemini",
 		}, nil)
 
-		mockRefine.RefineTextFunc = func(text, lang string) (string, error) {
+		mockRefine.RefineTextFunc = func(ctx context.Context, text, lang string) (string, error) {
 			return "Refined text", nil
 		}
 
@@ -56,7 +58,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
 		uc := usecases.NewTranscribeUseCase(mockClient, nil, mockRefine, statusStore, cache, &utils.Config{}, nil)
-		taskID, err := uc.TranscribeAudio(audioFile, "test.wav", "id")
+		taskID, err := uc.TranscribeAudio(context.Background(), audioFile, "test.wav", "id")
 
 		assert.NoError(t, err)
 		assert.NotEmpty(t, taskID)
@@ -71,7 +73,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 	t.Run("Scenario 2: File Not Found", func(t *testing.T) {
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
 		uc := usecases.NewTranscribeUseCase(nil, nil, nil, statusStore, nil, nil, nil)
-		_, err := uc.TranscribeAudio("missing.wav", "none", "id")
+		_, err := uc.TranscribeAudio(context.Background(), "missing.wav", "none", "id")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "audio file not found")
 	})
@@ -81,14 +83,14 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore := new(speechUtils.MockBadgerStore)
 		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 
-		mockClient.On("Transcribe", audioFile, "id", mock.Anything).Return(nil, errors.New("total failure"))
+		mockClient.On("Transcribe", mock.Anything, audioFile, "id", mock.Anything).Return(nil, errors.New("total failure"))
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("GetWithTTL", mock.Anything).Return(nil, 0*time.Second, nil).Maybe()
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
 		uc := usecases.NewTranscribeUseCase(mockClient, nil, nil, statusStore, cache, nil, nil)
-		taskID, _ := uc.TranscribeAudio(audioFile, "test.wav", "id")
+		taskID, _ := uc.TranscribeAudio(context.Background(), audioFile, "test.wav", "id")
 		assert.NotEmpty(t, taskID)
 
 		time.Sleep(50 * time.Millisecond)
@@ -102,7 +104,7 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 		mockStore := new(speechUtils.MockBadgerStore)
 		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 
-		mockClient.On("Transcribe", audioFile, "id", mock.Anything).Return(&speechdtos.WhisperResult{
+		mockClient.On("Transcribe", mock.Anything, audioFile, "id", mock.Anything).Return(&speechdtos.WhisperResult{
 			Transcription:    "Mqtt text",
 			DetectedLanguage: "id",
 			Source:           "OpenAI",
@@ -115,8 +117,8 @@ func TestTranscribeUseCase_FullScenarios(t *testing.T) {
 
 		statusStore := tasks.NewStatusStore[speechdtos.AsyncTranscriptionStatusDTO]()
 		config := &utils.Config{ApplicationEnvironment: "DEVELOPMENT"}
-		uc := usecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, config, mockMqtt)
-		_, _ = uc.TranscribeAudio(audioFile, "test.wav", "id", usecases.TranscriptionMetadata{
+		uc := speechusecases.NewTranscribeUseCase(mockClient, nil, &MockRefineUseCase{}, statusStore, cache, config, mockMqtt)
+		_, _ = uc.TranscribeAudio(context.Background(), audioFile, "test.wav", "id", speechusecases.TranscriptionMetadata{
 			Source:     "mqtt",
 			TerminalID: "TLX001",
 			UID:        "USER001",

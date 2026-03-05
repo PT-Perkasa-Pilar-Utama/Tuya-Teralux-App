@@ -22,6 +22,7 @@ interface SpeechApi {
         @Part language: MultipartBody.Part,
         @Part macAddress: MultipartBody.Part? = null,
         @Header("Authorization") token: String,
+        @Header("Idempotency-Key") idempotencyKey: String? = null,
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 

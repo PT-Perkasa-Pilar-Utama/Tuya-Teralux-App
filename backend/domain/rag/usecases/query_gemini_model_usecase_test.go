@@ -1,6 +1,7 @@
 package usecases_test
 
 import (
+	"context"
 	"errors"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/usecases"
@@ -8,17 +9,18 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestQueryGeminiModelUseCase_Query(t *testing.T) {
 	t.Run("Success path - Matches Manual Scenario", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("I'm doing well, thank you for asking! How can I help you today?", nil)
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("I'm doing well, thank you for asking! How can I help you today?", nil)
 
 		uc := usecases.NewQueryGeminiModelUseCase(mockLLM)
 
 		startTime := time.Now()
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/gemini")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/gemini")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
@@ -37,11 +39,11 @@ func TestQueryGeminiModelUseCase_Query(t *testing.T) {
 
 	t.Run("Failure - Matches Manual Scenario (500 Internal Server Error)", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("", errors.New("failed to call gemini api: timeout"))
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("", errors.New("failed to call gemini api: timeout"))
 
 		uc := usecases.NewQueryGeminiModelUseCase(mockLLM)
 
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/gemini")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/gemini")
 
 		assert.Error(t, err)
 		assert.NotNil(t, res)

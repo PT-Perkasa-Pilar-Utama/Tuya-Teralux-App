@@ -37,7 +37,7 @@ func (s *LlamaLocalService) HealthCheck() bool {
 	return true
 }
 
-func (s *LlamaLocalService) CallModel(prompt string, model string) (string, error) {
+func (s *LlamaLocalService) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	if s.modelPath == "" {
 		return "", fmt.Errorf("LLAMA_LOCAL_MODEL is not configured")
 	}

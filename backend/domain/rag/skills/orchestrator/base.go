@@ -43,7 +43,7 @@ func (b *BaseOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (*sk
 	}
 
 	// 2. Call LLM
-	res, err := ctx.LLM.CallModel(finalPrompt, model)
+	res, err := ctx.LLM.CallModel(ctx.Ctx, finalPrompt, model)
 	if err != nil {
 		return nil, err
 	}

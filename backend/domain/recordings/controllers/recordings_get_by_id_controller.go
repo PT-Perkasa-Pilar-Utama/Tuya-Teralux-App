@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	common_dtos "sensio/domain/common/dtos"
+	commonDtos "sensio/domain/common/dtos"
 	recordings_dtos "sensio/domain/recordings/dtos"
 	"sensio/domain/recordings/usecases"
 
@@ -30,22 +30,22 @@ func NewRecordingsGetByIDController(useCase usecases.GetRecordingByIDUseCase) *R
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Recording ID"
-// @Success 200 {object} recordings_dtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
-// @Failure 401 {object} recordings_dtos.StandardResponse
-// @Failure 404 {object} recordings_dtos.StandardResponse
-// @Failure 500 {object} recordings_dtos.StandardResponse "Internal Server Error"
+// @Success 200 {object} commonDtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
+// @Failure 401 {object} commonDtos.StandardResponse
+// @Failure 404 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/recordings/{id} [get]
 func (c *RecordingsGetByIDController) GetRecordingByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	result, err := c.useCase.GetRecordingByID(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, common_dtos.StandardResponse{
+		ctx.JSON(http.StatusNotFound, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Recording not found",
 		})
 		return
 	}
-	ctx.JSON(http.StatusOK, common_dtos.StandardResponse{
+	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 		Status:  true,
 		Message: "Recording retrieved successfully",
 		Data:    result,

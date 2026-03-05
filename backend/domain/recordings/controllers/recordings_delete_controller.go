@@ -5,14 +5,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	common_dtos "sensio/domain/common/dtos"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
-	recordings_dtos "sensio/domain/recordings/dtos"
 	"sensio/domain/recordings/usecases"
 )
 
-// Force import for Swagger
-var _ = recordings_dtos.StandardResponse{}
+// Force usage of commonDtos for Swagger
+var _ = commonDtos.StandardResponse{}
 
 type RecordingsDeleteController struct {
 	useCase usecases.DeleteRecordingUseCase
@@ -31,22 +30,22 @@ func NewRecordingsDeleteController(useCase usecases.DeleteRecordingUseCase) *Rec
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Recording ID"
-// @Success 200 {object} recordings_dtos.StandardResponse
-// @Failure 401 {object} recordings_dtos.StandardResponse
-// @Failure 500 {object} recordings_dtos.StandardResponse "Internal Server Error"
+// @Success 200 {object} commonDtos.StandardResponse
+// @Failure 401 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/recordings/{id} [delete]
 func (c *RecordingsDeleteController) DeleteRecording(ctx *gin.Context) {
 	id := ctx.Param("id")
 	err := c.useCase.DeleteRecording(id)
 	if err != nil {
 		utils.LogError("RecordingsDeleteController.DeleteRecording: %v", err)
-		ctx.JSON(http.StatusInternalServerError, common_dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
 		return
 	}
-	ctx.JSON(http.StatusOK, common_dtos.StandardResponse{
+	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 		Status:  true,
 		Message: "Recording deleted successfully",
 	})

@@ -51,7 +51,7 @@ func (o *ControlOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{history}}", strings.Join(ctx.History, "\n"))
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{devices}}", deviceListStr)
 
-	res, err := ctx.LLM.CallModel(finalPrompt, "high")
+	res, err := ctx.LLM.CallModel(ctx.Ctx, finalPrompt, "high")
 	if err != nil {
 		return nil, err
 	}

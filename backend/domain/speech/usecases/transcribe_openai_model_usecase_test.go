@@ -30,7 +30,7 @@ func TestTranscribeOpenAIModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("HealthCheck").Return(true)
-		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{Transcription: "OpenAI result"}, nil)
+		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{Transcription: "OpenAI result"}, nil)
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)
@@ -56,7 +56,7 @@ func TestTranscribeOpenAIModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("HealthCheck").Return(true)
-		mockSvc.On("Transcribe", audioFile, "id", mock.Anything).Return(nil, errors.New("api error"))
+		mockSvc.On("Transcribe", mock.Anything, audioFile, "id", mock.Anything).Return(nil, errors.New("api error"))
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)

@@ -17,7 +17,7 @@ import (
 )
 
 // InitModule initializes the Speech module with the protected router group.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragRefineUC ragUsecases.RefineUseCase, tuyaAuthUseCase tuyaUsecases.TuyaAuthUseCase, mqttSvc *infrastructure.MqttService, saveRecordingUseCase recordingUsecases.SaveRecordingUseCase) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragRefineUC ragUsecases.RefineUseCase, tuyaAuthUseCase tuyaUsecases.TuyaAuthUseCase, mqttSvc *infrastructure.MqttService, saveRecordingUseCase recordingUsecases.SaveRecordingUseCase) speechUsecases.TranscribeUseCase {
 	// Services
 	geminiService := services.NewGeminiService(cfg)
 	localService := services.NewWhisperLocalService(cfg)
@@ -69,7 +69,9 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 
 	// Controllers
 	transcribeController := speechControllers.NewSpeechTranscribeController(transcribeUC, saveRecordingUseCase, cfg, mqttSvc)
-	transcribeController.StartMqttSubscription()
+	if err := transcribeController.StartMqttSubscription(); err != nil {
+		utils.LogError("Speech module MQTT subscription failed: %v", err)
+	}
 	statusController := speechControllers.NewSpeechTranscribeStatusController(getStatusUC)
 
 	geminiController := speechControllers.NewSpeechModelsGeminiController(geminiModelUC, saveRecordingUseCase, cfg)
@@ -89,4 +91,6 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 		orionModelController,
 		cppModelController,
 	)
+
+	return transcribeUC
 }
