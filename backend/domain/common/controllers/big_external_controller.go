@@ -66,10 +66,6 @@ func (c *BigExternalController) GetDeviceInfo(ctx *gin.Context) {
 	// According to the previous exploration there was a booking_time logic in summary_usecase.go
 	// "SDTGetRoomTeraluxBookingtimeChar" containing "10:00 - 11:00"
 	bookingTimeChar := fmt.Sprintf("%v", info["SDTGetRoomTeraluxBookingtimeChar"])
-	if bookingTimeChar != "<nil>" && bookingTimeChar != "" {
-		// we can include it as raw, or parse it here, but let's provide exactly what was asked + raw
-		// The user asked for "booking id, jam start, dan jam stop"
-	}
 
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
