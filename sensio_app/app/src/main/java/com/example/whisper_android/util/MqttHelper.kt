@@ -7,6 +7,7 @@ import info.mqtt.android.service.MqttAndroidClient
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
@@ -22,6 +23,11 @@ class MqttHelper(
     private var mqttAndroidClient: MqttAndroidClient
     private val tokenManager = com.example.whisper_android.data.local.TokenManager(context)
 
+    private val _connectionStatus = kotlinx.coroutines.flow.MutableStateFlow(
+        MqttConnectionStatus.DISCONNECTED
+    )
+    val connectionStatus = _connectionStatus.asStateFlow()
+
     private val serverUri = BuildConfig.MQTT_BROKER_URL
     private val clientID = "WhisperAndroid_" + UUID.randomUUID().toString()
 
@@ -32,8 +38,6 @@ class MqttHelper(
         onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
     )
     val messages = _messages.asSharedFlow()
-
-    var onConnectionStatusChanged: ((status: MqttConnectionStatus) -> Unit)? = null
 
     private fun getUsername(): String {
         return com.example.whisper_android.util.DeviceUtils.getDeviceId(context)
@@ -60,7 +64,7 @@ class MqttHelper(
             object : MqttCallback {
                 override fun connectionLost(cause: Throwable?) {
                     Log.d(tag, "Connection lost: ${cause?.message}")
-                    onConnectionStatusChanged?.invoke(MqttConnectionStatus.DISCONNECTED)
+                    _connectionStatus.value = MqttConnectionStatus.DISCONNECTED
                 }
 
                 override fun messageArrived(
@@ -84,11 +88,19 @@ class MqttHelper(
     }
 
     fun connect(password: String) {
-        if (mqttAndroidClient.isConnected) return
+        if (mqttAndroidClient.isConnected || _connectionStatus.value == MqttConnectionStatus.CONNECTED) {
+            Log.d(tag, "MQTT already connected. Skipping connect.")
+            return
+        }
+        
+        if (_connectionStatus.value == MqttConnectionStatus.CONNECTING) {
+            Log.d(tag, "MQTT connection already in progress. Skipping connect.")
+            return
+        }
 
         if (!isNetworkAvailable()) {
             Log.w(tag, "No internet connection available. Skipping MQTT connect.")
-            onConnectionStatusChanged?.invoke(MqttConnectionStatus.NO_INTERNET)
+            _connectionStatus.value = MqttConnectionStatus.NO_INTERNET
             return
         }
 
@@ -101,7 +113,7 @@ class MqttHelper(
         mqttConnectOptions.userName = username
         mqttConnectOptions.password = password.toCharArray()
 
-        onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTING)
+        _connectionStatus.value = MqttConnectionStatus.CONNECTING
         try {
             mqttAndroidClient.connect(
                 mqttConnectOptions,
@@ -122,7 +134,7 @@ class MqttHelper(
                         subscribe("users/$username/$env/whisper/answer")
                         subscribe("users/$username/$env/task")
                         subscribe("users/$username/$env/chat")
-                        onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTED)
+                        _connectionStatus.value = MqttConnectionStatus.CONNECTED
                     }
 
                     override fun onFailure(
@@ -131,14 +143,13 @@ class MqttHelper(
                     ) {
                         Log.w(tag, "Failed to connect to: $serverUri")
                         exception.printStackTrace()
-                        
-                        val status = if (exception is java.net.UnknownHostException || 
-                            exception.cause is java.net.UnknownHostException) {
+
+                        val status = if (exception is java.net.UnknownHostException || exception.cause is java.net.UnknownHostException) {
                             MqttConnectionStatus.NO_INTERNET
                         } else {
                             MqttConnectionStatus.FAILED
                         }
-                        onConnectionStatusChanged?.invoke(status)
+                        _connectionStatus.value = status
                     }
                 }
             )
@@ -176,7 +187,7 @@ class MqttHelper(
         try {
             mqttAndroidClient.disconnect()
             Log.d(tag, "Disconnected from MQTT")
-            onConnectionStatusChanged?.invoke(MqttConnectionStatus.DISCONNECTED)
+            _connectionStatus.value = MqttConnectionStatus.DISCONNECTED
         } catch (e: MqttException) {
             e.printStackTrace()
         }
