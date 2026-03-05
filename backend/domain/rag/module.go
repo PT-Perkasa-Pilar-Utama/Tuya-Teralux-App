@@ -1,6 +1,7 @@
 package rag
 
 import (
+	"path/filepath"
 	"sensio/domain/common/infrastructure"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
@@ -53,26 +54,33 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 	cache := tasks.NewBadgerTaskCacheFromService(badger, "cache:rag:task:")
 
-	// Initialize Skills
+	// Initialize Skills from Markdown definitions
 	skillRegistry := skills.NewSkillRegistry()
-	controlSkill := skills.NewControlSkill(tuyaExecutor, tuyaAuth)
-	identitySkill := &skills.IdentitySkill{}
-	translationSkill := &skills.TranslationSkill{}
+	basePath := "."
+	if envPath := utils.FindEnvFile(); envPath != "" {
+		basePath = filepath.Dir(envPath)
+	}
+	skillsDir := filepath.Join(basePath, "domain", "rag", "skills", "definitions")
+	if err := skills.LoadSkillsFromDirectory(skillsDir, skillRegistry, tuyaExecutor, tuyaAuth); err != nil {
+		utils.LogError("RAG: Failed to load skills: %v", err)
+	}
 
-	skillRegistry.Register(controlSkill)
-	skillRegistry.Register(identitySkill)
-	skillRegistry.Register(translationSkill)
+	// Retrieve specific skills for usecases (safe default to nil if not found)
+	summarySkill, _ := skillRegistry.Get("Summary")
+	refineSkill, _ := skillRegistry.Get("Refine")
+	translateSkill, _ := skillRegistry.Get("Translation")
+	controlSkill, _ := skillRegistry.Get("Control")
 
 	// Initialize Usecases
-	refineUC := usecases.NewRefineUseCase(llmClient, llamaService, cfg)
-	translateUC := usecases.NewTranslateUseCase(llmClient, llamaService, cfg, cache, store, mqttSvc)
+	refineUC := usecases.NewRefineUseCase(llmClient, llamaService, cfg, refineSkill)
+	translateUC := usecases.NewTranslateUseCase(llmClient, llamaService, cfg, cache, store, mqttSvc, translateSkill)
 
 	orchestrator := skills.NewOrchestrator(skillRegistry, translateUC)
 	pdfRenderer := services.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewBigExternalService()
-	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, bigExternalService, mqttSvc)
+	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, bigExternalService, mqttSvc, summarySkill)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
-	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth)
+	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill)
 	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, orchestrator)
 
 	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)

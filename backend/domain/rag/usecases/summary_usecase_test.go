@@ -4,7 +4,7 @@ import (
 	"context"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
-	ragdtos "sensio/domain/rag/dtos"
+	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/services"
 	"testing"
 	"time"
@@ -32,13 +32,13 @@ func (n *noopSummaryRenderer) Render(summary string, path string, meta services.
 
 func TestSummaryUseCase_Execute(t *testing.T) {
 	cfg := &utils.Config{GeminiModelHigh: "test-model-summary"}
-	store := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
+	store := tasks.NewStatusStore[dtos.RAGStatusDTO]()
 
-	t.Run("Success Indonesian", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{
 			ReturnString: "# Notulen Rapat\n\n## 1. Agenda\nDiskusi fitur RAG.",
 		}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil)
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
 
 		taskID, err := u.SummarizeText("Ini adalah transkripsi rapat", "id", "Rapat Teknis", "Professional", "2024-05-20", "Ruang Rapat 1", "Faris, Budi", "", "http://example.com")
 		if err != nil {
@@ -52,46 +52,46 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 
 	t.Run("Empty or Whitespace Input", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil)
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
 
 		taskID, err := u.SummarizeText("   ", "id", "", "", "", "", "", "", "")
 		if err != nil {
-			t.Fatalf("expected no error from async call start, got %v", err)
+			t.Fatalf("expected no error for silent audio, got %v", err)
 		}
-		if taskID == "" {
-			t.Error("expected non-empty taskID")
+		if taskID != "" {
+			t.Error("expected empty taskID for empty input")
 		}
 	})
 
-	t.Run("Context-aware with valid context", func(t *testing.T) {
+	t.Run("Context-aware Success", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{
 			ReturnString: "# Meeting Summary\n\n## Decisions\n- Approve budget allocation",
 		}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil)
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		taskID, err := u.SummarizeTextWithContext(ctx, "Meeting discussion about Q1 roadmap", "en", "Strategic Planning", "Executive Brief", "2024-05-21", "HQ", "Team A", "", "http://example.com")
+		summary, err := u.SummarizeTextWithContext(ctx, "Text to summarize", "en", "Decision log", "Concise", "2024-05-20", "Boardroom", "CEO, CFO", "", "")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if taskID == "" {
-			t.Error("expected non-empty taskID")
+		if summary == "" {
+			t.Error("expected non-empty summary")
 		}
 	})
 
 	t.Run("Context-aware with cancelled context", func(t *testing.T) {
 		mockLLM := &mockLLMForSummary{}
-		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil)
+		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Immediately cancel
 
-		_, err := u.SummarizeTextWithContext(ctx, "Some transcript", "en", "Context", "Brief", "", "", "", "", "")
+		_, err := u.SummarizeTextWithContext(ctx, "Some text", "en", "", "", "", "", "", "", "")
 		if err == nil {
-			t.Error("expected error from cancelled context")
+			t.Fatal("expected error for cancelled context, got nil")
 		}
 	})
 }
