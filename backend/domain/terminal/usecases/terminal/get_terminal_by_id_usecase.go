@@ -38,13 +38,13 @@ func (uc *GetTerminalByIDUseCase) GetTerminalByID(id string) (*dtos.TerminalSing
 
 	return &dtos.TerminalSingleResponseDTO{
 		Terminal: dtos.TerminalResponseDTO{
-			ID:         item.ID,
-			MacAddress: item.MacAddress,
-			RoomID:     item.RoomID,
+			ID:           item.ID,
+			MacAddress:   item.MacAddress,
+			RoomID:       item.RoomID,
 			Name:         item.Name,
 			DeviceTypeID: item.DeviceTypeID,
 			CreatedAt:    item.CreatedAt,
-			UpdatedAt:  item.UpdatedAt,
+			UpdatedAt:    item.UpdatedAt,
 		},
 		// Note: Depending on whether you want to include Devices in the DTO
 		// The DTO currently doesn't have a Devices field, but the test expected it.

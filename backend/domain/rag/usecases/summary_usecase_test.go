@@ -40,7 +40,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		}
 		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
 
-		taskID, err := u.SummarizeText("Ini adalah transkripsi rapat", "id", "Rapat Teknis", "Professional", "2024-05-20", "Ruang Rapat 1", "Faris, Budi", "", "http://example.com")
+		taskID, err := u.SummarizeText("Ini adalah transkripsi rapat", "id", "Rapat Teknis", "Professional", "2024-05-20", "Ruang Rapat 1", "Faris, Budi", "")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -54,7 +54,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		mockLLM := &mockLLMForSummary{}
 		u := NewSummaryUseCase(mockLLM, nil, cfg, nil, store, &noopSummaryRenderer{}, nil, nil, &SimpleMockSkill{SkillName: "Summary"})
 
-		taskID, err := u.SummarizeText("   ", "id", "", "", "", "", "", "", "")
+		taskID, err := u.SummarizeText("   ", "id", "", "", "", "", "", "")
 		if err != nil {
 			t.Fatalf("expected no error for silent audio, got %v", err)
 		}
@@ -72,7 +72,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		summary, err := u.SummarizeTextWithContext(ctx, "Text to summarize", "en", "Decision log", "Concise", "2024-05-20", "Boardroom", "CEO, CFO", "", "")
+		summary, err := u.SummarizeTextWithContext(ctx, "Text to summarize", "en", "Decision log", "Concise", "2024-05-20", "Boardroom", "CEO, CFO", "")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -89,7 +89,7 @@ func TestSummaryUseCase_Execute(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Immediately cancel
 
-		_, err := u.SummarizeTextWithContext(ctx, "Some text", "en", "", "", "", "", "", "", "")
+		_, err := u.SummarizeTextWithContext(ctx, "Some text", "en", "", "", "", "", "", "")
 		if err == nil {
 			t.Fatal("expected error for cancelled context, got nil")
 		}

@@ -14,12 +14,12 @@ import (
 
 // TuyaModule encapsulates Tuya domain components
 type TuyaModule struct {
-	AuthController             *controllers.TuyaAuthController
-	GetAllDevicesController    *controllers.TuyaGetAllDevicesController
-	GetDeviceByIDController    *controllers.TuyaGetDeviceByIDController
-	CommandSwitchController    *controllers.TuyaCommandSwitchController
-	SendIRCommandController    *controllers.TuyaSendIRCommandController
-	SensorController           *controllers.TuyaSensorController
+	AuthController          *controllers.TuyaAuthController
+	GetAllDevicesController *controllers.TuyaGetAllDevicesController
+	GetDeviceByIDController *controllers.TuyaGetDeviceByIDController
+	CommandSwitchController *controllers.TuyaCommandSwitchController
+	SendIRCommandController *controllers.TuyaSendIRCommandController
+	SensorController        *controllers.TuyaSensorController
 
 	// Exported Use Cases for other domains
 	AuthUseCase          usecases.TuyaAuthUseCase
@@ -50,12 +50,12 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 
 	// Controllers
 	return &TuyaModule{
-		AuthController:             controllers.NewTuyaAuthController(tuyaAuthUseCase),
-		GetAllDevicesController:    controllers.NewTuyaGetAllDevicesController(tuyaGetAllDevicesUseCase),
-		GetDeviceByIDController:    controllers.NewTuyaGetDeviceByIDController(tuyaGetDeviceByIDUseCase),
-		CommandSwitchController:    controllers.NewTuyaCommandSwitchController(tuyaCommandSwitchUseCase),
-		SendIRCommandController:    controllers.NewTuyaSendIRCommandController(tuyaSendIRCommandUseCase),
-		SensorController:           controllers.NewTuyaSensorController(tuyaSensorUseCase),
+		AuthController:          controllers.NewTuyaAuthController(tuyaAuthUseCase),
+		GetAllDevicesController: controllers.NewTuyaGetAllDevicesController(tuyaGetAllDevicesUseCase),
+		GetDeviceByIDController: controllers.NewTuyaGetDeviceByIDController(tuyaGetDeviceByIDUseCase),
+		CommandSwitchController: controllers.NewTuyaCommandSwitchController(tuyaCommandSwitchUseCase),
+		SendIRCommandController: controllers.NewTuyaSendIRCommandController(tuyaSendIRCommandUseCase),
+		SensorController:        controllers.NewTuyaSensorController(tuyaSensorUseCase),
 
 		AuthUseCase:          tuyaAuthUseCase,
 		GetAllDevicesUseCase: tuyaGetAllDevicesUseCase,

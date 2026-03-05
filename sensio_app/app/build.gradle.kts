@@ -16,11 +16,11 @@ configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
 }
 
 android {
-    namespace = "com.example.whisper_android"
+    namespace = "com.example.whisperandroid"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.whisper_android"
+        applicationId = "com.example.whisperandroid"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

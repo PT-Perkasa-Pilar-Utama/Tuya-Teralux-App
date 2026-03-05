@@ -51,13 +51,13 @@ func (uc *GetAllTerminalUseCase) ListTerminal(filter *dtos.TerminalFilterDTO) (*
 	terminalDTOs := make([]dtos.TerminalResponseDTO, 0, len(terminalList))
 	for _, item := range terminalList {
 		terminalDTOs = append(terminalDTOs, dtos.TerminalResponseDTO{
-			ID:         item.ID,
-			MacAddress: item.MacAddress,
+			ID:           item.ID,
+			MacAddress:   item.MacAddress,
 			Name:         item.Name,
 			RoomID:       item.RoomID,
 			DeviceTypeID: item.DeviceTypeID,
 			CreatedAt:    item.CreatedAt,
-			UpdatedAt:  item.UpdatedAt,
+			UpdatedAt:    item.UpdatedAt,
 		})
 	}
 
