@@ -23,9 +23,8 @@ class SensioWakeWordManager(
     private val keywords =
         "[" +
             "\"hey sensio\", \"hey census\", \"hey essence\", \"hey sense\", \"hey essential\", " +
-            "\"hey sensei\", \"hey santio\", \"sensio\", \"census\", \"essence\", " +
-            "\"hello\", \"hi\", \"yes\", \"no\", " +
-            "\"computer\", \"assistant\", \"[unk]\"" +
+            "\"hey sensei\", \"hey santio\", \"hey senso\", " +
+            "\"[unk]\"" +
             "]"
 
     init {
@@ -87,17 +86,16 @@ class SensioWakeWordManager(
 
     private fun containsWakeWord(hypothesis: String): Boolean {
         val lower = hypothesis.lowercase()
-        // Since 'sensio' is missing from Vosk's dictionary, it often hears 'census', 'essence', 'sensei', 'santio' etc.
-        return lower.contains("hey census") ||
-            lower.contains("hey essence") ||
-            lower.contains("hey sense") ||
-            lower.contains("hey essential") ||
-            lower.contains("hey sensei") ||
-            lower.contains("hey santio") ||
-            lower.contains("hey sensio") ||
-            (lower.contains("census") && lower.contains("hey")) ||
-            (lower.contains("essence") && lower.contains("hey")) ||
-            (lower.contains("sensei") && lower.contains("hey"))
+        // Must contain 'hey' and one of the sensio-like variants (Vosk often misreads 'sensio')
+        if (!lower.contains("hey")) return false
+
+        return lower.contains("sensio") ||
+            lower.contains("senso") ||
+            lower.contains("census") ||
+            lower.contains("essence") ||
+            lower.contains("sensei") ||
+            lower.contains("santio") ||
+            lower.contains("essential")
     }
 
     private fun triggerWakeWord() {

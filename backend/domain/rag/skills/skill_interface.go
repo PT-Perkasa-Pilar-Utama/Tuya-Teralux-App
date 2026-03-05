@@ -40,6 +40,7 @@ type SkillResult struct {
 	Message        string
 	Data           interface{}
 	IsControl      bool
+	IsBlocked      bool
 	HTTPStatusCode int
 }
 

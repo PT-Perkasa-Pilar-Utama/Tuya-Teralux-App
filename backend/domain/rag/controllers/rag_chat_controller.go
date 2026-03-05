@@ -58,11 +58,14 @@ func (c *RAGChatController) StartMqttSubscription() {
 			return
 		}
 
-		// Extract MAC from topic: users/MAC/chat
+		// Extract MAC from topic: (optionally $share/group/)users/MAC/env/chat
 		topicParts := strings.Split(msg.Topic(), "/")
 		mac := ""
-		if len(topicParts) >= 2 && topicParts[0] == "users" {
-			mac = topicParts[1]
+		for i, part := range topicParts {
+			if part == "users" && i+1 < len(topicParts) {
+				mac = topicParts[i+1]
+				break
+			}
 		}
 
 		if req.Prompt == "" || req.TerminalID == "" {
@@ -106,6 +109,14 @@ func (c *RAGChatController) StartMqttSubscription() {
 
 				if isWhisperActive {
 					utils.LogInfo("RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s", mac, req.TerminalID)
+					if mac != "" {
+						respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
+						respData, _ := json.Marshal(dtos.StandardResponse{
+							Status:  true,
+							Message: "Chat request received (sync with active whisper)",
+						})
+						_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
+					}
 					return
 				}
 
@@ -123,6 +134,14 @@ func (c *RAGChatController) StartMqttSubscription() {
 				if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
 					c.mu.Unlock()
 					utils.LogInfo("RAGChat MQTT: Dropping duplicate prompt for %s: '%s'", terminalKey, req.Prompt)
+					if mac != "" {
+						respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
+						respData, _ := json.Marshal(dtos.StandardResponse{
+							Status:  true,
+							Message: "Chat request received (duplicate dropped)",
+						})
+						_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
+					}
 					return
 				}
 

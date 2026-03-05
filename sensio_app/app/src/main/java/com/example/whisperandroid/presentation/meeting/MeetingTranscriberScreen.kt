@@ -230,6 +230,7 @@ fun MeetingTranscriberScreen(
                 hasPermission = hasPermission,
                 uiState = uiState,
                 pulseScale = pulseScale,
+                isEnabled = mqttStatus == com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED,
                 onMicClick = {
                     val canRecord = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||

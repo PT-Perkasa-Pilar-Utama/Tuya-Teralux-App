@@ -60,11 +60,14 @@ func (c *SpeechTranscribeController) StartMqttSubscription() {
 			return
 		}
 
-		// Extract MAC from topic: users/MAC/whisper
+		// Extract MAC from topic: (optionally $share/group/)users/MAC/env/whisper
 		topicParts := strings.Split(msg.Topic(), "/")
 		mac := ""
-		if len(topicParts) >= 2 && topicParts[0] == "users" {
-			mac = topicParts[1]
+		for i, part := range topicParts {
+			if part == "users" && i+1 < len(topicParts) {
+				mac = topicParts[i+1]
+				break
+			}
 		}
 
 		if req.Audio == "" || req.TerminalID == "" {

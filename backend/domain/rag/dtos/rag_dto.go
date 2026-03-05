@@ -72,6 +72,7 @@ type RAGChatRequestDTO struct {
 type RAGChatResponseDTO struct {
 	Response       string       `json:"response"`
 	IsControl      bool         `json:"is_control"`
+	IsBlocked      bool         `json:"is_blocked"`
 	Redirect       *RedirectDTO `json:"redirect,omitempty"`
 	HTTPStatusCode int          `json:"-"`                     // HTTP status code to return (not exposed in JSON)
 	RequestID      string       `json:"request_id,omitempty"`  // Tracking ID

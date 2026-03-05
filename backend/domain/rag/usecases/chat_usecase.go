@@ -7,6 +7,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/skills"
+	"sensio/domain/rag/skills/orchestrator"
 	"strings"
 )
 
@@ -20,10 +21,10 @@ type ChatUseCaseImpl struct {
 	config       *utils.Config
 	badger       *infrastructure.BadgerService
 	vector       *infrastructure.VectorService
-	orchestrator *skills.Orchestrator
+	orchestrator *orchestrator.Router
 }
 
-func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
+func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *orchestrator.Router) ChatUseCase {
 	return &ChatUseCaseImpl{
 		llm:          llm,
 		fallbackLLM:  fallbackLLM,
@@ -74,8 +75,8 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 		return nil, fmt.Errorf("orchestrator execution failed: %w", err)
 	}
 
-	// 4. Update History
-	if u.badger != nil {
+	// 4. Update History (skip if blocked)
+	if u.badger != nil && !result.IsBlocked {
 		history = append(history, "User: "+prompt, "Assistant: "+result.Message)
 		if len(history) > 20 {
 			history = history[len(history)-20:]
@@ -100,6 +101,7 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 	return &dtos.RAGChatResponseDTO{
 		Response:       result.Message,
 		IsControl:      result.IsControl,
+		IsBlocked:      result.IsBlocked,
 		Redirect:       redirect,
 		HTTPStatusCode: result.HTTPStatusCode,
 	}, nil
