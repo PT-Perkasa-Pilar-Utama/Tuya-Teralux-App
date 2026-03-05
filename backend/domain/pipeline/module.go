@@ -24,11 +24,12 @@ func InitModule(
 	summaryUC ragUsecases.SummaryUseCase,
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
 	uploadSessionUC speechUsecases.UploadSessionUseCase,
+	mqttSvc *infrastructure.MqttService,
 ) {
 	store := tasks.NewStatusStore[pipelinedtos.PipelineStatusDTO]()
 	cache := tasks.NewBadgerTaskCacheFromService(badger, "cache:pipeline:task:")
 
-	pipelineUC := pipelineUsecases.NewPipelineUseCase(transcribeUC, translateUC, summaryUC, cache, store)
+	pipelineUC := pipelineUsecases.NewPipelineUseCase(transcribeUC, translateUC, summaryUC, cache, store, mqttSvc)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	pipelineCtrl := pipelineControllers.NewPipelineController(pipelineUC, statusUC, saveRecordingUC, uploadSessionUC, cfg)
 

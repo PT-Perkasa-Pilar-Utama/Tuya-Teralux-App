@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 sealed class UploadState {
     data class Loading(val message: String? = null) : UploadState()
+    data class SessionStarted(val sessionId: String) : UploadState()
     data class Progress(
         val uploadedBytes: Long,
         val totalBytes: Long,
@@ -23,7 +24,8 @@ interface UploadRepository {
     fun uploadFile(
         file: File,
         token: String,
-        chunkSizeMb: Int = 1 // Default 1MB chunks for stability
+        chunkSizeMb: Int = 8, // Default 8MB chunks for performance
+        sessionId: String? = null
     ): Flow<UploadState>
 
     /**

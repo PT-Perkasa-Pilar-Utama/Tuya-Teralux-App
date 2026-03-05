@@ -9,6 +9,8 @@ import (
 	"sensio/domain/common/utils"
 	ragUsecases "sensio/domain/rag/usecases"
 	speechdtos "sensio/domain/speech/dtos"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -33,7 +35,7 @@ type TranscriptionMetadata struct {
 
 type TranscribeUseCase interface {
 	TranscribeAudio(ctx context.Context, inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error)
-	TranscribeAudioSync(ctx context.Context, inputPath string, language string, diarize bool, refine bool) (*speechdtos.AsyncTranscriptionResultDTO, error)
+	TranscribeAudioSync(ctx context.Context, inputPath string, language string, diarize bool, refine bool, progressCallback func(int)) (*speechdtos.AsyncTranscriptionResultDTO, error)
 	CheckIdempotency(idempotencyKey string, audioHash string, language string, terminalID string) (string, bool)
 }
 
@@ -183,31 +185,149 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 	return taskID, nil
 }
 
-func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, reqLanguage string, diarize bool, refine bool) (*speechdtos.AsyncTranscriptionResultDTO, error) {
-	result, err := uc.whisperClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
-	if err != nil && uc.fallbackClient != nil {
-		utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
-		result, err = uc.fallbackClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
+func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, reqLanguage string, diarize bool, refine bool, progressCallback func(int)) (*speechdtos.AsyncTranscriptionResultDTO, error) {
+	var rawTranscription string
+	var detectedLang string
+
+	fileInfo, err := os.Stat(inputPath)
+	useSegment := err == nil && fileInfo.Size() > 5*1024*1024 && uc.config.AudioSegmentEnabled
+
+	if useSegment {
+		segmentSec := uc.config.AudioSegmentSec
+		if segmentSec < 60 {
+			segmentSec = 60
+		}
+		overlapSec := uc.config.AudioSegmentOverlapSec
+
+		utils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
+		segments, splitErr := utils.SplitAudioSegments(inputPath, segmentSec, overlapSec)
+		if splitErr != nil {
+			utils.LogError("TranscribeSync: Failed to split audio, falling back to full file: %v", splitErr)
+			useSegment = false // Fallback to full file
+		} else {
+			defer utils.CleanupSegments(segments)
+
+			type segResult struct {
+				index int
+				text  string
+				lang  string
+				err   error
+			}
+
+			results := make([]segResult, len(segments))
+			sem := make(chan struct{}, utils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency))
+			var wg sync.WaitGroup
+
+			var completed int
+			var lastProgress int
+			var mu sync.Mutex
+
+			for i, seg := range segments {
+				wg.Add(1)
+				go func(idx int, path string) {
+					defer wg.Done()
+
+					// Check context before starting
+					select {
+					case <-ctx.Done():
+						mu.Lock()
+						results[idx] = segResult{index: idx, err: ctx.Err()}
+						mu.Unlock()
+						return
+					case sem <- struct{}{}:
+						defer func() { <-sem }()
+					}
+
+					var res *speechdtos.WhisperResult
+					var transErr error
+
+					// Retry logic (max 2 attempts)
+					for attempt := 1; attempt <= 2; attempt++ {
+						res, transErr = uc.whisperClient.Transcribe(ctx, path, reqLanguage, diarize)
+						if transErr != nil && uc.fallbackClient != nil {
+							utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client failed, falling back to local: %v", idx, attempt, transErr)
+							res, transErr = uc.fallbackClient.Transcribe(ctx, path, reqLanguage, diarize)
+						}
+						if transErr == nil {
+							break
+						}
+						utils.LogWarn("TranscribeSync Segment %d (Attempt %d) failed: %v", idx, attempt, transErr)
+						if attempt < 2 {
+							time.Sleep(1 * time.Second)
+						}
+					}
+
+					mu.Lock()
+					defer mu.Unlock()
+					if transErr != nil {
+						results[idx] = segResult{index: idx, err: transErr}
+					} else {
+						results[idx] = segResult{index: idx, text: res.Transcription, lang: res.DetectedLanguage}
+					}
+
+					completed++
+					if progressCallback != nil {
+						progress := int((float64(completed) / float64(len(segments))) * 100)
+						if progress > lastProgress {
+							lastProgress = progress
+							go progressCallback(progress)
+						}
+					}
+				}(i, seg.Path)
+			}
+			wg.Wait()
+
+			// Merge and Dedup
+			var mergedText string
+			for i, r := range results {
+				if r.err != nil {
+					return nil, fmt.Errorf("segment %d failed: %w", r.index, r.err)
+				}
+				if i == 0 {
+					mergedText = r.text
+					detectedLang = r.lang
+				} else {
+					mergedText = uc.mergeWithDedup(mergedText, r.text)
+					if detectedLang == "" && r.lang != "" {
+						detectedLang = r.lang
+					}
+				}
+			}
+			rawTranscription = strings.TrimSpace(mergedText)
+		}
 	}
 
-	if err != nil {
-		return nil, err
+	if !useSegment {
+		result, err := uc.whisperClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
+		if err != nil && uc.fallbackClient != nil {
+			utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
+			result, err = uc.fallbackClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		rawTranscription = result.Transcription
+		detectedLang = result.DetectedLanguage
+		if progressCallback != nil {
+			go progressCallback(100)
+		}
 	}
 
 	// Refine (Grammar/Spelling) - only if explicitly requested
-	refined := result.Transcription
+	refined := rawTranscription
 	if refine {
-		refineLang := result.DetectedLanguage
+		refineLang := detectedLang
 		if reqLanguage != "" {
 			refineLang = reqLanguage
 		}
-		refined, _ = uc.refineUC.RefineText(ctx, result.Transcription, refineLang)
+		refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
 	}
 
 	return &speechdtos.AsyncTranscriptionResultDTO{
-		Transcription:    result.Transcription,
+		Transcription:    rawTranscription,
 		RefinedText:      refined,
-		DetectedLanguage: result.DetectedLanguage,
+		DetectedLanguage: detectedLang,
 	}, nil
 }
 
@@ -229,7 +349,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 		// If we add Refine to metadata in the future, we should use it here.
 	}
 
-	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, reqLanguage, diarize, refine)
+	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, reqLanguage, diarize, refine, nil)
 	if err != nil {
 		utils.LogError("Transcribe Task %s: Failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil, err)
@@ -334,4 +454,54 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 
 	uc.store.Set(taskID, status)
 	_ = uc.cache.SetWithTTL(taskID, status, ttl)
+}
+
+// mergeWithDedup handles the joining of two transcript segments by checking for shared word overlaps
+// at the boundaries, which often occurs due to the segment overlap duration.
+func (uc *transcribeUseCase) mergeWithDedup(prev, current string) string {
+	prevWords := strings.Fields(prev)
+	currentWords := strings.Fields(current)
+
+	if len(prevWords) == 0 {
+		return current
+	}
+	if len(currentWords) == 0 {
+		return prev
+	}
+
+	// Try to find the longest overlap (max 10 words)
+	maxOverlap := 10
+	if len(prevWords) < maxOverlap {
+		maxOverlap = len(prevWords)
+	}
+	if len(currentWords) < maxOverlap {
+		maxOverlap = len(currentWords)
+	}
+
+	bestOverlap := 0
+	for size := 1; size <= maxOverlap; size++ {
+		match := true
+		for i := 0; i < size; i++ {
+			pWord := prevWords[len(prevWords)-size+i]
+			cWord := currentWords[i]
+			// Case-insensitive comparison for deduplication
+			if !strings.EqualFold(pWord, cWord) {
+				match = false
+				break
+			}
+		}
+		if match {
+			bestOverlap = size
+		}
+	}
+
+	if bestOverlap > 0 {
+		remaining := currentWords[bestOverlap:]
+		if len(remaining) == 0 {
+			return prev
+		}
+		return prev + " " + strings.Join(remaining, " ")
+	}
+
+	return prev + " " + current
 }

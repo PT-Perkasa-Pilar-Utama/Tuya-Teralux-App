@@ -40,8 +40,10 @@ object NetworkModule {
 
     lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
     lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
+    lateinit var appContext: android.content.Context
 
     fun init(context: android.content.Context) {
+        appContext = context.applicationContext
         tokenManager =
             com.example.whisperandroid.data.local
                 .TokenManager(context)
@@ -128,9 +130,12 @@ object NetworkModule {
     }
 
     val processMeetingUseCase: com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase by lazy {
+        val prefs = appContext.getSharedPreferences("upload_sessions", android.content.Context.MODE_PRIVATE)
         com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase(
             pipelineRepository,
-            uploadRepository
+            uploadRepository,
+            mqttHelper,
+            prefs
         )
     }
 

@@ -12,8 +12,15 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+	"sensio/domain/common/events"
+
 	"github.com/google/uuid"
 )
+
+type mqttPublisher interface {
+	Publish(topic string, qos byte, retained bool, payload interface{}) error
+}
 
 type PipelineUseCase interface {
 	ExecutePipeline(ctx context.Context, inputPath string, req pipelineDtos.PipelineRequestDTO, idempotencyKey string) (string, error)
@@ -26,6 +33,7 @@ type pipelineUseCase struct {
 	summaryUC    ragUsecases.SummaryUseCase
 	cache        *tasks.BadgerTaskCache
 	store        *tasks.StatusStore[pipelineDtos.PipelineStatusDTO]
+	mqttSvc      mqttPublisher
 }
 
 func NewPipelineUseCase(
@@ -34,6 +42,7 @@ func NewPipelineUseCase(
 	summaryUC ragUsecases.SummaryUseCase,
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[pipelineDtos.PipelineStatusDTO],
+	mqttSvc mqttPublisher,
 ) PipelineUseCase {
 	return &pipelineUseCase{
 		transcribeUC: transcribeUC,
@@ -41,6 +50,7 @@ func NewPipelineUseCase(
 		summaryUC:    summaryUC,
 		cache:        cache,
 		store:        store,
+		mqttSvc:      mqttSvc,
 	}
 }
 
@@ -134,6 +144,9 @@ func (u *pipelineUseCase) ExecutePipeline(ctx context.Context, inputPath string,
 	if err != nil {
 		timeout = 12 * time.Hour
 	}
+
+	u.publishEvent(taskID, req.MacAddress, "accepted", "pending", "", "", 0, nil)
+
 	asyncCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	go func() {
 		defer cancel()
@@ -153,19 +166,24 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	status.OverallStatus = "processing"
 	u.saveStatus(taskID, *status)
 
+	u.publishEvent(taskID, req.MacAddress, "started", "processing", "", "", 0, nil)
+
 	// Stage 1: Transcription
 	startTime := time.Now()
 	status.Stages["transcription"] = pipelineDtos.PipelineStageStatus{Status: "processing", StartedAt: startTime.Format(time.RFC3339)}
 	u.saveStatus(taskID, *status)
+	u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "transcription", "processing", 0, nil)
 
 	refine := true
 	if req.Refine != nil && !*req.Refine {
 		refine = false
 	}
 
-	transResult, err := u.transcribeUC.TranscribeAudioSync(ctx, inputPath, req.Language, req.Diarize, refine)
+	transResult, err := u.transcribeUC.TranscribeAudioSync(ctx, inputPath, req.Language, req.Diarize, refine, func(progress int) {
+		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "transcription", "processing", progress, nil)
+	})
 	if err != nil {
-		u.failStage(taskID, "transcription", err)
+		u.failStage(taskID, req.MacAddress, "transcription", err)
 		return
 	}
 	status.Stages["transcription"] = pipelineDtos.PipelineStageStatus{
@@ -174,6 +192,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 		DurationSeconds: time.Since(startTime).Seconds(),
 	}
 	u.saveStatus(taskID, *status)
+	u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "transcription", "completed", 100, nil)
 
 	// Stage 2: Refinement
 	refinedText := transResult.Transcription
@@ -181,6 +200,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 		startTime = time.Now()
 		status.Stages["refinement"] = pipelineDtos.PipelineStageStatus{Status: "processing", StartedAt: startTime.Format(time.RFC3339)}
 		u.saveStatus(taskID, *status)
+		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "refinement", "processing", 0, nil)
 
 		// Refine is already called inside TranscribeAudioSync and returned as transResult.RefinedText
 		// But if we want to be explicit or if we separated them:
@@ -191,6 +211,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 			DurationSeconds: time.Since(startTime).Seconds(),
 		}
 		u.saveStatus(taskID, *status)
+		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "refinement", "completed", 100, nil)
 	}
 
 	// Stage 3: Translation
@@ -199,10 +220,11 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 		startTime = time.Now()
 		status.Stages["translation"] = pipelineDtos.PipelineStageStatus{Status: "processing", StartedAt: startTime.Format(time.RFC3339)}
 		u.saveStatus(taskID, *status)
+		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "translation", "processing", 0, nil)
 
 		transText, err := u.translateUC.TranslateTextSync(ctx, refinedText, req.TargetLanguage)
 		if err != nil {
-			u.failStage(taskID, "translation", err)
+			u.failStage(taskID, req.MacAddress, "translation", err)
 			return
 		}
 		finalText = transText
@@ -212,6 +234,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 			DurationSeconds: time.Since(startTime).Seconds(),
 		}
 		u.saveStatus(taskID, *status)
+		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "translation", "completed", 100, nil)
 	}
 
 	// Stage 4: Summary
@@ -219,11 +242,12 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 		startTime = time.Now()
 		status.Stages["summary"] = pipelineDtos.PipelineStageStatus{Status: "processing", StartedAt: startTime.Format(time.RFC3339)}
 		u.saveStatus(taskID, *status)
+		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "summary", "processing", 0, nil)
 
 		participantsStr := strings.Join(req.Participants, ", ")
 		summResult, err := u.summaryUC.SummarizeTextSync(ctx, finalText, req.TargetLanguage, req.Context, req.Style, req.Date, req.Location, participantsStr, req.MacAddress)
 		if err != nil {
-			u.failStage(taskID, "summary", err)
+			u.failStage(taskID, req.MacAddress, "summary", err)
 			return
 		}
 		status.Stages["summary"] = pipelineDtos.PipelineStageStatus{
@@ -232,6 +256,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 			DurationSeconds: time.Since(startTime).Seconds(),
 		}
 		u.saveStatus(taskID, *status)
+		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "summary", "completed", 100, nil)
 	}
 
 	// Finalize
@@ -240,6 +265,8 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	duration := time.Since(start).Seconds()
 	status.DurationSeconds = duration
 	u.saveStatus(taskID, *status)
+
+	u.publishEvent(taskID, req.MacAddress, "completed", "completed", "", "", 100, nil)
 
 	utils.LogInfo("Pipeline Task %s: completed (Duration: %.2fs)", taskID, duration)
 }
@@ -253,7 +280,7 @@ func (u *pipelineUseCase) saveStatus(taskID string, status pipelineDtos.Pipeline
 	_ = u.cache.SetWithTTL(taskID, status, ttl)
 }
 
-func (u *pipelineUseCase) failStage(taskID string, stageName string, err error) {
+func (u *pipelineUseCase) failStage(taskID string, macAddress string, stageName string, err error) {
 	status, _ := u.store.Get(taskID)
 	if status == nil {
 		return
@@ -266,4 +293,28 @@ func (u *pipelineUseCase) failStage(taskID string, stageName string, err error) 
 	u.saveStatus(taskID, *status)
 
 	utils.LogError("Pipeline Task %s: Stage '%s' failed: %v", taskID, stageName, err)
+	u.publishEvent(taskID, macAddress, "failed", "failed", stageName, "failed", 0, err)
+}
+
+// publishEvent publishes TaskEventV1 to MQTT
+func (u *pipelineUseCase) publishEvent(taskID string, macAddress string, event string, overallStatus string, stage string, stageStatus string, progress int, err error) {
+	if !utils.GetConfig().TaskEventPublishEnabled || u.mqttSvc == nil || macAddress == "" {
+		return
+	}
+
+	taskEvent := events.NewTaskEventV1(taskID, "MeetingPipeline", event, overallStatus)
+	if stage != "" {
+		taskEvent.Stage = stage
+		taskEvent.StageStatus = stageStatus
+	}
+	if progress > 0 {
+		taskEvent.ProgressPercent = progress
+	}
+	if err != nil {
+		taskEvent.Error = err.Error()
+	}
+
+	topic := fmt.Sprintf("users/%s/%s/task", macAddress, utils.GetConfig().ApplicationEnvironment)
+	payloadBytes, _ := json.Marshal(taskEvent)
+	_ = u.mqttSvc.Publish(topic, 0, false, payloadBytes)
 }

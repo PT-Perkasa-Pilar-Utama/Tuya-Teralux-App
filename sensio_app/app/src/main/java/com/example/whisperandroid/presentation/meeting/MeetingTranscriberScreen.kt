@@ -41,6 +41,7 @@ import com.example.whisperandroid.presentation.components.SensioFeatureLayout
 import com.example.whisperandroid.presentation.components.UiState
 import com.example.whisperandroid.presentation.meeting.components.MeetingControlPill
 import com.example.whisperandroid.presentation.meeting.components.MeetingErrorContent
+import com.example.whisperandroid.presentation.meeting.components.MeetingFilePickerSheet
 import com.example.whisperandroid.presentation.meeting.components.MeetingHeaderControls
 import com.example.whisperandroid.presentation.meeting.components.MeetingIdleContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingLoadingContent
@@ -66,6 +67,7 @@ fun MeetingTranscriberScreen(
     val mqttStatus by viewModel.mqttStatus.collectAsState()
     var summaryLanguage by remember { mutableStateOf("id") }
     var showEmailDialog by remember { mutableStateOf(false) }
+    var showFilePickerSheet by remember { mutableStateOf(false) }
     var hasAutoSent by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -151,7 +153,7 @@ fun MeetingTranscriberScreen(
                     val type = contentResolver.getType(selectedUri)
                     val extension = MimeTypeMap.getSingleton()
                         .getExtensionFromMimeType(type) ?: "m4a"
-                    val outputFile = java.io.File(context.cacheDir, "upload_audio.$extension")
+                    val outputFile = com.example.whisperandroid.data.local.MeetingAudioFileStore.createImportedAudioFile(context, extension)
                     try {
                         contentResolver.openInputStream(selectedUri)?.use { input ->
                             outputFile.outputStream().use { output -> input.copyTo(output) }
@@ -239,7 +241,7 @@ fun MeetingTranscriberScreen(
                         if (!hasPermission) {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         } else {
-                            val file = java.io.File(context.cacheDir, "meeting_audio.wav")
+                            val file = com.example.whisperandroid.data.local.MeetingAudioFileStore.createMicAudioFile(context)
                             audioRecorder.start(file)
                             audioFile = file
                             isRecording = true
@@ -252,7 +254,7 @@ fun MeetingTranscriberScreen(
                         uiState is MeetingProcessState.Success ||
                         uiState is MeetingProcessState.Error
                     if (canUpload) {
-                        launcher.launch("audio/*")
+                        showFilePickerSheet = true
                     }
                 },
                 onStopClick = {
@@ -348,6 +350,35 @@ fun MeetingTranscriberScreen(
                     viewModel.sendEmailSummary(target, subject, summaryLanguage)
                 }
             }
+        )
+    }
+
+    if (showFilePickerSheet) {
+        val files = remember { com.example.whisperandroid.data.local.MeetingAudioFileStore.listMeetingAudioFiles(context) }
+        MeetingFilePickerSheet(
+            files = files,
+            onFileSelected = { file ->
+                showFilePickerSheet = false
+                if (file.exists() && file.length() > 0) {
+                    audioFile = file
+                    if (token.isNotEmpty()) {
+                        viewModel.processRecording(
+                            context.applicationContext,
+                            file,
+                            token,
+                            summaryLanguage,
+                            DeviceUtils.getDeviceId(context.applicationContext)
+                        )
+                    }
+                } else {
+                    Toast.makeText(context, "Invalid or corrupted file", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onBrowseOtherClick = {
+                showFilePickerSheet = false
+                launcher.launch("audio/*")
+            },
+            onDismiss = { showFilePickerSheet = false }
         )
     }
 }

@@ -147,6 +147,12 @@ func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, langua
 		return nil, fmt.Errorf("GEMINI_API_KEY is not configured")
 	}
 
+	// Check file size for inline limit (Gemini typically < 20MB for inline base64)
+	fileInfo, err := os.Stat(audioPath)
+	if err == nil && fileInfo.Size() > 20*1024*1024 {
+		return nil, fmt.Errorf("file size (%d bytes) exceeds Gemini inline limit (20MB); use segmented transcription path", fileInfo.Size())
+	}
+
 	// Read audio file
 	audioData, err := os.ReadFile(audioPath)
 	if err != nil {

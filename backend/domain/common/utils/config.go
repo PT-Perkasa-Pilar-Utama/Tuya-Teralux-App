@@ -93,6 +93,14 @@ type Config struct {
 	TranscribeAsyncTimeout     string
 	PipelineAsyncTimeout       string
 	TaskStatusTTL              string
+
+	// Audio Segmentation & Pipeline Config
+	AudioSegmentEnabled        bool
+	AudioSegmentSec            int
+	AudioSegmentOverlapSec     int
+	AudioSegmentMaxConcurrency int
+	TaskEventPublishEnabled    bool
+	OrionTranscribeTimeout     string
 }
 
 // AppConfig is the global configuration instance.
@@ -216,6 +224,14 @@ func LoadConfig() {
 		TranscribeAsyncTimeout:     getEnvDuration("TRANSCRIBE_ASYNC_TIMEOUT"),
 		PipelineAsyncTimeout:       getEnvDuration("PIPELINE_ASYNC_TIMEOUT"),
 		TaskStatusTTL:              getEnvDuration("TASK_STATUS_TTL"),
+
+		// Audio Segmentation & Pipeline
+		AudioSegmentEnabled:        os.Getenv("AUDIO_SEGMENT_ENABLED") == "true",
+		AudioSegmentSec:            getEnvAsInt("AUDIO_SEGMENT_SEC", 600),
+		AudioSegmentOverlapSec:     getEnvAsInt("AUDIO_SEGMENT_OVERLAP_SEC", 2),
+		AudioSegmentMaxConcurrency: getEnvAsInt("AUDIO_SEGMENT_MAX_CONCURRENCY", 2),
+		TaskEventPublishEnabled:    os.Getenv("TASK_EVENT_PUBLISH_ENABLED") == "true",
+		OrionTranscribeTimeout:     getEnvAsDefault("ORION_TRANSCRIBE_TIMEOUT", "120s"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables
