@@ -12,12 +12,13 @@ import (
 	speechRoutes "sensio/domain/speech/routes"
 	speechUsecases "sensio/domain/speech/usecases"
 	tuyaUsecases "sensio/domain/tuya/usecases"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 // InitModule initializes the Speech module with the protected router group.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragRefineUC ragUsecases.RefineUseCase, tuyaAuthUseCase tuyaUsecases.TuyaAuthUseCase, mqttSvc *infrastructure.MqttService, saveRecordingUseCase recordingUsecases.SaveRecordingUseCase) speechUsecases.TranscribeUseCase {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infrastructure.BadgerService, ragRefineUC ragUsecases.RefineUseCase, tuyaAuthUseCase tuyaUsecases.TuyaAuthUseCase, mqttSvc *infrastructure.MqttService, saveRecordingUseCase recordingUsecases.SaveRecordingUseCase) (speechUsecases.TranscribeUseCase, speechUsecases.UploadSessionUseCase) {
 	// Services
 	geminiService := services.NewGeminiService(cfg)
 	localService := services.NewWhisperLocalService(cfg)
@@ -63,16 +64,41 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 	groqModelUC := speechUsecases.NewTranscribeGroqModelUseCase(groqService, shortCacheStore, shortCache, cfg)
 	orionModelUC := speechUsecases.NewTranscribeOrionModelUseCase(orionService, shortCacheStore, shortCache, cfg)
 	cppModelUC := speechUsecases.NewTranscribeWhisperCppModelUseCase(localService, shortCacheStore, shortCache, cfg)
+	uploadSessionUC := speechUsecases.NewUploadSessionUseCase(badgerSvc, cfg)
 
 	// Status Usecase (Generic)
 	getStatusUC := tasks.NewGenericStatusUseCase(shortCache, shortCacheStore)
 
+	// Phase 4: Start background cleanup worker for upload sessions
+	if cfg.EnableChunkUpload {
+		cleanupInterval, err := time.ParseDuration(cfg.ChunkUploadCleanupInterval)
+		if err != nil {
+			cleanupInterval = 10 * time.Minute
+		}
+		go func() {
+			ticker := time.NewTicker(cleanupInterval)
+			defer ticker.Stop()
+			for {
+				select {
+				case now := <-ticker.C:
+					count, err := uploadSessionUC.CleanupExpiredSessions(now)
+					if err != nil {
+						utils.LogError("Speech: Upload session cleanup failed: %v", err)
+					} else if count > 0 {
+						utils.LogInfo("Speech: Cleaned up %d expired upload sessions", count)
+					}
+				}
+			}
+		}()
+	}
+
 	// Controllers
-	transcribeController := speechControllers.NewSpeechTranscribeController(transcribeUC, saveRecordingUseCase, cfg, mqttSvc)
+	transcribeController := speechControllers.NewSpeechTranscribeController(transcribeUC, saveRecordingUseCase, uploadSessionUC, cfg, mqttSvc)
 	if err := transcribeController.StartMqttSubscription(); err != nil {
 		utils.LogError("Speech module MQTT subscription failed: %v", err)
 	}
 	statusController := speechControllers.NewSpeechTranscribeStatusController(getStatusUC)
+	uploadSessionController := speechControllers.NewUploadSessionController(uploadSessionUC, transcribeUC)
 
 	geminiController := speechControllers.NewSpeechModelsGeminiController(geminiModelUC, saveRecordingUseCase, cfg)
 	openaiController := speechControllers.NewSpeechModelsOpenAIController(openaiModelUC, saveRecordingUseCase, cfg)
@@ -90,7 +116,8 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badgerSvc *infras
 		groqController,
 		orionModelController,
 		cppModelController,
+		uploadSessionController,
 	)
 
-	return transcribeUC
+	return transcribeUC, uploadSessionUC
 }

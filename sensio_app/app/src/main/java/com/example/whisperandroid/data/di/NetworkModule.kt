@@ -96,6 +96,10 @@ object NetworkModule {
         com.example.whisperandroid.data.repository.PipelineRepositoryImpl(pipelineApi)
     }
 
+    val uploadRepository: com.example.whisperandroid.domain.repository.UploadRepository by lazy {
+        com.example.whisperandroid.data.repository.UploadRepositoryImpl(speechApi)
+    }
+
     val registerUseCase: RegisterTerminalUseCase by lazy {
         RegisterTerminalUseCase(repository)
     }
@@ -125,7 +129,8 @@ object NetworkModule {
 
     val processMeetingUseCase: com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase by lazy {
         com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase(
-            pipelineRepository
+            pipelineRepository,
+            uploadRepository
         )
     }
 

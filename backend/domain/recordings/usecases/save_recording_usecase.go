@@ -18,6 +18,7 @@ import (
 type SaveRecordingUseCase interface {
 	SaveRecording(file *multipart.FileHeader, macAddress, baseURL string) (*entities.Recording, error)
 	SaveRecordingFromBytes(data []byte, originalName, macAddress, baseURL string) (*entities.Recording, error)
+	SaveRecordingFromPath(path, originalName, macAddress, baseURL string) (*entities.Recording, error)
 }
 
 type saveRecordingUseCase struct {
@@ -139,6 +140,57 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 		go func() {
 			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
 				utils.LogError("SaveRecordingUseCase.SaveRecordingFromBytes: Failed to update room occupied audio: %v", err)
+			}
+		}()
+	}
+
+	return recording, nil
+}
+
+func (uc *saveRecordingUseCase) SaveRecordingFromPath(srcPath, originalName, macAddress, baseURL string) (*entities.Recording, error) {
+	// 1. Generate UUIDv7 for filename
+	fileExt := filepath.Ext(originalName)
+	if fileExt == "" {
+		fileExt = ".wav" // default
+	}
+	uuidFilename, _ := uuid.NewV7()
+	newFilename := uuidFilename.String() + fileExt
+
+	// 2. Define paths
+	uploadPath := filepath.Join("uploads", "audio", newFilename)
+
+	// 3. Move physical file
+	if err := uc.fileService.MoveFile(srcPath, uploadPath); err != nil {
+		return nil, fmt.Errorf("failed to move file: %v", err)
+	}
+
+	// 4. Construct Public URL
+	publicUrl := fmt.Sprintf("/uploads/audio/%s", newFilename)
+	if baseURL != "" {
+		publicUrl = fmt.Sprintf("%s%s", baseURL, publicUrl)
+	}
+
+	uuidEntity, _ := uuid.NewV7()
+	// 5. Create Entity
+	recording := &entities.Recording{
+		ID:           uuidEntity.String(),
+		Filename:     newFilename,
+		OriginalName: originalName,
+		AudioUrl:     publicUrl,
+		MacAddress:   macAddress,
+		CreatedAt:    time.Now(),
+	}
+
+	// 6. Save Metadata
+	if err := uc.repo.Save(recording); err != nil {
+		return nil, err
+	}
+
+	// 7. Trigger BIG Room Audio Update
+	if macAddress != "" {
+		go func() {
+			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
+				utils.LogError("SaveRecordingUseCase.SaveRecordingFromPath: Failed to update room occupied audio: %v", err)
 			}
 		}()
 	}

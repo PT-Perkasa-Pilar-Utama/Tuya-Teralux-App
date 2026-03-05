@@ -116,6 +116,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	}
 
 	skillCtx := &skills.SkillContext{
+		Ctx:          ctx,
 		Prompt:       text,
 		Language:     language,
 		LLM:          u.llm,
@@ -232,6 +233,7 @@ func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, lan
 		}
 		utils.LogInfo("summarizeInChunks: Processing chunk %d/%d", idx+1, len(chunks))
 		sCtx := &skills.SkillContext{
+			Ctx:      ctx,
 			Prompt:   chunk,
 			Language: language,
 			LLM:      u.llm,

@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -79,6 +81,18 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	JWTSecret  string
+
+	// Chunk Upload & Async Tasks
+	EnableChunkUpload          bool
+	ChunkUploadDefaultChunkMB  int
+	ChunkUploadMinChunkMB      int
+	ChunkUploadMaxChunkMB      int
+	ChunkUploadMaxFileSizeGB   int
+	ChunkUploadSessionTTL      string
+	ChunkUploadCleanupInterval string
+	TranscribeAsyncTimeout     string
+	PipelineAsyncTimeout       string
+	TaskStatusTTL              string
 }
 
 // AppConfig is the global configuration instance.
@@ -190,6 +204,18 @@ func LoadConfig() {
 		DBUser:     os.Getenv("MYSQL_USER"),
 		DBPassword: os.Getenv("MYSQL_PASSWORD"),
 		DBName:     os.Getenv("MYSQL_DATABASE"),
+
+		// Chunk Upload & Async Tasks
+		EnableChunkUpload:          os.Getenv("ENABLE_CHUNK_UPLOAD") == "true",
+		ChunkUploadDefaultChunkMB:  getEnvAsInt("CHUNK_UPLOAD_DEFAULT_CHUNK_MB", 8),
+		ChunkUploadMinChunkMB:      getEnvAsInt("CHUNK_UPLOAD_MIN_CHUNK_MB", 1),
+		ChunkUploadMaxChunkMB:      getEnvAsInt("CHUNK_UPLOAD_MAX_CHUNK_MB", 32),
+		ChunkUploadMaxFileSizeGB:   getEnvAsInt("CHUNK_UPLOAD_MAX_FILE_SIZE_GB", 20),
+		ChunkUploadSessionTTL:      getEnvDuration("CHUNK_UPLOAD_SESSION_TTL"),
+		ChunkUploadCleanupInterval: getEnvDuration("CHUNK_UPLOAD_CLEANUP_INTERVAL"),
+		TranscribeAsyncTimeout:     getEnvDuration("TRANSCRIBE_ASYNC_TIMEOUT"),
+		PipelineAsyncTimeout:       getEnvDuration("PIPELINE_ASYNC_TIMEOUT"),
+		TaskStatusTTL:              getEnvDuration("TASK_STATUS_TTL"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables
@@ -233,4 +259,45 @@ func GetConfig() *Config {
 		LoadConfig()
 	}
 	return AppConfig
+}
+
+// getEnvAsInt reads an environment variable and returns its integer value or a default.
+func getEnvAsInt(key string, defaultVal int) int {
+	if valueStr := os.Getenv(key); valueStr != "" {
+		if value, err := strconv.Atoi(valueStr); err == nil {
+			return value
+		}
+	}
+	return defaultVal
+}
+
+// getEnvAsDefault reads an environment variable and returns its value or a default string.
+func getEnvAsDefault(key string, defaultVal string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultVal
+}
+
+// getEnvDuration reads an environment variable and ensures it's a valid Go duration and NOT EMPTY.
+// It fails fast (log.Fatalf) if the variable is missing or invalid.
+func getEnvDuration(key string) string {
+	val, err := validateEnvDuration(key)
+	if err != nil {
+		log.Fatalf("Config: %v", err)
+	}
+	return val
+}
+
+// validateEnvDuration checks if an environment variable is a valid Go duration and NOT EMPTY.
+// It returns the value or an error. This is separated for unit testing.
+func validateEnvDuration(key string) (string, error) {
+	val := os.Getenv(key)
+	if val == "" {
+		return "", fmt.Errorf("missing required environment variable %s (expected Go duration format like '8h', '30m', '24h')", key)
+	}
+	if _, err := time.ParseDuration(val); err != nil {
+		return "", fmt.Errorf("invalid duration format for %s: '%s' - %v (expected e.g. '8h', '30m', '24h')", key, val, err)
+	}
+	return val, nil
 }

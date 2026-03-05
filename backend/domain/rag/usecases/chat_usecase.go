@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/infrastructure"
@@ -12,7 +13,7 @@ import (
 )
 
 type ChatUseCase interface {
-	Chat(uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error)
+	Chat(ctx context.Context, uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error)
 }
 
 type ChatUseCaseImpl struct {
@@ -35,7 +36,10 @@ func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *uti
 	}
 }
 
-func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
+func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("prompt is empty")
 	}
@@ -51,7 +55,8 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 	}
 
 	// 2. Prepare Skill Context
-	ctx := &skills.SkillContext{
+	skillCtx := &skills.SkillContext{
+		Ctx:        ctx,
 		UID:        uid,
 		TerminalID: terminalID,
 		Prompt:     prompt,
@@ -64,11 +69,11 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 	}
 
 	// 3. Route and Execute via Orchestrator
-	result, err := u.orchestrator.RouteAndExecute(ctx)
+	result, err := u.orchestrator.RouteAndExecute(skillCtx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("Chat: Primary LLM failed, falling back to local model: %v", err)
-		ctx.LLM = u.fallbackLLM
-		result, err = u.orchestrator.RouteAndExecute(ctx)
+		skillCtx.LLM = u.fallbackLLM
+		result, err = u.orchestrator.RouteAndExecute(skillCtx)
 	}
 
 	if err != nil {

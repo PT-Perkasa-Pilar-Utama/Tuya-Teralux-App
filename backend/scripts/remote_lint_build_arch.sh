@@ -18,7 +18,7 @@ sync_source
 log_info "Starting remote lint and build for Backend on $REMOTE_HOST..."
 start_time=$(date +%s)
 
-ssh "$REMOTE_HOST" "bash -lc 'cd $REMOTE_REPO_DIR/backend && make lint && make vet && make build'"
+ssh "$REMOTE_HOST" "bash -lc 'cd $REMOTE_REPO_DIR/backend && make lint-strict && make vet && make build'"
 
 end_time=$(date +%s)
 duration=$((end_time - start_time))

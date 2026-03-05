@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -161,7 +162,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			}
 
 			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
-			res, err := c.chatUC.Chat(uid, req.TerminalID, req.Prompt, req.Language)
+			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language)
 			if err != nil {
 				utils.LogError("[%s] RAGChat MQTT: Chat processing failed: %v", requestID, err)
 				if mac != "" {
@@ -276,7 +277,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	requestID := uuid.New().String()
 	utils.LogInfo("[%s] RAGChat HTTP [Handler: Chat]: Starting chat process for UID: %s, Terminal: %s, Prompt: '%s'", requestID, uidStr, req.TerminalID, req.Prompt)
 
-	res, err := c.chatUC.Chat(uidStr, req.TerminalID, req.Prompt, req.Language)
+	res, err := c.chatUC.Chat(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt, req.Language)
 	if err != nil {
 		utils.LogError("[%s] RAGChatController.Chat: %v", requestID, err)
 		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{

@@ -18,6 +18,8 @@ Backend service for the Sensio application, built with Go.
     cp .env.example .env
     ```
     Edit `.env` with your specific configuration (database credentials, API keys, etc.).
+    Important: duration-based settings must use Go duration format (for example: `8h`, `30m`, `24h`).
+    The backend is configured to fail fast on startup if required duration env vars are missing or invalid.
 
 ---
 

@@ -134,3 +134,58 @@ data class PipelineStageStatus(
     @SerializedName("started_at") val startedAt: String? = null,
     @SerializedName("duration_seconds") val durationSeconds: Double? = null
 )
+
+/**
+ * Chunk Upload Session DTOs
+ */
+data class CreateUploadSessionRequestDto(
+    @SerializedName("file_name") val fileName: String,
+    @SerializedName("total_size_bytes") val totalSizeBytes: Long,
+    @SerializedName("mime_type") val mimeType: String? = null,
+    @SerializedName("chunk_size_bytes") val chunkSizeByes: Int? = null
+)
+
+data class UploadSessionResponseDto(
+    @SerializedName("session_id") val sessionId: String,
+    @SerializedName("state") val state: String,
+    @SerializedName("total_chunks") val totalChunks: Int,
+    @SerializedName("chunk_size_bytes") val chunkSizeByes: Int,
+    @SerializedName("total_size_bytes") val totalSizeBytes: Long,
+    @SerializedName("received_bytes") val receivedBytes: Long? = 0,
+    @SerializedName("missing_ranges") val missingRanges: List<String>? = null,
+    @SerializedName("expires_at") val expiresAt: String
+)
+
+data class UploadChunkAckDto(
+    @SerializedName("received_chunks") val receivedChunks: Int,
+    @SerializedName("received_bytes") val receivedBytes: Long,
+    @SerializedName("is_duplicate") val isDuplicate: Boolean,
+    @SerializedName("state") val state: String
+)
+
+/**
+ * Submit job by already uploaded session
+ */
+data class SubmitByUploadRequestDto(
+    @SerializedName("session_id") val sessionId: String,
+    @SerializedName("language") val language: String? = "id",
+    @SerializedName("mac_address") val macAddress: String? = null,
+    @SerializedName("diarize") val diarize: Boolean = false,
+    @SerializedName("idempotency_key") val idempotencyKey: String? = null
+)
+
+data class PipelineSubmitByUploadRequestDto(
+    @SerializedName("session_id") val sessionId: String,
+    @SerializedName("language") val language: String? = "id",
+    @SerializedName("target_language") val targetLanguage: String? = "en",
+    @SerializedName("summarize") val summarize: Boolean = true,
+    @SerializedName("refine") val refine: Boolean? = null,
+    @SerializedName("diarize") val diarize: Boolean = false,
+    @SerializedName("context") val context: String? = null,
+    @SerializedName("style") val style: String? = null,
+    @SerializedName("date") val date: String? = null,
+    @SerializedName("location") val location: String? = null,
+    @SerializedName("participants") val participants: List<String>? = null,
+    @SerializedName("mac_address") val macAddress: String? = null,
+    @SerializedName("idempotency_key") val idempotencyKey: String? = null
+)

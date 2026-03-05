@@ -83,4 +83,51 @@ class PipelineRepositoryImpl(
             emit(Resource.Error("Poll error: ${e.message}"))
         }
     }
+
+    override suspend fun executePipelineByUpload(
+        sessionId: String,
+        token: String,
+        language: String?,
+        targetLanguage: String?,
+        summarize: Boolean,
+        refine: Boolean?,
+        diarize: Boolean,
+        context: String?,
+        style: String?,
+        date: String?,
+        location: String?,
+        participants: List<String>?,
+        macAddress: String?,
+        idempotencyKey: String?
+    ): Flow<Resource<String>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = api.executePipelineByUpload(
+                com.example.whisperandroid.data.remote.dto.PipelineSubmitByUploadRequestDto(
+                    sessionId = sessionId,
+                    language = language,
+                    targetLanguage = targetLanguage,
+                    summarize = summarize,
+                    refine = refine,
+                    diarize = diarize,
+                    context = context,
+                    style = style,
+                    date = date,
+                    location = location,
+                    participants = participants,
+                    macAddress = macAddress,
+                    idempotencyKey = idempotencyKey
+                ),
+                "Bearer $token"
+            )
+            val taskId = response.data?.taskId
+            if (response.status && taskId != null) {
+                emit(Resource.Success(taskId))
+            } else {
+                emit(Resource.Error(response.message))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error("Pipeline submission failed: ${e.message}"))
+        }
+    }
 }

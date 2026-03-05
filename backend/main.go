@@ -233,10 +233,10 @@ func run() error {
 	refineUC, translateUC, summaryUC := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
 
 	// Initialize Speech with RAG, Badger and Tuya Auth dependencies
-	transcribeUC := speech.InitModule(protected, scfg, badgerService, refineUC, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
+	transcribeUC, uploadSessionUC := speech.InitModule(protected, scfg, badgerService, refineUC, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
 
 	// Initialize Pipeline with Speech and RAG usecases
-	pipeline.InitModule(protected, scfg, badgerService, transcribeUC, translateUC, summaryUC, recordingsModule.SaveRecordingUseCase)
+	pipeline.InitModule(protected, scfg, badgerService, transcribeUC, translateUC, summaryUC, recordingsModule.SaveRecordingUseCase, uploadSessionUC)
 
 	// 6. Scene Module
 	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)

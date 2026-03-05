@@ -96,4 +96,38 @@ class SpeechRepositoryImpl(
                 emit(Resource.Error("Check error: ${e.message}"))
             }
         }
+
+    override suspend fun getTranscriptionStatus(taskId: String, token: String) =
+        api.getTranscriptionStatus(taskId, "Bearer $token")
+
+    override suspend fun transcribeByUpload(
+        sessionId: String,
+        token: String,
+        language: String,
+        macAddress: String?,
+        idempotencyKey: String?,
+        diarize: Boolean
+    ): Flow<Resource<String>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = api.transcribeByUpload(
+                com.example.whisperandroid.data.remote.dto.SubmitByUploadRequestDto(
+                    sessionId = sessionId,
+                    language = language,
+                    macAddress = macAddress,
+                    diarize = diarize,
+                    idempotencyKey = idempotencyKey
+                ),
+                "Bearer $token"
+            )
+            val taskId = response.data?.taskId
+            if (response.status && taskId != null) {
+                emit(Resource.Success(taskId))
+            } else {
+                emit(Resource.Error(response.message))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error("Submission failed: ${e.message}"))
+        }
+    }
 }

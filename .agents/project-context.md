@@ -1,31 +1,49 @@
-# Project Context - Sensio App
+# Project Context
 
 ## Repository
 
-- Name: Tuya-Teralux-App (Sensio App)
-- Type: Monorepo IoT Platform
-- Core Technologies: Go (Backend), Kotlin (Android), Docker, MQTT, Tuya SDK
-- Purpose: A comprehensive IoT management platform (Sensio) for controlling Tuya-compatible and other IoT devices.
+- Name: Tuya-Teralux-App
+- Type: Monorepo
+- Core technologies:
+  - Go backend service
+  - Android (Kotlin/Gradle) app
+  - Kotlin Multiplatform notification app
+  - Docker-based local/runtime services
 
 ## High-Level Structure
 
-- `backend/`: Main backend service written in Go.
-  - `backend/main.go`: Entry point.
-  - `backend/services/`: Core logic and service integrations (e.g., EMQX, LLM, Whisper).
-  - `backend/domain/`: Domain models and business logic.
-  - `backend/Makefile`: Backend-specific automation.
-- `sensio_app/`: Main Android client application written in Kotlin/Java.
-  - `sensio_app/app/`: Android app source code.
-  - `sensio_app/Makefile`: Android build automation.
-- `sensio_notification/`: Notification service/component.
-- `Makefile`: Root Makefile for project-wide automation (setup, dev, tests).
+- `backend/`: Main Go API/backend service.
+  - Domain code: `backend/domain/...`
+  - Local automation: `backend/Makefile`
+  - Remote automation scripts: `backend/scripts/*.sh`
+- `sensio_app/`: Android application module (Gradle + ktlint).
+- `sensio_notification/`: Notification application (KMP/Compose + ktlint).
+- `scripts/remote/`: Shared remote sync/deploy helpers (`common_arch.sh`).
 
-## Development Commands
+## Component Boundaries
 
-- Root: `make setup`, `make dev`, `make test`, `make vet`.
-- Backend: `cd backend && make dev`, `go mod tidy`.
-- Android: `cd sensio_app && ./gradlew build`.
+- Keep backend API/domain logic in `backend/domain/...`.
+- Keep mobile app logic confined to `sensio_app/...`.
+- Keep notification app logic confined to `sensio_notification/...`.
+- Reuse shared remote helper behavior from `scripts/remote/common_arch.sh`; avoid duplicating transport/sync logic in module scripts.
+
+## Common Validation Commands
+
+Run commands from each module root:
+
+- `backend/`
+  - `make lint` (local dev lint; ThinkPad guard may skip)
+  - `make lint-strict` (always run golangci-lint)
+  - `make vet`
+  - `make build`
+  - `make test`
+- `sensio_app/`
+  - `make lint`
+  - `make build`
+- `sensio_notification/`
+  - `make lint`
+  - `make build`
 
 ## Engineering Goal
 
-Preserve the separation between the Go backend and the Kotlin Android app. Maintain security hygiene, especially around Tuya credentials and MQTT authentication. Favor the root `Makefile` for multi-component tasks.
+Deliver minimal, safe, and reversible changes while preserving module boundaries, validation discipline, and secure configuration handling (`.env`, keystore, credentials).

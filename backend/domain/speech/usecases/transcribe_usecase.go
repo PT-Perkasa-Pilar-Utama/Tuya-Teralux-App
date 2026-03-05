@@ -135,11 +135,16 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 
 	taskID := utils.GenerateUUID()
 
+	ttl, err := time.ParseDuration(uc.config.TaskStatusTTL)
+	if err != nil {
+		ttl = 24 * time.Hour
+	}
+
 	status := &speechdtos.AsyncTranscriptionStatusDTO{
 		Status:    "pending",
 		Trigger:   "",
 		StartedAt: time.Now().Format(time.RFC3339),
-		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+		ExpiresAt: time.Now().Add(ttl).Format(time.RFC3339),
 	}
 
 	if meta != nil {
@@ -165,7 +170,15 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 		utils.ActiveTranscriptions.Store(meta.TerminalID, true)
 	}
 
-	go uc.processAsync(ctx, taskID, inputPath, language, meta)
+	timeout, err := time.ParseDuration(uc.config.TranscribeAsyncTimeout)
+	if err != nil {
+		timeout = 8 * time.Hour
+	}
+	asyncCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	go func() {
+		defer cancel()
+		uc.processAsync(asyncCtx, taskID, inputPath, language, meta)
+	}()
 
 	return taskID, nil
 }
@@ -262,13 +275,18 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 	var existing speechdtos.AsyncTranscriptionStatusDTO
 	_, _, _ = uc.cache.GetWithTTL(taskID, &existing)
 
+	ttl, pErr := time.ParseDuration(uc.config.TaskStatusTTL)
+	if pErr != nil {
+		ttl = 24 * time.Hour
+	}
+
 	status := &speechdtos.AsyncTranscriptionStatusDTO{
 		Status:     statusStr,
 		Result:     result,
 		StartedAt:  existing.StartedAt,
 		Trigger:    existing.Trigger,
 		TerminalID: existing.TerminalID,
-		ExpiresAt:  time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+		ExpiresAt:  time.Now().Add(ttl).Format(time.RFC3339),
 	}
 
 	if err != nil {
@@ -280,12 +298,25 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 
 	// Calculate duration if finished
 	if statusStr == "completed" || statusStr == "failed" {
+		var duration float64
 		if existing.StartedAt != "" {
 			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
-			status.DurationSeconds = time.Since(startTime).Seconds()
+			duration = time.Since(startTime).Seconds()
+			status.DurationSeconds = duration
 		}
 
-		// Send MQTT "stop" signal if TerminalID is available
+		logMsg := fmt.Sprintf("Task %s: %s (Duration: %.2fs)", taskID, statusStr, duration)
+		if status.TerminalID != "" {
+			logMsg += fmt.Sprintf(", Terminal: %s", status.TerminalID)
+		}
+		if status.Trigger != "" {
+			logMsg += fmt.Sprintf(", Trigger: %s", status.Trigger)
+		}
+		if err != nil {
+			utils.LogError("%s, Error: %v", logMsg, err)
+		} else {
+			utils.LogInfo("%s", logMsg)
+		}
 		if status.TerminalID != "" && uc.mqttSvc != nil {
 			taskTopic := fmt.Sprintf("users/%s/%s/task", status.TerminalID, uc.config.ApplicationEnvironment)
 			msg := map[string]string{
@@ -302,5 +333,5 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 	}
 
 	uc.store.Set(taskID, status)
-	_ = uc.cache.SetPreserveTTL(taskID, status)
+	_ = uc.cache.SetWithTTL(taskID, status, ttl)
 }

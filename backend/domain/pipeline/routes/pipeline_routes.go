@@ -13,6 +13,7 @@ func SetupPipelineRoutes(
 	pipeline := protected.Group("/api/pipeline")
 	{
 		pipeline.POST("/job", pipelineCtrl.ExecuteJob)
+		pipeline.POST("/job/by-upload", pipelineCtrl.ExecuteJobByUpload)
 		pipeline.GET("/status/:task_id", pipelineCtrl.GetStatus)
 	}
 }

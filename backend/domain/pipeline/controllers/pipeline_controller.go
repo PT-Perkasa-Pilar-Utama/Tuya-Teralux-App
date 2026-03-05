@@ -9,6 +9,8 @@ import (
 	pipelineDtos "sensio/domain/pipeline/dtos"
 	pipelineUsecases "sensio/domain/pipeline/usecases"
 	recordingUsecases "sensio/domain/recordings/usecases"
+	speechdtos "sensio/domain/speech/dtos"
+	speechUsecases "sensio/domain/speech/usecases"
 	"strconv"
 	"strings"
 
@@ -19,6 +21,7 @@ type PipelineController struct {
 	pipelineUC      pipelineUsecases.PipelineUseCase
 	statusUC        tasks.GenericStatusUseCase[pipelineDtos.PipelineStatusDTO]
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase
+	uploadSessionUC speechUsecases.UploadSessionUseCase
 	config          *utils.Config
 }
 
@@ -26,12 +29,14 @@ func NewPipelineController(
 	pipelineUC pipelineUsecases.PipelineUseCase,
 	statusUC tasks.GenericStatusUseCase[pipelineDtos.PipelineStatusDTO],
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
+	uploadSessionUC speechUsecases.UploadSessionUseCase,
 	cfg *utils.Config,
 ) *PipelineController {
 	return &PipelineController{
 		pipelineUC:      pipelineUC,
 		statusUC:        statusUC,
 		saveRecordingUC: saveRecordingUC,
+		uploadSessionUC: uploadSessionUC,
 		config:          cfg,
 	}
 }
@@ -191,5 +196,82 @@ func (c *PipelineController) GetStatus(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 		Status: true,
 		Data:   status,
+	})
+}
+
+// ExecuteJobByUpload handles POST /api/pipeline/job/by-upload
+func (c *PipelineController) ExecuteJobByUpload(ctx *gin.Context) {
+	var req speechdtos.PipelineSubmitByUploadRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Validation Error: " + err.Error(),
+		})
+		return
+	}
+
+	// 1. Finalize session
+	uid, _ := ctx.Get("uid")
+	ownerUID := ""
+	if uid != nil {
+		ownerUID = uid.(string)
+	}
+
+	finalized, err := c.uploadSessionUC.FinalizeSession(req.SessionID, ownerUID)
+	if err != nil {
+		statusCode := http.StatusBadRequest
+		if err.Error() == "unauthorized session access" {
+			statusCode = http.StatusForbidden
+		}
+		ctx.JSON(statusCode, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to finalize upload: " + err.Error(),
+		})
+		return
+	}
+
+	// 2. Save as Recording (moves file)
+	baseURL := utils.GetBaseURL(ctx)
+	recording, err := c.saveRecordingUC.SaveRecordingFromPath(finalized.MergedPath, finalized.OriginalFileName, req.MacAddress, baseURL)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to save recording: " + err.Error(),
+		})
+		return
+	}
+
+	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
+
+	// 3. Start pipeline
+	pipelineReq := pipelineDtos.PipelineRequestDTO{
+		Language:       req.Language,
+		TargetLanguage: req.TargetLanguage,
+		Context:        req.Context,
+		Style:          req.Style,
+		Date:           req.Date,
+		Location:       req.Location,
+		Participants:   req.Participants,
+		Diarize:        req.Diarize,
+		Refine:         req.Refine,
+		Summarize:      req.Summarize,
+		MacAddress:     req.MacAddress,
+	}
+
+	taskID, err := c.pipelineUC.ExecutePipeline(ctx.Request.Context(), finalInputPath, pipelineReq, req.IdempotencyKey)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Pipeline execution failed: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, commonDtos.StandardResponse{
+		Status:  true,
+		Message: "Pipeline job submitted successfully via upload session",
+		Data: pipelineDtos.PipelineResponseDTO{
+			TaskID: taskID,
+		},
 	})
 }
