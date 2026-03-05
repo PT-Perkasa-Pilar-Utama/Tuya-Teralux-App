@@ -34,8 +34,9 @@ type summaryUseCase struct {
 	renderer      services.SummaryPDFRenderer
 	bigExternal   *commonServices.BigExternalService
 	mqttSvc       mqttPublisher
-	llmTimeout    time.Duration // Timeout for LLM calls
-	renderTimeout time.Duration // Timeout for PDF rendering
+	llmTimeout    time.Duration
+	renderTimeout time.Duration
+	skill         skills.Skill
 }
 
 func NewSummaryUseCase(
@@ -47,6 +48,7 @@ func NewSummaryUseCase(
 	renderer services.SummaryPDFRenderer,
 	bigExternal *commonServices.BigExternalService,
 	mqttSvc mqttPublisher,
+	skill skills.Skill,
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:           llm,
@@ -57,8 +59,9 @@ func NewSummaryUseCase(
 		renderer:      renderer,
 		bigExternal:   bigExternal,
 		mqttSvc:       mqttSvc,
-		llmTimeout:    5 * time.Minute,  // Increased for strategic reasoning depth
-		renderTimeout: 30 * time.Second, // Default PDF render timeout
+		llmTimeout:    5 * time.Minute,
+		renderTimeout: 30 * time.Second,
+		skill:         skill,
 	}
 }
 
@@ -108,7 +111,9 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 	}
 
 	// Delegate prompt generation and LLM call to SummarySkill
-	skill := &skills.SummarySkill{}
+	if u.skill == nil {
+		return nil, fmt.Errorf("summary skill not configured")
+	}
 	ctx := &skills.SkillContext{
 		Prompt:       text,
 		Language:     language,
@@ -121,11 +126,11 @@ func (u *summaryUseCase) summaryInternal(text string, language string, meetingCo
 		Context:      meetingContext,
 	}
 
-	res, err := skill.Execute(ctx)
+	res, err := u.skill.Execute(ctx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("SummaryTask: Primary LLM failed, falling back to local model: %v", err)
 		ctx.LLM = u.fallbackLLM
-		res, err = skill.Execute(ctx)
+		res, err = u.skill.Execute(ctx)
 	}
 
 	if err != nil {
@@ -211,6 +216,9 @@ func (u *summaryUseCase) SummarizeText(text string, language string, meetingCont
 }
 
 func (u *summaryUseCase) SummarizeTextWithTrigger(text string, language string, meetingContext string, style string, date string, location string, participants string, macAddress, baseURL, trigger string) (string, error) {
+	if strings.TrimSpace(text) == "" {
+		return "", nil
+	}
 	taskID := uuid.New().String()
 	status := &dtos.RAGStatusDTO{
 		Status:     "pending",
@@ -355,7 +363,9 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 	}
 
 	// Delegate prompt generation and LLM call to SummarySkill with context (manually enforced for now)
-	skill := &skills.SummarySkill{}
+	if u.skill == nil {
+		return nil, fmt.Errorf("summary skill not configured")
+	}
 	ctxSkill := &skills.SkillContext{
 		Prompt:       text,
 		Language:     language,
@@ -376,11 +386,11 @@ func (u *summaryUseCase) summaryInternalWithContext(ctx context.Context, text st
 
 	// We can't easily pass the context cancellation to Skill.Execute yet without modifying Skill interface.
 	// For now, we rely on the skill execution.
-	res, err := skill.Execute(ctxSkill)
+	res, err := u.skill.Execute(ctxSkill)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("SummaryTask (WithContext): Primary LLM failed, falling back to local model: %v", err)
 		ctxSkill.LLM = u.fallbackLLM
-		res, err = skill.Execute(ctxSkill)
+		res, err = u.skill.Execute(ctxSkill)
 	}
 
 	if err != nil {

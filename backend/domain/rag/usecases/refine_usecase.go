@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"fmt"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/skills"
 	"strings"
@@ -14,13 +15,15 @@ type refineUseCase struct {
 	llm         skills.LLMClient
 	fallbackLLM skills.LLMClient
 	config      *utils.Config
+	skill       skills.Skill
 }
 
-func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config) RefineUseCase {
+func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, skill skills.Skill) RefineUseCase {
 	return &refineUseCase{
 		llm:         llm,
 		fallbackLLM: fallbackLLM,
 		config:      cfg,
+		skill:       skill,
 	}
 }
 
@@ -30,7 +33,9 @@ func (u *refineUseCase) RefineText(text string, lang string) (string, error) {
 		return "", nil
 	}
 
-	skill := &skills.RefineSkill{}
+	if u.skill == nil {
+		return "", fmt.Errorf("refine skill not configured")
+	}
 	ctx := &skills.SkillContext{
 		Prompt:   text,
 		Language: lang,
@@ -38,11 +43,11 @@ func (u *refineUseCase) RefineText(text string, lang string) (string, error) {
 		Config:   u.config,
 	}
 
-	res, err := skill.Execute(ctx)
+	res, err := u.skill.Execute(ctx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("Refine: Primary LLM failed, falling back to local model: %v", err)
 		ctx.LLM = u.fallbackLLM
-		res, err = skill.Execute(ctx)
+		res, err = u.skill.Execute(ctx)
 	}
 
 	if err != nil {
