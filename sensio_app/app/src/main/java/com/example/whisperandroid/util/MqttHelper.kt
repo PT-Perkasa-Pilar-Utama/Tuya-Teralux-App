@@ -61,7 +61,17 @@ class MqttHelper(
         val appContext = context.applicationContext
         mqttAndroidClient = MqttAndroidClient(appContext, serverUri, clientID)
         mqttAndroidClient.setCallback(
-            object : MqttCallback {
+            object : org.eclipse.paho.client.mqttv3.MqttCallbackExtended {
+                override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                    Log.d(tag, "Connect complete: reconnect=$reconnect, uri=$serverURI")
+                    _connectionStatus.value = MqttConnectionStatus.CONNECTED
+                    
+                    // Re-subscribe if this was an automatic reconnection
+                    if (reconnect) {
+                        subscribeToAllTopics()
+                    }
+                }
+
                 override fun connectionLost(cause: Throwable?) {
                     Log.d(tag, "Connection lost: ${cause?.message}")
                     _connectionStatus.value = MqttConnectionStatus.DISCONNECTED
@@ -87,9 +97,27 @@ class MqttHelper(
         return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
+    private fun subscribeToAllTopics() {
+        val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        subscribe("users/$username/$env/chat/answer")
+        subscribe("users/$username/$env/whisper/answer")
+        subscribe("users/$username/$env/task")
+        subscribe("users/$username/$env/chat")
+    }
+
     fun connect(password: String) {
-        if (mqttAndroidClient.isConnected || _connectionStatus.value == MqttConnectionStatus.CONNECTED) {
+        val isClientConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
+        
+        if (isClientConnected && _connectionStatus.value == MqttConnectionStatus.CONNECTED) {
             Log.d(tag, "MQTT already connected. Skipping connect.")
+            return
+        }
+
+        if (isClientConnected && _connectionStatus.value != MqttConnectionStatus.CONNECTED) {
+            Log.d(tag, "MQTT client connected but state is ${_connectionStatus.value}. Syncing state and re-subscribing.")
+            _connectionStatus.value = MqttConnectionStatus.CONNECTED
+            subscribeToAllTopics()
             return
         }
 
@@ -128,12 +156,7 @@ class MqttHelper(
                         mqttAndroidClient.setBufferOpts(disconnectedBufferOptions)
                         Log.d(tag, "Success Connected to $serverUri")
 
-                        val username = getUsername()
-                        val env = BuildConfig.APPLICATION_ENVIRONMENT
-                        subscribe("users/$username/$env/chat/answer")
-                        subscribe("users/$username/$env/whisper/answer")
-                        subscribe("users/$username/$env/task")
-                        subscribe("users/$username/$env/chat")
+                        subscribeToAllTopics()
                         _connectionStatus.value = MqttConnectionStatus.CONNECTED
                     }
 
