@@ -56,7 +56,7 @@ func (s *LlamaLocalService) CallModel(ctx context.Context, prompt string, model 
 		"-m", s.modelPath,
 		"-p", prompt,
 		"-n", "64", // Moderate length
-		"--single-turn",
+		"--no-cnv",
 		"--simple-io",
 		"--log-disable",
 		"--no-display-prompt",
@@ -64,10 +64,14 @@ func (s *LlamaLocalService) CallModel(ctx context.Context, prompt string, model 
 		"--log-colors", "off",
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second) // Increased timeout for loading
+	// Use provided context if available, otherwise fallback to background with long timeout
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(ctx, 120*time.Second) // Increased timeout for loading
 	defer cancel()
 
-	utils.LogDebug("LlamaLocal: Running %s (single-turn)", bin)
+	utils.LogDebug("LlamaLocal: Running %s (no-cnv)", bin)
 
 	cmd := exec.CommandContext(ctx, bin, args...)
 
@@ -80,7 +84,7 @@ func (s *LlamaLocalService) CallModel(ctx context.Context, prompt string, model 
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			utils.LogError("LlamaLocal: Execution timed out")
-			return "", fmt.Errorf("llama-cli timed out after 90s")
+			return "", fmt.Errorf("llama-cli timed out after 120s")
 		}
 		// If it failed, don't show the noisy output unless in debug
 		utils.LogDebug("LlamaLocal: raw failure output: %s", string(out))

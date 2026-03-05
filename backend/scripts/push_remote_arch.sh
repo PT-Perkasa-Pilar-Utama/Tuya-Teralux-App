@@ -53,7 +53,7 @@ ssh_exec "docker buildx version >/dev/null 2>&1 || { echo 'Docker buildx not ava
 
 # Format the command payload with variable pass-through
 cmd_payload="cd $REMOTE_REPO_DIR/backend && \
-    make lint && \
+    make lint-strict && \
     make vet && \
     make build && \
     make push REGISTRY=$REGISTRY USERNAME=$USERNAME IMAGE_BASE=$IMAGE_BASE IMAGE_TAG=$IMAGE_TAG PLATFORMS=$PLATFORMS"

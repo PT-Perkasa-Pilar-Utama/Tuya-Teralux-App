@@ -1,0 +1,20 @@
+## Copy this file to local.properties and adjust values for your machine.
+## Do NOT commit real secrets in local.properties.
+
+# Android SDK location
+sdk.dir=/path/to/android-sdk
+
+# Backend API base URL (must end with slash)
+api.base_url=
+
+# MQTT broker URL
+mqtt.broker_url=
+
+# Application environment used in MQTT topic suffix
+mqtt.application_environment=
+
+# App display name
+app.name=
+
+# API key used by BuildConfig.SENSIO_API_KEY
+sensio.api_key=

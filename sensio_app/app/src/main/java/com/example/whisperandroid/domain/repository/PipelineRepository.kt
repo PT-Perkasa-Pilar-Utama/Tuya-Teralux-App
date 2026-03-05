@@ -27,4 +27,24 @@ interface PipelineRepository {
         taskId: String,
         token: String
     ): Flow<Resource<PipelineStatusDto>>
+
+    /**
+     * Executes pipeline using an already uploaded session ID.
+     */
+    suspend fun executePipelineByUpload(
+        sessionId: String,
+        token: String,
+        language: String?,
+        targetLanguage: String?,
+        summarize: Boolean,
+        refine: Boolean?,
+        diarize: Boolean,
+        context: String?,
+        style: String?,
+        date: String?,
+        location: String?,
+        participants: List<String>?,
+        macAddress: String?,
+        idempotencyKey: String?
+    ): Flow<Resource<String>>
 }

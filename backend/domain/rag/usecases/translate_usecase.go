@@ -47,6 +47,7 @@ func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLa
 		return "", fmt.Errorf("translation skill not configured")
 	}
 	skillCtx := &skills.SkillContext{
+		Ctx:      ctx,
 		Prompt:   text,
 		Language: targetLang,
 		LLM:      u.llm,

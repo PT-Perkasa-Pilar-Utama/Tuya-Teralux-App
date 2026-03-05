@@ -3,6 +3,7 @@ package com.example.whisperandroid.data.remote.api
 import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
 import com.example.whisperandroid.data.remote.dto.TranscriptionSubmissionData
 import com.example.whisperandroid.data.remote.dto.PipelineStatusDto
+import com.example.whisperandroid.data.remote.dto.PipelineSubmitByUploadRequestDto
 import okhttp3.MultipartBody
 import retrofit2.http.*
 
@@ -36,4 +37,11 @@ interface PipelineApi {
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<PipelineStatusDto>
+
+    @POST("/api/pipeline/job/by-upload")
+    suspend fun executePipelineByUpload(
+        @retrofit2.http.Body request: PipelineSubmitByUploadRequestDto,
+        @Header("Authorization") token: String,
+        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+    ): SpeechResponseDto<TranscriptionSubmissionData>
 }

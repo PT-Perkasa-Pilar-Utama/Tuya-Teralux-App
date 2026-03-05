@@ -20,7 +20,7 @@ sync_remote_configs "backend"
 log_info "Starting remote lint and build for Backend on $REMOTE_HOST..."
 start_time=$(date +%s)
 
-ssh_exec "cd $REMOTE_REPO_DIR/backend && make lint && make vet && make build"
+ssh_exec "cd $REMOTE_REPO_DIR/backend && make lint-strict && make vet && make build"
 
 end_time=$(date +%s)
 duration=$((end_time - start_time))

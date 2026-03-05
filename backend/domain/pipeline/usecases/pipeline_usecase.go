@@ -130,7 +130,15 @@ func (u *pipelineUseCase) ExecutePipeline(ctx context.Context, inputPath string,
 		_ = u.cache.Set(idempotencyHash, taskID)
 	}
 
-	go u.runPipelineAsync(ctx, taskID, inputPath, req)
+	timeout, err := time.ParseDuration(utils.AppConfig.PipelineAsyncTimeout)
+	if err != nil {
+		timeout = 12 * time.Hour
+	}
+	asyncCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	go func() {
+		defer cancel()
+		u.runPipelineAsync(asyncCtx, taskID, inputPath, req)
+	}()
 
 	return taskID, nil
 }
@@ -229,13 +237,20 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	// Finalize
 	status.OverallStatus = "completed"
 	start, _ := time.Parse(time.RFC3339, status.StartedAt)
-	status.DurationSeconds = time.Since(start).Seconds()
+	duration := time.Since(start).Seconds()
+	status.DurationSeconds = duration
 	u.saveStatus(taskID, *status)
+
+	utils.LogInfo("Pipeline Task %s: completed (Duration: %.2fs)", taskID, duration)
 }
 
 func (u *pipelineUseCase) saveStatus(taskID string, status pipelineDtos.PipelineStatusDTO) {
+	ttl, err := time.ParseDuration(utils.AppConfig.TaskStatusTTL)
+	if err != nil {
+		ttl = 24 * time.Hour
+	}
 	u.store.Set(taskID, &status)
-	_ = u.cache.Set(taskID, status)
+	_ = u.cache.SetWithTTL(taskID, status, ttl)
 }
 
 func (u *pipelineUseCase) failStage(taskID string, stageName string, err error) {
@@ -249,4 +264,6 @@ func (u *pipelineUseCase) failStage(taskID string, stageName string, err error) 
 	status.Stages[stageName] = stage
 	status.OverallStatus = "failed"
 	u.saveStatus(taskID, *status)
+
+	utils.LogError("Pipeline Task %s: Stage '%s' failed: %v", taskID, stageName, err)
 }

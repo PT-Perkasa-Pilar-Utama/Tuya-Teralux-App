@@ -26,6 +26,7 @@ import (
 type SpeechTranscribeController struct {
 	transcribeUC    usecases.TranscribeUseCase
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase
+	uploadSessionUC usecases.UploadSessionUseCase
 	config          *utils.Config
 	mqttSvc         *infrastructure.MqttService
 }
@@ -33,12 +34,14 @@ type SpeechTranscribeController struct {
 func NewSpeechTranscribeController(
 	transcribeUC usecases.TranscribeUseCase,
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
+	uploadSessionUC usecases.UploadSessionUseCase,
 	cfg *utils.Config,
 	mqttSvc *infrastructure.MqttService,
 ) *SpeechTranscribeController {
 	return &SpeechTranscribeController{
 		transcribeUC:    transcribeUC,
 		saveRecordingUC: saveRecordingUC,
+		uploadSessionUC: uploadSessionUC,
 		config:          cfg,
 		mqttSvc:         mqttSvc,
 	}
@@ -343,4 +346,75 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 	c.publishMqttResponse(macAddress, resp)
 
 	ctx.JSON(http.StatusAccepted, resp)
+}
+
+// TranscribeByUpload handles POST /api/speech/transcribe/by-upload
+func (c *SpeechTranscribeController) TranscribeByUpload(ctx *gin.Context) {
+	var req dtos.SubmitByUploadRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Validation Error: " + err.Error(),
+		})
+		return
+	}
+
+	// 1. Finalize session (merge chunks)
+	uid, _ := ctx.Get("uid")
+	ownerUID := ""
+	if uid != nil {
+		ownerUID = uid.(string)
+	}
+
+	finalized, err := c.uploadSessionUC.FinalizeSession(req.SessionID, ownerUID)
+	if err != nil {
+		statusCode := http.StatusBadRequest
+		if err.Error() == "unauthorized session access" {
+			statusCode = http.StatusForbidden
+		}
+		ctx.JSON(statusCode, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to finalize upload: " + err.Error(),
+		})
+		return
+	}
+
+	// 2. Save as Recording (moves file)
+	baseURL := utils.GetBaseURL(ctx)
+	recording, err := c.saveRecordingUC.SaveRecordingFromPath(finalized.MergedPath, finalized.OriginalFileName, req.MacAddress, baseURL)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to save recording: " + err.Error(),
+		})
+		return
+	}
+
+	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
+
+	// 3. Start transcription
+	taskID, err := c.transcribeUC.TranscribeAudio(ctx.Request.Context(), finalInputPath, recording.OriginalName, req.Language, usecases.TranscriptionMetadata{
+		Source:         "by-upload",
+		Trigger:        ctx.Request.URL.Path,
+		TerminalID:     req.MacAddress,
+		Diarize:        req.Diarize,
+		IdempotencyKey: req.IdempotencyKey,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to start transcription: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, commonDtos.StandardResponse{
+		Status:  true,
+		Message: "Transcription task submitted via upload session",
+		Data: dtos.TranscriptionTaskResponseDTO{
+			TaskID:      taskID,
+			TaskStatus:  "pending",
+			RecordingID: recording.ID,
+		},
+	})
 }

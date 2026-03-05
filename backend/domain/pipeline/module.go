@@ -23,13 +23,14 @@ func InitModule(
 	translateUC ragUsecases.TranslateUseCase,
 	summaryUC ragUsecases.SummaryUseCase,
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
+	uploadSessionUC speechUsecases.UploadSessionUseCase,
 ) {
 	store := tasks.NewStatusStore[pipelinedtos.PipelineStatusDTO]()
 	cache := tasks.NewBadgerTaskCacheFromService(badger, "cache:pipeline:task:")
 
 	pipelineUC := pipelineUsecases.NewPipelineUseCase(transcribeUC, translateUC, summaryUC, cache, store)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
-	pipelineCtrl := pipelineControllers.NewPipelineController(pipelineUC, statusUC, saveRecordingUC, cfg)
+	pipelineCtrl := pipelineControllers.NewPipelineController(pipelineUC, statusUC, saveRecordingUC, uploadSessionUC, cfg)
 
 	pipelineRoutes.SetupPipelineRoutes(protected, pipelineCtrl)
 }

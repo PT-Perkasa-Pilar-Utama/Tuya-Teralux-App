@@ -1,5 +1,6 @@
 package com.example.whisperandroid.domain.usecase
 
+import android.util.Log
 import com.example.whisperandroid.domain.repository.Resource
 import java.io.File
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +11,7 @@ sealed class MeetingProcessState {
 
     object Recording : MeetingProcessState()
 
-    object Uploading : MeetingProcessState()
+    data class Uploading(val progress: Int) : MeetingProcessState()
 
     data class Transcribing(val taskId: String) : MeetingProcessState()
     data class Translating(val taskId: String) : MeetingProcessState()
@@ -27,7 +28,8 @@ sealed class MeetingProcessState {
 }
 
 class ProcessMeetingUseCase(
-    private val pipelineRepository: com.example.whisperandroid.domain.repository.PipelineRepository
+    private val pipelineRepository: com.example.whisperandroid.domain.repository.PipelineRepository,
+    private val uploadRepository: com.example.whisperandroid.domain.repository.UploadRepository
 ) {
     suspend operator fun invoke(
         audioFile: File,
@@ -37,20 +39,47 @@ class ProcessMeetingUseCase(
         idempotencyKey: String? = null
     ): Flow<MeetingProcessState> =
         flow {
-            emit(MeetingProcessState.Uploading)
+            emit(MeetingProcessState.Uploading(0))
 
             val targetLangCode = when (targetLang.lowercase()) {
                 "id", "indonesia" -> "id"
                 else -> "en"
             }
 
+            var sessionId: String? = null
+            // Use chunked upload for all files for consistency, or add a threshold
+            uploadRepository.uploadFile(audioFile, token).collect { uploadState ->
+                when (uploadState) {
+                    is com.example.whisperandroid.domain.repository.UploadState.Success -> {
+                        sessionId = uploadState.sessionId
+                    }
+                    is com.example.whisperandroid.domain.repository.UploadState.Error -> {
+                        emit(MeetingProcessState.Error("Upload failed: ${uploadState.message}"))
+                    }
+                    is com.example.whisperandroid.domain.repository.UploadState.Progress -> {
+                        val progressPercent = uploadState.percent.toInt().coerceIn(0, 100)
+                        emit(MeetingProcessState.Uploading(progressPercent))
+                        Log.d("ProcessMeeting", "Upload progress: $progressPercent%")
+                    }
+                    else -> {}
+                }
+            }
+
+            if (sessionId == null) return@flow
+
             var pipelineTaskId: String? = null
-            pipelineRepository.executePipeline(
-                audioFile = audioFile,
-                language = "id", // assuming source is id
+            pipelineRepository.executePipelineByUpload(
+                sessionId = sessionId!!,
+                language = "id", 
                 targetLanguage = targetLangCode,
                 summarize = true,
                 refine = true,
+                diarize = false,
+                context = null,
+                style = null,
+                date = null,
+                location = null,
+                participants = null,
                 macAddress = macAddress,
                 token = token,
                 idempotencyKey = idempotencyKey

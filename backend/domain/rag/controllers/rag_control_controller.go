@@ -51,7 +51,7 @@ func (c *RAGControlController) Control(ctx *gin.Context) {
 		uidStr = uid.(string)
 	}
 
-	res, err := c.controlUC.ProcessControl(uidStr, req.TerminalID, req.Prompt)
+	res, err := c.controlUC.ProcessControl(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt)
 	if err != nil {
 		utils.LogError("RAGControlController.Control: %v", err)
 		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
