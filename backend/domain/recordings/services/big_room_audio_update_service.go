@@ -54,7 +54,7 @@ func (s *bigRoomAudioUpdateService) UpdateRoomOccupiedAudio(macAddress, audioPat
 	if err != nil {
 		return fmt.Errorf("failed to send request: %v", err)
 	}
-	defer resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("external api returned status: %s", resp.Status)
