@@ -23,9 +23,10 @@ type controlUseCase struct {
 	badger       *infrastructure.BadgerService
 	tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor
 	tuyaAuth     tuyaUsecases.TuyaAuthUseCase
+	skill        skills.Skill
 }
 
-func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase) ControlUseCase {
+func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase, skill skills.Skill) ControlUseCase {
 	return &controlUseCase{
 		llm:          llm,
 		fallbackLLM:  fallbackLLM,
@@ -34,6 +35,7 @@ func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *
 		badger:       badger,
 		tuyaExecutor: tuyaExecutor,
 		tuyaAuth:     tuyaAuth,
+		skill:        skill,
 	}
 }
 
@@ -43,7 +45,9 @@ func (u *controlUseCase) ProcessControl(uid, terminalID, prompt string) (*dtos.C
 	}
 
 	// Delegate control logic to ControlSkill
-	skill := skills.NewControlSkill(u.tuyaExecutor, u.tuyaAuth)
+	if u.skill == nil {
+		return nil, fmt.Errorf("control skill not configured")
+	}
 
 	ctx := &skills.SkillContext{
 		UID:        uid,
@@ -67,11 +71,11 @@ func (u *controlUseCase) ProcessControl(uid, terminalID, prompt string) (*dtos.C
 	}
 	ctx.History = history
 
-	res, err := skill.Execute(ctx)
+	res, err := u.skill.Execute(ctx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("Control: Primary LLM failed, falling back to local model: %v", err)
 		ctx.LLM = u.fallbackLLM
-		res, err = skill.Execute(ctx)
+		res, err = u.skill.Execute(ctx)
 	}
 
 	if err != nil {

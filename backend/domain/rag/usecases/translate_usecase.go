@@ -29,9 +29,10 @@ type translateUseCase struct {
 	cache       *tasks.BadgerTaskCache
 	store       *tasks.StatusStore[dtos.RAGStatusDTO]
 	mqttSvc     mqttPublisher
+	skill       skills.Skill
 }
 
-func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher) TranslateUseCase {
+func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher, skill skills.Skill) TranslateUseCase {
 	return &translateUseCase{
 		llm:         llm,
 		fallbackLLM: fallbackLLM,
@@ -39,12 +40,15 @@ func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg
 		cache:       cache,
 		store:       store,
 		mqttSvc:     mqttSvc,
+		skill:       skill,
 	}
 }
 
 // translateInternal (private internal for use by Execute)
 func (u *translateUseCase) translateInternal(text, targetLang string) (string, error) {
-	skill := &skills.TranslationSkill{}
+	if u.skill == nil {
+		return "", fmt.Errorf("translation skill not configured")
+	}
 	ctx := &skills.SkillContext{
 		Prompt:   text,
 		Language: targetLang,
@@ -52,11 +56,11 @@ func (u *translateUseCase) translateInternal(text, targetLang string) (string, e
 		Config:   u.config,
 	}
 
-	res, err := skill.Execute(ctx)
+	res, err := u.skill.Execute(ctx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("Translate: Primary LLM failed, falling back to local model: %v", err)
 		ctx.LLM = u.fallbackLLM
-		res, err = skill.Execute(ctx)
+		res, err = u.skill.Execute(ctx)
 	}
 
 	if err != nil {
