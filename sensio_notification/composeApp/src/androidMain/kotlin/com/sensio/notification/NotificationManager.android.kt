@@ -3,8 +3,8 @@ package com.sensio.notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
 
 lateinit var appContext: Context
@@ -13,8 +13,14 @@ actual fun showNotification(
     title: String,
     message: String,
 ) {
-    // Also show toast as it doesn't require runtime permission and gives immediate feedback
-    Toast.makeText(appContext, "$title: $message", Toast.LENGTH_LONG).show()
+    // Launch Modal Activity
+    val intent =
+        Intent(appContext, NotificationActivity::class.java).apply {
+            putExtra("title", title)
+            putExtra("message", message)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+    appContext.startActivity(intent)
 
     val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val channelId = "sensio_notification_channel"
@@ -23,7 +29,7 @@ actual fun showNotification(
         val channel =
             NotificationChannel(
                 channelId,
-                "Sensio Notifications",
+                "Meeting Reminder",
                 NotificationManager.IMPORTANCE_DEFAULT,
             )
         notificationManager.createNotificationChannel(channel)

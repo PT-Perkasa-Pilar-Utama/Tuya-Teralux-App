@@ -10,14 +10,14 @@ import (
 	"time"
 )
 
-// MailExternalService handles communication with third-party Terminal services for mail
-type MailExternalService struct {
+// BigExternalService handles communication with third-party Big services
+type BigExternalService struct {
 	client *http.Client
 }
 
-// NewMailExternalService creates a new instance of MailExternalService
-func NewMailExternalService() *MailExternalService {
-	return &MailExternalService{
+// NewBigExternalService creates a new instance of BigExternalService
+func NewBigExternalService() *BigExternalService {
+	return &BigExternalService{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -25,11 +25,11 @@ func NewMailExternalService() *MailExternalService {
 }
 
 // GetDeviceInfoByMac fetches device and booking info by MAC address
-func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]interface{}, error) {
-	// New API endpoint
+func (s *BigExternalService) GetDeviceInfoByMac(macAddress string) (map[string]interface{}, error) {
+	// API endpoint
 	url := "https://aplikasi-big.com/IOTAN5JavaDasboard/rest/ProcGetDeviceByMacAddressCurrentpied"
 
-	// New payload structure
+	// Payload structure
 	payload := map[string]interface{}{
 		"host":       "aplikasi-big.com",
 		"port":       "",
@@ -43,7 +43,7 @@ func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	utils.LogDebug("MailExternalService: Calling API %s for MAC %s", url, macAddress)
+	utils.LogDebug("BigExternalService: Calling API %s for MAC %s", url, macAddress)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		utils.LogError("MailExternalService: API request failed for MAC %s: %v", macAddress, err)
+		utils.LogError("BigExternalService: API request failed for MAC %s: %v", macAddress, err)
 		return nil, fmt.Errorf("external API request failed: %w", err)
 	}
 	defer func() {
@@ -64,17 +64,17 @@ func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]
 	// Read and log the raw response body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		utils.LogError("MailExternalService: Failed to read response body for MAC %s: %v", macAddress, err)
+		utils.LogError("BigExternalService: Failed to read response body for MAC %s: %v", macAddress, err)
 		return nil, fmt.Errorf("failed to read external API response body: %w", err)
 	}
 
-	utils.LogDebug("MailExternalService: Raw API Response for MAC %s: %s", macAddress, string(bodyBytes))
+	utils.LogDebug("BigExternalService: Raw API Response for MAC %s: %s", macAddress, string(bodyBytes))
 
 	// Restore the response body for further processing
 	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if resp.StatusCode != http.StatusOK {
-		utils.LogError("MailExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
+		utils.LogError("BigExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
 		return nil, fmt.Errorf("external API returned non-200 status: %d", resp.StatusCode)
 	}
 
@@ -83,7 +83,7 @@ func (s *MailExternalService) GetDeviceInfoByMac(macAddress string) (map[string]
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// New API returns structure: {"GetRoomByMacAddressCurrent": [...]}
+	// API returns structure: {"GetRoomByMacAddressCurrent": [...]}
 	items, ok := result["GetRoomByMacAddressCurrent"].([]interface{})
 	if !ok || len(items) == 0 {
 		return nil, utils.NewAPIError(http.StatusNotFound, "Device information not found for given MAC address")

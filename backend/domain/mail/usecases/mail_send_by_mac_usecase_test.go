@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail/dtos"
@@ -19,7 +20,7 @@ func TestMailSendByMacUseCase_SendMailByMac_Validation(t *testing.T) {
 		SMTPFrom:     "from@example.com",
 	}
 	svc := services.NewMailService(cfg)
-	extSvc := services.NewMailExternalService()
+	extSvc := commonServices.NewBigExternalService()
 	store := tasks.NewStatusStore[dtos.MailStatusDTO]()
 	uc := NewMailSendByMacUseCase(svc, extSvc, store, nil)
 

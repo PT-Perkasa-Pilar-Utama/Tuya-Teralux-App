@@ -44,6 +44,8 @@ definitions:
       status:
         example: completed
         type: string
+      terminal_id:
+        type: string
       trigger:
         example: /api/speech/models/gemini
         type: string
@@ -148,6 +150,8 @@ definitions:
     properties:
       language:
         type: string
+      mac_address:
+        type: string
       text:
         type: string
     required:
@@ -174,6 +178,8 @@ definitions:
         additionalProperties:
           type: string
         type: object
+      mac_address:
+        type: string
       method:
         type: string
       result:
@@ -559,6 +565,46 @@ info:
   title: Sensio API
   version: "1.0"
 paths:
+  /api/big/device/{mac_address}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches specific device information including booking_id, time_start,
+        and time_stop directly from the Big API.
+      parameters:
+      - description: MAC Address
+        in: path
+        name: mac_address
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/sensio_domain_common_dtos.StandardResponse'
+      summary: Fetch device and booking info by MAC address
+      tags:
+      - 01. Common
   /api/cache/flush:
     delete:
       consumes:
