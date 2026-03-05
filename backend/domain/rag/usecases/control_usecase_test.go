@@ -6,6 +6,7 @@ import (
 	"os"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/rag/skills"
 	tuyaDtos "sensio/domain/tuya/dtos"
 	"testing"
 
@@ -75,10 +76,11 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 
 	// Setup mock responses
 	mockTuyaAuth.On("GetTuyaAccessToken").Return("mock-token", nil)
-	mockTuyaExecutor.On("SendSwitchCommand", "mock-token", mock.Anything, mock.Anything).Return(true, nil)
-	mockTuyaExecutor.On("SendIRACCommand", "mock-token", mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
+	mockTuyaExecutor.On("SendSwitchCommand", "mock-token", mock.Anything, mock.Anything).Return(true, nil).Maybe()
+	mockTuyaExecutor.On("SendIRACCommand", "mock-token", mock.Anything, mock.Anything, mock.Anything).Return(true, nil).Maybe()
 
-	uc := NewControlUseCase(mockLLM, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
+	mockControlSkill := new(mockSkill)
+	uc := NewControlUseCase(mockLLM, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth, mockControlSkill)
 
 	uid := "user-123"
 	terminalID := "tx-1"
@@ -122,6 +124,12 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	}
 
 	t.Run("Single Match", func(t *testing.T) {
+		mockControlSkill.On("Execute", mock.Anything).Return(&skills.SkillResult{
+			Message:        "Lampu Teras has been turned on.",
+			Data:           map[string]interface{}{"device_id": "dev-lamp-1"},
+			HTTPStatusCode: 200,
+		}, nil).Once()
+
 		res, err := uc.ProcessControl(uid, terminalID, "Nyalakan Lampu Teras")
 		assert.NoError(t, err)
 		assert.Contains(t, res.Message, "turned on")
@@ -133,11 +141,13 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		prompt := "Matikan AC"
 		localMock := new(mockLLMForControl)
 		// Re-setup usecase with local mock to avoid interference
-		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth)
-
 		// Expect LLM call for disambiguation
 		expectedResponse := "I found 2 matching devices: AC Kamar Utama, AC Ruang Tamu. Which one?"
-		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
+		mSkill := new(mockSkill)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockTuyaExecutor, mockTuyaAuth, mSkill)
+		mSkill.On("Execute", mock.Anything).Return(&skills.SkillResult{
+			Message: expectedResponse,
+		}, nil).Once()
 
 		res, err := localUC.ProcessControl(uid, terminalID, prompt)
 		assert.NoError(t, err)
@@ -155,9 +165,14 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		mockExec := new(mockTuyaExecutorForControl)
 		mockAuth.On("GetTuyaAccessToken").Return("mock-token", nil)
 		mockExec.On("SendIRACCommand", "mock-token", "dev-ac-1", "remote-ac-1", mock.Anything).Return(true, nil)
-		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockExec, mockAuth)
+		mSkill := new(mockSkill)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockExec, mockAuth, mSkill)
 
-		localMock.On("CallModel", mock.Anything, "high").Return("EXECUTE:dev-ac-1", nil).Once()
+		mSkill.On("Execute", mock.Anything).Return(&skills.SkillResult{
+			Message:        "Control AC Kamar Utama successful",
+			Data:           map[string]interface{}{"device_id": "dev-ac-1"},
+			HTTPStatusCode: 200,
+		}, nil).Once()
 
 		res, err := localUC.ProcessControl(uid, terminalID, prompt)
 		assert.NoError(t, err)
@@ -176,10 +191,15 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 		mockExec := new(mockTuyaExecutorForControl)
 		mockAuth.On("GetTuyaAccessToken").Return("mock-token", nil)
 		mockExec.On("SendIRACCommand", "mock-token", "dev-ac-1", "remote-ac-1", mock.Anything).Return(true, nil)
-		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockExec, mockAuth)
+		mockExec.On("SendIRACCommand", "mock-token", "dev-ac-1", "remote-ac-1", mock.Anything).Return(true, nil)
+		mSkill := new(mockSkill)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, mockExec, mockAuth, mSkill)
 
-		// Simulate LLM wrapping response in surrounding double-quotes
-		localMock.On("CallModel", mock.Anything, "high").Return(`"EXECUTE:dev-ac-1"`, nil).Once()
+		mSkill.On("Execute", mock.Anything).Return(&skills.SkillResult{
+			Message:        "Control AC Kamar Utama successful",
+			Data:           map[string]interface{}{"device_id": "dev-ac-1"},
+			HTTPStatusCode: 200,
+		}, nil).Once()
 
 		res, err := localUC.ProcessControl(uid, terminalID, prompt)
 		assert.NoError(t, err)
@@ -191,10 +211,13 @@ func TestControlUseCase_ProcessControl(t *testing.T) {
 	t.Run("No Match - Not Found", func(t *testing.T) {
 		prompt := "Turn on the Fridge"
 		localMock := new(mockLLMForControl)
-		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, nil, nil)
+		mSkill := new(mockSkill)
+		localUC := NewControlUseCase(localMock, nil, cfg, vector, badger, nil, nil, mSkill)
 
 		expectedResponse := "I'm sorry, I couldn't find any device matching 'Turn on the Fridge'."
-		localMock.On("CallModel", mock.Anything, "high").Return(expectedResponse, nil).Once()
+		mSkill.On("Execute", mock.Anything).Return(&skills.SkillResult{
+			Message: expectedResponse,
+		}, nil).Once()
 
 		res, err := localUC.ProcessControl(uid, terminalID, prompt)
 		assert.NoError(t, err)
