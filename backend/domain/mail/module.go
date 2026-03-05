@@ -2,6 +2,7 @@ package mail
 
 import (
 	"sensio/domain/common/infrastructure"
+	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail/controllers"
@@ -23,7 +24,7 @@ type MailModule struct {
 
 func NewMailModule(cfg *utils.Config, badgerSvc *infrastructure.BadgerService) *MailModule {
 	service := services.NewMailService(cfg)
-	externalService := services.NewMailExternalService()
+	externalService := commonServices.NewBigExternalService()
 
 	// Task tracking
 	store := tasks.NewStatusStore[dtos.MailStatusDTO]()

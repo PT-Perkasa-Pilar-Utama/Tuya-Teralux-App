@@ -7,6 +7,7 @@ import info.mqtt.android.service.MqttAndroidClient
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
@@ -22,6 +23,11 @@ class MqttHelper(
     private var mqttAndroidClient: MqttAndroidClient
     private val tokenManager = com.example.whisper_android.data.local.TokenManager(context)
 
+    private val _connectionStatus = kotlinx.coroutines.flow.MutableStateFlow(
+        MqttConnectionStatus.DISCONNECTED
+    )
+    val connectionStatus = _connectionStatus.asStateFlow()
+
     private val serverUri = BuildConfig.MQTT_BROKER_URL
     private val clientID = "WhisperAndroid_" + UUID.randomUUID().toString()
 
@@ -33,15 +39,14 @@ class MqttHelper(
     )
     val messages = _messages.asSharedFlow()
 
-    var onConnectionStatusChanged: ((status: MqttConnectionStatus) -> Unit)? = null
-
     private fun getUsername(): String {
         return com.example.whisper_android.util.DeviceUtils.getDeviceId(context)
     }
 
     fun getTaskTopic(): String? {
         val username = getUsername()
-        return "users/$username/task"
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        return "users/$username/$env/task"
     }
 
     enum class MqttConnectionStatus {
@@ -59,7 +64,7 @@ class MqttHelper(
             object : MqttCallback {
                 override fun connectionLost(cause: Throwable?) {
                     Log.d(tag, "Connection lost: ${cause?.message}")
-                    onConnectionStatusChanged?.invoke(MqttConnectionStatus.DISCONNECTED)
+                    _connectionStatus.value = MqttConnectionStatus.DISCONNECTED
                 }
 
                 override fun messageArrived(
@@ -83,11 +88,19 @@ class MqttHelper(
     }
 
     fun connect(password: String) {
-        if (mqttAndroidClient.isConnected) return
+        if (mqttAndroidClient.isConnected || _connectionStatus.value == MqttConnectionStatus.CONNECTED) {
+            Log.d(tag, "MQTT already connected. Skipping connect.")
+            return
+        }
+        
+        if (_connectionStatus.value == MqttConnectionStatus.CONNECTING) {
+            Log.d(tag, "MQTT connection already in progress. Skipping connect.")
+            return
+        }
 
         if (!isNetworkAvailable()) {
             Log.w(tag, "No internet connection available. Skipping MQTT connect.")
-            onConnectionStatusChanged?.invoke(MqttConnectionStatus.NO_INTERNET)
+            _connectionStatus.value = MqttConnectionStatus.NO_INTERNET
             return
         }
 
@@ -100,7 +113,7 @@ class MqttHelper(
         mqttConnectOptions.userName = username
         mqttConnectOptions.password = password.toCharArray()
 
-        onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTING)
+        _connectionStatus.value = MqttConnectionStatus.CONNECTING
         try {
             mqttAndroidClient.connect(
                 mqttConnectOptions,
@@ -116,11 +129,12 @@ class MqttHelper(
                         Log.d(tag, "Success Connected to $serverUri")
 
                         val username = getUsername()
-                        subscribe("users/$username/chat/answer")
-                        subscribe("users/$username/whisper/answer")
-                        subscribe("users/$username/task")
-                        subscribe("users/$username/chat")
-                        onConnectionStatusChanged?.invoke(MqttConnectionStatus.CONNECTED)
+                        val env = BuildConfig.APPLICATION_ENVIRONMENT
+                        subscribe("users/$username/$env/chat/answer")
+                        subscribe("users/$username/$env/whisper/answer")
+                        subscribe("users/$username/$env/task")
+                        subscribe("users/$username/$env/chat")
+                        _connectionStatus.value = MqttConnectionStatus.CONNECTED
                     }
 
                     override fun onFailure(
@@ -129,14 +143,13 @@ class MqttHelper(
                     ) {
                         Log.w(tag, "Failed to connect to: $serverUri")
                         exception.printStackTrace()
-                        
-                        val status = if (exception is java.net.UnknownHostException || 
-                            exception.cause is java.net.UnknownHostException) {
+
+                        val status = if (exception is java.net.UnknownHostException || exception.cause is java.net.UnknownHostException) {
                             MqttConnectionStatus.NO_INTERNET
                         } else {
                             MqttConnectionStatus.FAILED
                         }
-                        onConnectionStatusChanged?.invoke(status)
+                        _connectionStatus.value = status
                     }
                 }
             )
@@ -174,7 +187,7 @@ class MqttHelper(
         try {
             mqttAndroidClient.disconnect()
             Log.d(tag, "Disconnected from MQTT")
-            onConnectionStatusChanged?.invoke(MqttConnectionStatus.DISCONNECTED)
+            _connectionStatus.value = MqttConnectionStatus.DISCONNECTED
         } catch (e: MqttException) {
             e.printStackTrace()
         }
@@ -195,7 +208,8 @@ class MqttHelper(
             }
             """.trimIndent()
         val username = getUsername()
-        publish("users/$username/whisper", json.toByteArray())
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        publish("users/$username/$env/whisper", json.toByteArray())
     }
 
     fun publishChat(
@@ -212,13 +226,15 @@ class MqttHelper(
             }
             """.trimIndent()
         val username = getUsername()
-        publish("users/$username/chat", json.toByteArray())
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        publish("users/$username/$env/chat", json.toByteArray())
     }
 
     fun publishTaskMessage(event: String, task: String) {
         val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
         val json = """{"event": "$event", "task": "$task"}"""
-        publish("users/$username/task", json.toByteArray())
+        publish("users/$username/$env/task", json.toByteArray())
     }
 
     private fun publish(

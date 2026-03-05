@@ -9,7 +9,11 @@ import com.example.whisper_android.domain.repository.Resource
 import com.example.whisper_android.domain.usecase.MeetingProcessState
 import com.example.whisper_android.domain.usecase.ProcessMeetingUseCase
 import com.example.whisper_android.presentation.components.UiState
+import com.example.whisper_android.data.manager.MeetingProcessManager
 import com.google.gson.JsonParser
+import android.content.Context
+import android.content.Intent
+import com.example.whisper_android.service.MeetingForegroundService
 import java.io.File
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,15 +40,26 @@ class MeetingViewModel(
     private val mqttHelper = com.example.whisper_android.data.di.NetworkModule.mqttHelper
 
     init {
-        mqttHelper.onConnectionStatusChanged = { status ->
-            viewModelScope.launch {
+        viewModelScope.launch {
+            mqttHelper.connectionStatus.collect { status ->
                 _mqttStatus.value = status
+            }
+        }
+        
+        // Synchronize UI state with MeetingProcessManager
+        viewModelScope.launch {
+            MeetingProcessManager.processState.collect { state ->
+                _uiState.value = state
             }
         }
     }
 
     fun reconnectMqtt(deviceId: String) {
         viewModelScope.launch {
+            if (mqttHelper.connectionStatus.value == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED ||
+                mqttHelper.connectionStatus.value == com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTING) {
+                return@launch
+            }
             val pwdResult = NetworkModule.repository.fetchMqttPassword(deviceId)
             if (pwdResult.isSuccess) {
                 mqttHelper.connect(pwdResult.getOrNull()!!)
@@ -53,68 +68,23 @@ class MeetingViewModel(
     }
 
     fun processRecording(
+        context: Context,
         audioFile: File,
         token: String,
         targetLang: String = "Indonesian",
         macAddress: String? = null
     ) {
-        viewModelScope.launch {
-            val signalChannel = Channel<String>(1)
-
-            val messageJob = launch {
-                mqttHelper.messages.collect { (topic, msg) ->
-                    val taskTopic = mqttHelper.getTaskTopic()
-                    if (taskTopic != null && topic == taskTopic) {
-                        try {
-                            val json = JsonParser.parseString(msg).asJsonObject
-                            val event = if (json.has("event") && !json.get("event").isJsonNull) {
-                                json.get(
-                                    "event"
-                                ).getAsString()
-                            } else {
-                                null
-                            }
-                            val taskLabel = if (json.has("task") && !json.get("task").isJsonNull) {
-                                json.get(
-                                    "task"
-                                ).getAsString()
-                            } else {
-                                null
-                            }
-                            if (event == "stop" && taskLabel != null) {
-                                signalChannel.trySend(taskLabel)
-                            }
-                        } catch (e: Exception) {
-                            android.util.Log.e("MeetingViewModel", "Error parsing task JSON", e)
-                        }
-                    }
-                }
-            }
-
-            try {
-                processMeetingUseCase(
-                    audioFile = audioFile,
-                    token = token,
-                    targetLang = targetLang,
-                    macAddress = macAddress,
-                    waitSignal = { taskName ->
-                        _mqttStatus.value = com.example.whisper_android.util.MqttHelper.MqttConnectionStatus.CONNECTED // Assume connected
-
-                        // Publish Start signal
-                        mqttHelper.publishTaskMessage("start", taskName)
-
-                        // Wait for stop signal
-                        while (true) {
-                            val receivedTaskName = signalChannel.receive()
-                            if (receivedTaskName == taskName) break
-                        }
-                    }
-                ).collect { state ->
-                    _uiState.value = state
-                }
-            } finally {
-                messageJob.cancel()
-            }
+        val intent = Intent(context, MeetingForegroundService::class.java).apply {
+            putExtra("AUDIO_PATH", audioFile.absolutePath)
+            putExtra("TOKEN", token)
+            putExtra("TARGET_LANG", targetLang)
+            putExtra("MAC_ADDRESS", macAddress)
+        }
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
         }
     }
 

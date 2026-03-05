@@ -1,14 +1,40 @@
-.PHONY: deploy build-android lint
+.PHONY: deploy build lint format
 
-build-android:
-	./gradlew :composeApp:assembleDebug
+# Build DEBUG APK
+build:
+		@chmod +x gradlew
+		@echo "🔨 Building Sensio Notification APK..."
+		./gradlew :composeApp:assembleDebug --quiet
+		@echo "✅ Build complete: composeApp/build/outputs/apk/debug/composeApp-debug.apk"
 
-deploy: build-android
-	adb install -r composeApp/build/outputs/apk/debug/composeApp-debug.apk
-	adb shell am start -n com.sensio.notification/.MainActivity
+# Build and deploy to device
+deploy:
+		@chmod +x deploy.sh gradlew
+		@./deploy.sh
 
+# Deploy to specific device
+deploy-%:
+		@chmod +x deploy.sh gradlew
+		@./deploy.sh $*
+
+# Run Linter (ktlint)
 lint:
-	./gradlew ktlintCheck
+		@chmod +x gradlew
+		@echo "🔍 Running Kotlin Linter..."
+		./gradlew ktlintCheck
+		@echo "✅ Lint check complete"
 
+# Fix Lint issues automatically
 format:
-	./gradlew ktlintFormat
+		@chmod +x gradlew
+		@echo "🔧 Fixing Kotlin Lint issues..."
+		./gradlew ktlintFormat
+		@echo "✅ Lint fix complete"
+
+# Clean build artifacts
+clean:
+		@echo "🧹 Cleaning build artifacts..."
+		./gradlew clean --quiet
+		@echo "✅ Clean complete"
+
+.DEFAULT_GOAL := deploy

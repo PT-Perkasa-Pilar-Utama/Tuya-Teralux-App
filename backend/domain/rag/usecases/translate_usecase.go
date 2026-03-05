@@ -138,7 +138,7 @@ func (u *translateUseCase) updateStatus(taskID string, statusStr string, err err
 
 		// Send MQTT "stop" signal if MacAddress is available
 		if status.MacAddress != "" && u.mqttSvc != nil {
-			taskTopic := fmt.Sprintf("users/%s/task", status.MacAddress)
+			taskTopic := fmt.Sprintf("users/%s/%s/task", status.MacAddress, u.config.ApplicationEnvironment)
 			msg := map[string]string{
 				"event": "stop",
 				"task":  "RAG",

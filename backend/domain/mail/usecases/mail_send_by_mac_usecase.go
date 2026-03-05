@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail/dtos"
@@ -18,24 +19,24 @@ type MailSendByMacUseCase interface {
 }
 
 type mailSendByMacUseCase struct {
-	mailService         *services.MailService
-	mailExternalService *services.MailExternalService
-	store               *tasks.StatusStore[dtos.MailStatusDTO]
-	cache               *tasks.BadgerTaskCache
+	mailService        *services.MailService
+	bigExternalService *commonServices.BigExternalService
+	store              *tasks.StatusStore[dtos.MailStatusDTO]
+	cache              *tasks.BadgerTaskCache
 }
 
 // NewMailSendByMacUseCase initializes a new mailSendByMacUseCase.
 func NewMailSendByMacUseCase(
 	mailService *services.MailService,
-	mailExternalService *services.MailExternalService,
+	bigExternalService *commonServices.BigExternalService,
 	store *tasks.StatusStore[dtos.MailStatusDTO],
 	cache *tasks.BadgerTaskCache,
 ) MailSendByMacUseCase {
 	return &mailSendByMacUseCase{
-		mailService:         mailService,
-		mailExternalService: mailExternalService,
-		store:               store,
-		cache:               cache,
+		mailService:        mailService,
+		bigExternalService: bigExternalService,
+		store:              store,
+		cache:              cache,
 	}
 }
 
@@ -84,7 +85,7 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 
 	// Fetch device/customer info
 	utils.LogDebug("MailSendByMacUseCase: Fetching device info for MAC %s", macAddress)
-	info, err := uc.mailExternalService.GetDeviceInfoByMac(macAddress)
+	info, err := uc.bigExternalService.GetDeviceInfoByMac(macAddress)
 	if err != nil {
 		utils.LogError("Mail Task %s (MAC): Failed to fetch device info: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", err, "")

@@ -1,6 +1,10 @@
 package com.sensio.notification
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -10,7 +14,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.sensio.notification.logic.MeetingMonitor
 import com.sensio.notification.model.MeetingSession
-import com.sensio.notification.ui.NotificationToast
+import com.sensio.notification.ui.NotificationModal
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlin.time.Duration.Companion.minutes
@@ -41,9 +45,9 @@ fun main() =
                 val now = Clock.System.now()
                 val timeUntilEnd = mockSession.endTime - now
 
-                if (timeUntilEnd <= 5.minutes && !mockSession.reminderTriggered) {
-                    notificationTitle = "Meeting Ending Soon"
-                    notificationMessage = "${mockSession.title} will end in ${timeUntilEnd.inWholeMinutes} min"
+                if (timeUntilEnd <= 10.minutes && !mockSession.reminderTriggered) {
+                    notificationTitle = "Meeting Reminder"
+                    notificationMessage = "You have 10 minutes remaining"
                     showNotification = true
                     mockSession.reminderTriggered = true
                 }
@@ -56,15 +60,15 @@ fun main() =
                 onCloseRequest = { showNotification = false },
                 state =
                     rememberWindowState(
-                        position = WindowPosition(Alignment.BottomEnd),
-                        size = DpSize(400.dp, 200.dp),
+                        position = WindowPosition(Alignment.Center),
+                        size = DpSize(450.dp, 300.dp),
                     ),
-                title = "Notification",
+                title = "Reminder",
                 transparent = true,
                 undecorated = true,
                 alwaysOnTop = true,
             ) {
-                NotificationToast(
+                NotificationModal(
                     title = notificationTitle,
                     message = notificationMessage,
                     onExtend = {
