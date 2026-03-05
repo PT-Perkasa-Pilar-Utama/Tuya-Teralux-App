@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/tasks"
 	"sensio/domain/speech/dtos"
 
@@ -26,14 +27,14 @@ func NewSpeechTranscribeStatusController(statusUC tasks.GenericStatusUseCase[dto
 // @Security BearerAuth
 // @Produce json
 // @Param transcribe_id path string true "Task ID"
-// @Success 200 {object} dtos.StandardResponse{data=dtos.AsyncTranscriptionStatusDTO}
-// @Failure 404 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Success 200 {object} commonDtos.StandardResponse{data=dtos.AsyncTranscriptionStatusDTO}
+// @Failure 404 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/transcribe/{transcribe_id} [get]
 func (c *SpeechTranscribeStatusController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("transcribe_id")
 	if taskID == "" {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Task ID is required",
 		})
@@ -53,7 +54,7 @@ func (c *SpeechTranscribeStatusController) GetStatus(ctx *gin.Context) {
 			}
 		}
 
-		ctx.JSON(httpStatus, dtos.StandardResponse{
+		ctx.JSON(httpStatus, commonDtos.StandardResponse{
 			Status:  isSuccess,
 			Message: message,
 			Data:    status,
@@ -61,7 +62,7 @@ func (c *SpeechTranscribeStatusController) GetStatus(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
+	ctx.JSON(http.StatusNotFound, commonDtos.StandardResponse{
 		Status:  false,
 		Message: "Task not found in any service",
 	})

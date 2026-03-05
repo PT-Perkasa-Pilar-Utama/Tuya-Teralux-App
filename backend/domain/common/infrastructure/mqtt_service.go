@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"sensio/domain/common/utils"
@@ -51,10 +52,16 @@ func (s *MqttService) Connect() error {
 
 // Subscribe subscribes to a topic. If the topic contains wildcards (+ or #), it uses Shared Subscription with group 'sensio'.
 func (s *MqttService) Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error {
-	if token := s.client.Subscribe(topic, qos, handler); token.Wait() && token.Error() != nil {
+	finalTopic := topic
+	// If it contains wildcards and is not already a shared subscription
+	if (strings.Contains(topic, "+") || strings.Contains(topic, "#")) && !strings.HasPrefix(topic, "$share/") {
+		finalTopic = fmt.Sprintf("$share/sensio/%s", topic)
+	}
+
+	if token := s.client.Subscribe(finalTopic, qos, handler); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
-	utils.LogDebug("Subscribed to MQTT topic: %s", topic)
+	utils.LogDebug("Subscribed to MQTT topic: %s", finalTopic)
 	return nil
 }
 

@@ -27,153 +27,93 @@ sealed class MeetingProcessState {
 }
 
 class ProcessMeetingUseCase(
-    private val speechRepository: com.example.whisperandroid.domain.repository.SpeechRepository,
-    private val ragRepository: com.example.whisperandroid.domain.repository.RagRepository,
-    private val transcribeAudioUseCase: TranscribeAudioUseCase,
-    private val translateTextUseCase: TranslateTextUseCase,
-    private val summarizeTextUseCase: SummarizeTextUseCase
+    private val pipelineRepository: com.example.whisperandroid.domain.repository.PipelineRepository
 ) {
     suspend operator fun invoke(
         audioFile: File,
         token: String,
         targetLang: String = "English",
         macAddress: String? = null,
-        waitSignal: suspend (String) -> Unit // message to wait for
+        idempotencyKey: String? = null
     ): Flow<MeetingProcessState> =
         flow {
             emit(MeetingProcessState.Uploading)
 
-            // 1. Transcribe
-            var transcribeTaskId: String? = null
-            transcribeAudioUseCase.initiate(audioFile, token, "id", macAddress).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        transcribeTaskId = result.data
-                    }
-                    is Resource.Error -> {
-                        emit(
-                            MeetingProcessState.Error(
-                                "Transcription initiation failed: ${result.message}"
-                            )
-                        )
-                    }
-                    else -> {}
-                }
+            val targetLangCode = when (targetLang.lowercase()) {
+                "id", "indonesia" -> "id"
+                else -> "en"
             }
 
-            if (transcribeTaskId == null) return@flow
-
-            emit(MeetingProcessState.Transcribing(transcribeTaskId!!))
-            waitSignal("Transcribe")
-
-            var transcriptionText: String? = null
-            transcribeAudioUseCase.getResult(transcribeTaskId!!, token).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        transcriptionText = result.data
-                    }
-                    is Resource.Error -> {
-                        emit(
-                            MeetingProcessState.Error(
-                                "Transcription fetch failed: ${result.message}"
-                            )
-                        )
-                    }
-                    else -> {}
-                }
-            }
-
-            if (transcriptionText == null) return@flow
-
-            // 2. Translate
-            val translateTarget =
-                when (targetLang.lowercase()) {
-                    "id", "indonesia" -> "Indonesia"
-                    else -> "English"
-                }
-
-            var translateTaskId: String? = null
-            translateTextUseCase.initiate(transcriptionText!!, translateTarget, macAddress, token).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        translateTaskId = result.data
-                    }
-                    is Resource.Error -> {
-                        emit(
-                            MeetingProcessState.Error(
-                                "Translation initiation failed: ${result.message}"
-                            )
-                        )
-                    }
-                    else -> {}
-                }
-            }
-
-            if (translateTaskId == null) return@flow
-
-            emit(MeetingProcessState.Translating(translateTaskId!!))
-            waitSignal("RAG")
-
-            var translatedText: String? = null
-            translateTextUseCase.getResult(translateTaskId!!, token).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        translatedText = result.data
-                    }
-                    is Resource.Error -> {
-                        emit(
-                            MeetingProcessState.Error("Translation fetch failed: ${result.message}")
-                        )
-                    }
-                    else -> {}
-                }
-            }
-
-            if (translatedText == null) return@flow
-
-            // 3. Summarize
-            var summarizeTaskId: String? = null
-            summarizeTextUseCase.initiate(
-                translatedText!!,
-                targetLang.lowercase(),
-                "meeting_minutes",
-                macAddress,
-                token
+            var pipelineTaskId: String? = null
+            pipelineRepository.executePipeline(
+                audioFile = audioFile,
+                language = "id", // assuming source is id
+                targetLanguage = targetLangCode,
+                summarize = true,
+                refine = true,
+                macAddress = macAddress,
+                token = token,
+                idempotencyKey = idempotencyKey
             ).collect { result ->
                 when (result) {
                     is Resource.Success -> {
-                        summarizeTaskId = result.data
+                        pipelineTaskId = result.data
                     }
                     is Resource.Error -> {
-                        emit(
-                            MeetingProcessState.Error(
-                                "Summary initiation failed: ${result.message}"
-                            )
-                        )
+                        emit(MeetingProcessState.Error("Pipeline initiation failed: ${result.message}"))
                     }
                     else -> {}
                 }
             }
 
-            if (summarizeTaskId == null) return@flow
+            if (pipelineTaskId == null) return@flow
 
-            emit(MeetingProcessState.Summarizing(summarizeTaskId!!))
-            waitSignal("RAG")
+            // Polling
+            var isCompleted = false
+            while (!isCompleted) {
+                pipelineRepository.pollPipelineStatus(pipelineTaskId!!, token).collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            val statusDto = result.data!!
+                            val stages = statusDto.stages ?: emptyMap()
+                            
+                            // Determine current visual state based on stages
+                            // Stage keys from backend: transcription, refinement, translation, summary
+                            val transcribeStatus = stages["transcription"]?.status
+                            val translateStatus = stages["translation"]?.status
+                            val summarizeStatus = stages["summary"]?.status
 
-            summarizeTextUseCase.getResult(summarizeTaskId!!, token).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        val summaryData = result.data
-                        if (summaryData != null) {
-                            emit(
-                                MeetingProcessState.Success(summaryData.summary, summaryData.pdfUrl)
-                            )
+                            when {
+                                summarizeStatus == "processing" -> emit(MeetingProcessState.Summarizing(pipelineTaskId!!))
+                                translateStatus == "processing" -> emit(MeetingProcessState.Translating(pipelineTaskId!!))
+                                transcribeStatus == "processing" || transcribeStatus == "pending" -> emit(MeetingProcessState.Transcribing(pipelineTaskId!!))
+                            }
+
+                            if (statusDto.overallStatus == "completed") {
+                                isCompleted = true
+                                val summaryStage = stages["summary"]
+                                if (summaryStage?.status == "completed") {
+                                    val resMap = summaryStage.result as? Map<*, *>
+                                    val summary = resMap?.get("summary") as? String ?: "Meeting summary is ready"
+                                    val pdfUrl = resMap?.get("pdf_url") as? String
+                                    emit(MeetingProcessState.Success(summary, pdfUrl))
+                                } else {
+                                    emit(MeetingProcessState.Success("Processing complete", null))
+                                }
+                            } else if (statusDto.overallStatus == "failed") {
+                                isCompleted = true
+                                emit(MeetingProcessState.Error("Pipeline execution failed"))
+                            }
                         }
+                        is Resource.Error -> {
+                            isCompleted = true
+                            emit(MeetingProcessState.Error("Polling failed: ${result.message}"))
+                        }
+                        else -> {}
                     }
-                    is Resource.Error -> {
-                        emit(MeetingProcessState.Error("Summary fetch failed: ${result.message}"))
-                    }
-                    else -> {}
+                }
+                if (!isCompleted) {
+                    kotlinx.coroutines.delay(2000)
                 }
             }
         }

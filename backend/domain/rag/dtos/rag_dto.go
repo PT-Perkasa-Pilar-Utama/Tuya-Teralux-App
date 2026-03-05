@@ -20,6 +20,11 @@ type RAGSummaryRequestDTO struct {
 type RAGStatusDTO struct {
 	Status          string            `json:"status" example:"completed"`
 	Result          string            `json:"result,omitempty" example:"The meeting discussed..."`
+	Summary         string            `json:"summary,omitempty"` // Alias for Result in summary tasks
+	PDFUrl          string            `json:"pdf_url,omitempty"`
+	AgendaContext   string            `json:"agenda_context,omitempty"`
+	MeetingContext  string            `json:"meeting_context,omitempty"`
+	Language        string            `json:"language,omitempty"`
 	Error           string            `json:"error,omitempty" example:"gemini api returned status 503"`
 	Trigger         string            `json:"trigger,omitempty" example:"/api/rag/summary"`
 	MacAddress      string            `json:"mac_address,omitempty"`
@@ -47,13 +52,6 @@ func (s *RAGStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
 type RAGProcessResponseDTO struct {
 	TaskID     string        `json:"task_id"`
 	TaskStatus *RAGStatusDTO `json:"task_status,omitempty"`
-}
-
-type StandardResponse struct {
-	Status  bool        `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Details interface{} `json:"details,omitempty"`
 }
 
 type RAGSummaryResponseDTO struct {

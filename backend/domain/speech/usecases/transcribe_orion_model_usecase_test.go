@@ -29,7 +29,7 @@ func TestTranscribeOrionModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("WhisperHealthCheck").Return(true)
-		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{Transcription: "Orion result"}, nil)
+		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{Transcription: "Orion result"}, nil)
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)

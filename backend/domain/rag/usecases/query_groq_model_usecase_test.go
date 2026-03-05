@@ -1,23 +1,25 @@
 package usecases_test
 
 import (
+	"context"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/usecases"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestQueryGroqModelUseCase_Query(t *testing.T) {
 	t.Run("Success path - Matches Manual Scenario", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("Grateful to help! What do you need today?", nil)
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("Grateful to help! What do you need today?", nil)
 
 		uc := usecases.NewQueryGroqModelUseCase(mockLLM)
 
 		startTime := time.Now()
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/groq")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/groq")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
@@ -38,11 +40,11 @@ func TestQueryGroqModelUseCase_Query(t *testing.T) {
 		mockLLM := new(MockLLMClient)
 
 		apiErr := utils.NewAPIError(429, "groq api returned status 429: Rate limit exceeded")
-		mockLLM.On("CallModel", "Hello! How are you?", "low").Return("", apiErr)
+		mockLLM.On("CallModel", mock.Anything, "Hello! How are you?", "low").Return("", apiErr)
 
 		uc := usecases.NewQueryGroqModelUseCase(mockLLM)
 
-		res, err := uc.Query("Hello! How are you?", "/api/rag/models/groq")
+		res, err := uc.Query(context.Background(), "Hello! How are you?", "/api/rag/models/groq")
 
 		assert.Error(t, err)
 		assert.NotNil(t, res)

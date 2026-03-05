@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context" // Added context import
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	ragdtos "sensio/domain/rag/dtos"
@@ -15,7 +16,8 @@ type mockLLMForTranslate struct {
 	ReturnError    error
 }
 
-func (m *mockLLMForTranslate) CallModel(prompt string, model string) (string, error) {
+// CallModel updated to include context.Context
+func (m *mockLLMForTranslate) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	m.CapturedPrompt = prompt
 	m.CapturedModel = model
 	return m.ReturnString, m.ReturnError

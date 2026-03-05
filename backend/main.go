@@ -15,6 +15,7 @@ import (
 	"sensio/domain/common/middlewares"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail"
+	"sensio/domain/pipeline"
 	"sensio/domain/rag"
 	"sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
@@ -228,11 +229,14 @@ func run() error {
 	}
 
 	// Initialize RAG first as it's a dependency for Speech
-	utils.LogInfo("Configuring RAG/Speech...")
-	ragUsecase := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
+	utils.LogInfo("Configuring RAG/Speech/Pipeline...")
+	refineUC, translateUC, summaryUC := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
 
 	// Initialize Speech with RAG, Badger and Tuya Auth dependencies
-	speech.InitModule(protected, scfg, badgerService, ragUsecase, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
+	transcribeUC := speech.InitModule(protected, scfg, badgerService, refineUC, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
+
+	// Initialize Pipeline with Speech and RAG usecases
+	pipeline.InitModule(protected, scfg, badgerService, transcribeUC, translateUC, summaryUC, recordingsModule.SaveRecordingUseCase)
 
 	// 6. Scene Module
 	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)

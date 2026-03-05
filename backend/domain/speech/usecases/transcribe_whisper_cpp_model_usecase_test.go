@@ -29,7 +29,7 @@ func TestTranscribeWhisperCppModelUseCase(t *testing.T) {
 		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
-		mockClient.On("Transcribe", mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{
+		mockClient.On("Transcribe", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{
 			Transcription:    "Whisper.cpp result",
 			DetectedLanguage: "id",
 			Source:           "LocalCpp",
@@ -58,7 +58,7 @@ func TestTranscribeWhisperCppModelUseCase(t *testing.T) {
 		cache := tasks.NewBadgerTaskCache(mockStore, "task:")
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
-		mockClient.On("Transcribe", audioFile, "id", mock.Anything).Return(nil, errors.New("binary fail"))
+		mockClient.On("Transcribe", mock.Anything, audioFile, "id", mock.Anything).Return(nil, errors.New("binary fail"))
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)

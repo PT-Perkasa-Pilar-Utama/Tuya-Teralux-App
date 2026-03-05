@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/skills"
 	"sensio/domain/rag/skills/orchestrator"
@@ -15,8 +16,8 @@ type mockLLMForChat struct {
 	mock.Mock
 }
 
-func (m *mockLLMForChat) CallModel(prompt string, model string) (string, error) {
-	args := m.Called(prompt, model)
+func (m *mockLLMForChat) CallModel(ctx context.Context, prompt string, model string) (string, error) {
+	args := m.Called(ctx, prompt, model)
 	return args.String(0), args.Error(1)
 }
 
@@ -70,7 +71,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 	t.Run("Orchestration to Control", func(t *testing.T) {
 		prompt := "Nyalakan AC"
 		// Orchestrator logic: first it calls LLM to route
-		mockLLM.On("CallModel", mock.Anything, "high").Return("Control", nil).Once()
+		mockLLM.On("CallModel", mock.Anything, mock.Anything, "high").Return("Control", nil).Once()
 
 		// Then it calls the chosen skill's Execute
 		mockControlSkill.On("Execute", mock.MatchedBy(func(ctx *skills.SkillContext) bool {
@@ -90,7 +91,7 @@ func TestChatUseCase_Chat(t *testing.T) {
 
 	t.Run("Orchestration to Identity", func(t *testing.T) {
 		prompt := "Siapa kamu?"
-		mockLLM.On("CallModel", mock.Anything, "high").Return("Identity", nil).Once()
+		mockLLM.On("CallModel", mock.Anything, mock.Anything, "high").Return("Identity", nil).Once()
 
 		mockIdentitySkill.On("Execute", mock.MatchedBy(func(ctx *skills.SkillContext) bool {
 			return ctx.Prompt == prompt

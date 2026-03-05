@@ -88,6 +88,14 @@ object NetworkModule {
             .RagRepositoryImpl(ragApi)
     }
 
+    private val pipelineApi: com.example.whisperandroid.data.remote.api.PipelineApi by lazy {
+        retrofit.create(com.example.whisperandroid.data.remote.api.PipelineApi::class.java)
+    }
+
+    val pipelineRepository: com.example.whisperandroid.domain.repository.PipelineRepository by lazy {
+        com.example.whisperandroid.data.repository.PipelineRepositoryImpl(pipelineApi)
+    }
+
     val registerUseCase: RegisterTerminalUseCase by lazy {
         RegisterTerminalUseCase(repository)
     }
@@ -117,11 +125,7 @@ object NetworkModule {
 
     val processMeetingUseCase: com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase by lazy {
         com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase(
-            speechRepository,
-            ragRepository,
-            transcribeAudioUseCase,
-            translateTextUseCase,
-            summarizeTextUseCase
+            pipelineRepository
         )
     }
 

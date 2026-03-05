@@ -216,10 +216,10 @@ class MqttHelper(
         }
     }
 
-    fun publishAudio(
+    suspend fun publishAudio(
         payload: ByteArray,
         language: String = "id"
-    ) {
+    ): Result<Unit> {
         val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
         val json =
@@ -232,13 +232,13 @@ class MqttHelper(
             """.trimIndent()
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
-        publish("users/$username/$env/whisper", json.toByteArray())
+        return publishWithTimeout("users/$username/$env/whisper", json.toByteArray())
     }
 
-    fun publishChat(
+    suspend fun publishChat(
         text: String,
         language: String = "id"
-    ) {
+    ): Result<Unit> {
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
         val json =
             """
@@ -250,38 +250,67 @@ class MqttHelper(
             """.trimIndent()
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
-        publish("users/$username/$env/chat", json.toByteArray())
+        return publishWithTimeout("users/$username/$env/chat", json.toByteArray())
     }
 
     fun publishTaskMessage(event: String, task: String) {
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
         val json = """{"event": "$event", "task": "$task"}"""
-        publish("users/$username/$env/task", json.toByteArray())
-    }
-
-    private fun publish(
-        topic: String,
-        payload: ByteArray
-    ) {
+        val payload = json.toByteArray()
         val isConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
-        Log.d(tag, "Attempting to publish to $topic. Client connected state: $isConnected")
-
-        if (!isConnected) {
-            Log.e(tag, "Cannot publish to $topic: MQTT client is not connected")
-            return
-        }
-
+        if (!isConnected) return
         val message = MqttMessage(payload)
         message.qos = 0
         message.isRetained = false
-
         try {
-            mqttAndroidClient.publish(topic, message)
-            Log.d(tag, "Successfully published to $topic: ${payload.size} bytes")
+            mqttAndroidClient.publish("users/$username/$env/task", message)
         } catch (e: Exception) {
-            Log.e(tag, "Error publishing to $topic: ${e.message}")
             e.printStackTrace()
+        }
+    }
+
+    private suspend fun publishWithTimeout(
+        topic: String,
+        payload: ByteArray
+    ): Result<Unit> {
+        return try {
+            kotlinx.coroutines.withTimeout(4000L) {
+                kotlinx.coroutines.suspendCancellableCoroutine<Unit> { cont ->
+                    val isConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
+                    Log.d(tag, "Attempting to publish to $topic. Client connected state: $isConnected")
+
+                    if (!isConnected) {
+                        Log.e(tag, "Cannot publish to $topic: MQTT client is not connected")
+                        if (cont.isActive) cont.resumeWith(Result.failure(IllegalStateException("MQTT client is not connected")))
+                        return@suspendCancellableCoroutine
+                    }
+
+                    try {
+                        mqttAndroidClient.publish(topic, payload, 0, false, null, object : IMqttActionListener {
+                            override fun onSuccess(asyncActionToken: IMqttToken?) {
+                                Log.d(tag, "Successfully published to $topic: ${payload.size} bytes")
+                                if (cont.isActive) cont.resumeWith(Result.success(Unit))
+                            }
+
+                            override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
+                                Log.e(tag, "Failed to publish to $topic: ${exception?.message}")
+                                if (cont.isActive) cont.resumeWith(Result.failure(exception ?: RuntimeException("Unknown MQTT error")))
+                            }
+                        })
+                    } catch (e: Exception) {
+                        Log.e(tag, "Error publishing to $topic: ${e.message}")
+                        if (cont.isActive) cont.resumeWith(Result.failure(e))
+                    }
+                }
+            }
+            Result.success(Unit)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e(tag, "Publish to $topic timed out after 4s")
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e(tag, "Unexpected error in publishWithTimeout to $topic: ${e.message}")
+            Result.failure(e)
         }
     }
 }

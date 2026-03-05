@@ -19,7 +19,7 @@ import (
 )
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) usecases.RefineUseCase {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) (usecases.RefineUseCase, usecases.TranslateUseCase, usecases.SummaryUseCase) {
 	// Initialize Dependencies	// Services
 	geminiService := commonServices.NewGeminiService(cfg)
 	orionService := commonServices.NewOrionService(cfg)
@@ -48,7 +48,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 		llmClient = llamaService
 	default:
 		utils.LogFatal("RAG: Invalid or missing LLM_PROVIDER. Set it to 'gemini', 'orion', 'openai', 'groq', or 'local'. Detected: '%s'", cfg.LLMProvider)
-		return nil // unreachable due to LogFatal likely os.Exit(1), but for safety
+		return nil, nil, nil // unreachable due to LogFatal likely os.Exit(1), but for safety
 	}
 
 	// Initialize Shared Store
@@ -95,17 +95,20 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	// Initialize Guard Orchestrator
 	guardSkill, _ := skillRegistry.Get("Guard")
 	guardOrch := orchestrator.NewGuardOrchestrator(guardSkill)
+	chunkSkill, _ := skillRegistry.Get("ChunkSummary")
 
 	router := orchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := services.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewBigExternalService()
-	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, bigExternalService, mqttSvc, summarySkill)
+	summaryUC := usecases.NewSummaryUseCase(llmClient, llamaService, cfg, cache, store, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill)
 	statusUC := tasks.NewGenericStatusUseCase(cache, store)
 	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill)
 	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, router)
 
 	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)
-	chatController.StartMqttSubscription()
+	if err := chatController.StartMqttSubscription(); err != nil {
+		utils.LogError("RAG module MQTT subscription failed: %v", err)
+	}
 
 	// Setup Usecases for Raw Models
 	geminiRawUC := usecases.NewQueryGeminiModelUseCase(geminiService)
@@ -129,5 +132,5 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 		controllers.NewRAGModelsLlamaCppController(llamaRawUC),
 	)
 
-	return refineUC
+	return refineUC, translateUC, summaryUC
 }

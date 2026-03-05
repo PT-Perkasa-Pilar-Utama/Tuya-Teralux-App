@@ -31,7 +31,7 @@ func TestTranscribeGeminiModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("HealthCheck").Return(true)
-		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{
+		mockSvc.On("Transcribe", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&dtos.WhisperResult{
 			Transcription:    "Halo dunia",
 			DetectedLanguage: "id",
 			Source:           "Gemini",
@@ -95,7 +95,7 @@ func TestTranscribeGeminiModelUseCase(t *testing.T) {
 		store := tasks.NewStatusStore[dtos.AsyncTranscriptionStatusDTO]()
 
 		mockSvc.On("HealthCheck").Return(true)
-		mockSvc.On("Transcribe", audioFile, "id", mock.Anything).Return(nil, errors.New("decoding failed"))
+		mockSvc.On("Transcribe", mock.Anything, audioFile, "id", mock.Anything).Return(nil, errors.New("decoding failed"))
 
 		mockStore.On("Set", mock.Anything, mock.Anything).Return(nil)
 		mockStore.On("SetPreserveTTL", mock.Anything, mock.Anything).Return(nil)

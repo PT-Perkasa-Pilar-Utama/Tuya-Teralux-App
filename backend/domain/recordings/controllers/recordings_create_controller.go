@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	common_dtos "sensio/domain/common/dtos"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	recordings_dtos "sensio/domain/recordings/dtos"
 	"sensio/domain/recordings/usecases"
@@ -30,15 +30,15 @@ func NewRecordingsCreateController(useCase usecases.SaveRecordingUseCase) *Recor
 // @Produce json
 // @Param file formData file true "Audio file"
 // @Param mac_address formData string false "Device MAC Address"
-// @Success 201 {object} recordings_dtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
-// @Failure 400 {object} recordings_dtos.StandardResponse
-// @Failure 401 {object} recordings_dtos.StandardResponse
-// @Failure 500 {object} recordings_dtos.StandardResponse "Internal Server Error"
+// @Success 201 {object} commonDtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
+// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure 401 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/recordings [post]
 func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 	file, err := ctx.FormFile("file")
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, common_dtos.StandardResponse{
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "No file uploaded",
 		})
@@ -51,7 +51,7 @@ func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 	result, err := c.useCase.SaveRecording(file, macAddress, baseURL)
 	if err != nil {
 		utils.LogError("RecordingsCreateController.CreateRecording: %v", err)
-		ctx.JSON(http.StatusInternalServerError, common_dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
@@ -68,7 +68,7 @@ func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 		CreatedAt:    result.CreatedAt,
 	}
 
-	ctx.JSON(http.StatusCreated, common_dtos.StandardResponse{
+	ctx.JSON(http.StatusCreated, commonDtos.StandardResponse{
 		Status:  true,
 		Message: "Recording created successfully",
 		Data:    resp,

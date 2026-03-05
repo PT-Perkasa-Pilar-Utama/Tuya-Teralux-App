@@ -43,7 +43,7 @@ func (o *SummaryOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{location}}", ctx.Location)
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{participants}}", ctx.Participants)
 
-	res, err := ctx.LLM.CallModel(finalPrompt, "high")
+	res, err := ctx.LLM.CallModel(ctx.Ctx, finalPrompt, "high")
 	if err != nil {
 		return nil, err
 	}

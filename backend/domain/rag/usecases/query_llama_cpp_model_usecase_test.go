@@ -1,6 +1,7 @@
 package usecases_test
 
 import (
+	"context"
 	"errors"
 	"sensio/domain/rag/usecases"
 	"testing"
@@ -20,20 +21,20 @@ func (m *MockLLMClient) HealthCheck() bool {
 	return args.Bool(0)
 }
 
-func (m *MockLLMClient) CallModel(prompt string, model string) (string, error) {
-	args := m.Called(prompt, model)
+func (m *MockLLMClient) CallModel(ctx context.Context, prompt string, model string) (string, error) {
+	args := m.Called(ctx, prompt, model)
 	return args.String(0), args.Error(1)
 }
 
 func TestQueryLlamaCppModelUseCase_Query(t *testing.T) {
 	t.Run("Success path", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "testing prompt", "low").Return("mocked response payload", nil)
+		mockLLM.On("CallModel", mock.Anything, "testing prompt", "low").Return("mocked response payload", nil)
 
 		uc := usecases.NewQueryLlamaCppModelUseCase(mockLLM)
 
 		startTime := time.Now()
-		res, err := uc.Query("testing prompt", "/api/rag/models/gemini")
+		res, err := uc.Query(context.Background(), "testing prompt", "/api/rag/models/gemini")
 
 		assert.NoError(t, err)
 		assert.NotNil(t, res)
@@ -52,11 +53,11 @@ func TestQueryLlamaCppModelUseCase_Query(t *testing.T) {
 
 	t.Run("Failure - LLM Engine Error", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "failing prompt", "low").Return("", errors.New("upstream timeout"))
+		mockLLM.On("CallModel", mock.Anything, "failing prompt", "low").Return("", errors.New("upstream timeout"))
 
 		uc := usecases.NewQueryLlamaCppModelUseCase(mockLLM)
 
-		res, err := uc.Query("failing prompt", "/api/rag/models/openai")
+		res, err := uc.Query(context.Background(), "failing prompt", "/api/rag/models/openai")
 
 		assert.Error(t, err)
 		assert.NotNil(t, res)
@@ -71,11 +72,11 @@ func TestQueryLlamaCppModelUseCase_Query(t *testing.T) {
 
 	t.Run("Failure - Empty response", func(t *testing.T) {
 		mockLLM := new(MockLLMClient)
-		mockLLM.On("CallModel", "empty prompt", "low").Return("", nil)
+		mockLLM.On("CallModel", mock.Anything, "empty prompt", "low").Return("", nil)
 
 		uc := usecases.NewQueryLlamaCppModelUseCase(mockLLM)
 
-		res, err := uc.Query("empty prompt", "/api/rag/models/groq")
+		res, err := uc.Query(context.Background(), "empty prompt", "/api/rag/models/groq")
 
 		assert.Error(t, err)
 		assert.NotNil(t, res)
