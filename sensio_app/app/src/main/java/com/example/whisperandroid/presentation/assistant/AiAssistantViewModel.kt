@@ -53,6 +53,9 @@ class AiAssistantViewModel(
     var mqttStatus by mutableStateOf(MqttHelper.MqttConnectionStatus.DISCONNECTED)
         private set
 
+    private var lastUserMessageNormalized: String? = null
+    private var lastUserMessageAtMs: Long = 0L
+
     private val mqttHelper = com.example.whisperandroid.data.di.NetworkModule.mqttHelper
     private val audioRecorder = AudioRecorder(application)
     private var currentRecordingFile: File? = null
@@ -177,24 +180,8 @@ class AiAssistantViewModel(
 
                             val cleanPrompt = prompt.trim().removeSurrounding("\"")
 
-                            if (cleanPrompt.isBlank()) {
-                                return@collect
-                            }
-
-                            // Avoid duplicate if we just sent this message
-                            val alreadyExists =
-                                transcriptionResults.any {
-                                    it.role == MessageRole.USER && it.text == cleanPrompt
-                                }
-
-                            val lastRole = transcriptionResults.lastOrNull()?.role
-                            val isDuplicateTranscription = isProcessing && lastRole == MessageRole.USER
-
-                            if (!alreadyExists && !isDuplicateTranscription) {
-                                transcriptionResults = transcriptionResults + TranscriptionMessage(
-                                    text = cleanPrompt,
-                                    role = MessageRole.USER
-                                )
+                            if (cleanPrompt.isNotBlank()) {
+                                appendUserMessageIfNeeded(cleanPrompt)
                             }
                         }
 
@@ -262,17 +249,8 @@ class AiAssistantViewModel(
         
         if (text.isNotBlank()) {
             android.util.Log.d("AiAssistantViewModel", "sendChat: $text")
-            // Avoid duplicate if we just sent this
-            val alreadyExists =
-                transcriptionResults.any {
-                    it.role == MessageRole.USER && it.text == text
-                }
-            if (!alreadyExists) {
-                transcriptionResults = transcriptionResults + TranscriptionMessage(
-                    text = text,
-                    role = MessageRole.USER
-                )
-            }
+            
+            appendUserMessageIfNeeded(text)
             
             activeRequestId = java.util.UUID.randomUUID().toString()
             activeRequestType = RequestType.Chat
@@ -477,13 +455,8 @@ class AiAssistantViewModel(
                 
                 if (isCompleted && currentSuccessText != null) {
                     val transcribedText = currentSuccessText!!
-                    val alreadyExists = transcriptionResults.any { it.role == MessageRole.USER && it.text == transcribedText }
-                    if (!alreadyExists) {
-                        transcriptionResults = transcriptionResults + TranscriptionMessage(
-                            text = transcribedText,
-                            role = MessageRole.USER
-                        )
-                    }
+                    
+                    appendUserMessageIfNeeded(transcribedText)
                     
                     com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
                         prompt = transcribedText,
@@ -552,6 +525,33 @@ class AiAssistantViewModel(
             text = cleanMessage,
             role = MessageRole.ASSISTANT
         )
+    }
+
+    private fun normalizeMessageForDedup(text: String): String {
+        return text.trim().lowercase().replace(Regex("\\s+"), " ")
+    }
+
+    private fun appendUserMessageIfNeeded(text: String) {
+        val normalized = normalizeMessageForDedup(text)
+        val now = System.currentTimeMillis()
+        
+        // Consecutive deduplication: skip if same text as last USER message AND within short window
+        val isConsecutiveDup = normalized == lastUserMessageNormalized && (now - lastUserMessageAtMs) <= 1200L
+        
+        // Also skip if we are currently processing a request and the last bubble is already USER (safety for multi-source sync)
+        val lastRole = transcriptionResults.lastOrNull()?.role
+        val isProcessingDup = isProcessing && lastRole == MessageRole.USER && normalized == lastUserMessageNormalized
+
+        if (!isConsecutiveDup && !isProcessingDup) {
+            transcriptionResults = transcriptionResults + TranscriptionMessage(
+                text = text,
+                role = MessageRole.USER
+            )
+            lastUserMessageNormalized = normalized
+            lastUserMessageAtMs = now
+        } else {
+            android.util.Log.d("AiAssistantViewModel", "Skipping duplicate USER message: $text (consecutive=$isConsecutiveDup, processing=$isProcessingDup)")
+        }
     }
 
     override fun onCleared() {
