@@ -49,6 +49,13 @@ jobs:
             type=sha,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
 
+      - name: Diagnostic Info
+        run: |
+          docker buildx version
+          docker buildx ls
+          echo "Tags to be used: ${{ steps.meta.outputs.tags }}"
+          git submodule status || true
+
       - name: Build and push production image
         uses: docker/build-push-action@v6
         env:

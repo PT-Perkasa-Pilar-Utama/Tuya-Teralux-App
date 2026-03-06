@@ -55,11 +55,19 @@ RUN ( git clone --depth 1 --branch ${LLAMA_TAG} https://github.com/ggerganov/lla
     else \
         STRIP=strip; \
     fi && \
+    echo "🔨 Configuring llama.cpp..." && \
     cmake -S /llama.cpp -B /llama.cpp/build \
         -DGGML_NATIVE=OFF \
         -DLLAMA_BUILD_EXAMPLES=ON \
-        -DLLAMA_BUILD_SERVER=OFF && \
-    ( cmake --build /llama.cpp/build --config Release -t llama-cli || cmake --build /llama.cpp/build --config Release -t main ) && \
+        -DLLAMA_BUILD_SERVER=OFF || \
+    ( echo "❌ CMake configuration failed"; exit 1 ) && \
+    echo "🔨 Building llama.cpp..." && \
+    ( cmake --build /llama.cpp/build --config Release -t llama-cli || \
+      cmake --build /llama.cpp/build --config Release -t main || \
+      { echo "❌ Build failed. Diagnostics:"; \
+        cmake --build /llama.cpp/build --target help | grep -E "llama-cli|main|server" || true; \
+        ls -la /llama.cpp/build/bin || true; \
+        exit 1; } ) && \
     if [ -f /llama.cpp/build/bin/llama-cli ]; then \
         BIN_TARGET=/llama.cpp/build/bin/llama-cli; \
     else \
