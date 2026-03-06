@@ -80,9 +80,9 @@ RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
 
 
 ############################################
-# Go Builder
+# Go Builder - Native Target
 ############################################
-FROM base-builder AS app-builder
+FROM native-builder AS app-builder
 
 # Install migrate
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
@@ -109,11 +109,8 @@ COPY . .
 # Build app
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        export GOARCH=arm64; \
-    else \
-        export GOARCH=amd64; \
-    fi && \
+    echo "🔨 Building Go app for $TARGETARCH..." && \
+    go env && \
     CGO_ENABLED=1 \
     GOOS=linux \
     go build \
