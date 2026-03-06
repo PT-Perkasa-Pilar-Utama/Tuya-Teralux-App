@@ -8,7 +8,7 @@ plugins {
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
     android = true
-    ignoreFailures = true
+    ignoreFailures = false
     reporters {
         reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
         reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
@@ -60,10 +60,14 @@ android {
     }
 
     defaultConfig {
-        val baseUrl = localProperties.getProperty("api.base_url") ?: "https://teralux.farismunir.my.id/"
+        val baseUrl = localProperties.getProperty("api.base_url")
+            ?: "https://teralux.farismunir.my.id/"
         val baseHostname = baseUrl.removePrefix("https://").removePrefix("http://").substringBefore(
             "/"
         )
+        val appName = localProperties.getProperty("app.name") ?: "Sensio"
+
+        resValue("string", "app_name", appName)
 
         buildConfigField(
             "String",
@@ -81,6 +85,11 @@ android {
             "String",
             "APPLICATION_ENVIRONMENT",
             "\"${localProperties.getProperty("mqtt.application_environment") ?: "DEVELOPMENT"}\""
+        )
+        buildConfigField(
+            "String",
+            "TEST_AUTH_TOKEN",
+            "\"${localProperties.getProperty("test.auth_token") ?: ""}\""
         )
     }
 }
@@ -102,6 +111,9 @@ dependencies {
 
     // ViewModel utilities for Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
 
     // Networking
     implementation(libs.retrofit)

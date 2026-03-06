@@ -5,12 +5,14 @@ Backend service for the Sensio application, built with Go.
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - **Go** (for execution and development)
 - **Air** (for hot reload during development)
 - **Docker** & **Docker Compose** (for production deployment only)
 - **Make** (standardized command runner)
 
 ### Setup
+
 1.  **Clone the repository** (if you haven't already).
 2.  **Environment Variables**:
     Copy the example environment file and configure it:
@@ -18,6 +20,8 @@ Backend service for the Sensio application, built with Go.
     cp .env.example .env
     ```
     Edit `.env` with your specific configuration (database credentials, API keys, etc.).
+    Important: duration-based settings must use Go duration format (for example: `8h`, `30m`, `24h`).
+    The backend is configured to fail fast on startup if required duration env vars are missing or invalid.
 
 ---
 
@@ -26,6 +30,7 @@ Backend service for the Sensio application, built with Go.
 The application uses **MySQL** as its database engine.
 
 **Features:**
+
 - ✅ **Standard RDBMS**: Uses MySQL for robust data management.
 - ✅ **Auto-migration**: Entities are automatically migrated on startup.
 - ✅ **Persistence**: Database is persisted in the `mysql_dev_data` volume during development.
@@ -66,7 +71,7 @@ The project uses [Swaggo](https://github.com/swaggo/swag) to generate Swagger/Op
 The application uses **BadgerDB**, a fast embedded key-value store, for caching purposes to enhance performance.
 
 - **Storage**: Data is cached locally on disk/memory using Badger.
-- **Management**: 
+- **Management**:
   - There is an API endpoint to flush the cache if needed: `DELETE /api/cache/flush`.
   - This is useful for clearing stale data without restarting the server.
 
@@ -79,30 +84,46 @@ You can run the application manually (directly on your machine) or using Docker.
 ### Option 1: Manual Execution
 
 #### Standard Run
+
 To run the server normally:
+
 ```bash
 make start
 ```
-*Alternatively: `go run main.go`*
+
+_Alternatively: `go run main.go`_
 
 #### Development Mode (Hot Reload)
+
 To run with hot reload enabled (uses [Air](https://github.com/air-verse/air)):
+
 ```bash
 make dev
 ```
-*Note: If `air` is not installed, the command will attempt to install it for you. You can also manually install it with `make install-watch`.*
+
+_Note: If `air` is not installed, the command will attempt to install it for you. You can also manually install it with `make install-watch`._
 
 ---
 
 ### Running with Docker (Production)
 
-To start the backend using Docker Compose (pulls latest image from registry):
-```bash
-make start-compose
-```
-*Alternatively: `docker compose up -d`*
+The production stack uses pre-built images from `ghcr.io/farismnrr/sensio-backend`.
 
-To stop the Docker Compose stack:
+**Deployment Runbook:**
+
+```bash
+# Pull latest images and restart containers
+docker compose pull && docker compose up -d
+```
+
+**Important Notes:**
+
+- **Registry**: Images are pulled from `ghcr.io/farismnrr/sensio-backend`.
+- **Migrations**: Production images are built with `AUTO_MIGRATE=false`. You must run migrations manually using `make migrate-up` from a dev environment or a jump host with access to the production database.
+- **Local Rebuilds**: The `docker-compose.yml` does not include a `build` context to prevent accidental local rebuilds on production hosts.
+
+To stop the stack:
+
 ```bash
 make stop-compose
 ```
@@ -132,21 +153,22 @@ This ensures the native Whisper sources and scripts are available for `make setu
 
 The `Makefile` includes several utility commands to manage the project:
 
-| Command | Description |
-| :--- | :--- |
-| `make help` | Show all available commands |
-| `make dev` | Run development server with hot reload |
-| `make start` | Run development server without hot reload |
-| `make install-watch` | Install Air (hot reload tool) |
-| `make build` | Build the project binary |
-| `make start-compose` | Start the Docker Compose stack (Production) |
-| `make stop-compose` | Stop the Docker Compose stack (Production) |
-| `make update` | Update running container using Watchtower |
-| `make clean` | Clean build artifacts |
-| `make kill` | Kill any process running on port 8081 |
+| Command                            | Description                                                            |
+| :--------------------------------- | :--------------------------------------------------------------------- |
+| `make help`                        | Show all available commands                                            |
+| `make dev`                         | Run development server with hot reload                                 |
+| `make start`                       | Run development server without hot reload                              |
+| `make install-watch`               | Install Air (hot reload tool)                                          |
+| `make build`                       | Build the project binary                                               |
+| `make start-compose`               | Start the Docker Compose stack (Production)                            |
+| `make stop-compose`                | Stop the Docker Compose stack (Production)                             |
+| `make update`                      | Update running container using Watchtower                              |
+| `make clean`                       | Clean build artifacts                                                  |
+| `make kill`                        | Kill any process running on port 8081                                  |
 | `make rag text="turn on the lamp"` | Helper to authenticate, submit RAG text, poll and print final decision |
 
 Notes:
+
 - You can run `./scripts/rag.sh` without args if you set `RAG_TEXT` (env) and `API_KEY` in `.env`.
 - You can also pipe text: `echo "turn on the lamp" | ./scripts/rag.sh`
 - `make rag` will use `PORT` from `.env` if present, otherwise it uses the exported `PORT` env var, and finally defaults to `8081`.

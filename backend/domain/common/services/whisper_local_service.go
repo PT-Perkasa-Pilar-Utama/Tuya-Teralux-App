@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,8 +23,8 @@ func NewWhisperLocalService(cfg *utils.Config) *WhisperLocalService {
 }
 
 // Transcribe implements the usecases.WhisperClient interface
-func (s *WhisperLocalService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
-	text, err := s.transcribeFull(audioPath, s.modelPath, language)
+func (s *WhisperLocalService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+	text, err := s.transcribeFull(ctx, audioPath, s.modelPath, language)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +37,7 @@ func (s *WhisperLocalService) Transcribe(audioPath string, language string, diar
 	}, nil
 }
 
-func (s *WhisperLocalService) transcribeFull(wavPath string, modelPath string, lang string) (string, error) {
+func (s *WhisperLocalService) transcribeFull(ctx context.Context, wavPath string, modelPath string, lang string) (string, error) {
 	// Ensure input is WAV. If not, convert.
 	// Note: previous repo assumed conversion was done outside or inside via a separate method?
 	// Let's check `whisper_client_utilities.go`: `NewLocalWhisperClient` adapter did the conversion.
@@ -52,10 +53,10 @@ func (s *WhisperLocalService) transcribeFull(wavPath string, modelPath string, l
 	}
 	defer func() { _ = os.Remove(processedWavPath) }()
 
-	return s.transcribeViaCLI(processedWavPath, modelPath, lang, true)
+	return s.transcribeViaCLI(ctx, processedWavPath, modelPath, lang, true)
 }
 
-func (s *WhisperLocalService) transcribeViaCLI(wavPath string, modelPath string, lang string, full bool) (string, error) {
+func (s *WhisperLocalService) transcribeViaCLI(ctx context.Context, wavPath string, modelPath string, lang string, full bool) (string, error) {
 	// Find whisper-cli: try local bin first, then PATH
 	bin := "./bin/whisper-cli"
 	if _, err := os.Stat(bin); os.IsNotExist(err) {
@@ -76,7 +77,7 @@ func (s *WhisperLocalService) transcribeViaCLI(wavPath string, modelPath string,
 		args = append(args, "-l", lang)
 	}
 
-	cmd := exec.Command(bin, args...)
+	cmd := exec.CommandContext(ctx, bin, args...)
 	out, err := cmd.CombinedOutput()
 
 	if err != nil && !full {

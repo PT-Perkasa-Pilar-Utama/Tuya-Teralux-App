@@ -86,7 +86,10 @@ class EmailRepositoryImpl(
         }
     }
 
-    override suspend fun pollEmailStatus(taskId: String, token: String): Flow<Resource<Boolean>> = flow {
+    override suspend fun pollEmailStatus(
+        taskId: String,
+        token: String
+    ): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         var attempts = 0
         val maxAttempts = 30 // 60 seconds

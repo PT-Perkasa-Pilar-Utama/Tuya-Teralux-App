@@ -1,11 +1,22 @@
 package com.example.whisperandroid.data.di
 
+import com.example.whisperandroid.data.remote.api.PipelineApi
 import com.example.whisperandroid.data.remote.api.TerminalApi
+import com.example.whisperandroid.data.repository.PipelineRepositoryImpl
 import com.example.whisperandroid.data.repository.TerminalRepositoryImpl
+import com.example.whisperandroid.data.repository.UploadRepositoryImpl
+import com.example.whisperandroid.domain.repository.PipelineRepository
 import com.example.whisperandroid.domain.repository.TerminalRepository
+import com.example.whisperandroid.domain.repository.UploadRepository
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
 import com.example.whisperandroid.domain.usecase.GetTerminalByMacUseCase
+import com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
+import com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase
 import com.example.whisperandroid.domain.usecase.RegisterTerminalUseCase
+import com.example.whisperandroid.domain.usecase.SendEmailByMacUseCase
+import com.example.whisperandroid.domain.usecase.SummarizeTextUseCase
+import com.example.whisperandroid.domain.usecase.TranscribeAudioUseCase
+import com.example.whisperandroid.domain.usecase.TranslateTextUseCase
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -40,8 +51,10 @@ object NetworkModule {
 
     lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
     lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
+    lateinit var appContext: android.content.Context
 
     fun init(context: android.content.Context) {
+        appContext = context.applicationContext
         tokenManager =
             com.example.whisperandroid.data.local
                 .TokenManager(context)
@@ -88,6 +101,18 @@ object NetworkModule {
             .RagRepositoryImpl(ragApi)
     }
 
+    private val pipelineApi: PipelineApi by lazy {
+        retrofit.create(PipelineApi::class.java)
+    }
+
+    val pipelineRepository: PipelineRepository by lazy {
+        PipelineRepositoryImpl(pipelineApi)
+    }
+
+    val uploadRepository: UploadRepository by lazy {
+        UploadRepositoryImpl(speechApi)
+    }
+
     val registerUseCase: RegisterTerminalUseCase by lazy {
         RegisterTerminalUseCase(repository)
     }
@@ -100,28 +125,31 @@ object NetworkModule {
         AuthenticateUseCase(tuyaRepository)
     }
 
-    val transcribeAudioUseCase: com.example.whisperandroid.domain.usecase.TranscribeAudioUseCase by lazy {
+    val transcribeAudioUseCase: TranscribeAudioUseCase by lazy {
         com.example.whisperandroid.domain.usecase
             .TranscribeAudioUseCase(speechRepository)
     }
 
-    val translateTextUseCase: com.example.whisperandroid.domain.usecase.TranslateTextUseCase by lazy {
+    val translateTextUseCase: TranslateTextUseCase by lazy {
         com.example.whisperandroid.domain.usecase
             .TranslateTextUseCase(ragRepository)
     }
 
-    val summarizeTextUseCase: com.example.whisperandroid.domain.usecase.SummarizeTextUseCase by lazy {
+    val summarizeTextUseCase: SummarizeTextUseCase by lazy {
         com.example.whisperandroid.domain.usecase
             .SummarizeTextUseCase(ragRepository)
     }
 
-    val processMeetingUseCase: com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase by lazy {
+    val processMeetingUseCase: ProcessMeetingUseCase by lazy {
+        val prefs = appContext.getSharedPreferences(
+            "upload_sessions",
+            android.content.Context.MODE_PRIVATE
+        )
         com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase(
-            speechRepository,
-            ragRepository,
-            transcribeAudioUseCase,
-            translateTextUseCase,
-            summarizeTextUseCase
+            pipelineRepository,
+            uploadRepository,
+            mqttHelper,
+            prefs
         )
     }
 
@@ -135,12 +163,12 @@ object NetworkModule {
             .SendEmailUseCase(emailRepository)
     }
 
-    val sendEmailByMacUseCase: com.example.whisperandroid.domain.usecase.SendEmailByMacUseCase by lazy {
+    val sendEmailByMacUseCase: SendEmailByMacUseCase by lazy {
         com.example.whisperandroid.domain.usecase
             .SendEmailByMacUseCase(emailRepository)
     }
 
-    val getTuyaDevicesUseCase: com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase by lazy {
+    val getTuyaDevicesUseCase: GetTuyaDevicesUseCase by lazy {
         com.example.whisperandroid.domain.usecase
             .GetTuyaDevicesUseCase(tuyaRepository)
     }

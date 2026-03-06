@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	common_dtos "sensio/domain/common/dtos"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	recordings_dtos "sensio/domain/recordings/dtos"
 	"sensio/domain/recordings/usecases"
@@ -33,9 +33,9 @@ func NewRecordingsListController(useCase usecases.GetAllRecordingsUseCase) *Reco
 // @Produce json
 // @Param page query int false "Page number (default 1)"
 // @Param limit query int false "Items per page (default 10)"
-// @Success 200 {object} recordings_dtos.StandardResponse{data=recordings_dtos.GetAllRecordingsResponseDto}
-// @Failure 401 {object} recordings_dtos.StandardResponse
-// @Failure 500 {object} recordings_dtos.StandardResponse "Internal Server Error"
+// @Success 200 {object} commonDtos.StandardResponse{data=recordings_dtos.GetAllRecordingsResponseDto}
+// @Failure 401 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/recordings [get]
 func (c *RecordingsListController) ListRecordings(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
@@ -51,14 +51,14 @@ func (c *RecordingsListController) ListRecordings(ctx *gin.Context) {
 	result, err := c.useCase.ListRecordings(page, limit)
 	if err != nil {
 		utils.LogError("RecordingsListController.ListRecordings: %v", err)
-		ctx.JSON(http.StatusInternalServerError, common_dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, common_dtos.StandardResponse{
+	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 		Status:  true,
 		Message: "Recordings retrieved successfully",
 		Data:    result,

@@ -17,7 +17,8 @@ class RagRepositoryImpl(
         text: String,
         targetLang: String,
         macAddress: String?,
-        token: String
+        token: String,
+        idempotencyKey: String?
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
@@ -25,7 +26,8 @@ class RagRepositoryImpl(
                 val response =
                     api.translate(
                         RAGRequestDto(text = text, language = targetLang, macAddress = macAddress),
-                        "Bearer $token"
+                        "Bearer $token",
+                        idempotencyKey
                     )
                 val taskId = response.data?.taskId
 
@@ -82,7 +84,8 @@ class RagRepositoryImpl(
         language: String?,
         context: String?,
         macAddress: String?,
-        token: String
+        token: String,
+        idempotencyKey: String?
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
@@ -96,7 +99,8 @@ class RagRepositoryImpl(
                             context = context,
                             macAddress = macAddress
                         ),
-                        "Bearer $token"
+                        "Bearer $token",
+                        idempotencyKey
                     )
                 val taskId = response.data?.taskId
 
@@ -125,21 +129,16 @@ class RagRepositoryImpl(
 
                 when (status) {
                     "completed" -> {
-                        val resultJson = statusData.executionResult
-                        if (resultJson != null) {
-                            try {
-                                val summaryResult = com.google.gson.Gson().fromJson(
-                                    resultJson,
-                                    RAGSummaryResponseDto::class.java
-                                )
-                                emit(Resource.Success(summaryResult))
-                            } catch (e: Exception) {
-                                emit(
-                                    Resource.Error(
-                                        "Failed to parse summary result: ${e.message}"
+                        val summary = statusData.summary
+                        if (summary != null) {
+                            emit(
+                                Resource.Success(
+                                    RAGSummaryResponseDto(
+                                        summary = summary,
+                                        pdfUrl = statusData.pdfUrl
                                     )
                                 )
-                            }
+                            )
                         } else {
                             emit(Resource.Error("Completed but no summary result found"))
                         }
@@ -156,6 +155,37 @@ class RagRepositoryImpl(
             } catch (e: Exception) {
                 Log.e("RagRepo", "Check Summary error: ${e.message}")
                 emit(Resource.Error("Check error: ${e.message}"))
+            }
+        }
+
+    override suspend fun chat(
+        prompt: String,
+        language: String?,
+        terminalId: String,
+        uid: String?,
+        token: String,
+        idempotencyKey: String?
+    ): Flow<Resource<com.example.whisperandroid.data.remote.dto.RAGChatResponseDto>> =
+        flow {
+            emit(Resource.Loading())
+            try {
+                val response = api.chat(
+                    com.example.whisperandroid.data.remote.dto.RAGChatRequestDto(
+                        prompt = prompt,
+                        language = language,
+                        terminalId = terminalId,
+                        uid = uid
+                    ),
+                    "Bearer $token",
+                    idempotencyKey
+                )
+                if (response.status && response.data != null) {
+                    emit(Resource.Success(response.data))
+                } else {
+                    emit(Resource.Error(response.message))
+                }
+            } catch (e: Exception) {
+                emit(Resource.Error("Chat request failed: ${e.message}"))
             }
         }
 }

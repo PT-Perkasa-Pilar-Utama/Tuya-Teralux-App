@@ -41,6 +41,7 @@ import com.example.whisperandroid.presentation.components.SensioFeatureLayout
 import com.example.whisperandroid.presentation.components.UiState
 import com.example.whisperandroid.presentation.meeting.components.MeetingControlPill
 import com.example.whisperandroid.presentation.meeting.components.MeetingErrorContent
+import com.example.whisperandroid.presentation.meeting.components.MeetingFilePickerSheet
 import com.example.whisperandroid.presentation.meeting.components.MeetingHeaderControls
 import com.example.whisperandroid.presentation.meeting.components.MeetingIdleContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingLoadingContent
@@ -54,19 +55,29 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MeetingTranscriberScreen(
     onNavigateBack: () -> Unit,
-    viewModel: MeetingViewModel =
-        remember {
-            MeetingViewModel(
-                com.example.whisperandroid.data.di.NetworkModule.processMeetingUseCase
-            )
-        }
+    viewModel: MeetingViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = MeetingViewModelFactory(
+            com.example.whisperandroid.data.di.NetworkModule.processMeetingUseCase
+        )
+    )
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val emailState by viewModel.emailState.collectAsState()
     val mqttStatus by viewModel.mqttStatus.collectAsState()
-    var summaryLanguage by remember { mutableStateOf("id") }
-    var showEmailDialog by remember { mutableStateOf(false) }
-    var hasAutoSent by remember { mutableStateOf(false) }
+    var summaryLanguage by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf("id")
+    }
+    var showEmailDialog by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(
+            false
+        )
+    }
+    var showFilePickerSheet by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(
+            false
+        )
+    }
+    var hasAutoSent by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -151,7 +162,9 @@ fun MeetingTranscriberScreen(
                     val type = contentResolver.getType(selectedUri)
                     val extension = MimeTypeMap.getSingleton()
                         .getExtensionFromMimeType(type) ?: "m4a"
-                    val outputFile = java.io.File(context.cacheDir, "upload_audio.$extension")
+                    val outputFile =
+                        com.example.whisperandroid.data.local.MeetingAudioFileStore
+                            .createImportedAudioFile(context, extension)
                     try {
                         contentResolver.openInputStream(selectedUri)?.use { input ->
                             outputFile.outputStream().use { output -> input.copyTo(output) }
@@ -206,6 +219,7 @@ fun MeetingTranscriberScreen(
     SensioFeatureLayout(
         title = "Meeting Insights",
         onNavigateBack = onNavigateBack,
+        titleTestTag = "meeting_screen_title",
         headerActions = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -230,6 +244,8 @@ fun MeetingTranscriberScreen(
                 hasPermission = hasPermission,
                 uiState = uiState,
                 pulseScale = pulseScale,
+                isEnabled = mqttStatus ==
+                    com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED,
                 onMicClick = {
                     val canRecord = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||
@@ -238,7 +254,9 @@ fun MeetingTranscriberScreen(
                         if (!hasPermission) {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         } else {
-                            val file = java.io.File(context.cacheDir, "meeting_audio.wav")
+                            val file =
+                                com.example.whisperandroid.data.local.MeetingAudioFileStore
+                                    .createMicAudioFile(context)
                             audioRecorder.start(file)
                             audioFile = file
                             isRecording = true
@@ -251,7 +269,7 @@ fun MeetingTranscriberScreen(
                         uiState is MeetingProcessState.Success ||
                         uiState is MeetingProcessState.Error
                     if (canUpload) {
-                        launcher.launch("audio/*")
+                        showFilePickerSheet = true
                     }
                 },
                 onStopClick = {
@@ -347,6 +365,38 @@ fun MeetingTranscriberScreen(
                     viewModel.sendEmailSummary(target, subject, summaryLanguage)
                 }
             }
+        )
+    }
+
+    if (showFilePickerSheet) {
+        val files = remember {
+            com.example.whisperandroid.data.local.MeetingAudioFileStore
+                .listMeetingAudioFiles(context)
+        }
+        MeetingFilePickerSheet(
+            files = files,
+            onFileSelected = { file ->
+                showFilePickerSheet = false
+                if (file.exists() && file.length() > 0) {
+                    audioFile = file
+                    if (token.isNotEmpty()) {
+                        viewModel.processRecording(
+                            context.applicationContext,
+                            file,
+                            token,
+                            summaryLanguage,
+                            DeviceUtils.getDeviceId(context.applicationContext)
+                        )
+                    }
+                } else {
+                    Toast.makeText(context, "Invalid or corrupted file", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onBrowseOtherClick = {
+                showFilePickerSheet = false
+                launcher.launch("audio/*")
+            },
+            onDismiss = { showFilePickerSheet = false }
         )
     }
 }

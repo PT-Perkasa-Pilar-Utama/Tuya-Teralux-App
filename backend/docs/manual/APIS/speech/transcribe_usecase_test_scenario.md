@@ -1,20 +1,26 @@
 # ENDPOINT: POST /api/speech/transcribe
 
 ## Description
+
 Starts transcription of an audio file with automatic provider fallback. This endpoint automatically refines the output (KBBI for Indonesian, Grammar Fix for English).
 
 ### Processing Flow
+
 1. **Configured Provider**: System uses the provider defined in `LLM_PROVIDER` environment variable (Gemini, OpenAI, Groq, or Orion).
 2. **Specialized Models**: Alternatively, users can use dedicated model endpoints under `/api/speech/models/` for specific provider selection.
 
 Processing is **asynchronous** and results can be tracked via the transcription ID.
 
 ## Authentication
+
 - **Type**: BearerAuth
 - **Header**: `Authorization: Bearer <token>`
 
 ## Request Body
+
 - **Content-Type**: `multipart/form-data`
+- **Headers**:
+  - `Idempotency-Key` (string, optional): A unique key (e.g., UUID or deterministic hash) to prevent duplicate processing. Duplicate requests with the same key will return the existing task ID.
 - **Parameters**:
   - `audio` (file, required): Audio file. Supported formats: `.mp3`, `.wav`, `.m4a`, `.aac`, `.ogg`, `.flac`.
   - `diarize` (boolean, optional): Set to `true` to identify speakers. Default: `false`.
@@ -22,16 +28,21 @@ Processing is **asynchronous** and results can be tracked via the transcription 
 ## Test Scenarios
 
 ### 1. Transcribe Audio File (Success)
+
 - **Method**: `POST`
 - **Headers**:
+
 ```json
 {
-  "Authorization": "Bearer <valid_token>"
+  "Authorization": "Bearer <valid_token>",
+  "Idempotency-Key": "my-unique-key-123"
 }
 ```
+
 - **Pre-conditions**: Valid audio file, valid Bearer token.
 - **Request**: Upload `audio.mp3`.
 - **Expected Response**:
+
 ```json
 {
   "status": true,
@@ -43,89 +54,137 @@ Processing is **asynchronous** and results can be tracked via the transcription 
   }
 }
 ```
-  *(Status: 202 Accepted)*
-- **Side Effects**: 
+
+_(Status: 202 Accepted)_
+
+- **Side Effects**:
   - Task entry created in cache storage.
   - Background processing started.
 
 ### 2. Validation: Missing Audio File
+
 - **Method**: `POST`
 - **Request**: No file uploaded.
 - **Expected Response**:
+
 ```json
 {
   "status": false,
   "message": "Validation Error",
-  "details": [
-    { "field": "audio", "message": "audio file is required" }
-  ]
+  "details": [{ "field": "audio", "message": "audio file is required" }]
 }
 ```
-  *(Status: 400 Bad Request)*
+
+_(Status: 400 Bad Request)_
 
 ### 3. Validation: Unsupported File Type
+
 - **Method**: `POST`
 - **Request**: Upload `image.png`.
 - **Expected Response**:
+
 ```json
 {
   "status": false,
   "message": "Validation Error",
   "details": [
-    { "field": "audio", "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac" }
+    {
+      "field": "audio",
+      "message": "Unsupported media type. Supported formats: .mp3, .wav, .m4a, .aac, .ogg, .flac"
+    }
   ]
 }
 ```
-  *(Status: 415 Unsupported Media Type)*
+
+_(Status: 415 Unsupported Media Type)_
 
 ### 4. Validation: File Too Large
+
 - **Method**: `POST`
 - **Pre-conditions**: Upload file exceeding the configured maximum size.
 - **Expected Response**:
+
 ```json
 {
   "status": false,
   "message": "File size exceeds maximum limit"
 }
 ```
-  *(Status: 413 Request Entity Too Large)*
+
+_(Status: 413 Request Entity Too Large)_
 
 ### 5. Security: Unauthorized
+
 - **Headers**: No Authorization header.
 - **Expected Response**:
+
 ```json
 {
   "status": false,
   "message": "Unauthorized"
 }
 ```
-  *(Status: 401 Unauthorized)*
+
+_(Status: 401 Unauthorized)_
 
 ### 6. Scenario: Silent Audio
+
 - **Request**: Upload 5 seconds of absolute silence.
 - **Expected Behavior**: The transcription process completes successfully.
 - **Expected Result**: `transcription: ""` and `refined_text: ""` because no speech was detected.
 
 ### 7. Validation: Wrong Extension / Corrupt Header
+
 - **Request**: Upload a `.txt` file renamed to `.mp3`.
 - **Expected Behavior**: The file is accepted at the API layer (due to extension check).
 - **Processing Outcome**: The background transcription engine (Whisper) will fail to decode the audio.
 - **Expected Status**: Task status becomes `failed` after processing.
 
 ### 8. Error: Internal Server Error
+
 - **Pre-conditions**: Both Orion and Local Whisper engines are failing or system resources are exhausted.
 - **Expected Response**:
+
 ```json
 {
   "status": false,
-  "message": "Failed to start transcription"
+  "message": "Failed to start transcription",
+  "details": null
 }
 ```
-*(Status: 500 Internal Server Error)*
+
+_(Status: 500 Internal Server Error)_
+
+## Status Polling
+
+- **Endpoint**: `GET /api/speech/transcribe/:task_id`
+
+### Example Response (Completed)
+
+```json
+{
+  "status": true,
+  "message": "Task status retrieved",
+  "data": {
+    "task_id": "abc123-def456-ghi789",
+    "status": "completed",
+    "result": "Hello world transcription",
+    "recording_id": "uuid-v4"
+  }
+}
+```
+
 ### 9. Transcribe with Speaker Diarization
+
 - **Method**: `POST`
 - **Request Parameters**:
   - `audio`: Valid audio file.
   - `diarize`: `true`
 - **Expected Behavior**: The transcription result will include speaker identifiers like `[Speaker 1]`, `[Speaker 2]`, etc.
 - **Note**: Currently primarily supported by the Gemini provider.
+
+### 9. Idempotency Check (Deduplication)
+
+- **Header**: `Idempotency-Key: <unique_string>`
+- **Behavior**: If the same `Idempotency-Key` and audio content are submitted, the backend returns the _existing_ `task_id` without creating duplicate recordings or tasks.
+- **Verification**: Submit the same file twice with the same key. The second response should have the same `task_id` and a message indicating it was already submitted.

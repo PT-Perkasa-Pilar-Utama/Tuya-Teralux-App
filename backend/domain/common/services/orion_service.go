@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,7 +77,7 @@ func (s *OrionService) HealthCheck() bool {
 	return true
 }
 
-func (s *OrionService) CallModel(prompt string, model string) (string, error) {
+func (s *OrionService) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	if s.config.OrionApiKey == "" {
 		return "", fmt.Errorf("ORION_API_KEY is not configured")
 	}
@@ -100,7 +101,7 @@ func (s *OrionService) CallModel(prompt string, model string) (string, error) {
 		return "", fmt.Errorf("failed to marshal orion request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
 	if err != nil {
 		return "", fmt.Errorf("failed to create orion request: %w", err)
 	}
@@ -186,43 +187,48 @@ func (s *OrionService) WhisperHealthCheck() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func (s *OrionService) Transcribe(audioPath string, lang string, diarize bool) (*dtos.WhisperResult, error) {
+func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang string, diarize bool) (*dtos.WhisperResult, error) {
 	outsystemsURL := s.config.OrionWhisperBaseURL
 	if outsystemsURL == "" {
 		return nil, fmt.Errorf("ORION_WHISPER_BASE_URL not configured")
 	}
 
-	// Create multipart form data
-	bodyBuf := &bytes.Buffer{}
-	writer := multipart.NewWriter(bodyBuf)
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
 
-	// Read file
-	fileData, err := os.ReadFile(audioPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read audio file: %w", err)
-	}
+	go func() {
+		defer pw.Close()
+		defer writer.Close()
 
-	// Add file to multipart form
-	fileWriter, err := writer.CreateFormFile("file", filepath.Base(audioPath))
-	if err != nil {
-		return nil, fmt.Errorf("form file creation failed: %w", err)
-	}
+		file, err := os.Open(audioPath)
+		if err != nil {
+			utils.LogError("Orion Transcribe: failed to open file: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
+		defer file.Close()
 
-	if _, err := fileWriter.Write(fileData); err != nil {
-		return nil, fmt.Errorf("file write to form failed: %w", err)
-	}
+		part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
+		if err != nil {
+			utils.LogError("Orion Transcribe: failed to create form file: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
 
-	// Add language field
-	if err := writer.WriteField("language", lang); err != nil {
-		return nil, fmt.Errorf("language field write failed: %w", err)
-	}
+		if _, err := io.Copy(part, file); err != nil {
+			utils.LogError("Orion Transcribe: failed to copy file: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
 
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("multipart writer close failed: %w", err)
-	}
+		if err := writer.WriteField("language", lang); err != nil {
+			utils.LogError("Orion Transcribe: failed to write language field: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
+	}()
 
-	// Create HTTP request
-	req, err := http.NewRequest("POST", outsystemsURL, bodyBuf)
+	req, err := http.NewRequestWithContext(ctx, "POST", outsystemsURL, pr)
 	if err != nil {
 		return nil, fmt.Errorf("request creation failed: %w", err)
 	}
@@ -231,7 +237,11 @@ func (s *OrionService) Transcribe(audioPath string, lang string, diarize bool) (
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	// Execute request
-	client := &http.Client{Timeout: 60 * time.Second}
+	timeout, err := time.ParseDuration(s.config.OrionTranscribeTimeout)
+	if err != nil {
+		timeout = 120 * time.Second
+	}
+	client := &http.Client{Timeout: timeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("transcribe request to Orion failed: %w", err)

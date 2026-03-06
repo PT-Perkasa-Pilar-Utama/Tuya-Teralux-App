@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"sensio/domain/speech/dtos"
 	"time"
 
@@ -21,6 +22,11 @@ func (m *MockBadgerStore) SetPreserveTTL(key string, value []byte) error {
 	return args.Error(0)
 }
 
+func (m *MockBadgerStore) SetWithTTL(key string, value []byte, ttl time.Duration) error {
+	args := m.Called(key, value, ttl)
+	return args.Error(0)
+}
+
 func (m *MockBadgerStore) GetWithTTL(key string) ([]byte, time.Duration, error) {
 	args := m.Called(key)
 	var data []byte
@@ -28,6 +34,16 @@ func (m *MockBadgerStore) GetWithTTL(key string) ([]byte, time.Duration, error) 
 		data = val.([]byte)
 	}
 	return data, args.Get(1).(time.Duration), args.Error(2)
+}
+
+func (m *MockBadgerStore) Delete(key string) error {
+	args := m.Called(key)
+	return args.Error(0)
+}
+
+func (m *MockBadgerStore) KeysWithPrefix(prefix string) ([]string, error) {
+	args := m.Called(prefix)
+	return args.Get(0).([]string), args.Error(1)
 }
 
 type GenericMockClient struct {
@@ -42,8 +58,8 @@ func (m *GenericMockClient) WhisperHealthCheck() bool {
 	return m.Called().Bool(0)
 }
 
-func (m *GenericMockClient) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
-	args := m.Called(audioPath, language, diarize)
+func (m *GenericMockClient) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+	args := m.Called(ctx, audioPath, language, diarize)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

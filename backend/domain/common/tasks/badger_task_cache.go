@@ -10,8 +10,11 @@ import (
 // BadgerStore defines the interface for badger database operations
 type BadgerStore interface {
 	Set(key string, value []byte) error
+	SetWithTTL(key string, value []byte, ttl time.Duration) error
 	SetPreserveTTL(key string, value []byte) error
 	GetWithTTL(key string) ([]byte, time.Duration, error)
+	Delete(key string) error
+	KeysWithPrefix(prefix string) ([]string, error)
 }
 
 // BadgerTaskCache provides namespaced cache helpers for async task statuses.
@@ -40,12 +43,19 @@ func (c *BadgerTaskCache) key(taskID string) string {
 }
 
 func (c *BadgerTaskCache) Set(taskID string, status any) error {
+	return c.SetWithTTL(taskID, status, 0) // Uses store default
+}
+
+func (c *BadgerTaskCache) SetWithTTL(taskID string, status any, ttl time.Duration) error {
 	if c == nil || c.badger == nil {
 		return nil
 	}
 	data, err := json.Marshal(status)
 	if err != nil {
 		return err
+	}
+	if ttl > 0 {
+		return c.badger.SetWithTTL(c.key(taskID), data, ttl)
 	}
 	return c.badger.Set(c.key(taskID), data)
 }

@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -164,7 +165,11 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         verticalArrangement = Arrangement.Center
                     ) {
                         // Logo is clickable
-                        Box(modifier = Modifier.clickable { viewModel.checkRegistration() }) {
+                        Box(
+                            modifier = Modifier
+                                .testTag("register_logo")
+                                .clickable { viewModel.checkRegistration() }
+                        ) {
                             SensioLogo()
                         }
 
@@ -232,7 +237,9 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                     // Wrapper for Logo (Clickable)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { viewModel.checkRegistration() }
+                        modifier = Modifier
+                            .testTag("register_logo")
+                            .clickable { viewModel.checkRegistration() }
                     ) {
                         SensioLogo()
                     }

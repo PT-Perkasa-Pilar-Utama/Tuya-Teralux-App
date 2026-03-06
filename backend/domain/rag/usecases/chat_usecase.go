@@ -1,17 +1,19 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/skills"
+	"sensio/domain/rag/skills/orchestrator"
 	"strings"
 )
 
 type ChatUseCase interface {
-	Chat(uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error)
+	Chat(ctx context.Context, uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error)
 }
 
 type ChatUseCaseImpl struct {
@@ -20,10 +22,10 @@ type ChatUseCaseImpl struct {
 	config       *utils.Config
 	badger       *infrastructure.BadgerService
 	vector       *infrastructure.VectorService
-	orchestrator *skills.Orchestrator
+	orchestrator *orchestrator.Router
 }
 
-func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *skills.Orchestrator) ChatUseCase {
+func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *orchestrator.Router) ChatUseCase {
 	return &ChatUseCaseImpl{
 		llm:          llm,
 		fallbackLLM:  fallbackLLM,
@@ -34,7 +36,10 @@ func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *uti
 	}
 }
 
-func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
+func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("prompt is empty")
 	}
@@ -50,7 +55,8 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 	}
 
 	// 2. Prepare Skill Context
-	ctx := &skills.SkillContext{
+	skillCtx := &skills.SkillContext{
+		Ctx:        ctx,
 		UID:        uid,
 		TerminalID: terminalID,
 		Prompt:     prompt,
@@ -63,19 +69,19 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 	}
 
 	// 3. Route and Execute via Orchestrator
-	result, err := u.orchestrator.RouteAndExecute(ctx)
+	result, err := u.orchestrator.RouteAndExecute(skillCtx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("Chat: Primary LLM failed, falling back to local model: %v", err)
-		ctx.LLM = u.fallbackLLM
-		result, err = u.orchestrator.RouteAndExecute(ctx)
+		skillCtx.LLM = u.fallbackLLM
+		result, err = u.orchestrator.RouteAndExecute(skillCtx)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("orchestrator execution failed: %w", err)
 	}
 
-	// 4. Update History
-	if u.badger != nil {
+	// 4. Update History (skip if blocked)
+	if u.badger != nil && !result.IsBlocked {
 		history = append(history, "User: "+prompt, "Assistant: "+result.Message)
 		if len(history) > 20 {
 			history = history[len(history)-20:]
@@ -100,6 +106,7 @@ func (u *ChatUseCaseImpl) Chat(uid, terminalID, prompt, language string) (*dtos.
 	return &dtos.RAGChatResponseDTO{
 		Response:       result.Message,
 		IsControl:      result.IsControl,
+		IsBlocked:      result.IsBlocked,
 		Redirect:       redirect,
 		HTTPStatusCode: result.HTTPStatusCode,
 	}, nil

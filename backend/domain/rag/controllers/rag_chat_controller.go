@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
@@ -36,16 +38,17 @@ func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.M
 	}
 }
 
-func (c *RAGChatController) StartMqttSubscription() {
+func (c *RAGChatController) StartMqttSubscription() error {
 	if c.mqttSvc == nil {
-		return
+		return nil
 	}
 
 	config := utils.GetConfig()
 	topic := fmt.Sprintf("users/+/%s/chat", config.ApplicationEnvironment)
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
-		utils.LogInfo("RAGChat MQTT: Received message on %s, payload size: %d", msg.Topic(), len(payload))
+		correlationID := uuid.New().String()
+		utils.LogInfo("[%s] RAGChat MQTT: Received message on %s, payload size: %d", correlationID, msg.Topic(), len(payload))
 		if len(payload) == 0 {
 			return
 		}
@@ -54,22 +57,25 @@ func (c *RAGChatController) StartMqttSubscription() {
 		// Strictly JSON unmarshalling as per user request
 		err := json.Unmarshal(payload, &req)
 		if err != nil {
-			utils.LogError("RAGChat MQTT: Failed to unmarshal message: %v", err)
+			utils.LogError("[%s] RAGChat MQTT: Failed to unmarshal message: %v", correlationID, err)
 			return
 		}
 
-		// Extract MAC from topic: users/MAC/chat
+		// Extract MAC from topic: (optionally $share/group/)users/MAC/env/chat
 		topicParts := strings.Split(msg.Topic(), "/")
 		mac := ""
-		if len(topicParts) >= 2 && topicParts[0] == "users" {
-			mac = topicParts[1]
+		for i, part := range topicParts {
+			if part == "users" && i+1 < len(topicParts) {
+				mac = topicParts[i+1]
+				break
+			}
 		}
 
 		if req.Prompt == "" || req.TerminalID == "" {
-			utils.LogError("RAGChat MQTT: Missing prompt or terminal_id")
+			utils.LogError("[%s] RAGChat MQTT: Missing prompt or terminal_id", correlationID)
 			if mac != "" {
 				respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
-				respData, _ := json.Marshal(dtos.StandardResponse{
+				respData, _ := json.Marshal(commonDtos.StandardResponse{
 					Status:  false,
 					Message: "Validation Error",
 					Details: []utils.ValidationErrorDetail{
@@ -105,7 +111,15 @@ func (c *RAGChatController) StartMqttSubscription() {
 				}
 
 				if isWhisperActive {
-					utils.LogInfo("RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s", mac, req.TerminalID)
+					utils.LogInfo("[%s] RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s", correlationID, mac, req.TerminalID)
+					if mac != "" {
+						respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
+						respData, _ := json.Marshal(commonDtos.StandardResponse{
+							Status:  true,
+							Message: "Chat request received (sync with active whisper)",
+						})
+						_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
+					}
 					return
 				}
 
@@ -122,7 +136,15 @@ func (c *RAGChatController) StartMqttSubscription() {
 				// If prompt is exactly same as last one and happened < 3 seconds ago, drop it.
 				if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
 					c.mu.Unlock()
-					utils.LogInfo("RAGChat MQTT: Dropping duplicate prompt for %s: '%s'", terminalKey, req.Prompt)
+					utils.LogInfo("[%s] RAGChat MQTT: Dropping duplicate prompt for %s: '%s'", correlationID, terminalKey, req.Prompt)
+					if mac != "" {
+						respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
+						respData, _ := json.Marshal(commonDtos.StandardResponse{
+							Status:  true,
+							Message: "Chat request received (duplicate dropped)",
+						})
+						_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
+					}
 					return
 				}
 
@@ -133,19 +155,19 @@ func (c *RAGChatController) StartMqttSubscription() {
 			}
 
 			// Process chat
-			requestID := uuid.New().String()
+			requestID := correlationID // Reuse the early ingress correlation ID
 			uid := req.UID
 			if uid == "" {
 				uid = utils.GetConfig().TuyaUserID
 			}
 
 			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
-			res, err := c.chatUC.Chat(uid, req.TerminalID, req.Prompt, req.Language)
+			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language)
 			if err != nil {
 				utils.LogError("[%s] RAGChat MQTT: Chat processing failed: %v", requestID, err)
 				if mac != "" {
 					respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
-					respData, _ := json.Marshal(dtos.StandardResponse{
+					respData, _ := json.Marshal(commonDtos.StandardResponse{
 						Status:  false,
 						Message: "Internal Server Error",
 					})
@@ -169,7 +191,7 @@ func (c *RAGChatController) StartMqttSubscription() {
 					utils.LogDebug("[%s] [Instance: %s] RAGChat MQTT: Response topic override check: TopicMAC=%s, PayloadID=%s", requestID, c.instanceID, mac, req.TerminalID)
 				}
 
-				resp := dtos.StandardResponse{
+				resp := commonDtos.StandardResponse{
 					Status:  true,
 					Message: "Chat processed successfully",
 					Data:    res,
@@ -192,7 +214,10 @@ func (c *RAGChatController) StartMqttSubscription() {
 
 	if err != nil {
 		utils.LogError("RAGChat MQTT: Failed to subscribe to %s: %v", topic, err)
+		return err
 	}
+	utils.LogInfo("RAGChat MQTT: Successfully subscribed to %s", topic)
+	return nil
 }
 
 // Chat handles the AI Assistant chat/command classification.
@@ -203,14 +228,14 @@ func (c *RAGChatController) StartMqttSubscription() {
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGChatRequestDTO true "Chat Request"
-// @Success 200 {object} dtos.StandardResponse
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Success 200 {object} commonDtos.StandardResponse
+// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/rag/chat [post]
 func (c *RAGChatController) Chat(ctx *gin.Context) {
 	var req dtos.RAGChatRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
 			Details: []utils.ValidationErrorDetail{
@@ -237,7 +262,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		c.mu.Unlock()
 		utils.LogInfo("RAGChat HTTP: Dropping duplicate prompt for %s (from HTTP): '%s'", terminalKey, req.Prompt)
 		// Return previous success but don't re-process
-		ctx.JSON(http.StatusOK, dtos.StandardResponse{
+		ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 			Status:  true,
 			Message: "Chat request received (duplicate dropped)",
 		})
@@ -252,10 +277,10 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	requestID := uuid.New().String()
 	utils.LogInfo("[%s] RAGChat HTTP [Handler: Chat]: Starting chat process for UID: %s, Terminal: %s, Prompt: '%s'", requestID, uidStr, req.TerminalID, req.Prompt)
 
-	res, err := c.chatUC.Chat(uidStr, req.TerminalID, req.Prompt, req.Language)
+	res, err := c.chatUC.Chat(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt, req.Language)
 	if err != nil {
 		utils.LogError("[%s] RAGChatController.Chat: %v", requestID, err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
@@ -272,7 +297,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	// Only 401, 404, 500 are actual errors
 	if res.IsControl && res.HTTPStatusCode != 0 && res.HTTPStatusCode != 200 && res.HTTPStatusCode != 400 {
 		// Return the error status code from control execution
-		ctx.JSON(res.HTTPStatusCode, dtos.StandardResponse{
+		ctx.JSON(res.HTTPStatusCode, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Command execution failed",
 			Data:    res,
@@ -280,7 +305,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		return
 	}
 
-	resp := dtos.StandardResponse{
+	resp := commonDtos.StandardResponse{
 		Status:  true,
 		Message: "Chat processed successfully",
 		Data:    res,

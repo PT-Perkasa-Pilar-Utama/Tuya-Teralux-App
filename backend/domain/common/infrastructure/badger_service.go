@@ -58,15 +58,20 @@ func (s *BadgerService) Close() error {
 // return error An error if the write operation fails.
 // @throws error If the transaction fails to commit.
 func (s *BadgerService) Set(key string, value []byte) error {
+	return s.SetWithTTL(key, value, s.defaultTTL)
+}
+
+// SetWithTTL stores a key-value pair in the database with a custom Time-To-Live (TTL).
+func (s *BadgerService) SetWithTTL(key string, value []byte, ttl time.Duration) error {
 	if s == nil || s.db == nil {
 		return nil
 	}
 	err := s.db.Update(func(txn *badger.Txn) error {
-		entry := badger.NewEntry([]byte(key), value).WithTTL(s.defaultTTL)
+		entry := badger.NewEntry([]byte(key), value).WithTTL(ttl)
 		return txn.SetEntry(entry)
 	})
 	if err != nil {
-		utils.LogError("BadgerService: failed to set key %s: %v", key, err)
+		utils.LogError("BadgerService: failed to set key %s with TTL %v: %v", key, ttl, err)
 		return err
 	}
 	return nil
@@ -214,6 +219,11 @@ func (s *BadgerService) SetPreserveTTL(key string, value []byte) error {
 		entry := badger.NewEntry([]byte(key), value).WithTTL(ttl)
 		return txn.SetEntry(entry)
 	})
+}
+
+// KeysWithPrefix is an alias for GetAllKeysWithPrefix to satisfy BadgerStore interface.
+func (s *BadgerService) KeysWithPrefix(prefix string) ([]string, error) {
+	return s.GetAllKeysWithPrefix(prefix)
 }
 
 // GetAllKeysWithPrefix retrieves all keys that start with the specified prefix.

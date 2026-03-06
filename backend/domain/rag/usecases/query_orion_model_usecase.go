@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
@@ -9,7 +10,7 @@ import (
 )
 
 type QueryOrionModelUseCase interface {
-	Query(prompt string, trigger string) (*dtos.RAGRawPromptResponseDTO, error)
+	Query(ctx context.Context, prompt string, trigger string) (*dtos.RAGRawPromptResponseDTO, error)
 }
 
 type queryOrionModelUseCase struct {
@@ -22,7 +23,7 @@ func NewQueryOrionModelUseCase(llm skills.LLMClient) QueryOrionModelUseCase {
 	}
 }
 
-func (u *queryOrionModelUseCase) Query(prompt string, trigger string) (*dtos.RAGRawPromptResponseDTO, error) {
+func (u *queryOrionModelUseCase) Query(ctx context.Context, prompt string, trigger string) (*dtos.RAGRawPromptResponseDTO, error) {
 	startTime := time.Now()
 
 	response := &dtos.RAGRawPromptResponseDTO{
@@ -31,7 +32,7 @@ func (u *queryOrionModelUseCase) Query(prompt string, trigger string) (*dtos.RAG
 		StartedAt: startTime.Format(time.RFC3339),
 	}
 
-	result, err := u.llm.CallModel(prompt, "low")
+	result, err := u.llm.CallModel(ctx, prompt, "low")
 
 	duration := time.Since(startTime).Seconds()
 	response.DurationSeconds = duration

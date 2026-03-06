@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -33,6 +34,7 @@ fun SensioFeatureLayout(
     title: String,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    titleTestTag: String? = null,
     headerActions: @Composable RowScope.() -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     bottomContent: @Composable BoxScope.() -> Unit = {},
@@ -51,7 +53,12 @@ fun SensioFeatureLayout(
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = if (titleTestTag != null) {
+                                Modifier.testTag(titleTestTag)
+                            } else {
+                                Modifier
+                            }
                         )
                     },
                     navigationIcon = {
