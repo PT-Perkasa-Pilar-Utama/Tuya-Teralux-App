@@ -27,6 +27,7 @@ type TestStatusNoExpiry struct {
 // MockBadgerStore for testing BadgerTaskCache
 type MockBadgerStore struct {
 	SetFunc            func(key string, value []byte) error
+	SetWithTTLFunc     func(key string, value []byte, ttl time.Duration) error
 	SetPreserveTTLFunc func(key string, value []byte) error
 	GetWithTTLFunc     func(key string) ([]byte, time.Duration, error)
 }
@@ -34,6 +35,13 @@ type MockBadgerStore struct {
 func (m *MockBadgerStore) Set(key string, value []byte) error {
 	if m.SetFunc != nil {
 		return m.SetFunc(key, value)
+	}
+	return nil
+}
+
+func (m *MockBadgerStore) SetWithTTL(key string, value []byte, ttl time.Duration) error {
+	if m.SetWithTTLFunc != nil {
+		return m.SetWithTTLFunc(key, value, ttl)
 	}
 	return nil
 }
@@ -50,6 +58,14 @@ func (m *MockBadgerStore) GetWithTTL(key string) ([]byte, time.Duration, error) 
 		return m.GetWithTTLFunc(key)
 	}
 	return nil, 0, nil
+}
+
+func (m *MockBadgerStore) Delete(key string) error {
+	return nil
+}
+
+func (m *MockBadgerStore) KeysWithPrefix(prefix string) ([]string, error) {
+	return nil, nil
 }
 
 func TestNewGenericStatusUseCase(t *testing.T) {

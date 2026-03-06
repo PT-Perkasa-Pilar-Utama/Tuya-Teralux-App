@@ -10,6 +10,7 @@ import (
 // MockBadgerService for testing BadgerTaskCache
 type MockBadgerService struct {
 	SetFunc            func(key string, value []byte) error
+	SetWithTTLFunc     func(key string, value []byte, ttl time.Duration) error
 	SetPreserveTTLFunc func(key string, value []byte) error
 	GetWithTTLFunc     func(key string) ([]byte, time.Duration, error)
 	data               map[string][]byte
@@ -29,6 +30,15 @@ func (m *MockBadgerService) Set(key string, value []byte) error {
 	}
 	m.data[key] = value
 	m.ttls[key] = 3600 * time.Second // Default TTL
+	return nil
+}
+
+func (m *MockBadgerService) SetWithTTL(key string, value []byte, ttl time.Duration) error {
+	if m.SetWithTTLFunc != nil {
+		return m.SetWithTTLFunc(key, value, ttl)
+	}
+	m.data[key] = value
+	m.ttls[key] = ttl
 	return nil
 }
 
@@ -54,6 +64,22 @@ func (m *MockBadgerService) GetWithTTL(key string) ([]byte, time.Duration, error
 	}
 	ttl := m.ttls[key]
 	return data, ttl, nil
+}
+
+func (m *MockBadgerService) Delete(key string) error {
+	delete(m.data, key)
+	delete(m.ttls, key)
+	return nil
+}
+
+func (m *MockBadgerService) KeysWithPrefix(prefix string) ([]string, error) {
+	var keys []string
+	for k := range m.data {
+		if len(k) >= len(prefix) && k[:len(prefix)] == prefix {
+			keys = append(keys, k)
+		}
+	}
+	return keys, nil
 }
 
 type CacheTestStatus struct {

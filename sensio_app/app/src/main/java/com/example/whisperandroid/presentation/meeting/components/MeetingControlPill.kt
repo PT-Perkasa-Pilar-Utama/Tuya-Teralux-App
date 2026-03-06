@@ -34,6 +34,7 @@ fun MeetingControlPill(
     hasPermission: Boolean,
     uiState: MeetingProcessState,
     pulseScale: Float,
+    isEnabled: Boolean = true,
     onMicClick: () -> Unit,
     onUploadClick: () -> Unit,
     onStopClick: () -> Unit,
@@ -70,26 +71,33 @@ fun MeetingControlPill(
                         uiState !is MeetingProcessState.Success &&
                         uiState !is MeetingProcessState.Error &&
                         uiState !is MeetingProcessState.Recording,
-                    onClick = onMicClick,
+                    onClick = { if (isEnabled) onMicClick() },
                     size = 36.dp,
                     modifier =
-                    Modifier.graphicsLayer {
-                        if (isRecording) {
-                            scaleX = pulseScale
-                            scaleY = pulseScale
+                    Modifier
+                        .graphicsLayer {
+                            alpha = if (isEnabled || isRecording) 1f else 0.4f
+                            if (isRecording) {
+                                scaleX = pulseScale
+                                scaleY = pulseScale
+                            }
                         }
-                    }
                 )
 
                 if (!isRecording) {
                     IconButton(
                         onClick = onUploadClick,
+                        enabled = isEnabled,
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.FolderOpen,
                             contentDescription = "Upload Audio",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (isEnabled) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                            },
                             modifier = Modifier.size(24.dp)
                         )
                     }

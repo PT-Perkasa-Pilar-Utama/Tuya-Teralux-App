@@ -1,6 +1,5 @@
 services:
   sensio-backend:
-    build: .
     image: ghcr.io/farismnrr/sensio-backend:latest
     ports:
       - "8081:8080"
@@ -33,4 +32,3 @@ services:
       timeout: 10s
       retries: 5
     restart: unless-stopped
-

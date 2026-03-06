@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sensio/domain/common/tasks"
@@ -13,7 +14,7 @@ import (
 
 type geminiServiceClient interface {
 	HealthCheck() bool
-	Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
+	Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
 }
 
 type TranscribeGeminiModelUseCase interface {
@@ -76,7 +77,7 @@ func (u *transcribeGeminiModelUseCase) TranscribeAsync(filePath, fileName, langu
 		}
 
 		// Step 2: Transcribe
-		result, err := u.service.Transcribe(filePath, language, false) // Default false for specialized model usecase
+		result, err := u.service.Transcribe(context.Background(), filePath, language, false) // Default false for specialized model usecase
 		if err != nil {
 			utils.LogError("Gemini Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

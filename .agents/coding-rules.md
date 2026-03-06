@@ -2,40 +2,36 @@
 
 ## General
 
-- Keep code changes minimal, focused, and reversible.
-- Do not change behavior unless explicitly requested.
-- Prioritize security: never hardcode passwords, keys, tokens, or other credentials in the source code.
-- Always use environment variables for sensitive data.
-- Add or update tests for behavior changes.
-- **IMPORTANT**: After editing any file, always run the linter and build to ensure there are no warnings or errors.
+- Keep changes minimal, focused, and reversible.
+- Do not alter behavior unless requested.
+- Preserve backward compatibility unless a breaking change is explicitly required.
+- Never hardcode secrets, keys, tokens, passwords, or private endpoints.
+- Use environment/config files for sensitive values.
+- Add or update tests when behavior changes.
+- Fix lint/build failures caused or surfaced by your changes before finishing.
 
-## Go Conventions (`backend/`)
+## Go Rules (`backend/`)
 
-- Follow standard Go style and `gofmt`.
-- Return errors with useful context using `fmt.Errorf` or similar.
-- Keep `services/` modular.
-- Avoid global mutable state.
-- Ensure Swagger documentation is updated if API endpoints change.
+- Follow idiomatic Go formatting (`gofmt`) and existing project structure.
+- Prioritize clear package boundaries under `backend/domain/...`.
+- Return contextual errors; avoid silent failure paths.
+- Avoid global mutable state unless already established and justified.
+- Keep controller/usecase/service/repository responsibilities separated as currently organized.
 
-## Kotlin / Android Conventions (`sensio_app/`)
+## Kotlin / Gradle Rules (`sensio_app/`, `sensio_notification/`)
 
-- Follow modern Kotlin best practices (ViewBinding, ViewModel, Coroutines).
-- Use descriptive names for UI elements and resources.
-- Ensure proper lifecycle management in Activities and Fragments.
-- Maintain consistency with existing material design patterns.
+- Follow existing Gradle and module conventions; avoid ad-hoc task wiring.
+- Keep UI/presentation logic separated from service/integration logic where project structure already enforces it.
+- Use `ktlint` conventions; do not add style bypasses unless explicitly approved.
+- Avoid embedding secrets in `build.gradle*`, source files, or checked-in property files.
 
-## Architecture & Communication
+## Automation and Scripts
 
-- Maintain strict boundaries between the backend and Android client.
-- Ensure MQTT payloads remain consistent across both ends.
-- Backend services (e.g., `EMQX-Auth-Service`) should be treated as internal infrastructure.
-
-## Data and Migrations
-
-- Backend schema changes must include migration files handled by `make migrate-up` (or equivalent in `backend/Makefile`).
-- Database interactions should be decoupled from service logic.
+- Prefer existing Makefile targets and `scripts/` helpers over one-off custom commands.
+- For remote workflows, keep `backend/scripts/*` aligned with shared helper conventions in `scripts/remote/common_arch.sh`.
+- Any workflow policy change in scripts must be mirrored in `.agents` documentation.
 
 ## Documentation
 
-- Update `README.md` or specialized guides when behavior changes.
-- Ensure `Makefile` help is kept up to date.
+- Update docs when commands, validation flow, or developer workflow changes.
+- Keep instructions concrete and repository-specific.

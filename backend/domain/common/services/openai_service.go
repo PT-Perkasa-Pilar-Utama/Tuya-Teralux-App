@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -68,7 +69,7 @@ func (s *OpenAIService) HealthCheck() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
+func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	if s.config.OpenAIApiKey == "" {
 		return "", fmt.Errorf("OPENAI_API_KEY is not configured")
 	}
@@ -100,7 +101,7 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 		return "", fmt.Errorf("failed to marshal openai request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
 	if err != nil {
 		return "", fmt.Errorf("failed to create openai request: %w", err)
 	}
@@ -108,7 +109,7 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+s.config.OpenAIApiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 0}
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to call openai api: %w", err)
@@ -140,46 +141,61 @@ func (s *OpenAIService) CallModel(prompt string, model string) (string, error) {
 
 // Whisper Implementation
 
-func (s *OpenAIService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.config.OpenAIApiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY is not configured")
 	}
 
 	url := "https://api.openai.com/v1/audio/transcriptions"
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
 
-	file, err := os.Open(audioPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open audio file: %w", err)
-	}
-	defer func() { _ = file.Close() }()
+	go func() {
+		defer pw.Close()
+		defer writer.Close()
 
-	part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create form file: %w", err)
-	}
-	_, err = io.Copy(part, file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy file content: %w", err)
-	}
+		file, err := os.Open(audioPath)
+		if err != nil {
+			utils.LogError("OpenAI Transcribe: failed to open file: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
+		defer file.Close()
 
-	model := s.config.OpenAIModelWhisper
-	if model == "" {
-		model = "whisper-1"
-	}
+		part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
+		if err != nil {
+			utils.LogError("OpenAI Transcribe: failed to create form file: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
 
-	_ = writer.WriteField("model", model)
-	if language != "" && language != "auto" {
-		_ = writer.WriteField("language", language)
-	}
+		if _, err := io.Copy(part, file); err != nil {
+			utils.LogError("OpenAI Transcribe: failed to copy file: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
 
-	err = writer.Close()
-	if err != nil {
-		return nil, fmt.Errorf("failed to close writer: %w", err)
-	}
+		model := s.config.OpenAIModelWhisper
+		if model == "" {
+			model = "whisper-1"
+		}
 
-	req, err := http.NewRequest("POST", url, body)
+		if err := writer.WriteField("model", model); err != nil {
+			utils.LogError("OpenAI Transcribe: failed to write model field: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
+
+		if language != "" && language != "auto" {
+			if err := writer.WriteField("language", language); err != nil {
+				utils.LogError("OpenAI Transcribe: failed to write language field: %v", err)
+				_ = pw.CloseWithError(err)
+				return
+			}
+		}
+	}()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, pr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

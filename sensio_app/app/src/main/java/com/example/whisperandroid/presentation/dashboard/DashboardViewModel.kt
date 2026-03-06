@@ -16,7 +16,8 @@ data class DashboardUiState(
 
 class DashboardViewModel(
     private val authenticateUseCase: AuthenticateUseCase,
-    private val getTuyaDevicesUseCase: com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
+    private val getTuyaDevicesUseCase:
+        com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState(isLoading = true))
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()

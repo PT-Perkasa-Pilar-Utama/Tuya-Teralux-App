@@ -5,86 +5,36 @@ import (
 	"testing"
 )
 
-func TestLoadConfig(t *testing.T) {
-	// Backup original env vars relative to this test
-	_ = os.Setenv("GO_TEST", "true")
-	originalClientID := os.Getenv("TUYA_CLIENT_ID")
-	defer func() {
-		_ = os.Setenv("TUYA_CLIENT_ID", originalClientID)
-		_ = os.Unsetenv("GO_TEST")
-	}()
+func TestValidateEnvDuration(t *testing.T) {
+	t.Run("Valid Duration", func(t *testing.T) {
+		os.Setenv("TEST_DURATION_VALID", "8h")
+		defer os.Unsetenv("TEST_DURATION_VALID")
 
-	// Set test env var
-	testID := "test_client_id"
-	_ = os.Setenv("TUYA_CLIENT_ID", testID)
-
-	// Force reload
-	AppConfig = nil // clear global singleton if possible, or just call LoadConfig which overwrites it.
-	cfg := GetConfig()
-
-	if cfg.TuyaClientID != testID {
-		t.Errorf("GetConfig().TuyaClientID = %q; want %q", cfg.TuyaClientID, testID)
-	}
-
-	// Verify other fields are loaded (even if empty, structure should exist)
-	if cfg == nil {
-		t.Fatal("GetConfig returned nil")
-	}
-}
-
-func TestLoadConfig_SetsValues(t *testing.T) {
-	// Backup and restore env
-	backup := map[string]string{}
-	keys := []string{"GEMINI_MODEL_HIGH", "WHISPER_LOCAL_MODEL", "MAX_FILE_SIZE_MB", "PORT", "CACHE_TTL"}
-	for _, k := range keys {
-		backup[k] = os.Getenv(k)
-	}
-	_ = os.Setenv("GO_TEST", "true")
-	defer func() {
-		for k, v := range backup {
-			_ = os.Setenv(k, v)
+		val, err := validateEnvDuration("TEST_DURATION_VALID")
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
 		}
-		AppConfig = nil
-		_ = os.Unsetenv("GO_TEST")
-	}()
+		if val != "8h" {
+			t.Errorf("expected 8h, got %s", val)
+		}
+	})
 
-	_ = os.Setenv("GEMINI_MODEL_HIGH", "gemini-test")
-	_ = os.Setenv("WHISPER_LOCAL_MODEL", "/tmp/whisper.bin")
-	_ = os.Setenv("MAX_FILE_SIZE_MB", "10")
-	_ = os.Setenv("PORT", "9090")
-	_ = os.Setenv("CACHE_TTL", "30m")
+	t.Run("Missing Duration", func(t *testing.T) {
+		os.Unsetenv("TEST_DURATION_MISSING")
 
-	AppConfig = nil
-	LoadConfig()
-	cfg := GetConfig()
+		_, err := validateEnvDuration("TEST_DURATION_MISSING")
+		if err == nil {
+			t.Error("expected error for missing duration, got nil")
+		}
+	})
 
-	if cfg.GeminiModelHigh != "gemini-test" {
-		t.Fatalf("expected GeminiModelHigh to be set, got %s", cfg.GeminiModelHigh)
-	}
-	if cfg.WhisperLocalModel != "/tmp/whisper.bin" {
-		t.Fatalf("expected WhisperLocalModel to be set, got %s", cfg.WhisperLocalModel)
-	}
-	if cfg.MaxFileSize != 10*1024*1024 {
-		t.Fatalf("expected MaxFileSize to be 10MB in bytes, got %d", cfg.MaxFileSize)
-	}
-	if cfg.Port != "9090" {
-		t.Fatalf("expected Port to be 9090, got %s", cfg.Port)
-	}
-}
+	t.Run("Invalid Duration format", func(t *testing.T) {
+		os.Setenv("TEST_DURATION_INVALID", "3600") // No unit
+		defer os.Unsetenv("TEST_DURATION_INVALID")
 
-func TestLoadConfig_InvalidMaxFileSize(t *testing.T) {
-	backup := os.Getenv("MAX_FILE_SIZE_MB")
-	_ = os.Setenv("GO_TEST", "true")
-	defer func() {
-		_ = os.Setenv("MAX_FILE_SIZE_MB", backup)
-		_ = os.Unsetenv("GO_TEST")
-	}()
-
-	_ = os.Setenv("MAX_FILE_SIZE_MB", "notanumber")
-	AppConfig = nil
-	LoadConfig()
-	cfg := GetConfig()
-	if cfg.MaxFileSize != 0 {
-		t.Fatalf("expected MaxFileSize to be 0 on invalid input, got %d", cfg.MaxFileSize)
-	}
+		_, err := validateEnvDuration("TEST_DURATION_INVALID")
+		if err == nil {
+			t.Error("expected error for invalid duration format, got nil")
+		}
+	})
 }

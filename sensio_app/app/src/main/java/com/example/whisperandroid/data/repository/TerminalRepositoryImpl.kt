@@ -70,7 +70,8 @@ class TerminalRepositoryImpl(
                         id = tId,
                         name = terminalItem?.name ?: response.data.name ?: "",
                         roomId = terminalItem?.roomId ?: response.data.roomId ?: "",
-                        macAddress = terminalItem?.macAddress ?: response.data.macAddress ?: macAddress,
+                        macAddress = terminalItem?.macAddress ?: response.data.macAddress
+                            ?: macAddress,
                         mqttUsername = mUsername,
                         mqttPassword = mPassword
                     )

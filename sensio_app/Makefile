@@ -21,6 +21,21 @@ lint-fix:
 	@./gradlew ktlintFormat
 	@echo "✅ Lint fix complete"
 
+# Run complete deploy-remote pipeline: lint, build, and deploy via local ADB
+deploy-remote:
+	@bash scripts/deploy_remote_arch.sh
+
+# Run remote lint and build on arch host
+remote-lint-build:
+	@bash scripts/remote_lint_build_arch.sh
+
+# Pull built APK from remote host manually
+remote-pull-apk:
+	@echo "📥 Pulling APK from arch host..."
+	@mkdir -p .remote-build
+	@rsync -az arch:~/Documents/Tuya-Teralux-App/sensio_app/app/build/outputs/apk/debug/app-debug.apk .remote-build/app-debug.apk
+	@echo "✅ APK successfully pulled to: .remote-build/app-debug.apk"
+
 # Build and deploy to device
 deploy:
 	@chmod +x deploy.sh gradlew

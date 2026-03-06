@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"path/filepath"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	recordingUsecases "sensio/domain/recordings/usecases"
 	"sensio/domain/speech/dtos"
@@ -38,16 +39,16 @@ func NewSpeechModelsGroqController(
 // @Produce json
 // @Param audio formData file true "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)"
 // @Param language formData string false "Language code (e.g. id, en)"
-// @Success 202 {object} dtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 413 {object} dtos.StandardResponse
-// @Failure 415 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Success 202 {object} commonDtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
+// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure 413 {object} commonDtos.StandardResponse
+// @Failure 415 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/speech/models/groq [post]
 func (c *SpeechModelsGroqController) Transcribe(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
 			Details: []utils.ValidationErrorDetail{
@@ -58,7 +59,7 @@ func (c *SpeechModelsGroqController) Transcribe(ctx *gin.Context) {
 	}
 
 	if file.Size > c.config.MaxFileSize {
-		ctx.JSON(http.StatusRequestEntityTooLarge, dtos.StandardResponse{
+		ctx.JSON(http.StatusRequestEntityTooLarge, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "File too large",
 		})
@@ -75,7 +76,7 @@ func (c *SpeechModelsGroqController) Transcribe(ctx *gin.Context) {
 		".flac": true,
 	}
 	if !supportedExts[ext] {
-		ctx.JSON(http.StatusUnsupportedMediaType, dtos.StandardResponse{
+		ctx.JSON(http.StatusUnsupportedMediaType, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Unsupported Media Type",
 		})
@@ -87,7 +88,7 @@ func (c *SpeechModelsGroqController) Transcribe(ctx *gin.Context) {
 	recording, err := c.saveRecording.SaveRecording(file, macAddress, baseURL)
 	if err != nil {
 		utils.LogError("Groq.SaveRecording: %v", err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
@@ -100,14 +101,14 @@ func (c *SpeechModelsGroqController) Transcribe(ctx *gin.Context) {
 	taskID, err := c.usecase.TranscribeAsync(finalPath, file.Filename, language, ctx.Request.URL.Path)
 	if err != nil {
 		utils.LogError("Groq.TranscribeAsync: %v", err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{
+	ctx.JSON(http.StatusAccepted, commonDtos.StandardResponse{
 		Status:  true,
 		Message: "Groq transcription task submitted",
 		Data: dtos.TranscriptionTaskResponseDTO{
