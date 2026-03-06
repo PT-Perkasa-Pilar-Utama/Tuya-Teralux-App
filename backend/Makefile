@@ -201,17 +201,28 @@ setup:
 	@mkdir -p $(WHISPER_BUILD_DIR)
 	@cd $(WHISPER_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && make whisper-cli -j$$(nproc)
 	@mkdir -p $(LLAMA_BUILD_DIR)
-	@cd $(LLAMA_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && (make llama-cli llama-server -j$$(nproc) || make main server -j$$(nproc))
+	@echo "🔨 Configuring llama.cpp..."
+	@cd $(LLAMA_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF || { echo "❌ CMake configuration failed"; exit 1; }
+	@echo "🔨 Building llama.cpp..."
+	@cd $(LLAMA_BUILD_DIR) && (make llama-cli llama-server -j$$(nproc) || make main server -j$$(nproc) || \
+		{ echo "❌ Build failed. Diagnostics:"; \
+		  make help | grep -E "llama-cli|main|server" || true; \
+		  ls -la bin || true; \
+		  exit 1; })
 	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
 	@if [ -f $(LLAMA_BUILD_DIR)/bin/llama-cli ]; then \
 		cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli; \
-	else \
+	elif [ -f $(LLAMA_BUILD_DIR)/bin/main ]; then \
 		cp $(LLAMA_BUILD_DIR)/bin/main bin/llama-cli; \
+	else \
+		echo "❌ llama-cli binary not found"; exit 1; \
 	fi
 	@if [ -f $(LLAMA_BUILD_DIR)/bin/llama-server ]; then \
 		cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server; \
-	else \
+	elif [ -f $(LLAMA_BUILD_DIR)/bin/server ]; then \
 		cp $(LLAMA_BUILD_DIR)/bin/server bin/llama-server; \
+	else \
+		echo "❌ llama-server binary not found"; exit 1; \
 	fi
 	@$(MAKE) download-models
 	@echo "✅ Setup complete. Use 'make dev' to start."
