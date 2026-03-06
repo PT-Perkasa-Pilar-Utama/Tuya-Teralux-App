@@ -185,17 +185,8 @@ setup:
 	@# Check for dependencies
 	@command -v cmake >/dev/null 2>&1 || { echo >&2 "❌ Error: cmake is not installed. Please install it (e.g., 'sudo pacman -S cmake' or 'sudo apt install cmake')."; exit 1; }
 	@mkdir -p bin
-	@if [ ! -d $(WHISPER_SRC_DIR)/.git ]; then \
-		echo "📥 Cloning whisper.cpp $(WHISPER_TAG)..."; \
-		rm -rf $(WHISPER_SRC_DIR); \
-		git clone --depth 1 --branch $(WHISPER_TAG) https://github.com/ggerganov/whisper.cpp.git $(WHISPER_SRC_DIR); \
-	fi
-	@if [ ! -d $(LLAMA_SRC_DIR)/.git ]; then \
-		echo "📥 Cloning llama.cpp $(LLAMA_TAG)..."; \
-		rm -rf $(LLAMA_SRC_DIR); \
-		git clone --depth 1 --branch $(LLAMA_TAG) https://github.com/ggerganov/llama.cpp.git $(LLAMA_SRC_DIR) || \
-		git clone --depth 1 --branch $(LLAMA_TAG) https://github.com/ggml-org/llama.cpp.git $(LLAMA_SRC_DIR); \
-	fi
+	@echo "📥 Synchronizing and initializing submodules..."
+	@git submodule update --init --recursive
 	@echo "🔨 Building AI binaries..."
 	@rm -rf $(WHISPER_BUILD_DIR) $(LLAMA_BUILD_DIR)
 	@mkdir -p $(WHISPER_BUILD_DIR)
