@@ -139,7 +139,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/bin /app/models /app/logs /app/uploads && \
+    mkdir -p /app/bin /app/models /app/logs /app/uploads /app/uploads/reports && \
     chown -R appuser:appuser /app
 
 # Copy binaries
@@ -150,6 +150,7 @@ COPY --from=ai-builder /usr/local/bin/llama-cli /app/bin/llama-cli
 
 # Copy assets
 COPY --from=app-builder /app/domain/terminal/migrations /app/migrations
+COPY --from=app-builder /app/domain/rag/skills/definitions /app/domain/rag/skills/definitions
 COPY --from=app-builder /app/docs /app/docs
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
 

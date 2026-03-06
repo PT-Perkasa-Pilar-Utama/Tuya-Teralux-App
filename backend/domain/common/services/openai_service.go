@@ -109,7 +109,7 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	req.Header.Set("Authorization", "Bearer "+s.config.OpenAIApiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to call openai api: %w", err)
@@ -202,7 +202,7 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 	req.Header.Set("Authorization", "Bearer "+s.config.OpenAIApiKey)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 90 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request to openai whisper failed: %w", err)

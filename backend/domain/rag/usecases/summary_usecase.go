@@ -200,7 +200,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 			CompanyName:  "Sensio",
 		}
 		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
-			utils.LogWarn("Warning: Failed to generate PDF: %v", err)
+			return nil, fmt.Errorf("pdf generation failed: %w", err)
 		}
 	}
 
