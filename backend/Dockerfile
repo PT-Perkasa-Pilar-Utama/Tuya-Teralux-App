@@ -85,18 +85,12 @@ RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
 FROM native-builder AS app-builder
 
 # Install migrate
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        ARCH="arm64"; \
-        STRIP=aarch64-linux-gnu-strip; \
-    else \
-        ARCH="amd64"; \
-        STRIP=strip; \
-    fi && \
-    curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-${ARCH}.tar.gz \
+RUN echo "📥 Downloading migrate for $TARGETARCH..." && \
+    curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-${TARGETARCH}.tar.gz \
     | tar -xz && \
     mv migrate /usr/local/bin/migrate && \
     chmod +x /usr/local/bin/migrate && \
-    $STRIP --strip-unneeded /usr/local/bin/migrate || true
+    strip --strip-unneeded /usr/local/bin/migrate || true
 
 # Cache deps
 COPY go.mod go.sum ./
@@ -109,9 +103,9 @@ COPY . .
 # Build app
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    echo "🔨 Building Go app for $TARGETARCH..." && \
+    echo "🔨 Building Go app for $TARGETARCH (CGO_ENABLED=0)..." && \
     go env && \
-    CGO_ENABLED=1 \
+    CGO_ENABLED=0 \
     GOOS=linux \
     go build \
       -trimpath \
