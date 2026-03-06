@@ -20,6 +20,11 @@ type RAGSummaryRequestDTO struct {
 type RAGStatusDTO struct {
 	Status          string            `json:"status" example:"completed"`
 	Result          string            `json:"result,omitempty" example:"The meeting discussed..."`
+	Summary         string            `json:"summary,omitempty"` // Alias for Result in summary tasks
+	PDFUrl          string            `json:"pdf_url,omitempty"`
+	AgendaContext   string            `json:"agenda_context,omitempty"`
+	MeetingContext  string            `json:"meeting_context,omitempty"`
+	Language        string            `json:"language,omitempty"`
 	Error           string            `json:"error,omitempty" example:"gemini api returned status 503"`
 	Trigger         string            `json:"trigger,omitempty" example:"/api/rag/summary"`
 	MacAddress      string            `json:"mac_address,omitempty"`
@@ -49,13 +54,6 @@ type RAGProcessResponseDTO struct {
 	TaskStatus *RAGStatusDTO `json:"task_status,omitempty"`
 }
 
-type StandardResponse struct {
-	Status  bool        `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Details interface{} `json:"details,omitempty"`
-}
-
 type RAGSummaryResponseDTO struct {
 	Summary       string `json:"summary"`
 	PDFUrl        string `json:"pdf_url,omitempty"`
@@ -72,6 +70,7 @@ type RAGChatRequestDTO struct {
 type RAGChatResponseDTO struct {
 	Response       string       `json:"response"`
 	IsControl      bool         `json:"is_control"`
+	IsBlocked      bool         `json:"is_blocked"`
 	Redirect       *RedirectDTO `json:"redirect,omitempty"`
 	HTTPStatusCode int          `json:"-"`                     // HTTP status code to return (not exposed in JSON)
 	RequestID      string       `json:"request_id,omitempty"`  // Tracking ID

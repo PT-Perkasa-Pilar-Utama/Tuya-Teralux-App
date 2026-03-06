@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sensio/domain/common/tasks"
@@ -65,7 +66,7 @@ func (u *transcribeWhisperCppModelUseCase) TranscribeAsync(filePath, fileName, l
 		}()
 
 		// Step 2: Transcribe
-		result, err := u.client.Transcribe(filePath, language, false)
+		result, err := u.client.Transcribe(context.Background(), filePath, language, false)
 		if err != nil {
 			utils.LogError("WhisperCpp Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

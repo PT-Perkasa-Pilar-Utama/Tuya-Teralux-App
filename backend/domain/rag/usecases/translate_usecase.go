@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/tasks"
@@ -12,14 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type mqttPublisher interface {
-	Publish(topic string, qos byte, retained bool, payload interface{}) error
-}
-
 type TranslateUseCase interface {
-	TranslateText(text, targetLang string, macAddress ...string) (string, error)
-	TranslateTextWithTrigger(text, targetLang string, trigger string, macAddress ...string) (string, error)
-	TranslateTextSync(text, targetLang string) (string, error)
+	TranslateText(text, targetLang string, args ...string) (string, error)
+	TranslateTextWithTrigger(text, targetLang string, trigger string, args ...string) (string, error)
+	TranslateTextSync(ctx context.Context, text, targetLang string) (string, error)
 }
 
 type translateUseCase struct {
@@ -29,9 +26,10 @@ type translateUseCase struct {
 	cache       *tasks.BadgerTaskCache
 	store       *tasks.StatusStore[dtos.RAGStatusDTO]
 	mqttSvc     mqttPublisher
+	skill       skills.Skill
 }
 
-func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher) TranslateUseCase {
+func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher, skill skills.Skill) TranslateUseCase {
 	return &translateUseCase{
 		llm:         llm,
 		fallbackLLM: fallbackLLM,
@@ -39,24 +37,28 @@ func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg
 		cache:       cache,
 		store:       store,
 		mqttSvc:     mqttSvc,
+		skill:       skill,
 	}
 }
 
 // translateInternal (private internal for use by Execute)
-func (u *translateUseCase) translateInternal(text, targetLang string) (string, error) {
-	skill := &skills.TranslationSkill{}
-	ctx := &skills.SkillContext{
+func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLang string) (string, error) {
+	if u.skill == nil {
+		return "", fmt.Errorf("translation skill not configured")
+	}
+	skillCtx := &skills.SkillContext{
+		Ctx:      ctx,
 		Prompt:   text,
 		Language: targetLang,
 		LLM:      u.llm,
 		Config:   u.config,
 	}
 
-	res, err := skill.Execute(ctx)
+	res, err := u.skill.Execute(skillCtx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("Translate: Primary LLM failed, falling back to local model: %v", err)
-		ctx.LLM = u.fallbackLLM
-		res, err = skill.Execute(ctx)
+		skillCtx.LLM = u.fallbackLLM
+		res, err = u.skill.Execute(skillCtx)
 	}
 
 	if err != nil {
@@ -67,18 +69,55 @@ func (u *translateUseCase) translateInternal(text, targetLang string) (string, e
 	return res.Message, nil
 }
 
-func (u *translateUseCase) TranslateTextSync(text, targetLang string) (string, error) {
-	return u.translateInternal(text, targetLang)
+func (u *translateUseCase) TranslateTextSync(ctx context.Context, text, targetLang string) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return u.translateInternal(ctx, text, targetLang)
 }
 
-func (u *translateUseCase) TranslateText(text, targetLang string, macAddress ...string) (string, error) {
-	return u.TranslateTextWithTrigger(text, targetLang, "", macAddress...)
+func (u *translateUseCase) TranslateText(text, targetLang string, args ...string) (string, error) {
+	return u.TranslateTextWithTrigger(text, targetLang, "", args...)
 }
 
-func (u *translateUseCase) TranslateTextWithTrigger(text, targetLang string, trigger string, macAddress ...string) (string, error) {
+// args is passed as [0] macAddress, [1] idempotencyKey
+func (u *translateUseCase) TranslateTextWithTrigger(text, targetLang string, trigger string, args ...string) (string, error) {
 	mac := ""
-	if len(macAddress) > 0 {
-		mac = macAddress[0]
+	idempotencyKey := ""
+	if len(args) > 0 {
+		mac = args[0]
+	}
+	if len(args) > 1 {
+		idempotencyKey = args[1]
+	}
+
+	// 1. Idempotency Check
+	var idempotencyHash string
+	if idempotencyKey != "" {
+		textHash := utils.HashString(text)
+		hashInput := fmt.Sprintf("%s_%s_%s_%s", idempotencyKey, targetLang, mac, textHash)
+		idempotencyHash = "idemp_translate_" + utils.HashString(hashInput)
+
+		var existingTaskID string
+		if _, exists, _ := u.cache.GetWithTTL(idempotencyHash, &existingTaskID); exists && existingTaskID != "" {
+			// Check task state - fallback to cache if store is empty
+			status, ok := u.store.Get(existingTaskID)
+			if !ok || status == nil {
+				var cachedStatus dtos.RAGStatusDTO
+				if _, cachedExists, _ := u.cache.GetWithTTL(existingTaskID, &cachedStatus); cachedExists {
+					status = &cachedStatus
+					ok = true
+					// Prime the store for future calls
+					u.store.Set(existingTaskID, status)
+				}
+			}
+
+			if ok && status != nil && status.Status != "failed" {
+				utils.LogInfo("Translate Task: Duplicate request detected for IdempotencyKey %s. Returning existing TaskID %s (Status: %s)", idempotencyKey, existingTaskID, status.Status)
+				return existingTaskID, nil
+			}
+			utils.LogInfo("Translate Task: Found existing task %s for key %s but it failed or could not be loaded. Proceeding with new task.", existingTaskID, idempotencyKey)
+		}
 	}
 
 	taskID := uuid.New().String()
@@ -89,11 +128,15 @@ func (u *translateUseCase) TranslateTextWithTrigger(text, targetLang string, tri
 		StartedAt:  time.Now().Format(time.RFC3339),
 	}
 	u.store.Set(taskID, status)
-
 	_ = u.cache.Set(taskID, status)
 
+	if idempotencyHash != "" {
+		// Store mapping
+		_ = u.cache.Set(idempotencyHash, taskID)
+	}
+
 	go func() {
-		translated, err := u.translateInternal(text, targetLang)
+		translated, err := u.translateInternal(context.Background(), text, targetLang)
 		if err != nil {
 			utils.LogError("RAG Translate Task %s: Failed with error: %v", taskID, err)
 			u.updateStatus(taskID, "failed", err, "")

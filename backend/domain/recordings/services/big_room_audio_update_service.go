@@ -48,27 +48,68 @@ func (s *bigRoomAudioUpdateService) UpdateRoomOccupiedAudio(macAddress, audioPat
 		return fmt.Errorf("failed to marshal request body: %v", err)
 	}
 
-	utils.LogInfo("BIGRoomAudioUpdateService: Sending request to %s with MacAddress: %s, AudioPath: %s", url, macAddress, audioPath)
+	var lastErr error
+	maxRetries := 3
+	backoff := 500 * time.Millisecond
 
+	attemptsMade := 0
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		attemptsMade = attempt
+		utils.LogInfo("BIGRoomAudioUpdateService: Attempt %d/%d - Sending request to %s with MacAddress: %s", attempt, maxRetries, url, macAddress)
+
+		err, isRetryable := s.doUpdateWithRetryInfo(url, jsonData)
+		if err == nil {
+			utils.LogInfo("BIGRoomAudioUpdateService: Successfully updated external API for MacAddress: %s (attempt %d)", macAddress, attempt)
+			return nil
+		}
+
+		lastErr = err
+		if !isRetryable {
+			utils.LogWarn("BIGRoomAudioUpdateService: Non-retryable error on attempt %d: %v. Failing fast.", attempt, err)
+			break
+		}
+
+		utils.LogWarn("BIGRoomAudioUpdateService: Retryable error on attempt %d: %v", attempt, err)
+
+		if attempt < maxRetries {
+			utils.LogInfo("BIGRoomAudioUpdateService: Retrying in %v...", backoff)
+			time.Sleep(backoff)
+			backoff *= 2
+		}
+	}
+
+	return fmt.Errorf("failed after %d attempt(s): %w", attemptsMade, lastErr)
+}
+
+func (s *bigRoomAudioUpdateService) doUpdateWithRetryInfo(url string, jsonData []byte) (error, bool) {
 	resp, err := s.client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("failed to send request: %v", err)
+		// Network errors are generally retryable
+		return fmt.Errorf("failed to send request: %v", err), true
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode >= 500 {
+		return fmt.Errorf("external api returned server error: %s", resp.Status), true
+	}
+
+	if resp.StatusCode >= 400 {
+		// 4xx errors are generally client errors and NOT retryable
+		return fmt.Errorf("external api returned client error: %s", resp.Status), false
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("external api returned status: %s", resp.Status)
+		return fmt.Errorf("external api returned unexpected status: %s", resp.Status), false
 	}
 
 	var result updateRoomOccupiedAudioResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("failed to decode response: %v", err)
+		return fmt.Errorf("failed to decode response: %v", err), false
 	}
 
 	if result.ResponseJSON != "success" {
-		return fmt.Errorf("external api returned unexpected response: %s", result.ResponseJSON)
+		return fmt.Errorf("external api returned business failure: %s", result.ResponseJSON), false
 	}
 
-	utils.LogInfo("BIGRoomAudioUpdateService: Successfully updated external API for MacAddress: %s", macAddress)
-	return nil
+	return nil, false
 }

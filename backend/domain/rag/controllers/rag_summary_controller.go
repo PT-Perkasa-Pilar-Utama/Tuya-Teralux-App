@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/usecases"
@@ -29,14 +30,15 @@ func NewRAGSummaryController(summaryUC usecases.SummaryUseCase) *RAGSummaryContr
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGSummaryRequestDTO true "Summary request"
-// @Success 202 {object} dtos.StandardResponse{data=map[string]string}
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Param Idempotency-Key header string false "Idempotency key to deduplicate requests"
+// @Success 202 {object} commonDtos.StandardResponse{data=map[string]string}
+// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/rag/summary [post]
 func (c *RAGSummaryController) Summary(ctx *gin.Context) {
 	var req dtos.RAGSummaryRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
 			Details: []utils.ValidationErrorDetail{
@@ -47,16 +49,17 @@ func (c *RAGSummaryController) Summary(ctx *gin.Context) {
 	}
 
 	participantsStr := strings.Join(req.Participants, ", ")
-	baseURL := utils.GetBaseURL(ctx)
-	taskID, err := c.summaryUC.SummarizeTextWithTrigger(req.Text, req.Language, req.Context, req.Style, req.Date, req.Location, participantsStr, req.MacAddress, baseURL, ctx.Request.URL.Path)
+	idempotencyKey := ctx.GetHeader("Idempotency-Key")
+
+	taskID, err := c.summaryUC.SummarizeTextWithTrigger(req.Text, req.Language, req.Context, req.Style, req.Date, req.Location, participantsStr, ctx.Request.URL.Path, req.MacAddress, idempotencyKey)
 	if err != nil {
 		utils.LogError("RAGSummaryController.Summary: %v", err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, dtos.StandardResponse{Status: true, Message: "Summary task queued", Data: map[string]string{"task_id": taskID}})
+	ctx.JSON(http.StatusAccepted, commonDtos.StandardResponse{Status: true, Message: "Summary task queued", Data: map[string]string{"task_id": taskID}})
 }

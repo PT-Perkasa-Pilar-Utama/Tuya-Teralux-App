@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/infrastructure"
@@ -12,7 +13,7 @@ import (
 )
 
 type ControlUseCase interface {
-	ProcessControl(uid, terminalID, prompt string) (*dtos.ControlResultDTO, error)
+	ProcessControl(ctx context.Context, uid, terminalID, prompt string) (*dtos.ControlResultDTO, error)
 }
 
 type controlUseCase struct {
@@ -23,9 +24,10 @@ type controlUseCase struct {
 	badger       *infrastructure.BadgerService
 	tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor
 	tuyaAuth     tuyaUsecases.TuyaAuthUseCase
+	skill        skills.Skill
 }
 
-func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase) ControlUseCase {
+func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase, skill skills.Skill) ControlUseCase {
 	return &controlUseCase{
 		llm:          llm,
 		fallbackLLM:  fallbackLLM,
@@ -34,18 +36,25 @@ func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *
 		badger:       badger,
 		tuyaExecutor: tuyaExecutor,
 		tuyaAuth:     tuyaAuth,
+		skill:        skill,
 	}
 }
 
-func (u *controlUseCase) ProcessControl(uid, terminalID, prompt string) (*dtos.ControlResultDTO, error) {
+func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, prompt string) (*dtos.ControlResultDTO, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("prompt is empty")
 	}
 
 	// Delegate control logic to ControlSkill
-	skill := skills.NewControlSkill(u.tuyaExecutor, u.tuyaAuth)
+	if u.skill == nil {
+		return nil, fmt.Errorf("control skill not configured")
+	}
 
-	ctx := &skills.SkillContext{
+	skillCtx := &skills.SkillContext{
+		Ctx:        ctx,
 		UID:        uid,
 		TerminalID: terminalID,
 		Prompt:     prompt,
@@ -65,13 +74,13 @@ func (u *controlUseCase) ProcessControl(uid, terminalID, prompt string) (*dtos.C
 			_ = json.Unmarshal(data, &history)
 		}
 	}
-	ctx.History = history
+	skillCtx.History = history
 
-	res, err := skill.Execute(ctx)
+	res, err := u.skill.Execute(skillCtx)
 	if err != nil && u.fallbackLLM != nil {
 		utils.LogWarn("Control: Primary LLM failed, falling back to local model: %v", err)
-		ctx.LLM = u.fallbackLLM
-		res, err = skill.Execute(ctx)
+		skillCtx.LLM = u.fallbackLLM
+		res, err = u.skill.Execute(skillCtx)
 	}
 
 	if err != nil {

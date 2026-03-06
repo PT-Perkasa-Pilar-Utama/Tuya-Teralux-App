@@ -1,0 +1,351 @@
+package com.example.whisperandroid.util
+
+import android.content.Context
+import android.util.Log
+import com.example.whisperandroid.BuildConfig
+import info.mqtt.android.service.MqttAndroidClient
+import java.util.UUID
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions
+import org.eclipse.paho.client.mqttv3.IMqttActionListener
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
+import org.eclipse.paho.client.mqttv3.IMqttToken
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions
+import org.eclipse.paho.client.mqttv3.MqttException
+import org.eclipse.paho.client.mqttv3.MqttMessage
+
+class MqttHelper(
+    private val context: Context
+) {
+    private var mqttAndroidClient: MqttAndroidClient
+    private val tokenManager = com.example.whisperandroid.data.local.TokenManager(context)
+
+    private val _connectionStatus = kotlinx.coroutines.flow.MutableStateFlow(
+        MqttConnectionStatus.DISCONNECTED
+    )
+    val connectionStatus = _connectionStatus.asStateFlow()
+
+    private val serverUri = BuildConfig.MQTT_BROKER_URL
+    private val clientID = "WhisperAndroid_" + UUID.randomUUID().toString()
+
+    private val tag = "MqttHelper"
+
+    private val _messages = kotlinx.coroutines.flow.MutableSharedFlow<Pair<String, String>>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
+    )
+    val messages = _messages.asSharedFlow()
+
+    private fun getUsername(): String {
+        return com.example.whisperandroid.util.DeviceUtils.getDeviceId(context)
+    }
+
+    fun getTaskTopic(): String? {
+        val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        return "users/$username/$env/task"
+    }
+
+    enum class MqttConnectionStatus {
+        DISCONNECTED,
+        CONNECTING,
+        CONNECTED,
+        FAILED,
+        NO_INTERNET
+    }
+
+    init {
+        val appContext = context.applicationContext
+        mqttAndroidClient = MqttAndroidClient(appContext, serverUri, clientID)
+        mqttAndroidClient.setCallback(
+            object : org.eclipse.paho.client.mqttv3.MqttCallbackExtended {
+                override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                    Log.d(tag, "Connect complete: reconnect=$reconnect, uri=$serverURI")
+                    _connectionStatus.value = MqttConnectionStatus.CONNECTED
+
+                    // Re-subscribe if this was an automatic reconnection
+                    if (reconnect) {
+                        subscribeToAllTopics()
+                    }
+                }
+
+                override fun connectionLost(cause: Throwable?) {
+                    Log.d(tag, "Connection lost: ${cause?.message}")
+                    _connectionStatus.value = MqttConnectionStatus.DISCONNECTED
+                }
+
+                override fun messageArrived(
+                    topic: String,
+                    message: MqttMessage
+                ) {
+                    Log.d(tag, "Message arrived: $topic -> $message")
+                    _messages.tryEmit(topic to message.toString())
+                }
+
+                override fun deliveryComplete(token: IMqttDeliveryToken?) {}
+            }
+        )
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = context
+            .getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun subscribeToAllTopics() {
+        val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        subscribe("users/$username/$env/chat/answer")
+        subscribe("users/$username/$env/whisper/answer")
+        subscribe("users/$username/$env/task")
+        subscribe("users/$username/$env/chat")
+    }
+
+    fun connect(password: String) {
+        val isClientConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
+
+        if (isClientConnected && _connectionStatus.value == MqttConnectionStatus.CONNECTED) {
+            Log.d(tag, "MQTT already connected. Skipping connect.")
+            return
+        }
+
+        if (isClientConnected && _connectionStatus.value != MqttConnectionStatus.CONNECTED) {
+            Log.d(
+                tag,
+                "MQTT client connected but state is ${_connectionStatus.value}. " +
+                    "Syncing state and re-subscribing."
+            )
+            _connectionStatus.value = MqttConnectionStatus.CONNECTED
+            subscribeToAllTopics()
+            return
+        }
+
+        if (_connectionStatus.value == MqttConnectionStatus.CONNECTING) {
+            Log.d(tag, "MQTT connection already in progress. Skipping connect.")
+            return
+        }
+
+        if (!isNetworkAvailable()) {
+            Log.w(tag, "No internet connection available. Skipping MQTT connect.")
+            _connectionStatus.value = MqttConnectionStatus.NO_INTERNET
+            return
+        }
+
+        val username = getUsername()
+
+        val mqttConnectOptions = MqttConnectOptions()
+        mqttConnectOptions.isAutomaticReconnect = true
+        mqttConnectOptions.isCleanSession = false
+        mqttConnectOptions.keepAliveInterval = 30
+        mqttConnectOptions.userName = username
+        mqttConnectOptions.password = password.toCharArray()
+
+        _connectionStatus.value = MqttConnectionStatus.CONNECTING
+        try {
+            mqttAndroidClient.connect(
+                mqttConnectOptions,
+                null,
+                object : IMqttActionListener {
+                    override fun onSuccess(asyncActionToken: IMqttToken) {
+                        val disconnectedBufferOptions = DisconnectedBufferOptions()
+                        disconnectedBufferOptions.isBufferEnabled = true
+                        disconnectedBufferOptions.bufferSize = 100
+                        disconnectedBufferOptions.isPersistBuffer = false
+                        disconnectedBufferOptions.isDeleteOldestMessages = false
+                        mqttAndroidClient.setBufferOpts(disconnectedBufferOptions)
+                        Log.d(tag, "Success Connected to $serverUri")
+
+                        subscribeToAllTopics()
+                        _connectionStatus.value = MqttConnectionStatus.CONNECTED
+                    }
+
+                    override fun onFailure(
+                        asyncActionToken: IMqttToken,
+                        exception: Throwable
+                    ) {
+                        Log.w(tag, "Failed to connect to: $serverUri")
+                        exception.printStackTrace()
+
+                        val isUnknownHost = exception is java.net.UnknownHostException ||
+                            exception.cause is java.net.UnknownHostException
+                        val status = if (isUnknownHost) {
+                            MqttConnectionStatus.NO_INTERNET
+                        } else {
+                            MqttConnectionStatus.FAILED
+                        }
+                        _connectionStatus.value = status
+                    }
+                }
+            )
+        } catch (ex: MqttException) {
+            ex.printStackTrace()
+        }
+    }
+
+    private fun subscribe(topic: String) {
+        try {
+            mqttAndroidClient.subscribe(
+                topic,
+                0,
+                null,
+                object : IMqttActionListener {
+                    override fun onSuccess(asyncActionToken: IMqttToken) {
+                        Log.d(tag, "Subscribed to $topic")
+                    }
+
+                    override fun onFailure(
+                        asyncActionToken: IMqttToken,
+                        exception: Throwable
+                    ) {
+                        Log.e(tag, "Failed to subscribe to $topic")
+                    }
+                }
+            )
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun disconnect() {
+        if (!mqttAndroidClient.isConnected) return
+        try {
+            mqttAndroidClient.disconnect()
+            Log.d(tag, "Disconnected from MQTT")
+            _connectionStatus.value = MqttConnectionStatus.DISCONNECTED
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun publishAudio(
+        payload: ByteArray,
+        language: String = "id"
+    ): Result<Unit> {
+        val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
+        val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
+        val json =
+            """
+            {
+                "audio": "$base64Audio",
+                "terminal_id": "$terminalId",
+                "language": "$language"
+            }
+            """.trimIndent()
+        val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        return publishWithTimeout("users/$username/$env/whisper", json.toByteArray())
+    }
+
+    suspend fun publishChat(
+        text: String,
+        language: String = "id"
+    ): Result<Unit> {
+        val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
+        val json =
+            """
+            {
+                "prompt": "$text",
+                "terminal_id": "$terminalId",
+                "language": "$language"
+            }
+            """.trimIndent()
+        val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        return publishWithTimeout("users/$username/$env/chat", json.toByteArray())
+    }
+
+    fun publishTaskMessage(event: String, task: String) {
+        val username = getUsername()
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        val json = """{"event": "$event", "task": "$task"}"""
+        val payload = json.toByteArray()
+        val isConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
+        if (!isConnected) return
+        val message = MqttMessage(payload)
+        message.qos = 0
+        message.isRetained = false
+        try {
+            mqttAndroidClient.publish("users/$username/$env/task", message)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private suspend fun publishWithTimeout(
+        topic: String,
+        payload: ByteArray
+    ): Result<Unit> {
+        return try {
+            kotlinx.coroutines.withTimeout(4000L) {
+                kotlinx.coroutines.suspendCancellableCoroutine<Unit> { cont ->
+                    val isConnected = try {
+                        mqttAndroidClient.isConnected
+                    } catch (e: Exception) {
+                        false
+                    }
+                    Log.d(tag, "Publish to $topic. Connected: $isConnected")
+
+                    if (!isConnected) {
+                        Log.e(tag, "Cannot publish to $topic: MQTT client is not connected")
+                        if (cont.isActive) {
+                            cont.resumeWith(
+                                Result.failure(
+                                    IllegalStateException("MQTT client is not connected")
+                                )
+                            )
+                        }
+                        return@suspendCancellableCoroutine
+                    }
+
+                    try {
+                        mqttAndroidClient.publish(
+                            topic,
+                            payload,
+                            0,
+                            false,
+                            null,
+                            object : IMqttActionListener {
+                                override fun onSuccess(asyncActionToken: IMqttToken?) {
+                                    Log.d(
+                                        tag,
+                                        "Successfully published to $topic: ${payload.size} bytes"
+                                    )
+                                    if (cont.isActive) cont.resumeWith(Result.success(Unit))
+                                }
+
+                                override fun onFailure(
+                                    asyncActionToken: IMqttToken?,
+                                    exception: Throwable?
+                                ) {
+                                    Log.e(tag, "Failed to publish to $topic: ${exception?.message}")
+                                    if (cont.isActive) {
+                                        cont.resumeWith(
+                                            Result.failure(
+                                                exception ?: RuntimeException("Unknown MQTT error")
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    } catch (e: Exception) {
+                        Log.e(tag, "Error publishing to $topic: ${e.message}")
+                        if (cont.isActive) cont.resumeWith(Result.failure(e))
+                    }
+                }
+            }
+            Result.success(Unit)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e(tag, "Publish to $topic timed out after 4s")
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e(tag, "Unexpected error in publishWithTimeout to $topic: ${e.message}")
+            Result.failure(e)
+        }
+    }
+}

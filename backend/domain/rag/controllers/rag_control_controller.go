@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/usecases"
@@ -27,14 +28,14 @@ func NewRAGControlController(controlUC usecases.ControlUseCase) *RAGControlContr
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGControlRequestDTO true "Control Request"
-// @Success 200 {object} dtos.StandardResponse
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Success 200 {object} commonDtos.StandardResponse
+// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/rag/control [post]
 func (c *RAGControlController) Control(ctx *gin.Context) {
 	var req dtos.RAGControlRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
 			Details: []utils.ValidationErrorDetail{
@@ -50,17 +51,17 @@ func (c *RAGControlController) Control(ctx *gin.Context) {
 		uidStr = uid.(string)
 	}
 
-	res, err := c.controlUC.ProcessControl(uidStr, req.TerminalID, req.Prompt)
+	res, err := c.controlUC.ProcessControl(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt)
 	if err != nil {
 		utils.LogError("RAGControlController.Control: %v", err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 		Status:  true,
 		Message: "Control command processed successfully",
 		Data:    res.Message,
