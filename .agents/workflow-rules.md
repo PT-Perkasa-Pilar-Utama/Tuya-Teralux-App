@@ -2,30 +2,43 @@
 
 ## Before Editing
 
-- Read relevant files (backend or android) first.
-- Confirm assumptions from existing code patterns.
-- Reuse established project conventions.
-- Be aware of the sub-project context: `backend/`, `sensio_app/`, or `sensio_notification/`.
-- Check the root `Makefile` for available automation.
+- Read relevant files first and confirm existing patterns.
+- Identify affected module: `backend`, `sensio_app`, or `sensio_notification`.
+- Prefer existing automation (`Makefile`, `scripts/`) over introducing new workflows.
 
-## During Implementation
+## Mandatory Sequence
 
-- Prefer incremental changes over broad rewrites.
-- Start with the exact problem the user requested.
-- Maintain consistency between backend Go logic and Android Kotlin implementation.
-- Maintain consistency between backend Go logic and Android Kotlin implementation.
-- Use `make dev` for a hot-reloading development environment.
-- **Requirement**: Always run linter and build after edits and fix any warnings/errors immediately.
+All tasks should follow:
+1. Research and plan
+2. Plan approval
+3. Incremental implementation
+4. Validation (`lint`, `build`, and `test` when applicable)
+5. Final report with commands and pass/fail status
 
-## Validation
+## Validation Gates by Module
 
-- For project-wide checks: `make test` and `make vet` from the root directory.
-- For backend specific: `cd backend && make test`.
-- For Android specific: `cd sensio_app && ./gradlew build`.
-- Always check that your changes don't break the MQTT communication layer.
+- `backend/`
+  - Local dev minimum: `make lint` + `make build`
+  - Strict gate (required for remote/CI/release-like flow): `make lint-strict` + `make vet` + `make build`
+  - Functional checks when behavior changes: `make test`
+- `sensio_app/`
+  - `make lint`
+  - `make build`
+- `sensio_notification/`
+  - `make lint`
+  - `make build`
 
-## Output Quality
+## ThinkPad Lint Guard Policy (Backend)
 
-- Summarize what changed and why.
-- Reference touched files clearly.
-- Highlight risks, tradeoffs, and follow-up steps.
+- `backend` target `make lint` may skip `golangci-lint` when local machine is detected as ThinkPad via DMI fields (`sys_vendor`, `product_name`, `product_version`).
+- This skip is local-dev convenience only for ThinkPad laptops.
+- Rationale: some ThinkPad dev machines have limited RAM and `golangci-lint` can get force-closed under memory pressure.
+- Remote scripts and strict pipelines must use `make lint-strict` so lint is always enforced.
+- Do not downgrade strict gates by replacing `lint-strict` with `lint` in remote/deploy scripts.
+
+## Quality and Safety Rules
+
+- Never bypass checks with hook-skip flags.
+- Do not ignore newly introduced validation failures.
+- Keep backward compatibility unless explicitly requested.
+- Document workflow or command changes in `.agents` when they affect contributors.

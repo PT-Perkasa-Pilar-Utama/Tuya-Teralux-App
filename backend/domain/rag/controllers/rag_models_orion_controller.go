@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/usecases"
@@ -29,15 +30,15 @@ func NewRAGModelsOrionController(usecase usecases.QueryOrionModelUseCase) RAGMod
 // @Produce json
 // @Security BearerAuth
 // @Param request body dtos.RAGRawPromptRequestDTO true "Prompt Request"
-// @Success 200 {object} dtos.StandardResponse{data=dtos.RAGRawPromptResponseDTO}
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 401 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Success 200 {object} commonDtos.StandardResponse{data=dtos.RAGRawPromptResponseDTO}
+// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure 401 {object} commonDtos.StandardResponse
+// @Failure 500 {object} commonDtos.StandardResponse
 // @Router /api/models/orion [post]
 func (c *ragModelsOrionController) Query(ctx *gin.Context) {
 	var req dtos.RAGRawPromptRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Invalid request payload",
 			Data:    err.Error(),
@@ -45,7 +46,7 @@ func (c *ragModelsOrionController) Query(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.usecase.Query(req.Prompt, ctx.Request.URL.Path)
+	result, err := c.usecase.Query(ctx.Request.Context(), req.Prompt, ctx.Request.URL.Path)
 
 	httpStatus := http.StatusOK
 	message := "Query executed successfully"
@@ -62,7 +63,7 @@ func (c *ragModelsOrionController) Query(ctx *gin.Context) {
 		utils.LogError("RAG Orion Raw Query failed: %v", err)
 	}
 
-	ctx.JSON(httpStatus, dtos.StandardResponse{
+	ctx.JSON(httpStatus, commonDtos.StandardResponse{
 		Status:  isSuccess,
 		Message: message,
 		Data:    result,

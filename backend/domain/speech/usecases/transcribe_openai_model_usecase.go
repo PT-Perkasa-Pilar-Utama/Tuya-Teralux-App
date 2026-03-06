@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sensio/domain/common/tasks"
@@ -13,7 +14,7 @@ import (
 
 type openAIServiceClient interface {
 	HealthCheck() bool
-	Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
+	Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error)
 }
 
 type TranscribeOpenAIModelUseCase interface {
@@ -69,15 +70,14 @@ func (u *transcribeOpenAIModelUseCase) TranscribeAsync(filePath, fileName, langu
 			}
 		}()
 
-		// Step 1: Health Check
+		// Step 1: Best-effort health check.
+		// Do not fail fast on transient health endpoint issues; let real transcribe call decide.
 		if !u.service.HealthCheck() {
-			utils.LogError("OpenAI Task %s: Service health check failed", taskID)
-			u.updateStatus(taskID, "failed", nil, fmt.Errorf("OpenAI service health check failed"))
-			return
+			utils.LogWarn("OpenAI Task %s: Service health check failed, proceeding to transcribe", taskID)
 		}
 
 		// Step 2: Transcribe
-		result, err := u.service.Transcribe(filePath, language, false)
+		result, err := u.service.Transcribe(context.Background(), filePath, language, false)
 		if err != nil {
 			utils.LogError("OpenAI Task %s: Transcription failed: %v", taskID, err)
 			u.updateStatus(taskID, "failed", nil, err)

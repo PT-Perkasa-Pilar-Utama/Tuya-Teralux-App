@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -70,12 +71,11 @@ func (s *GeminiService) HealthCheck() bool {
 	return true
 }
 
-func (s *GeminiService) CallModel(prompt string, model string) (string, error) {
+func (s *GeminiService) CallModel(ctx context.Context, prompt string, model string) (string, error) {
 	if s.apiKey == "" {
 		return "", fmt.Errorf("GEMINI_API_KEY is not configured")
 	}
 
-	// Map abstract model names to actual models from config
 	actualModel := model
 	switch {
 	case model == "high":
@@ -104,8 +104,14 @@ func (s *GeminiService) CallModel(prompt string, model string) (string, error) {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	client := &http.Client{Timeout: 0}
-	resp, err := client.Post(url, "application/json", bytes.NewBuffer(b))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to call gemini api: %w", err)
 	}
@@ -136,9 +142,15 @@ func (s *GeminiService) CallModel(prompt string, model string) (string, error) {
 
 // Whisper Implementation
 
-func (s *GeminiService) Transcribe(audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.apiKey == "" {
 		return nil, fmt.Errorf("GEMINI_API_KEY is not configured")
+	}
+
+	// Check file size for inline limit (Gemini typically < 20MB for inline base64)
+	fileInfo, err := os.Stat(audioPath)
+	if err == nil && fileInfo.Size() > 20*1024*1024 {
+		return nil, fmt.Errorf("file size (%d bytes) exceeds Gemini inline limit (20MB); use segmented transcription path", fileInfo.Size())
 	}
 
 	// Read audio file
@@ -194,8 +206,13 @@ func (s *GeminiService) Transcribe(audioPath string, language string, diarize bo
 	model := s.config.GeminiModelWhisper
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, s.apiKey)
 
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gemini request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: 0}
-	resp, err := client.Post(url, "application/json", bytes.NewBuffer(b))
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call gemini api: %w", err)
 	}

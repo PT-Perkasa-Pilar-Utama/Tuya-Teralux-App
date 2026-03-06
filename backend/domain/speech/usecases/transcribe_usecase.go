@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -8,6 +9,8 @@ import (
 	"sensio/domain/common/utils"
 	ragUsecases "sensio/domain/rag/usecases"
 	speechdtos "sensio/domain/speech/dtos"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,20 +20,23 @@ type mqttPublisher interface {
 
 // WhisperClient is the unified interface for all whisper transcription services
 type WhisperClient interface {
-	Transcribe(audioPath string, language string, diarize bool) (*speechdtos.WhisperResult, error)
+	Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*speechdtos.WhisperResult, error)
 }
 
 type TranscriptionMetadata struct {
-	UID         string
-	TerminalID  string
-	Source      string // "mqtt", "rest", etc.
-	Trigger     string // e.g., "/api/speech/transcribe"
-	DeleteAfter bool   // Whether to delete the audio file after processing
-	Diarize     bool   // Whether to perform speaker diarization
+	UID            string
+	TerminalID     string
+	Source         string // "mqtt", "rest", etc.
+	Trigger        string // e.g., "/api/speech/transcribe"
+	DeleteAfter    bool   // Whether to delete the audio file after processing
+	Diarize        bool   // Whether to perform speaker diarization
+	IdempotencyKey string // Client-provided idempotency key
 }
 
 type TranscribeUseCase interface {
-	TranscribeAudio(inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error)
+	TranscribeAudio(ctx context.Context, inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error)
+	TranscribeAudioSync(ctx context.Context, inputPath string, language string, diarize bool, refine bool, progressCallback func(int)) (*speechdtos.AsyncTranscriptionResultDTO, error)
+	CheckIdempotency(idempotencyKey string, audioHash string, language string, terminalID string) (string, bool)
 }
 
 type transcribeUseCase struct {
@@ -63,23 +69,84 @@ func NewTranscribeUseCase(
 	}
 }
 
-func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error) {
+func (uc *transcribeUseCase) CheckIdempotency(idempotencyKey string, audioHash string, language string, terminalID string) (string, bool) {
+	if idempotencyKey == "" {
+		return "", false
+	}
+	hashInput := fmt.Sprintf("%s_%s_%s_%s", idempotencyKey, language, terminalID, audioHash)
+	idempotencyHash := "idemp_transcribe_" + utils.HashString(hashInput)
+
+	var existingTaskID string
+	if _, exists, _ := uc.cache.GetWithTTL(idempotencyHash, &existingTaskID); exists && existingTaskID != "" {
+		status, ok := uc.store.Get(existingTaskID)
+		if !ok || status == nil {
+			var cachedStatus speechdtos.AsyncTranscriptionStatusDTO
+			if _, cachedExists, _ := uc.cache.GetWithTTL(existingTaskID, &cachedStatus); cachedExists {
+				status = &cachedStatus
+				ok = true
+			}
+		}
+		if ok && status != nil && status.Status != "failed" {
+			return existingTaskID, true
+		}
+	}
+	return "", false
+}
+
+func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error) {
 	if _, err := os.Stat(inputPath); err != nil {
 		utils.LogError("Transcribe: Failed to stat audio file: %v", err)
 		return "", fmt.Errorf("audio file not found")
 	}
 
-	taskID := utils.GenerateUUID()
 	var meta *TranscriptionMetadata
 	if len(metadata) > 0 {
 		meta = &metadata[0]
+	}
+
+	// 1. Idempotency Check
+	var idempotencyHash string
+	if meta != nil && meta.IdempotencyKey != "" {
+		// Create a deterministic hash based on idempotency key, language, terminal ID, and audio content
+		audioHash, _ := utils.HashFile(inputPath)
+		hashInput := fmt.Sprintf("%s_%s_%s_%s", meta.IdempotencyKey, language, meta.TerminalID, audioHash)
+		idempotencyHash = "idemp_transcribe_" + utils.HashString(hashInput)
+
+		// Check if a task already exists for this idempotency key
+		var existingTaskID string
+		if _, exists, _ := uc.cache.GetWithTTL(idempotencyHash, &existingTaskID); exists && existingTaskID != "" {
+			// Check task state - only return if NOT failed
+			status, ok := uc.store.Get(existingTaskID)
+			if !ok || status == nil {
+				// Fallback to cache if memory store is empty
+				var cachedStatus speechdtos.AsyncTranscriptionStatusDTO
+				if _, cachedExists, _ := uc.cache.GetWithTTL(existingTaskID, &cachedStatus); cachedExists {
+					status = &cachedStatus
+					uc.store.Set(existingTaskID, status)
+					ok = true
+				}
+			}
+
+			if ok && status != nil && status.Status != "failed" {
+				utils.LogInfo("Transcribe Task: Duplicate request detected for IdempotencyKey %s. Returning existing TaskID %s (Status: %s)", meta.IdempotencyKey, existingTaskID, status.Status)
+				return existingTaskID, nil
+			}
+			utils.LogInfo("Transcribe Task: Found existing task %s for key %s but it failed or could not be loaded. Proceeding with new task.", existingTaskID, meta.IdempotencyKey)
+		}
+	}
+
+	taskID := utils.GenerateUUID()
+
+	ttl, err := time.ParseDuration(uc.config.TaskStatusTTL)
+	if err != nil {
+		ttl = 24 * time.Hour
 	}
 
 	status := &speechdtos.AsyncTranscriptionStatusDTO{
 		Status:    "pending",
 		Trigger:   "",
 		StartedAt: time.Now().Format(time.RFC3339),
-		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+		ExpiresAt: time.Now().Add(ttl).Format(time.RFC3339),
 	}
 
 	if meta != nil {
@@ -91,21 +158,180 @@ func (uc *transcribeUseCase) TranscribeAudio(inputPath string, fileName string, 
 		}
 	}
 
-	// Mark as pending
+	// 2. Mark as pending and save idempotency key map
 	uc.store.Set(taskID, status)
 	_ = uc.cache.Set(taskID, status)
+
+	if idempotencyHash != "" {
+		// Store the mapping from idempotency hash to task ID
+		_ = uc.cache.Set(idempotencyHash, taskID)
+	}
 
 	// Mark terminal as actively transcribing if applicable
 	if meta != nil && meta.TerminalID != "" && meta.Source == "mqtt" {
 		utils.ActiveTranscriptions.Store(meta.TerminalID, true)
 	}
 
-	go uc.processAsync(taskID, inputPath, language, meta)
+	timeout, err := time.ParseDuration(uc.config.TranscribeAsyncTimeout)
+	if err != nil {
+		timeout = 8 * time.Hour
+	}
+	asyncCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	go func() {
+		defer cancel()
+		uc.processAsync(asyncCtx, taskID, inputPath, language, meta)
+	}()
 
 	return taskID, nil
 }
 
-func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLanguage string, metadata *TranscriptionMetadata) {
+func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, reqLanguage string, diarize bool, refine bool, progressCallback func(int)) (*speechdtos.AsyncTranscriptionResultDTO, error) {
+	var rawTranscription string
+	var detectedLang string
+
+	fileInfo, err := os.Stat(inputPath)
+	useSegment := err == nil && fileInfo.Size() > 5*1024*1024 && uc.config.AudioSegmentEnabled
+
+	if useSegment {
+		segmentSec := uc.config.AudioSegmentSec
+		if segmentSec < 60 {
+			segmentSec = 60
+		}
+		overlapSec := uc.config.AudioSegmentOverlapSec
+
+		utils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
+		segments, splitErr := utils.SplitAudioSegments(inputPath, segmentSec, overlapSec)
+		if splitErr != nil {
+			utils.LogError("TranscribeSync: Failed to split audio, falling back to full file: %v", splitErr)
+			useSegment = false // Fallback to full file
+		} else {
+			defer utils.CleanupSegments(segments)
+
+			type segResult struct {
+				index int
+				text  string
+				lang  string
+				err   error
+			}
+
+			results := make([]segResult, len(segments))
+			sem := make(chan struct{}, utils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency))
+			var wg sync.WaitGroup
+
+			var completed int
+			var lastProgress int
+			var mu sync.Mutex
+
+			for i, seg := range segments {
+				wg.Add(1)
+				go func(idx int, path string) {
+					defer wg.Done()
+
+					// Check context before starting
+					select {
+					case <-ctx.Done():
+						mu.Lock()
+						results[idx] = segResult{index: idx, err: ctx.Err()}
+						mu.Unlock()
+						return
+					case sem <- struct{}{}:
+						defer func() { <-sem }()
+					}
+
+					var res *speechdtos.WhisperResult
+					var transErr error
+
+					// Retry logic (max 2 attempts)
+					for attempt := 1; attempt <= 2; attempt++ {
+						res, transErr = uc.whisperClient.Transcribe(ctx, path, reqLanguage, diarize)
+						if transErr != nil && uc.fallbackClient != nil {
+							utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client failed, falling back to local: %v", idx, attempt, transErr)
+							res, transErr = uc.fallbackClient.Transcribe(ctx, path, reqLanguage, diarize)
+						}
+						if transErr == nil {
+							break
+						}
+						utils.LogWarn("TranscribeSync Segment %d (Attempt %d) failed: %v", idx, attempt, transErr)
+						if attempt < 2 {
+							time.Sleep(1 * time.Second)
+						}
+					}
+
+					mu.Lock()
+					defer mu.Unlock()
+					if transErr != nil {
+						results[idx] = segResult{index: idx, err: transErr}
+					} else {
+						results[idx] = segResult{index: idx, text: res.Transcription, lang: res.DetectedLanguage}
+					}
+
+					completed++
+					if progressCallback != nil {
+						progress := int((float64(completed) / float64(len(segments))) * 100)
+						if progress > lastProgress {
+							lastProgress = progress
+							go progressCallback(progress)
+						}
+					}
+				}(i, seg.Path)
+			}
+			wg.Wait()
+
+			// Merge and Dedup
+			var mergedText string
+			for i, r := range results {
+				if r.err != nil {
+					return nil, fmt.Errorf("segment %d failed: %w", r.index, r.err)
+				}
+				if i == 0 {
+					mergedText = r.text
+					detectedLang = r.lang
+				} else {
+					mergedText = uc.mergeWithDedup(mergedText, r.text)
+					if detectedLang == "" && r.lang != "" {
+						detectedLang = r.lang
+					}
+				}
+			}
+			rawTranscription = strings.TrimSpace(mergedText)
+		}
+	}
+
+	if !useSegment {
+		result, err := uc.whisperClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
+		if err != nil && uc.fallbackClient != nil {
+			utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
+			result, err = uc.fallbackClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		rawTranscription = result.Transcription
+		detectedLang = result.DetectedLanguage
+		if progressCallback != nil {
+			go progressCallback(100)
+		}
+	}
+
+	// Refine (Grammar/Spelling) - only if explicitly requested
+	refined := rawTranscription
+	if refine {
+		refineLang := detectedLang
+		if reqLanguage != "" {
+			refineLang = reqLanguage
+		}
+		refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
+	}
+
+	return &speechdtos.AsyncTranscriptionResultDTO{
+		Transcription:    rawTranscription,
+		RefinedText:      refined,
+		DetectedLanguage: detectedLang,
+	}, nil
+}
+
+func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, inputPath string, reqLanguage string, metadata *TranscriptionMetadata) {
 	defer func() {
 		if metadata != nil && metadata.TerminalID != "" && metadata.Source == "mqtt" {
 			utils.ActiveTranscriptions.Delete(metadata.TerminalID)
@@ -116,50 +342,28 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 		}
 	}()
 
-	// Use unified whisper client with automatic fallback
 	diarize := false
+	refine := true // Default to true for existing flows
 	if metadata != nil {
 		diarize = metadata.Diarize
+		// If we add Refine to metadata in the future, we should use it here.
 	}
 
-	result, err := uc.whisperClient.Transcribe(inputPath, reqLanguage, diarize)
-	if err != nil && uc.fallbackClient != nil {
-		utils.LogWarn("Transcribe: Primary client failed, falling back to local: %v", err)
-		result, err = uc.fallbackClient.Transcribe(inputPath, reqLanguage, diarize)
-	}
-
+	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, reqLanguage, diarize, refine, nil)
 	if err != nil {
-		utils.LogError("Transcribe Task %s: All transcription methods failed: %v", taskID, err)
+		utils.LogError("Transcribe Task %s: Failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil, err)
 
-		// Clean up on failure if needed
 		if metadata != nil && metadata.DeleteAfter {
 			_ = os.Remove(inputPath)
-			utils.LogDebug("Transcribe Task %s: Deleted temporary file %s after failure", taskID, inputPath)
 		}
 		return
 	}
 
-	utils.LogInfo("Transcribe Task %s: Finished using %s", taskID, result.Source)
+	utils.LogInfo("Transcribe Task %s: Finished successfully", taskID)
 
-	// Clean up permanent file if requested
 	if metadata != nil && metadata.DeleteAfter {
 		_ = os.Remove(inputPath)
-		utils.LogDebug("Transcribe Task %s: Deleted temporary file %s after completion", taskID, inputPath)
-	}
-
-	// Refine (Grammar/Spelling)
-	// Priority: Use requested language if explicitly provided (e.g. from App), otherwise fallback to detected.
-	refineLang := result.DetectedLanguage
-	if reqLanguage != "" {
-		refineLang = reqLanguage
-	}
-	refined, _ := uc.refineUC.RefineText(result.Transcription, refineLang)
-
-	finalResult := &speechdtos.AsyncTranscriptionResultDTO{
-		Transcription:    result.Transcription,
-		RefinedText:      refined,
-		DetectedLanguage: result.DetectedLanguage, // Keep original detection for record
 	}
 
 	uc.updateStatus(taskID, "completed", finalResult, nil)
@@ -175,7 +379,7 @@ func (uc *transcribeUseCase) processAsync(taskID string, inputPath string, reqLa
 		chatReq := map[string]string{
 			"prompt":      prompt,
 			"terminal_id": metadata.TerminalID,
-			"language":    result.DetectedLanguage,
+			"language":    finalResult.DetectedLanguage,
 			"uid":         metadata.UID,
 		}
 		payload, _ := json.Marshal(chatReq)
@@ -191,13 +395,18 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 	var existing speechdtos.AsyncTranscriptionStatusDTO
 	_, _, _ = uc.cache.GetWithTTL(taskID, &existing)
 
+	ttl, pErr := time.ParseDuration(uc.config.TaskStatusTTL)
+	if pErr != nil {
+		ttl = 24 * time.Hour
+	}
+
 	status := &speechdtos.AsyncTranscriptionStatusDTO{
 		Status:     statusStr,
 		Result:     result,
 		StartedAt:  existing.StartedAt,
 		Trigger:    existing.Trigger,
 		TerminalID: existing.TerminalID,
-		ExpiresAt:  time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+		ExpiresAt:  time.Now().Add(ttl).Format(time.RFC3339),
 	}
 
 	if err != nil {
@@ -209,12 +418,25 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 
 	// Calculate duration if finished
 	if statusStr == "completed" || statusStr == "failed" {
+		var duration float64
 		if existing.StartedAt != "" {
 			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)
-			status.DurationSeconds = time.Since(startTime).Seconds()
+			duration = time.Since(startTime).Seconds()
+			status.DurationSeconds = duration
 		}
 
-		// Send MQTT "stop" signal if TerminalID is available
+		logMsg := fmt.Sprintf("Task %s: %s (Duration: %.2fs)", taskID, statusStr, duration)
+		if status.TerminalID != "" {
+			logMsg += fmt.Sprintf(", Terminal: %s", status.TerminalID)
+		}
+		if status.Trigger != "" {
+			logMsg += fmt.Sprintf(", Trigger: %s", status.Trigger)
+		}
+		if err != nil {
+			utils.LogError("%s, Error: %v", logMsg, err)
+		} else {
+			utils.LogInfo("%s", logMsg)
+		}
 		if status.TerminalID != "" && uc.mqttSvc != nil {
 			taskTopic := fmt.Sprintf("users/%s/%s/task", status.TerminalID, uc.config.ApplicationEnvironment)
 			msg := map[string]string{
@@ -231,5 +453,55 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 	}
 
 	uc.store.Set(taskID, status)
-	_ = uc.cache.SetPreserveTTL(taskID, status)
+	_ = uc.cache.SetWithTTL(taskID, status, ttl)
+}
+
+// mergeWithDedup handles the joining of two transcript segments by checking for shared word overlaps
+// at the boundaries, which often occurs due to the segment overlap duration.
+func (uc *transcribeUseCase) mergeWithDedup(prev, current string) string {
+	prevWords := strings.Fields(prev)
+	currentWords := strings.Fields(current)
+
+	if len(prevWords) == 0 {
+		return current
+	}
+	if len(currentWords) == 0 {
+		return prev
+	}
+
+	// Try to find the longest overlap (max 10 words)
+	maxOverlap := 10
+	if len(prevWords) < maxOverlap {
+		maxOverlap = len(prevWords)
+	}
+	if len(currentWords) < maxOverlap {
+		maxOverlap = len(currentWords)
+	}
+
+	bestOverlap := 0
+	for size := 1; size <= maxOverlap; size++ {
+		match := true
+		for i := 0; i < size; i++ {
+			pWord := prevWords[len(prevWords)-size+i]
+			cWord := currentWords[i]
+			// Case-insensitive comparison for deduplication
+			if !strings.EqualFold(pWord, cWord) {
+				match = false
+				break
+			}
+		}
+		if match {
+			bestOverlap = size
+		}
+	}
+
+	if bestOverlap > 0 {
+		remaining := currentWords[bestOverlap:]
+		if len(remaining) == 0 {
+			return prev
+		}
+		return prev + " " + strings.Join(remaining, " ")
+	}
+
+	return prev + " " + current
 }

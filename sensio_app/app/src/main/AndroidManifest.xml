@@ -31,7 +31,7 @@
         android:theme="@style/Theme.Sensio"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.whisperandroid.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -41,7 +41,7 @@
         </activity>
         <service android:name="info.mqtt.android.service.MqttService" />
         <service 
-            android:name=".service.MeetingForegroundService"
+            android:name="com.example.whisperandroid.service.MeetingForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
     </application>

@@ -1,14 +1,19 @@
 # ENDPOINT: POST /api/rag/summary
 
 ## Description
+
 Transforms a raw transcription into professional meeting minutes using an LLM with automatic provider fallback (Orion → Gemini → Ollama). It supports multi-language output, context steering, and style selection.
 
 ## Authentication
+
 - **Type**: BearerAuth
 - **Header**: `Authorization: Bearer <token>`
 
 ## Request Body
+
 - **Content-Type**: `application/json`
+- **Headers**:
+  - `Idempotency-Key` (string, optional): A unique key to prevent duplicate processing. Duplicate requests with the same key will return the existing task ID.
 - **Required Fields**:
   - `text` (string): The raw transcription text.
 - **Optional Fields**:
@@ -22,15 +27,20 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
 ## Test Scenarios
 
 ### 1. Generate Summary (Success)
+
 - **Method**: `POST`
 - **Headers**:
+
 ```json
 {
   "Content-Type": "application/json",
-  "Authorization": "Bearer <valid_token>"
+  "Authorization": "Bearer <valid_token>",
+  "Idempotency-Key": "my-summ-key-789"
 }
 ```
+
 - **Request Body**:
+
 ```json
 {
   "text": "budi bilang kita harus deploy besok jam 9. andi setuju.",
@@ -38,7 +48,9 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
   "context": "Deployment Plan"
 }
 ```
+
 - **Expected Response**:
+
 ```json
 {
   "status": true,
@@ -48,17 +60,22 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
   }
 }
 ```
-*(Status: 202 Accepted)*
+
+_(Status: 202 Accepted)_
 
 ### 2. Generate English Summary from Indonesian Input
+
 - **Request Body**:
+
 ```json
 {
   "text": "rapat hari ini membahas fitur baru.",
   "language": "en"
 }
 ```
+
 - **Expected Response**:
+
 ```json
 {
   "status": true,
@@ -68,43 +85,52 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
   }
 }
 ```
-*(Status: 202 Accepted)*
+
+_(Status: 202 Accepted)_
 
 ### 3. Validation: Whitespace Only
+
 - **Method**: `POST`
 - **Request Body**:
+
 ```json
 {
   "text": "   "
 }
 ```
+
 - **Expected Response**:
+
 ```json
 {
   "status": false,
   "message": "Validation Error",
-  "details": [
-    { "field": "text", "message": "text is required" }
-  ]
+  "details": [{ "field": "text", "message": "text is required" }]
 }
 ```
-*(Status: 400 Bad Request)*
+
+_(Status: 400 Bad Request)_
 
 ### 4. Validation: Invalid Language Code
+
 - **Method**: `POST`
 - **Request Body**:
+
 ```json
 {
   "text": "Valid text here",
   "language": "alien"
 }
 ```
+
 - **Expected Behavior**: The system internally defaults to "id" (Indonesian) for the prompt generation.
 - **Expected Response**: `200 OK` with summary in Indonesian.
 
 ### 5. Generate Formal Minutes of Meeting (MoM)
+
 - **Method**: `POST`
 - **Request Body**:
+
 ```json
 {
   "text": "budi bilang kita harus deploy besok jam 9. andi setuju.",
@@ -114,7 +140,9 @@ Transforms a raw transcription into professional meeting minutes using an LLM wi
   "participants": ["Budi", "Andi"]
 }
 ```
+
 - **Expected Behavior**: The output will include a formal MoM header with the provided metadata and specialized sections like decision tables.
 
 ### 6. Technical Note: Maximum Length
+
 - **Recommendation**: For transcriptions exceeding 100,000 characters (~15,000 words), it is recommended to chunk the text manually to ensure LLM prompt limits are not exceeded, though the system attempts to process long texts via internal optimization.

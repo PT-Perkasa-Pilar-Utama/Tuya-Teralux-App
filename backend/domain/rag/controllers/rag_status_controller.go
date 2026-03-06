@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/tasks"
 	"sensio/domain/rag/dtos"
 
@@ -25,14 +26,14 @@ func NewRAGStatusController(statusUC tasks.GenericStatusUseCase[dtos.RAGStatusDT
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"
-// @Success 200 {object} dtos.StandardResponse{data=dtos.RAGStatusDTO}
-// @Failure 404 {object} dtos.StandardResponse
+// @Success 200 {object} commonDtos.StandardResponse{data=dtos.RAGStatusDTO}
+// @Failure 404 {object} commonDtos.StandardResponse
 // @Router /api/rag/{task_id} [get]
 func (c *RAGStatusController) GetStatus(ctx *gin.Context) {
 	id := ctx.Param("task_id")
 	status, err := c.statusUC.GetTaskStatus(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
+		ctx.JSON(http.StatusNotFound, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Resource Not Found",
 		})
@@ -50,7 +51,7 @@ func (c *RAGStatusController) GetStatus(ctx *gin.Context) {
 		}
 	}
 
-	ctx.JSON(httpStatus, dtos.StandardResponse{
+	ctx.JSON(httpStatus, commonDtos.StandardResponse{
 		Status:  isSuccess,
 		Message: message,
 		Data:    status,

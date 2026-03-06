@@ -106,15 +106,15 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 	// For infrared_ac devices, fetch specialized status from Tuya V2 API
 	if deviceResponse.Result.Category == "infrared_ac" {
 		utils.LogDebug("GetDeviceByID: Fetching specialized status for infrared_ac %s (hub=%s)", targetID, deviceID)
-		
+
 		irUrlPath := fmt.Sprintf("/v2.0/infrareds/%s/remotes/%s/ac/status", deviceID, targetID)
 		irFullURL := config.TuyaBaseURL + irUrlPath
-		
+
 		// Generate signature for IR status request
 		irTimestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 		irStringToSign := tuya_utils.GenerateTuyaStringToSign("GET", contentHash, "", irUrlPath)
 		irSignature := tuya_utils.GenerateTuyaSignature(config.TuyaClientID, config.TuyaClientSecret, accessToken, irTimestamp, irStringToSign)
-		
+
 		irHeaders := map[string]string{
 			"client_id":    config.TuyaClientID,
 			"sign":         irSignature,
@@ -122,7 +122,7 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 			"sign_method":  signMethod,
 			"access_token": accessToken,
 		}
-		
+
 		irResp, err := uc.service.FetchIRACStatus(irFullURL, irHeaders)
 		if err == nil && irResp.Success {
 			utils.LogDebug("GetDeviceByID: Successfully fetched real IR status for %s", targetID)
@@ -133,7 +133,7 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 				if intVal, err := strconv.Atoi(val); err == nil {
 					typedVal = intVal
 				}
-				
+
 				statusDTOs = append(statusDTOs, dtos.TuyaDeviceStatusDTO{
 					Code:  code,
 					Value: typedVal,
@@ -145,7 +145,7 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 			} else {
 				utils.LogWarn("GetDeviceByID: Tuya IR API returned failure: %s", irResp.Msg)
 			}
-			
+
 			// Fallback to saved state
 			if uc.deviceStateUC != nil {
 				savedState, err := uc.deviceStateUC.GetDeviceState(targetID)

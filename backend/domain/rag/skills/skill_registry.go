@@ -1,6 +1,10 @@
 package skills
 
-import "sync"
+import (
+	"sensio/domain/common/utils"
+	"strings"
+	"sync"
+)
 
 // SkillRegistry manages a collection of available skills.
 type SkillRegistry struct {
@@ -19,14 +23,17 @@ func NewSkillRegistry() *SkillRegistry {
 func (r *SkillRegistry) Register(skill Skill) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.skills[skill.Name()] = skill
+	// Store with normalized name (lowercase) for case-insensitive lookup
+	name := strings.ToLower(skill.Name())
+	r.skills[name] = skill
+	utils.LogInfo("SkillRegistry: Registered skill '%s' (normalized: '%s')", skill.Name(), name)
 }
 
-// Get retrieves a skill by its unique name.
+// Get retrieves a skill by its unique name (case-insensitive).
 func (r *SkillRegistry) Get(name string) (Skill, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	s, ok := r.skills[name]
+	s, ok := r.skills[strings.ToLower(name)]
 	return s, ok
 }
 
