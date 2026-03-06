@@ -7,18 +7,18 @@ import com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.domain.repository.UploadRepository
 import com.example.whisperandroid.domain.repository.UploadState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.RandomAccessFile
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.delay
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class UploadRepositoryImpl(
     private val speechApi: SpeechApi
@@ -31,10 +31,14 @@ class UploadRepositoryImpl(
         sessionId: String?
     ): Flow<UploadState> = flow {
         emit(UploadState.Loading("Initializing upload..."))
-        
+
         val totalSize = file.length()
-        val chunkSize = if (chunkSizeMb > 0) chunkSizeMb * 1024 * 1024L else 8 * 1024 * 1024L // Default 8MB
-        
+        val chunkSize = if (chunkSizeMb > 0) {
+            chunkSizeMb * 1024 * 1024L
+        } else {
+            8 * 1024 * 1024L
+        } // Default 8MB
+
         var currentSessionId: String? = sessionId
         var chunksToUpload: List<Int>? = null
         var uploadedBytes = 0L
@@ -51,13 +55,23 @@ class UploadRepositoryImpl(
                         parseMissingRanges(data.missingRanges, data.totalChunks)
                     }
                     uploadedBytes = data.receivedBytes ?: 0L
-                    Log.d("UploadRepo", "Resuming session $currentSessionId. Missing chunks: ${chunksToUpload.size}")
+                    Log.d(
+                        "UploadRepo",
+                        "Resuming session $currentSessionId. Missing chunks: ${chunksToUpload.size}"
+                    )
                 } else {
-                    Log.w("UploadRepo", "Resume session $currentSessionId failed: ${status.message}. Starting new session.")
+                    Log.w(
+                        "UploadRepo",
+                        "Resume session $currentSessionId failed: ${status.message}. " +
+                            "Starting new session."
+                    )
                     currentSessionId = null
                 }
             } catch (e: Exception) {
-                Log.w("UploadRepo", "Error checking resume session: ${e.message}. Starting new session.")
+                Log.w(
+                    "UploadRepo",
+                    "Error checking resume session: ${e.message}. Starting new session."
+                )
                 currentSessionId = null
             }
         }
@@ -77,12 +91,12 @@ class UploadRepositoryImpl(
                 emit(UploadState.Error("Failed to create session: ${e.message}"))
                 return@flow
             }
-            
+
             if (!sessionResponse.status || sessionResponse.data == null) {
                 emit(UploadState.Error("Failed to create session: ${sessionResponse.message}"))
                 return@flow
             }
-            
+
             currentSessionId = sessionResponse.data.sessionId
             val totalChunks = sessionResponse.data.totalChunks
             chunksToUpload = (0 until totalChunks).toList()
@@ -90,15 +104,21 @@ class UploadRepositoryImpl(
         }
 
         emit(UploadState.SessionStarted(currentSessionId!!))
-        
+
         if (chunksToUpload!!.isEmpty()) {
             emit(UploadState.Success(currentSessionId!!))
             return@flow
         }
 
         // 3. Upload Chunks concurrently (max 3 at a time)
-        emit(UploadState.Progress(uploadedBytes, totalSize, (uploadedBytes.toFloat() / totalSize) * 100))
-        
+        emit(
+            UploadState.Progress(
+                uploadedBytes,
+                totalSize,
+                (uploadedBytes.toFloat() / totalSize) * 100
+            )
+        )
+
         val raf = RandomAccessFile(file, "r")
         val mutex = Mutex()
         val maxConcurrency = 3
@@ -112,17 +132,23 @@ class UploadRepositoryImpl(
                         async {
                             val offset = i.toLong() * chunkSize
                             val remaining = totalSize - offset
-                            val currentChunkSize = if (remaining < chunkSize) remaining else chunkSize
-                            
+                            val currentChunkSize = if (remaining < chunkSize) {
+                                remaining
+                            } else {
+                                chunkSize
+                            }
+
                             val buffer = ByteArray(currentChunkSize.toInt())
-                            
+
                             mutex.withLock {
                                 raf.seek(offset)
                                 raf.readFully(buffer)
                             }
-                            
-                            val requestBody = buffer.toRequestBody("application/octet-stream".toMediaTypeOrNull())
-                            
+
+                            val requestBody = buffer.toRequestBody(
+                                "application/octet-stream".toMediaTypeOrNull()
+                            )
+
                             var success = false
                             var lastError = ""
                             var retryDelay = 1000L
@@ -151,7 +177,9 @@ class UploadRepositoryImpl(
                             }
 
                             if (!success) {
-                                throw Exception("Failed to upload chunk $i after 3 retries: $lastError")
+                                throw Exception(
+                                    "Failed to upload chunk $i after 3 retries: $lastError"
+                                )
                             }
 
                             mutex.withLock {
@@ -162,12 +190,18 @@ class UploadRepositoryImpl(
 
                     // Await group completion
                     deferreds.awaitAll()
-                    
+
                     val progress = if (uploadedBytes > totalSize) totalSize else uploadedBytes
-                    emit(UploadState.Progress(progress, totalSize, (progress.toFloat() / totalSize) * 100))
+                    emit(
+                        UploadState.Progress(
+                            progress,
+                            totalSize,
+                            (progress.toFloat() / totalSize) * 100
+                        )
+                    )
                 }
             }
-            
+
             emit(UploadState.Success(currentSessionId!!))
         } catch (e: Exception) {
             emit(UploadState.Error("Upload failed: ${e.message}"))

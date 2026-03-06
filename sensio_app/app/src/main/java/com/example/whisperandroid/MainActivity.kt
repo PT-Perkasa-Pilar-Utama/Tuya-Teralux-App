@@ -13,6 +13,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.whisperandroid.navigation.AppRoutes
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
 import com.example.whisperandroid.ui.theme.SensioTheme
@@ -85,32 +89,68 @@ class MainActivity : ComponentActivity() {
                     launcher.launch(permissionsToRequest.toTypedArray())
                 }
 
-                // Simple state-based navigation (replace with Navigation Component for complex apps)
-                var currentScreen by remember { mutableStateOf("register") }
+                // Navigation implementation
+                val navController = rememberNavController()
+                val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
+                val token = tm.getAccessToken()
+                val startDestination = remember {
+                    if (token != null) {
+                        AppRoutes.Dashboard.route
+                    } else {
+                        AppRoutes.Register.route
+                    }
+                }
 
-                when (currentScreen) {
-                    "register" -> {
-                        RegisterScreen(onNavigateToDashboard = { currentScreen = "dashboard" })
+                NavHost(
+                    navController = navController,
+                    startDestination = startDestination
+                ) {
+                    composable(AppRoutes.Register.route) {
+                        RegisterScreen(onNavigateToDashboard = {
+                            navController.navigate(AppRoutes.Dashboard.route) {
+                                popUpTo(AppRoutes.Register.route) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        })
                     }
 
-                    "dashboard" -> {
+                    composable(AppRoutes.Dashboard.route) {
                         DashboardScreen(
-                            onNavigateToRegister = { currentScreen = "register" },
+                            onNavigateToRegister = {
+                                navController.navigate(AppRoutes.Register.route) {
+                                    popUpTo(AppRoutes.Dashboard.route) { inclusive = true }
+                                }
+                            },
                             onNavigateToUpload = { /* Deprecated */ },
-                            onNavigateToStreaming = { currentScreen = "meeting" },
-                            onNavigateToEdge = { currentScreen = "assistant" }
+                            onNavigateToStreaming = {
+                                navController.navigate(AppRoutes.Meeting.route) {
+                                    popUpTo(AppRoutes.Dashboard.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            onNavigateToEdge = {
+                                navController.navigate(AppRoutes.Assistant.route) {
+                                    popUpTo(AppRoutes.Dashboard.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
                         )
                     }
 
-                    "meeting" -> {
+                    composable(AppRoutes.Meeting.route) {
                         com.example.whisperandroid.presentation.meeting.MeetingTranscriberScreen(
-                            onNavigateBack = { currentScreen = "dashboard" }
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
-                    "assistant" -> {
+                    composable(AppRoutes.Assistant.route) {
                         com.example.whisperandroid.presentation.assistant.AiAssistantScreen(
-                            onNavigateBack = { currentScreen = "dashboard" }
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
                 }

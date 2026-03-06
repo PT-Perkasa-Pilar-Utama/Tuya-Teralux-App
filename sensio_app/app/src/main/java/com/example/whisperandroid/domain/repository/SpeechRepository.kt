@@ -1,7 +1,7 @@
 package com.example.whisperandroid.domain.repository
 
-import com.example.whisperandroid.data.remote.dto.TranscriptionResultText
 import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
+import com.example.whisperandroid.data.remote.dto.TranscriptionResultText
 import com.example.whisperandroid.data.remote.dto.TranscriptionStatusDto
 import java.io.File
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +20,10 @@ interface SpeechRepository {
         token: String
     ): Flow<Resource<TranscriptionResultText>>
 
-    suspend fun getTranscriptionStatus(taskId: String, token: String): SpeechResponseDto<TranscriptionStatusDto>
+    suspend fun getTranscriptionStatus(
+        taskId: String,
+        token: String
+    ): SpeechResponseDto<TranscriptionStatusDto>
 
     /**
      * Submits a transcription job using an already uploaded session ID.

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -167,6 +168,7 @@ fun DashboardContent(
                 textAlign = TextAlign.Center,
                 lineHeight = 40.sp,
                 letterSpacing = (-0.5).sp,
+                modifier = Modifier.testTag("dashboard_header"),
                 style =
                 MaterialTheme.typography.headlineMedium.copy(
                     shadow =
@@ -222,6 +224,7 @@ fun DashboardContent(
                         Modifier
                             .weight(1f)
                             .height(240.dp)
+                            .testTag("dashboard_meeting_card")
                     )
                     DashboardFeatureCard(
                         title = "AI Assistant",
@@ -239,6 +242,7 @@ fun DashboardContent(
                         Modifier
                             .weight(1f)
                             .height(240.dp)
+                            .testTag("dashboard_assistant_card")
                     )
                 }
             } else {
@@ -259,7 +263,9 @@ fun DashboardContent(
                             )
                         },
                         onClick = onNavigateToStreaming,
-                        modifier = Modifier.height(200.dp) // Increased from 180
+                        modifier = Modifier
+                            .height(200.dp)
+                            .testTag("dashboard_meeting_card") // Same tag for mobile/tablet for test consistency
                     )
                     DashboardFeatureCard(
                         title = "AI Assistant",
@@ -273,7 +279,9 @@ fun DashboardContent(
                             )
                         },
                         onClick = onNavigateToEdge,
-                        modifier = Modifier.height(200.dp) // Increased from 180
+                        modifier = Modifier
+                            .height(200.dp)
+                            .testTag("dashboard_assistant_card")
                     )
                 }
             }

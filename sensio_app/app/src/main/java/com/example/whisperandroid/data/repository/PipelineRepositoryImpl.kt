@@ -5,12 +5,12 @@ import com.example.whisperandroid.data.remote.api.PipelineApi
 import com.example.whisperandroid.data.remote.dto.PipelineStatusDto
 import com.example.whisperandroid.domain.repository.PipelineRepository
 import com.example.whisperandroid.domain.repository.Resource
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
 
 class PipelineRepositoryImpl(
     private val api: PipelineApi
@@ -35,7 +35,7 @@ class PipelineRepositoryImpl(
         try {
             val requestFile = audioFile.asRequestBody("audio/*".toMediaTypeOrNull())
             val audioPart = MultipartBody.Part.createFormData("audio", audioFile.name, requestFile)
-            
+
             val response = api.executePipeline(
                 audio = audioPart,
                 language = language,
@@ -52,7 +52,7 @@ class PipelineRepositoryImpl(
                 token = "Bearer $token",
                 idempotencyKey = idempotencyKey
             )
-            
+
             val taskId = response.data?.taskId
             if (response.status && taskId != null) {
                 emit(Resource.Success(taskId))

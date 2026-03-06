@@ -1,11 +1,17 @@
 package com.example.whisperandroid.data.remote.api
 
-import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
-import com.example.whisperandroid.data.remote.dto.TranscriptionSubmissionData
 import com.example.whisperandroid.data.remote.dto.PipelineStatusDto
 import com.example.whisperandroid.data.remote.dto.PipelineSubmitByUploadRequestDto
+import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
+import com.example.whisperandroid.data.remote.dto.TranscriptionSubmissionData
 import okhttp3.MultipartBody
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.Multipart
+import retrofit2.http.POST
+import retrofit2.http.Part
+import retrofit2.http.Path
 
 /**
  * Retrofit interface for the unified AI Pipeline (Transcribe -> Summarize).

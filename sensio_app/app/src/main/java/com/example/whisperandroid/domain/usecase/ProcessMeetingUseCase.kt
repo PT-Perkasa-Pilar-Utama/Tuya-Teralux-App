@@ -45,7 +45,7 @@ class ProcessMeetingUseCase(
         sessionId: String? = null
     ): Flow<MeetingProcessState> = channelFlow {
         send(MeetingProcessState.Uploading(0))
-        
+
         val targetLangCode = when (targetLang.lowercase()) {
             "id", "indonesia" -> "id"
             else -> "en"
@@ -55,34 +55,34 @@ class ProcessMeetingUseCase(
         val savedSessionId = prefs.getString(fileKey, null)
         var finalSessionId: String? = null
 
-        uploadRepository.uploadFile(audioFile, token, sessionId = savedSessionId).collect { uploadState ->
-            when (uploadState) {
-                is com.example.whisperandroid.domain.repository.UploadState.SessionStarted -> {
-                    // Persist the session ID immediately when known
-                    prefs.edit().putString(fileKey, uploadState.sessionId).apply()
+        uploadRepository.uploadFile(audioFile, token, sessionId = savedSessionId)
+            .collect { uploadState ->
+                when (uploadState) {
+                    is com.example.whisperandroid.domain.repository.UploadState.SessionStarted -> {
+                        // Persist the session ID immediately when known
+                        prefs.edit().putString(fileKey, uploadState.sessionId).apply()
+                    }
+                    is com.example.whisperandroid.domain.repository.UploadState.Success -> {
+                        finalSessionId = uploadState.sessionId
+                    }
+                    is com.example.whisperandroid.domain.repository.UploadState.Error -> {
+                        send(MeetingProcessState.Error("Upload failed: ${uploadState.message}"))
+                    }
+                    is com.example.whisperandroid.domain.repository.UploadState.Progress -> {
+                        val progressPercent = uploadState.percent.toInt().coerceIn(0, 100)
+                        send(MeetingProcessState.Uploading(progressPercent))
+                        Log.d("ProcessMeeting", "Upload progress: $progressPercent%")
+                    }
+                    else -> {}
                 }
-                is com.example.whisperandroid.domain.repository.UploadState.Success -> {
-                    finalSessionId = uploadState.sessionId
-                }
-                is com.example.whisperandroid.domain.repository.UploadState.Error -> {
-                    send(MeetingProcessState.Error("Upload failed: ${uploadState.message}"))
-                }
-                is com.example.whisperandroid.domain.repository.UploadState.Progress -> {
-                    val progressPercent = uploadState.percent.toInt().coerceIn(0, 100)
-                    send(MeetingProcessState.Uploading(progressPercent))
-                    Log.d("ProcessMeeting", "Upload progress: $progressPercent%")
-                }
-                else -> {}
             }
-        }
 
         if (finalSessionId == null) return@channelFlow
 
         var pipelineTaskId: String? = null
         pipelineRepository.executePipelineByUpload(
             sessionId = finalSessionId!!,
-            language = "id", 
-            targetLanguage = targetLangCode,
+            language = "id", targetLanguage = targetLangCode,
             summarize = true,
             refine = true,
             diarize = false,
@@ -133,12 +133,18 @@ class ProcessMeetingUseCase(
                                 isCompleted = true
                             } else if (overallStatus == "completed" || event == "completed") {
                                 // Signal overall completion to trigger final poll
-                                lastEventTime = 0 
+                                lastEventTime = 0
                             } else if (!isCompleted) {
                                 when (stage) {
-                                    "transcription" -> send(MeetingProcessState.Transcribing(pipelineTaskId!!))
-                                    "translation" -> send(MeetingProcessState.Translating(pipelineTaskId!!))
-                                    "summary" -> send(MeetingProcessState.Summarizing(pipelineTaskId!!))
+                                    "transcription" -> send(
+                                        MeetingProcessState.Transcribing(pipelineTaskId!!)
+                                    )
+                                    "translation" -> send(
+                                        MeetingProcessState.Translating(pipelineTaskId!!)
+                                    )
+                                    "summary" -> send(
+                                        MeetingProcessState.Summarizing(pipelineTaskId!!)
+                                    )
                                 }
                             }
                         }
@@ -151,7 +157,8 @@ class ProcessMeetingUseCase(
 
         // Multiplexing Loop: Wait for MQTT, fallback to Polling if dead
         while (!isCompleted) {
-            val isMqttConnected = mqttHelper.connectionStatus.value == com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED
+            val isMqttConnected = mqttHelper.connectionStatus.value ==
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED
             val timeSinceLastEvent = System.currentTimeMillis() - lastEventTime
 
             // Fallback rule: MQTT disconnected OR no event for 10 seconds
@@ -169,9 +176,16 @@ class ProcessMeetingUseCase(
 
                             if (!isCompleted) {
                                 when {
-                                    summarizeStatus == "processing" -> send(MeetingProcessState.Summarizing(pipelineTaskId!!))
-                                    translateStatus == "processing" -> send(MeetingProcessState.Translating(pipelineTaskId!!))
-                                    transcribeStatus == "processing" || transcribeStatus == "pending" -> send(MeetingProcessState.Transcribing(pipelineTaskId!!))
+                                    summarizeStatus == "processing" -> send(
+                                        MeetingProcessState.Summarizing(pipelineTaskId!!)
+                                    )
+                                    translateStatus == "processing" -> send(
+                                        MeetingProcessState.Translating(pipelineTaskId!!)
+                                    )
+                                    transcribeStatus == "processing" ||
+                                        transcribeStatus == "pending" -> send(
+                                        MeetingProcessState.Transcribing(pipelineTaskId!!)
+                                    )
                                 }
                             }
 
@@ -180,7 +194,8 @@ class ProcessMeetingUseCase(
                                 val summaryStage = stages["summary"]
                                 if (summaryStage?.status == "completed") {
                                     val resMap = summaryStage.result as? Map<*, *>
-                                    val summary = resMap?.get("summary") as? String ?: "Meeting summary is ready"
+                                    val summary = resMap?.get("summary") as? String
+                                        ?: "Meeting summary is ready"
                                     val pdfUrl = resMap?.get("pdf_url") as? String
                                     send(MeetingProcessState.Success(summary, pdfUrl))
                                 } else {

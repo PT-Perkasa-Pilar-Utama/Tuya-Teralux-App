@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.whisperandroid.data.local.MeetingAudioFileStore
 import java.io.File
 import kotlinx.coroutines.launch
@@ -89,7 +88,10 @@ fun MeetingFilePickerSheet(
                                 }
                             }
                         )
-                        Divider(modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        Divider(
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     }
                 }
             }
@@ -145,7 +147,7 @@ fun MeetingFileItem(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(32.dp)
         )
-        
+
         Column(
             modifier = Modifier
                 .weight(1f)

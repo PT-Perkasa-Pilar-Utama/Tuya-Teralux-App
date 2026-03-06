@@ -131,10 +131,14 @@ class RagRepositoryImpl(
                     "completed" -> {
                         val summary = statusData.summary
                         if (summary != null) {
-                            emit(Resource.Success(RAGSummaryResponseDto(
-                                summary = summary,
-                                pdfUrl = statusData.pdfUrl
-                            )))
+                            emit(
+                                Resource.Success(
+                                    RAGSummaryResponseDto(
+                                        summary = summary,
+                                        pdfUrl = statusData.pdfUrl
+                                    )
+                                )
+                            )
                         } else {
                             emit(Resource.Error("Completed but no summary result found"))
                         }

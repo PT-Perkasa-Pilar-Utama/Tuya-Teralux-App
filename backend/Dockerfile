@@ -3,10 +3,13 @@
 ############################################
 # Base Builder
 ############################################
-FROM golang:1.25-bookworm AS base-builder
+FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS base-builder
 
 WORKDIR /app
+ARG TARGETOS
 ARG TARGETARCH
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
@@ -14,6 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     binutils \
     ca-certificates \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    libc6-dev-arm64-cross \
     && rm -rf /var/lib/apt/lists/*
 
 
@@ -29,17 +35,29 @@ ARG LLAMA_TAG=b4765
 # ---- Build whisper.cpp ----
 RUN git clone --depth 1 --branch ${WHISPER_TAG} \
     https://github.com/ggerganov/whisper.cpp.git /whisper.cpp && \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
+        STRIP=aarch64-linux-gnu-strip; \
+    else \
+        STRIP=strip; \
+    fi && \
     cmake -S /whisper.cpp -B /whisper.cpp/build -DGGML_NATIVE=OFF && \
     cmake --build /whisper.cpp/build --config Release -t main && \
-    strip --strip-unneeded /whisper.cpp/build/bin/main && \
+    $STRIP --strip-unneeded /whisper.cpp/build/bin/main && \
     cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli
 
 # ---- Build llama.cpp ----
 RUN git clone --depth 1 --branch ${LLAMA_TAG} \
     https://github.com/ggerganov/llama.cpp.git /llama.cpp && \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
+        STRIP=aarch64-linux-gnu-strip; \
+    else \
+        STRIP=strip; \
+    fi && \
     cmake -S /llama.cpp -B /llama.cpp/build -DGGML_NATIVE=OFF && \
     cmake --build /llama.cpp/build --config Release -t llama-cli && \
-    strip --strip-unneeded /llama.cpp/build/bin/llama-cli && \
+    $STRIP --strip-unneeded /llama.cpp/build/bin/llama-cli && \
     cp /llama.cpp/build/bin/llama-cli /usr/local/bin/llama-cli
 
 
@@ -49,11 +67,18 @@ RUN git clone --depth 1 --branch ${LLAMA_TAG} \
 FROM base-builder AS app-builder
 
 # Install migrate
-RUN curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-$TARGETARCH.tar.gz \
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        ARCH="arm64"; \
+        STRIP=aarch64-linux-gnu-strip; \
+    else \
+        ARCH="amd64"; \
+        STRIP=strip; \
+    fi && \
+    curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-${ARCH}.tar.gz \
     | tar -xz && \
     mv migrate /usr/local/bin/migrate && \
     chmod +x /usr/local/bin/migrate && \
-    strip --strip-unneeded /usr/local/bin/migrate
+    $STRIP --strip-unneeded /usr/local/bin/migrate || true
 
 # Cache deps
 COPY go.mod go.sum ./
@@ -66,6 +91,12 @@ COPY . .
 # Build app
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
+        STRIP=aarch64-linux-gnu-strip; \
+    else \
+        STRIP=strip; \
+    fi && \
     CGO_ENABLED=1 \
     GOOS=linux \
     GOARCH=$TARGETARCH \
@@ -73,7 +104,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
       -trimpath \
       -ldflags="-s -w" \
       -o app && \
-    strip --strip-unneeded app
+    $STRIP --strip-unneeded app
 
 
 ############################################
@@ -121,7 +152,8 @@ RUN chmod +x /app/scripts/entrypoint.sh \
     chown appuser:appuser /app/scripts/entrypoint.sh
 
 ENV PORT=8080
-ENV AUTO_MIGRATE=true
+ARG AUTO_MIGRATE=true
+ENV AUTO_MIGRATE=$AUTO_MIGRATE
 ENV MODEL_AUTO_DOWNLOAD=true
 ENV WHISPER_CLI=/app/bin/whisper-cli
 ENV LLAMA_CLI=/app/bin/llama-cli

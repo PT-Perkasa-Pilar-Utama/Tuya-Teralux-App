@@ -18,7 +18,13 @@ class TranscribeAudioUseCase(
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-            speechRepository.transcribeAudio(audioFile, token, language, macAddress, idempotencyKey).collect { result ->
+            speechRepository.transcribeAudio(
+                file = audioFile,
+                token = token,
+                language = language,
+                macAddress = macAddress,
+                idempotencyKey = idempotencyKey
+            ).collect { result ->
                 emit(result)
             }
         }

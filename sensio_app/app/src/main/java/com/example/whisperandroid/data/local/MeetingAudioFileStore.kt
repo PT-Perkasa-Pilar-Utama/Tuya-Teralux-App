@@ -21,7 +21,7 @@ object MeetingAudioFileStore {
         val dir = getMeetingsDirectory(context)
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val uuid = UUID.randomUUID().toString()
-        return File(dir, "meeting_mic_${timestamp}_${uuid}.wav")
+        return File(dir, "meeting_mic_${timestamp}_$uuid.wav")
     }
 
     /**
@@ -32,7 +32,7 @@ object MeetingAudioFileStore {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val uuid = UUID.randomUUID().toString()
         val cleanExt = extension.removePrefix(".")
-        return File(dir, "meeting_file_${timestamp}_${uuid}.$cleanExt")
+        return File(dir, "meeting_file_${timestamp}_$uuid.$cleanExt")
     }
 
     private fun getMeetingsDirectory(context: Context): File {
@@ -59,7 +59,12 @@ object MeetingAudioFileStore {
      */
     fun isSupportedAudio(file: File): Boolean {
         val name = file.name.lowercase()
-        return name.endsWith(".wav") || name.endsWith(".m4a") || name.endsWith(".mp3") || name.endsWith(".ogg") || name.endsWith(".flac") || name.endsWith(".mp4")
+        return name.endsWith(".wav") ||
+            name.endsWith(".m4a") ||
+            name.endsWith(".mp3") ||
+            name.endsWith(".ogg") ||
+            name.endsWith(".flac") ||
+            name.endsWith(".mp4")
     }
 
     /**
