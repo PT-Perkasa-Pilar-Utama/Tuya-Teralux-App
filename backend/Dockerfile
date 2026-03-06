@@ -33,9 +33,8 @@ ARG WHISPER_TAG=v1.7.4
 ARG LLAMA_TAG=b4765
 
 # ---- Build whisper.cpp ----
-RUN git clone --depth 1 --branch ${WHISPER_TAG} \
-    https://github.com/ggerganov/whisper.cpp.git /whisper.cpp && \
-    if [ "$TARGETARCH" = "arm64" ]; then \
+COPY services/whisper.cpp /whisper.cpp
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
         export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
         STRIP=aarch64-linux-gnu-strip; \
     else \
@@ -47,9 +46,8 @@ RUN git clone --depth 1 --branch ${WHISPER_TAG} \
     cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli
 
 # ---- Build llama.cpp ----
-RUN ( git clone --depth 1 --branch ${LLAMA_TAG} https://github.com/ggerganov/llama.cpp.git /llama.cpp || \
-      git clone --depth 1 --branch ${LLAMA_TAG} https://github.com/ggml-org/llama.cpp.git /llama.cpp ) && \
-    if [ "$TARGETARCH" = "arm64" ]; then \
+COPY services/llama.cpp /llama.cpp
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
         export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
         STRIP=aarch64-linux-gnu-strip; \
     else \
