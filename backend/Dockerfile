@@ -47,18 +47,27 @@ RUN git clone --depth 1 --branch ${WHISPER_TAG} \
     cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli
 
 # ---- Build llama.cpp ----
-RUN git clone --depth 1 --branch ${LLAMA_TAG} \
-    https://github.com/ggerganov/llama.cpp.git /llama.cpp && \
+RUN ( git clone --depth 1 --branch ${LLAMA_TAG} https://github.com/ggerganov/llama.cpp.git /llama.cpp || \
+      git clone --depth 1 --branch ${LLAMA_TAG} https://github.com/ggml-org/llama.cpp.git /llama.cpp ) && \
     if [ "$TARGETARCH" = "arm64" ]; then \
         export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
         STRIP=aarch64-linux-gnu-strip; \
     else \
         STRIP=strip; \
     fi && \
-    cmake -S /llama.cpp -B /llama.cpp/build -DGGML_NATIVE=OFF && \
-    cmake --build /llama.cpp/build --config Release -t llama-cli && \
-    $STRIP --strip-unneeded /llama.cpp/build/bin/llama-cli && \
-    cp /llama.cpp/build/bin/llama-cli /usr/local/bin/llama-cli
+    cmake -S /llama.cpp -B /llama.cpp/build \
+        -DGGML_NATIVE=OFF \
+        -DLLAMA_BUILD_EXAMPLES=ON \
+        -DLLAMA_BUILD_SERVER=OFF && \
+    ( cmake --build /llama.cpp/build --config Release -t llama-cli || cmake --build /llama.cpp/build --config Release -t main ) && \
+    if [ -f /llama.cpp/build/bin/llama-cli ]; then \
+        BIN_TARGET=/llama.cpp/build/bin/llama-cli; \
+    else \
+        BIN_TARGET=/llama.cpp/build/bin/main; \
+    fi && \
+    test -x "$BIN_TARGET" && \
+    $STRIP --strip-unneeded "$BIN_TARGET" && \
+    cp "$BIN_TARGET" /usr/local/bin/llama-cli
 
 
 ############################################
