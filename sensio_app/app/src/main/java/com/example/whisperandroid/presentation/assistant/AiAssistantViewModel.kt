@@ -56,6 +56,9 @@ class AiAssistantViewModel(
     private var lastUserMessageNormalized: String? = null
     private var lastUserMessageAtMs: Long = 0L
 
+    // Latency tracking
+    private val requestStartedAtMs = mutableMapOf<String, Long>()
+
     private val mqttHelper = com.example.whisperandroid.data.di.NetworkModule.mqttHelper
     private val audioRecorder = AudioRecorder(application)
     private var currentRecordingFile: File? = null
@@ -122,14 +125,24 @@ class AiAssistantViewModel(
                                 false
                             }
 
+                            val currentRequestId = activeRequestId
                             val wasRecording = assistantState == AssistantState.Recording
+
+                            // Calculate elapsed time BEFORE clearing activeRequestId
+                            val elapsed = currentRequestId?.let { rid ->
+                                requestStartedAtMs[rid]?.let { start ->
+                                    System.currentTimeMillis() - start
+                                }
+                            }
+                            currentRequestId?.let { requestStartedAtMs.remove(it) }
 
                             // ALWAYS stop active states when any answer arrives
                             assistantState = AssistantState.Completed
                             activeRequestId = null
                             android.util.Log.d(
                                 "AiAssistantViewModel",
-                                "assistantState set to Completed (answer received)"
+                                "assistantState set to Completed (answer received, " +
+                                    "elapsed=${elapsed}ms)"
                             )
 
                             if (isBlocked) {
@@ -178,7 +191,10 @@ class AiAssistantViewModel(
                             if (cleanMessage != null) {
                                 transcriptionResults = transcriptionResults + TranscriptionMessage(
                                     text = cleanMessage,
-                                    role = MessageRole.ASSISTANT
+                                    role = MessageRole.ASSISTANT,
+                                    requestId = currentRequestId,
+                                    finishedInMs = elapsed,
+                                    source = "mqtt"
                                 )
                             }
                         }
@@ -219,6 +235,7 @@ class AiAssistantViewModel(
                 } catch (e: Exception) {
                     android.util.Log.e("AiAssistantViewModel", "Error parsing MQTT message", e)
                     // Robust reset on error
+                    activeRequestId?.let { requestStartedAtMs.remove(it) }
                     assistantState = AssistantState.Failed
                     activeRequestId = null
                 }
@@ -294,11 +311,14 @@ class AiAssistantViewModel(
             assistantState = AssistantState.Publishing
 
             viewModelScope.launch {
+                val requestId = activeRequestId ?: return@launch
+                requestStartedAtMs[requestId] = System.currentTimeMillis()
                 val result = mqttHelper.publishChat(text, selectedLanguage)
                 if (result.isSuccess) {
                     assistantState = AssistantState.WaitingResponse
-                    startResponseTimeout(activeRequestId)
+                    startResponseTimeout(requestId)
                 } else {
+                    requestStartedAtMs.remove(requestId)
                     assistantState = AssistantState.Failed
                     activeRequestId = null
                     android.util.Log.e("AiAssistantViewModel", "publishChat failed")
@@ -316,13 +336,16 @@ class AiAssistantViewModel(
             return
         }
 
-        activeRequestId = java.util.UUID.randomUUID().toString()
+        val requestId = java.util.UUID.randomUUID().toString()
+        activeRequestId = requestId
         activeRequestType = RequestType.Audio
         activeRequestText = null
         assistantState = AssistantState.Recording
+        requestStartedAtMs[requestId] = System.currentTimeMillis()
         currentRecordingFile = file
         val started = audioRecorder.start(file)
         if (!started) {
+            requestStartedAtMs.remove(requestId)
             assistantState = AssistantState.Failed
             activeRequestId = null
             activeRequestType = null
@@ -338,13 +361,15 @@ class AiAssistantViewModel(
             if (file != null && audioRecorder.isWavValid(file)) {
                 audioRecorder.finalizeWav(file)
                 assistantState = AssistantState.Publishing
+                val requestId = activeRequestId
                 viewModelScope.launch {
                     val bytes = file.readBytes()
                     val result = mqttHelper.publishAudio(bytes, selectedLanguage)
                     if (result.isSuccess) {
                         assistantState = AssistantState.WaitingResponse
-                        startResponseTimeout(activeRequestId)
+                        startResponseTimeout(requestId)
                     } else {
+                        requestId?.let { requestStartedAtMs.remove(it) }
                         assistantState = AssistantState.Failed
                         activeRequestId = null
                         android.util.Log.e("AiAssistantViewModel", "publishAudio failed")
@@ -352,6 +377,7 @@ class AiAssistantViewModel(
                 }
             } else {
                 android.util.Log.e("AiAssistantViewModel", "Recording file is invalid or too small")
+                activeRequestId?.let { requestStartedAtMs.remove(it) }
                 assistantState = AssistantState.Failed
                 activeRequestId = null
             }
@@ -359,6 +385,7 @@ class AiAssistantViewModel(
     }
 
     fun abortProcessing() {
+        activeRequestId?.let { requestStartedAtMs.remove(it) }
         assistantState = AssistantState.Idle
         activeRequestId = null
         android.util.Log.d("AiAssistantViewModel", "abortProcessing: reset to Idle")
@@ -367,7 +394,7 @@ class AiAssistantViewModel(
     private fun startResponseTimeout(requestId: String?) {
         if (requestId == null) return
         viewModelScope.launch {
-            kotlinx.coroutines.delay(25000L) // 25s
+            kotlinx.coroutines.delay(12000L) // 12s Standard Fallback Delay
             if (activeRequestId == requestId && assistantState == AssistantState.WaitingResponse) {
                 android.util.Log.e(
                     "AiAssistantViewModel",
@@ -396,6 +423,7 @@ class AiAssistantViewModel(
             val terminalId = tm.getTerminalId() ?: username
 
             if (token == null) {
+                requestStartedAtMs.remove(requestId)
                 assistantState = AssistantState.Failed
                 activeRequestId = null
                 return@launch
@@ -419,11 +447,13 @@ class AiAssistantViewModel(
                                 if (data != null) {
                                     handleHttpChatResponse(data.response, false)
                                 } else {
+                                    requestStartedAtMs.remove(requestId)
                                     assistantState = AssistantState.Failed
                                     activeRequestId = null
                                 }
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                requestStartedAtMs.remove(requestId)
                                 assistantState = AssistantState.Failed
                                 activeRequestId = null
                             }
@@ -431,6 +461,7 @@ class AiAssistantViewModel(
                         }
                     }
                 } else {
+                    requestStartedAtMs.remove(requestId)
                     assistantState = AssistantState.Failed
                     activeRequestId = null
                 }
@@ -459,11 +490,13 @@ class AiAssistantViewModel(
                                         fallbackIdempotencyKey
                                     )
                                 } else {
+                                    requestStartedAtMs.remove(requestId)
                                     assistantState = AssistantState.Failed
                                     activeRequestId = null
                                 }
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                requestStartedAtMs.remove(requestId)
                                 assistantState = AssistantState.Failed
                                 activeRequestId = null
                             }
@@ -471,10 +504,12 @@ class AiAssistantViewModel(
                         }
                     }
                 } else {
+                    requestStartedAtMs.remove(requestId)
                     assistantState = AssistantState.Failed
                     activeRequestId = null
                 }
             } else {
+                requestStartedAtMs.remove(requestId)
                 assistantState = AssistantState.Failed
                 activeRequestId = null
             }
@@ -532,11 +567,13 @@ class AiAssistantViewModel(
                                 if (data != null) {
                                     handleHttpChatResponse(data.response, false)
                                 } else {
+                                    requestStartedAtMs.remove(requestId)
                                     assistantState = AssistantState.Failed
                                     activeRequestId = null
                                 }
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                requestStartedAtMs.remove(requestId)
                                 assistantState = AssistantState.Failed
                                 activeRequestId = null
                             }
@@ -544,15 +581,17 @@ class AiAssistantViewModel(
                         }
                     }
                 } else if (hasError) {
+                    requestStartedAtMs.remove(requestId)
                     assistantState = AssistantState.Failed
                     activeRequestId = null
                     return@launch
                 } else {
                     attempts++
-                    kotlinx.coroutines.delay(2000L)
+                    kotlinx.coroutines.delay(1500L) // 1.5s delay between polls
                 }
             }
             if (!isCompleted) {
+                requestStartedAtMs.remove(requestId)
                 assistantState = AssistantState.Failed
                 activeRequestId = null
             }
@@ -560,6 +599,14 @@ class AiAssistantViewModel(
     }
 
     private fun handleHttpChatResponse(responseText: String, isBlocked: Boolean) {
+        val currentRequestId = activeRequestId
+        val elapsed = currentRequestId?.let { rid ->
+            requestStartedAtMs[rid]?.let { start ->
+                System.currentTimeMillis() - start
+            }
+        }
+        currentRequestId?.let { requestStartedAtMs.remove(it) }
+
         assistantState = AssistantState.Completed
         activeRequestId = null
 
@@ -584,7 +631,10 @@ class AiAssistantViewModel(
 
         transcriptionResults = transcriptionResults + TranscriptionMessage(
             text = cleanMessage,
-            role = MessageRole.ASSISTANT
+            role = MessageRole.ASSISTANT,
+            requestId = currentRequestId,
+            finishedInMs = elapsed,
+            source = "http_fallback"
         )
     }
 
