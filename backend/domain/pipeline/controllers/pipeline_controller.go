@@ -141,7 +141,9 @@ func (c *PipelineController) ExecuteJob(ctx *gin.Context) {
 	}
 
 	// 2. Not a duplicate (or no key), proceed to save
-	recording, err := c.saveRecordingUC.SaveRecording(file, macAddress, baseURL)
+	recording, err := c.saveRecordingUC.SaveRecording(file, macAddress, baseURL, recordingUsecases.SaveRecordingOption{
+		NotifyBIG: summarize,
+	})
 	if err != nil {
 		utils.LogError("Pipeline.SaveRecording: %v", err)
 		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
@@ -232,7 +234,9 @@ func (c *PipelineController) ExecuteJobByUpload(ctx *gin.Context) {
 
 	// 2. Save as Recording (moves file)
 	baseURL := utils.GetBaseURL(ctx)
-	recording, err := c.saveRecordingUC.SaveRecordingFromPath(finalized.MergedPath, finalized.OriginalFileName, req.MacAddress, baseURL)
+	recording, err := c.saveRecordingUC.SaveRecordingFromPath(finalized.MergedPath, finalized.OriginalFileName, req.MacAddress, baseURL, recordingUsecases.SaveRecordingOption{
+		NotifyBIG: req.Summarize,
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,

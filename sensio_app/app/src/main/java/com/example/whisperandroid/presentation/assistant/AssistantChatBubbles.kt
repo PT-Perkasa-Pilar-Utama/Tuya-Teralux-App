@@ -76,5 +76,16 @@ fun AssistantChatBubble(message: TranscriptionMessage) {
                 }
             )
         }
+
+        if (!isUser && message.finishedInMs != null) {
+            val seconds = message.finishedInMs / 1000.0
+            val sourceTag = if (message.source != null) " via ${message.source}" else ""
+            Text(
+                text = "Finished in %.2fs%s".format(seconds, sourceTag),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+            )
+        }
     }
 }

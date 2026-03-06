@@ -31,7 +31,7 @@ mkdir -p "$MODEL_DIR"
 
 # 2. Binary Verification
 echo -e "${INFO}[INFO] Verifying binaries...${NC}"
-for bin in "$WHISPER_CLI" "$LLAMA_CLI" "/app/app" "/usr/local/bin/migrate"; do
+for bin in "$WHISPER_CLI" "$LLAMA_CLI" "/app/app" "/usr/local/bin/migrate" "/usr/bin/chromium"; do
     if [ ! -f "$bin" ]; then
         echo -e "${ERROR}[ERROR] Required binary missing: ${bin}${NC}"
         exit 1
@@ -185,9 +185,19 @@ if [ "${AUTO_MIGRATE:-true}" = "true" ] && [ "${DB_TYPE:-mysql}" = "mysql" ]; th
     fi
 fi
 
-# 5. Final Permissions Audit
-mkdir -p /app/logs
+# 5. Browser Prewarm
+echo -e "${INFO}[INFO] Prewarming Chromium...${NC}"
+if /usr/bin/chromium --headless=new --no-sandbox --disable-dev-shm-usage --dump-dom about:blank >/dev/null 2>&1; then
+    echo -e "${SUCCESS}[SUCCESS] Chromium prewarmed.${NC}"
+else
+    echo -e "${ERROR}[ERROR] Chromium prewarm failed. PDF generation may not work.${NC}"
+    exit 1
+fi
 
-# 6. Start Application
+# 6. Final Permissions Audit
+mkdir -p /app/logs
+mkdir -p /app/uploads/reports
+
+# 7. Start Application
 echo -e "${SUCCESS}[SUCCESS] Initialization complete. Starting Sensio Backend...${NC}"
 exec /app/app

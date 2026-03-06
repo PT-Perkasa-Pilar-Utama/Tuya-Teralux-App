@@ -343,7 +343,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 	}()
 
 	diarize := false
-	refine := true // Default to true for existing flows
+	refine := false // Default to false to reduce latency
 	if metadata != nil {
 		diarize = metadata.Diarize
 		// If we add Refine to metadata in the future, we should use it here.

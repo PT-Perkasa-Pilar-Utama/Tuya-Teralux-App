@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ############################################
-# Base Builder
+# Base Builder (Cross-compilation for Go)
 ############################################
 FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS base-builder
 
@@ -17,16 +17,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     binutils \
     ca-certificates \
-    gcc-aarch64-linux-gnu \
-    g++-aarch64-linux-gnu \
-    libc6-dev-arm64-cross \
     && rm -rf /var/lib/apt/lists/*
 
 
 ############################################
-# AI Builder (whisper + llama)
+# Native Builder (For C++ compilation)
 ############################################
-FROM base-builder AS ai-builder
+FROM golang:1.25-bookworm AS native-builder
+
+WORKDIR /app
+ARG TARGETARCH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    build-essential \
+    git \
+    binutils \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+
+############################################
+# AI Builder (whisper + llama) - Native Target
+############################################
+FROM native-builder AS ai-builder
 
 # Stable pinned versions
 ARG WHISPER_TAG=v1.7.4
@@ -34,26 +48,15 @@ ARG LLAMA_TAG=b4765
 
 # ---- Build whisper.cpp ----
 COPY services/whisper.cpp /whisper.cpp
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
-        STRIP=aarch64-linux-gnu-strip; \
-    else \
-        STRIP=strip; \
-    fi && \
+RUN echo "🔨 Building whisper.cpp for $TARGETARCH..." && \
     cmake -S /whisper.cpp -B /whisper.cpp/build -DGGML_NATIVE=OFF && \
     cmake --build /whisper.cpp/build --config Release -t main && \
-    $STRIP --strip-unneeded /whisper.cpp/build/bin/main && \
+    strip --strip-unneeded /whisper.cpp/build/bin/main && \
     cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli
 
 # ---- Build llama.cpp ----
 COPY services/llama.cpp /llama.cpp
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
-        STRIP=aarch64-linux-gnu-strip; \
-    else \
-        STRIP=strip; \
-    fi && \
-    echo "🔨 Configuring llama.cpp..." && \
+RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
     cmake -S /llama.cpp -B /llama.cpp/build \
         -DGGML_NATIVE=OFF \
         -DLLAMA_BUILD_EXAMPLES=ON \
@@ -72,28 +75,22 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
         BIN_TARGET=/llama.cpp/build/bin/main; \
     fi && \
     test -x "$BIN_TARGET" && \
-    $STRIP --strip-unneeded "$BIN_TARGET" && \
+    strip --strip-unneeded "$BIN_TARGET" && \
     cp "$BIN_TARGET" /usr/local/bin/llama-cli
 
 
 ############################################
-# Go Builder
+# Go Builder - Native Target
 ############################################
-FROM base-builder AS app-builder
+FROM native-builder AS app-builder
 
 # Install migrate
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        ARCH="arm64"; \
-        STRIP=aarch64-linux-gnu-strip; \
-    else \
-        ARCH="amd64"; \
-        STRIP=strip; \
-    fi && \
-    curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-${ARCH}.tar.gz \
+RUN echo "📥 Downloading migrate for $TARGETARCH..." && \
+    curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-${TARGETARCH}.tar.gz \
     | tar -xz && \
     mv migrate /usr/local/bin/migrate && \
     chmod +x /usr/local/bin/migrate && \
-    $STRIP --strip-unneeded /usr/local/bin/migrate || true
+    strip --strip-unneeded /usr/local/bin/migrate || true
 
 # Cache deps
 COPY go.mod go.sum ./
@@ -106,20 +103,15 @@ COPY . .
 # Build app
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
-        STRIP=aarch64-linux-gnu-strip; \
-    else \
-        STRIP=strip; \
-    fi && \
-    CGO_ENABLED=1 \
+    echo "🔨 Building Go app for $TARGETARCH (CGO_ENABLED=0)..." && \
+    go env && \
+    CGO_ENABLED=0 \
     GOOS=linux \
-    GOARCH=$TARGETARCH \
     go build \
       -trimpath \
       -ldflags="-s -w" \
       -o app && \
-    $STRIP --strip-unneeded app
+    strip --strip-unneeded app
 
 
 ############################################
@@ -147,7 +139,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/bin /app/models /app/logs /app/uploads && \
+    mkdir -p /app/bin /app/models /app/logs /app/uploads /app/uploads/reports && \
     chown -R appuser:appuser /app
 
 # Copy binaries
@@ -158,6 +150,7 @@ COPY --from=ai-builder /usr/local/bin/llama-cli /app/bin/llama-cli
 
 # Copy assets
 COPY --from=app-builder /app/domain/terminal/migrations /app/migrations
+COPY --from=app-builder /app/domain/rag/skills/definitions /app/domain/rag/skills/definitions
 COPY --from=app-builder /app/docs /app/docs
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
 
