@@ -55,20 +55,29 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MeetingTranscriberScreen(
     onNavigateBack: () -> Unit,
-    viewModel: MeetingViewModel =
-        remember {
-            MeetingViewModel(
-                com.example.whisperandroid.data.di.NetworkModule.processMeetingUseCase
-            )
-        }
+    viewModel: MeetingViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = MeetingViewModelFactory(
+            com.example.whisperandroid.data.di.NetworkModule.processMeetingUseCase
+        )
+    )
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val emailState by viewModel.emailState.collectAsState()
     val mqttStatus by viewModel.mqttStatus.collectAsState()
-    var summaryLanguage by remember { mutableStateOf("id") }
-    var showEmailDialog by remember { mutableStateOf(false) }
-    var showFilePickerSheet by remember { mutableStateOf(false) }
-    var hasAutoSent by remember { mutableStateOf(false) }
+    var summaryLanguage by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf("id")
+    }
+    var showEmailDialog by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(
+            false
+        )
+    }
+    var showFilePickerSheet by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(
+            false
+        )
+    }
+    var hasAutoSent by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -153,7 +162,9 @@ fun MeetingTranscriberScreen(
                     val type = contentResolver.getType(selectedUri)
                     val extension = MimeTypeMap.getSingleton()
                         .getExtensionFromMimeType(type) ?: "m4a"
-                    val outputFile = com.example.whisperandroid.data.local.MeetingAudioFileStore.createImportedAudioFile(context, extension)
+                    val outputFile =
+                        com.example.whisperandroid.data.local.MeetingAudioFileStore
+                            .createImportedAudioFile(context, extension)
                     try {
                         contentResolver.openInputStream(selectedUri)?.use { input ->
                             outputFile.outputStream().use { output -> input.copyTo(output) }
@@ -208,6 +219,7 @@ fun MeetingTranscriberScreen(
     SensioFeatureLayout(
         title = "Meeting Insights",
         onNavigateBack = onNavigateBack,
+        titleTestTag = "meeting_screen_title",
         headerActions = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -232,7 +244,8 @@ fun MeetingTranscriberScreen(
                 hasPermission = hasPermission,
                 uiState = uiState,
                 pulseScale = pulseScale,
-                isEnabled = mqttStatus == com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED,
+                isEnabled = mqttStatus ==
+                    com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED,
                 onMicClick = {
                     val canRecord = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||
@@ -241,7 +254,9 @@ fun MeetingTranscriberScreen(
                         if (!hasPermission) {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         } else {
-                            val file = com.example.whisperandroid.data.local.MeetingAudioFileStore.createMicAudioFile(context)
+                            val file =
+                                com.example.whisperandroid.data.local.MeetingAudioFileStore
+                                    .createMicAudioFile(context)
                             audioRecorder.start(file)
                             audioFile = file
                             isRecording = true
@@ -354,7 +369,10 @@ fun MeetingTranscriberScreen(
     }
 
     if (showFilePickerSheet) {
-        val files = remember { com.example.whisperandroid.data.local.MeetingAudioFileStore.listMeetingAudioFiles(context) }
+        val files = remember {
+            com.example.whisperandroid.data.local.MeetingAudioFileStore
+                .listMeetingAudioFiles(context)
+        }
         MeetingFilePickerSheet(
             files = files,
             onFileSelected = { file ->

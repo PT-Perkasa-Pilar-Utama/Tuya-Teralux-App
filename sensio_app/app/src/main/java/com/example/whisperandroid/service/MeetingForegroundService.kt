@@ -53,11 +53,13 @@ class MeetingForegroundService : Service() {
                     token = token,
                     targetLang = targetLang,
                     macAddress = macAddress,
-                    idempotencyKey = "meeting_${audioFile.lastModified()}" 
+                    idempotencyKey = "meeting_${audioFile.lastModified()}"
                 ).collect { state ->
                     MeetingProcessManager.updateState(state)
                     updateNotification(state)
-                    if (state is MeetingProcessState.Success || state is MeetingProcessState.Error) {
+                    if (state is MeetingProcessState.Success ||
+                        state is MeetingProcessState.Error
+                    ) {
                         showFinalNotification(state)
                         stopForeground(false)
                         stopSelf()

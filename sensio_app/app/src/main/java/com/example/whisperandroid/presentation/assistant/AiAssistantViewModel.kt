@@ -32,18 +32,18 @@ class AiAssistantViewModel(
         get() = assistantState == AssistantState.Recording
 
     val isProcessing: Boolean
-        get() = assistantState == AssistantState.Publishing || 
-                assistantState == AssistantState.WaitingResponse || 
-                assistantState == AssistantState.FallbackRunning
+        get() = assistantState == AssistantState.Publishing ||
+            assistantState == AssistantState.WaitingResponse ||
+            assistantState == AssistantState.FallbackRunning
 
     var activeRequestId by mutableStateOf<String?>(null)
         private set
 
     enum class RequestType { Audio, Chat }
-    
+
     var activeRequestType by mutableStateOf<RequestType?>(null)
         private set
-        
+
     var activeRequestText by mutableStateOf<String?>(null)
         private set
 
@@ -88,7 +88,10 @@ class AiAssistantViewModel(
                                 } else {
                                     null
                                 }
-                                if (data != null && data.has("response") && !data.get("response").isJsonNull) {
+                                if (data != null &&
+                                    data.has("response") &&
+                                    !data.get("response").isJsonNull
+                                ) {
                                     data.get("response").asString
                                 } else if (json.has("message") && !json.get("message").isJsonNull) {
                                     json.get("message").asString
@@ -111,7 +114,10 @@ class AiAssistantViewModel(
                                 } else {
                                     null
                                 }
-                                data != null && data.has("is_blocked") && !data.get("is_blocked").isJsonNull && data.get("is_blocked").asBoolean
+                                val hasBlocked = data != null &&
+                                    data.has("is_blocked") &&
+                                    !data.get("is_blocked").isJsonNull
+                                hasBlocked && data!!.get("is_blocked").asBoolean
                             } else {
                                 false
                             }
@@ -121,34 +127,51 @@ class AiAssistantViewModel(
                             // ALWAYS stop active states when any answer arrives
                             assistantState = AssistantState.Completed
                             activeRequestId = null
-                            android.util.Log.d("AiAssistantViewModel", "assistantState set to Completed (answer received)")
-                            
+                            android.util.Log.d(
+                                "AiAssistantViewModel",
+                                "assistantState set to Completed (answer received)"
+                            )
+
                             if (isBlocked) {
-                                // Remove BOTH the preemptively-added USER bubble 
+                                // Remove BOTH the preemptively-added USER bubble
                                 // and any sync USER bubble from previous prompt
-                                val userMessages = transcriptionResults.filter { it.role == MessageRole.USER }
-                                if (userMessages.isNotEmpty()) {
-                                    transcriptionResults = transcriptionResults.toMutableList().apply {
-                                        val lastUserIndex = indexOfLast { it.role == MessageRole.USER }
-                                        if (lastUserIndex >= 0) removeAt(lastUserIndex)
-                                    }
+                                val userMessages = transcriptionResults.filter {
+                                    it.role == MessageRole.USER
                                 }
-                                
+                                if (userMessages.isNotEmpty()) {
+                                    transcriptionResults = transcriptionResults
+                                        .toMutableList()
+                                        .apply {
+                                            val lastUserIndex = indexOfLast {
+                                                it.role == MessageRole.USER
+                                            }
+                                            if (lastUserIndex >= 0) removeAt(lastUserIndex)
+                                        }
+                                }
+
                                 if (wasRecording) {
                                     audioRecorder.stop()
                                 }
-                                
-                                android.util.Log.d("AiAssistantViewModel", "Guard blocked prompt: $message, showing identity fallback")
+
+                                android.util.Log.d(
+                                    "AiAssistantViewModel",
+                                    "Guard blocked prompt: $message, showing identity fallback"
+                                )
                             }
-                            
-                            val isValidationError = json != null && json.has("message") && !json.get(
-                                "message"
-                            ).isJsonNull && json.get("message").asString == "Validation Error"
+
+                            val isValidationError = json != null &&
+                                json.has("message") &&
+                                !json.get("message").isJsonNull &&
+                                json.get("message").asString == "Validation Error"
 
                             val cleanMessage = when {
-                                isValidationError -> "Maaf, suara tidak terdengar dengan jelas. Silakan coba lagi."
-                                responseText != null && responseText.isNotBlank() -> parseMarkdownToText(responseText).trim().removeSurrounding("\"")
-                                isBlocked -> "Halo! Saya Sensio, asisten rumah pintar Anda. Ada yang bisa saya bantu?"
+                                isValidationError ->
+                                    "Maaf, suara tidak terdengar dengan jelas. Silakan coba lagi."
+                                responseText != null && responseText.isNotBlank() ->
+                                    parseMarkdownToText(responseText).trim().removeSurrounding("\"")
+                                isBlocked ->
+                                    "Halo! Saya Sensio, asisten rumah pintar Anda. " +
+                                        "Ada yang bisa saya bantu?"
                                 else -> null
                             }
 
@@ -168,8 +191,11 @@ class AiAssistantViewModel(
                             // Extract prompt if it's JSON, otherwise use raw message
                             val prompt =
                                 try {
-                                    val jsonObj = com.google.gson.JsonParser.parseString(message).asJsonObject
-                                    if (jsonObj.has("prompt") && !jsonObj.get("prompt").isJsonNull) {
+                                    val parsed = com.google.gson.JsonParser.parseString(message)
+                                    val jsonObj = parsed.asJsonObject
+                                    if (jsonObj.has("prompt") &&
+                                        !jsonObj.get("prompt").isJsonNull
+                                    ) {
                                         jsonObj.get("prompt").asString
                                     } else {
                                         message
@@ -221,7 +247,8 @@ class AiAssistantViewModel(
             val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(
                 getApplication()
             )
-            val pwdResult = com.example.whisperandroid.data.di.NetworkModule.repository.fetchMqttPassword(
+            val repo = com.example.whisperandroid.data.di.NetworkModule.repository
+            val pwdResult = repo.fetchMqttPassword(
                 username
             )
             if (pwdResult.isSuccess) {
@@ -240,23 +267,32 @@ class AiAssistantViewModel(
         selectedLanguage = language
     }
 
+    private fun isBusy(): Boolean {
+        return assistantState == AssistantState.Recording ||
+            assistantState == AssistantState.Publishing ||
+            assistantState == AssistantState.WaitingResponse ||
+            assistantState == AssistantState.FallbackRunning
+    }
+
     fun sendChat(text: String) {
-        if (assistantState == AssistantState.Recording || assistantState == AssistantState.Publishing || 
-            assistantState == AssistantState.WaitingResponse || assistantState == AssistantState.FallbackRunning) {
-            android.util.Log.w("AiAssistantViewModel", "sendChat: Request already in progress, ignoring")
+        if (isBusy()) {
+            android.util.Log.w(
+                "AiAssistantViewModel",
+                "sendChat: Request already in progress, ignoring"
+            )
             return
         }
-        
+
         if (text.isNotBlank()) {
             android.util.Log.d("AiAssistantViewModel", "sendChat: $text")
-            
+
             appendUserMessageIfNeeded(text)
-            
+
             activeRequestId = java.util.UUID.randomUUID().toString()
             activeRequestType = RequestType.Chat
             activeRequestText = text
             assistantState = AssistantState.Publishing
-            
+
             viewModelScope.launch {
                 val result = mqttHelper.publishChat(text, selectedLanguage)
                 if (result.isSuccess) {
@@ -272,12 +308,14 @@ class AiAssistantViewModel(
     }
 
     fun startRecording(file: File) {
-        if (assistantState == AssistantState.Recording || assistantState == AssistantState.Publishing || 
-            assistantState == AssistantState.WaitingResponse || assistantState == AssistantState.FallbackRunning) {
-            android.util.Log.w("AiAssistantViewModel", "startRecording: Request already in progress, ignoring")
+        if (isBusy()) {
+            android.util.Log.w(
+                "AiAssistantViewModel",
+                "startRecording: Request already in progress, ignoring"
+            )
             return
         }
-        
+
         activeRequestId = java.util.UUID.randomUUID().toString()
         activeRequestType = RequestType.Audio
         activeRequestText = null
@@ -331,7 +369,10 @@ class AiAssistantViewModel(
         viewModelScope.launch {
             kotlinx.coroutines.delay(25000L) // 25s
             if (activeRequestId == requestId && assistantState == AssistantState.WaitingResponse) {
-                android.util.Log.e("AiAssistantViewModel", "Response timeout reached for active request, transitioning to fallback")
+                android.util.Log.e(
+                    "AiAssistantViewModel",
+                    "Response timeout reached for active request, transitioning to fallback"
+                )
                 assistantState = AssistantState.FallbackRunning
                 runHttpFallback()
             }
@@ -342,20 +383,24 @@ class AiAssistantViewModel(
         val requestId = activeRequestId ?: return
         val type = activeRequestType
         val fallbackIdempotencyKey = "fallback_$requestId"
-        
-        android.util.Log.d("AiAssistantViewModel", "Starting HTTP Fallback for request: $requestId, type: $type")
-        
+
+        android.util.Log.d(
+            "AiAssistantViewModel",
+            "Starting HTTP Fallback for request: $requestId, type: $type"
+        )
+
         viewModelScope.launch {
             val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
-            val token = com.example.whisperandroid.data.di.NetworkModule.tokenManager.getAccessToken()
-            val terminalId = com.example.whisperandroid.data.di.NetworkModule.tokenManager.getTerminalId() ?: username
-            
+            val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
+            val token = tm.getAccessToken()
+            val terminalId = tm.getTerminalId() ?: username
+
             if (token == null) {
                 assistantState = AssistantState.Failed
                 activeRequestId = null
                 return@launch
             }
-            
+
             if (type == RequestType.Chat) {
                 val text = activeRequestText
                 if (text != null) {
@@ -392,7 +437,9 @@ class AiAssistantViewModel(
             } else if (type == RequestType.Audio) {
                 val file = currentRecordingFile
                 if (file != null && file.exists()) {
-                    com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase.initiate(
+                    val transcribeAudioUseCase =
+                        com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase
+                    transcribeAudioUseCase.initiate(
                         audioFile = file,
                         token = token,
                         language = selectedLanguage,
@@ -404,7 +451,13 @@ class AiAssistantViewModel(
                             is com.example.whisperandroid.domain.repository.Resource.Success -> {
                                 val taskId = result.data
                                 if (taskId != null) {
-                                    pollHttpTranscription(taskId, requestId, token, terminalId, fallbackIdempotencyKey)
+                                    pollHttpTranscription(
+                                        taskId,
+                                        requestId,
+                                        token,
+                                        terminalId,
+                                        fallbackIdempotencyKey
+                                    )
                                 } else {
                                     assistantState = AssistantState.Failed
                                     activeRequestId = null
@@ -428,7 +481,13 @@ class AiAssistantViewModel(
         }
     }
 
-    private fun pollHttpTranscription(taskId: String, requestId: String, token: String, terminalId: String, fallbackIdempotencyKey: String) {
+    private fun pollHttpTranscription(
+        taskId: String,
+        requestId: String,
+        token: String,
+        terminalId: String,
+        fallbackIdempotencyKey: String
+    ) {
         viewModelScope.launch {
             var isCompleted = false
             var attempts = 0
@@ -436,7 +495,7 @@ class AiAssistantViewModel(
                 if (activeRequestId != requestId) return@launch
                 var currentSuccessText: String? = null
                 var hasError = false
-                
+
                 com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase.getResult(
                     taskId = taskId,
                     token = token
@@ -452,12 +511,12 @@ class AiAssistantViewModel(
                         is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
                     }
                 }
-                
+
                 if (isCompleted && currentSuccessText != null) {
                     val transcribedText = currentSuccessText!!
-                    
+
                     appendUserMessageIfNeeded(transcribedText)
-                    
+
                     com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
                         prompt = transcribedText,
                         language = selectedLanguage,
@@ -503,7 +562,7 @@ class AiAssistantViewModel(
     private fun handleHttpChatResponse(responseText: String, isBlocked: Boolean) {
         assistantState = AssistantState.Completed
         activeRequestId = null
-        
+
         if (isBlocked) {
             val userMessages = transcriptionResults.filter { it.role == MessageRole.USER }
             if (userMessages.isNotEmpty()) {
@@ -514,13 +573,15 @@ class AiAssistantViewModel(
             }
             android.util.Log.d("AiAssistantViewModel", "HTTP Fallback: Guard blocked prompt")
         }
-        
+
         val cleanMessage = when {
-            responseText.isNotBlank() -> com.example.whisperandroid.util.parseMarkdownToText(responseText).trim().removeSurrounding("\"")
+            responseText.isNotBlank() -> com.example.whisperandroid.util.parseMarkdownToText(
+                responseText
+            ).trim().removeSurrounding("\"")
             isBlocked -> "Halo! Saya Sensio, asisten rumah pintar Anda. Ada yang bisa saya bantu?"
             else -> "Maaf, terjadi kesalahan pada koneksi fallback."
         }
-        
+
         transcriptionResults = transcriptionResults + TranscriptionMessage(
             text = cleanMessage,
             role = MessageRole.ASSISTANT
@@ -534,13 +595,16 @@ class AiAssistantViewModel(
     private fun appendUserMessageIfNeeded(text: String) {
         val normalized = normalizeMessageForDedup(text)
         val now = System.currentTimeMillis()
-        
+
         // Consecutive deduplication: skip if same text as last USER message AND within short window
-        val isConsecutiveDup = normalized == lastUserMessageNormalized && (now - lastUserMessageAtMs) <= 1200L
-        
+        val isConsecutiveDup = normalized == lastUserMessageNormalized &&
+            (now - lastUserMessageAtMs) <= 1200L
+
         // Also skip if we are currently processing a request and the last bubble is already USER (safety for multi-source sync)
         val lastRole = transcriptionResults.lastOrNull()?.role
-        val isProcessingDup = isProcessing && lastRole == MessageRole.USER && normalized == lastUserMessageNormalized
+        val isProcessingDup = isProcessing &&
+            lastRole == MessageRole.USER &&
+            normalized == lastUserMessageNormalized
 
         if (!isConsecutiveDup && !isProcessingDup) {
             transcriptionResults = transcriptionResults + TranscriptionMessage(
@@ -550,7 +614,11 @@ class AiAssistantViewModel(
             lastUserMessageNormalized = normalized
             lastUserMessageAtMs = now
         } else {
-            android.util.Log.d("AiAssistantViewModel", "Skipping duplicate USER message: $text (consecutive=$isConsecutiveDup, processing=$isProcessingDup)")
+            android.util.Log.d(
+                "AiAssistantViewModel",
+                "Skipping duplicate USER message: $text (consecutive=$isConsecutiveDup, " +
+                    "processing=$isProcessingDup)"
+            )
         }
     }
 

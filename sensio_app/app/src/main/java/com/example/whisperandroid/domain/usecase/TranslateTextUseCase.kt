@@ -17,7 +17,13 @@ class TranslateTextUseCase(
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-            ragRepository.translate(text, targetLang, macAddress, token, idempotencyKey).collect { result ->
+            ragRepository.translate(
+                text = text,
+                targetLang = targetLang,
+                macAddress = macAddress,
+                token = token,
+                idempotencyKey = idempotencyKey
+            ).collect { result ->
                 emit(result)
             }
         }

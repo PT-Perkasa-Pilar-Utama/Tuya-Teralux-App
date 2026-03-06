@@ -12,7 +12,6 @@ import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.IMqttToken
-import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttException
 import org.eclipse.paho.client.mqttv3.MqttMessage
@@ -65,7 +64,7 @@ class MqttHelper(
                 override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                     Log.d(tag, "Connect complete: reconnect=$reconnect, uri=$serverURI")
                     _connectionStatus.value = MqttConnectionStatus.CONNECTED
-                    
+
                     // Re-subscribe if this was an automatic reconnection
                     if (reconnect) {
                         subscribeToAllTopics()
@@ -91,7 +90,8 @@ class MqttHelper(
     }
 
     private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val connectivityManager = context
+            .getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return false
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -108,14 +108,18 @@ class MqttHelper(
 
     fun connect(password: String) {
         val isClientConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
-        
+
         if (isClientConnected && _connectionStatus.value == MqttConnectionStatus.CONNECTED) {
             Log.d(tag, "MQTT already connected. Skipping connect.")
             return
         }
 
         if (isClientConnected && _connectionStatus.value != MqttConnectionStatus.CONNECTED) {
-            Log.d(tag, "MQTT client connected but state is ${_connectionStatus.value}. Syncing state and re-subscribing.")
+            Log.d(
+                tag,
+                "MQTT client connected but state is ${_connectionStatus.value}. " +
+                    "Syncing state and re-subscribing."
+            )
             _connectionStatus.value = MqttConnectionStatus.CONNECTED
             subscribeToAllTopics()
             return
@@ -167,7 +171,9 @@ class MqttHelper(
                         Log.w(tag, "Failed to connect to: $serverUri")
                         exception.printStackTrace()
 
-                        val status = if (exception is java.net.UnknownHostException || exception.cause is java.net.UnknownHostException) {
+                        val isUnknownHost = exception is java.net.UnknownHostException ||
+                            exception.cause is java.net.UnknownHostException
+                        val status = if (isUnknownHost) {
                             MqttConnectionStatus.NO_INTERNET
                         } else {
                             MqttConnectionStatus.FAILED
@@ -277,27 +283,56 @@ class MqttHelper(
         return try {
             kotlinx.coroutines.withTimeout(4000L) {
                 kotlinx.coroutines.suspendCancellableCoroutine<Unit> { cont ->
-                    val isConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
-                    Log.d(tag, "Attempting to publish to $topic. Client connected state: $isConnected")
+                    val isConnected = try {
+                        mqttAndroidClient.isConnected
+                    } catch (e: Exception) {
+                        false
+                    }
+                    Log.d(tag, "Publish to $topic. Connected: $isConnected")
 
                     if (!isConnected) {
                         Log.e(tag, "Cannot publish to $topic: MQTT client is not connected")
-                        if (cont.isActive) cont.resumeWith(Result.failure(IllegalStateException("MQTT client is not connected")))
+                        if (cont.isActive) {
+                            cont.resumeWith(
+                                Result.failure(
+                                    IllegalStateException("MQTT client is not connected")
+                                )
+                            )
+                        }
                         return@suspendCancellableCoroutine
                     }
 
                     try {
-                        mqttAndroidClient.publish(topic, payload, 0, false, null, object : IMqttActionListener {
-                            override fun onSuccess(asyncActionToken: IMqttToken?) {
-                                Log.d(tag, "Successfully published to $topic: ${payload.size} bytes")
-                                if (cont.isActive) cont.resumeWith(Result.success(Unit))
-                            }
+                        mqttAndroidClient.publish(
+                            topic,
+                            payload,
+                            0,
+                            false,
+                            null,
+                            object : IMqttActionListener {
+                                override fun onSuccess(asyncActionToken: IMqttToken?) {
+                                    Log.d(
+                                        tag,
+                                        "Successfully published to $topic: ${payload.size} bytes"
+                                    )
+                                    if (cont.isActive) cont.resumeWith(Result.success(Unit))
+                                }
 
-                            override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                                Log.e(tag, "Failed to publish to $topic: ${exception?.message}")
-                                if (cont.isActive) cont.resumeWith(Result.failure(exception ?: RuntimeException("Unknown MQTT error")))
+                                override fun onFailure(
+                                    asyncActionToken: IMqttToken?,
+                                    exception: Throwable?
+                                ) {
+                                    Log.e(tag, "Failed to publish to $topic: ${exception?.message}")
+                                    if (cont.isActive) {
+                                        cont.resumeWith(
+                                            Result.failure(
+                                                exception ?: RuntimeException("Unknown MQTT error")
+                                            )
+                                        )
+                                    }
+                                }
                             }
-                        })
+                        )
                     } catch (e: Exception) {
                         Log.e(tag, "Error publishing to $topic: ${e.message}")
                         if (cont.isActive) cont.resumeWith(Result.failure(e))

@@ -19,7 +19,15 @@ class SummarizeTextUseCase(
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-            ragRepository.generateSummary(text, style, language, null, macAddress, token, idempotencyKey).collect { result ->
+            ragRepository.generateSummary(
+                text,
+                style,
+                language,
+                null,
+                macAddress,
+                token,
+                idempotencyKey
+            ).collect { result ->
                 emit(result)
             }
         }

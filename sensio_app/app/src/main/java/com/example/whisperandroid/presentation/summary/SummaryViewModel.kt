@@ -28,13 +28,15 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     private val _mqttStatus = MutableStateFlow(
         com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.DISCONNECTED
     )
-    val mqttStatus: StateFlow<com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus> = _mqttStatus
+    val mqttStatus: StateFlow<
+        com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus
+        > = _mqttStatus
 
     init {
         loadSummaries()
 
         viewModelScope.launch {
-            mqttHelper.connectionStatus.collect { status: com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus ->
+            mqttHelper.connectionStatus.collect { status ->
                 _mqttStatus.value = status
             }
         }
@@ -43,17 +45,20 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
 
     fun reconnectMqtt() {
         viewModelScope.launch {
-            if (mqttHelper.connectionStatus.value == com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED ||
-                mqttHelper.connectionStatus.value == com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTING
+            if (mqttHelper.connectionStatus.value ==
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED ||
+                mqttHelper.connectionStatus.value ==
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTING
             ) {
                 return@launch
             }
             val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(
                 getApplication()
             )
-            val pwdResult = com.example.whisperandroid.data.di.NetworkModule.repository.fetchMqttPassword(
-                username
-            )
+            val pwdResult =
+                com.example.whisperandroid.data.di.NetworkModule.repository.fetchMqttPassword(
+                    username
+                )
             if (pwdResult.isSuccess) {
                 mqttHelper.connect(pwdResult.getOrNull()!!)
             }

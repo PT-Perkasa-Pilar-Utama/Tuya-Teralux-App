@@ -89,7 +89,7 @@ class AudioRecorder(
                     }
                 }
             }.also { it.start() }
-            
+
         return true
     }
 

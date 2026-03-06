@@ -1,9 +1,8 @@
 package com.example.whisperandroid.domain.repository
 
 import com.example.whisperandroid.data.remote.dto.PipelineStatusDto
-import com.example.whisperandroid.domain.repository.Resource
-import kotlinx.coroutines.flow.Flow
 import java.io.File
+import kotlinx.coroutines.flow.Flow
 
 interface PipelineRepository {
     suspend fun executePipeline(

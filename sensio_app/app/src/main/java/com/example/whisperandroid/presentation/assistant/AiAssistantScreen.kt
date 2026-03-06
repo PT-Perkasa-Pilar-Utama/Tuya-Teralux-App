@@ -71,7 +71,7 @@ fun AiAssistantScreen(
     val transcriptionResults = viewModel.transcriptionResults
     val isRecording = viewModel.isRecording
     val isProcessing = viewModel.isProcessing
-    var userInput by remember { mutableStateOf("") }
+    var userInput by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     val isMqttOnline = viewModel.mqttStatus == MqttHelper.MqttConnectionStatus.CONNECTED
 
     val context = LocalContext.current
@@ -156,6 +156,7 @@ fun AiAssistantScreen(
     SensioFeatureLayout(
         title = "Sensio Intelligence",
         onNavigateBack = onNavigateBack,
+        titleTestTag = "assistant_screen_title",
         snackbarHost = { SnackbarHost(snackbarHostState) },
         headerActions = {
             Row(

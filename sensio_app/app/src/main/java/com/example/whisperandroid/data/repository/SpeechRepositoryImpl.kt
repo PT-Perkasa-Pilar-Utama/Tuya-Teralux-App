@@ -33,7 +33,13 @@ class SpeechRepositoryImpl(
                     MultipartBody.Part.createFormData("mac_address", it)
                 }
 
-                val response = api.transcribeAudio(body, languageBody, macPart, "Bearer $token", idempotencyKey)
+                val response = api.transcribeAudio(
+                    body,
+                    languageBody,
+                    macPart,
+                    "Bearer $token",
+                    idempotencyKey
+                )
                 val taskId = response.data?.taskId
 
                 if (response.status && taskId != null) {

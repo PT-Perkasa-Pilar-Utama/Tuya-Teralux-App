@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,7 +92,8 @@ fun AssistantInputPill(
                 modifier =
                 Modifier
                     .weight(1f)
-                    .padding(horizontal = 4.dp),
+                    .padding(horizontal = 4.dp)
+                    .testTag("assistant_input_field"),
                 placeholder = {
                     Text(
                         text =
