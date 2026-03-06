@@ -193,17 +193,26 @@ setup:
 	@if [ ! -d $(LLAMA_SRC_DIR)/.git ]; then \
 		echo "📥 Cloning llama.cpp $(LLAMA_TAG)..."; \
 		rm -rf $(LLAMA_SRC_DIR); \
-		git clone --depth 1 --branch $(LLAMA_TAG) https://github.com/ggerganov/llama.cpp.git $(LLAMA_SRC_DIR); \
+		git clone --depth 1 --branch $(LLAMA_TAG) https://github.com/ggerganov/llama.cpp.git $(LLAMA_SRC_DIR) || \
+		git clone --depth 1 --branch $(LLAMA_TAG) https://github.com/ggml-org/llama.cpp.git $(LLAMA_SRC_DIR); \
 	fi
 	@echo "🔨 Building AI binaries..."
 	@rm -rf $(WHISPER_BUILD_DIR) $(LLAMA_BUILD_DIR)
 	@mkdir -p $(WHISPER_BUILD_DIR)
 	@cd $(WHISPER_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && make whisper-cli -j$$(nproc)
 	@mkdir -p $(LLAMA_BUILD_DIR)
-	@cd $(LLAMA_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && make llama-cli llama-server -j$$(nproc)
+	@cd $(LLAMA_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && (make llama-cli llama-server -j$$(nproc) || make main server -j$$(nproc))
 	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
-	@cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli
-	@cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server
+	@if [ -f $(LLAMA_BUILD_DIR)/bin/llama-cli ]; then \
+		cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli; \
+	else \
+		cp $(LLAMA_BUILD_DIR)/bin/main bin/llama-cli; \
+	fi
+	@if [ -f $(LLAMA_BUILD_DIR)/bin/llama-server ]; then \
+		cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server; \
+	else \
+		cp $(LLAMA_BUILD_DIR)/bin/server bin/llama-server; \
+	fi
 	@$(MAKE) download-models
 	@echo "✅ Setup complete. Use 'make dev' to start."
 
