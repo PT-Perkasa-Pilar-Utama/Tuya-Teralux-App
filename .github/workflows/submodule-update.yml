@@ -1,0 +1,71 @@
+name: Scheduled Submodule Update
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Weekly on Sunday at midnight
+  workflow_dispatch:
+    inputs:
+      services:
+        description: "Space-separated list of services to update (empty for all)"
+        required: false
+        default: ""
+
+jobs:
+  update-submodules:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update submodules
+        run: |
+          SERVICES="${{ github.event.inputs.services }}"
+          if [ -z "$SERVICES" ]; then
+            echo "Updating all submodules..."
+            git submodule update --remote --recursive
+          else
+            for service in $SERVICES; do
+              echo "Updating $service..."
+              git submodule update --remote "backend/services/$service"
+            done
+          fi
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.check_changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: scheduled submodule update"
+          title: "Scheduled Submodule Update"
+          body: |
+            This is an automated PR to update Git submodules to their latest upstream commits.
+
+            Updated submodules:
+            $(git status --porcelain | grep 'backend/services/' | awk '{print "- " $2}')
+          branch: submodule-updates
+          delete-branch: true
+          labels: |
+            dependencies
+            automated-pr
