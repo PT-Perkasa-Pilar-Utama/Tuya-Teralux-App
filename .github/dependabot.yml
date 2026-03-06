@@ -10,6 +10,10 @@ updates:
       interval: "monthly"
       time: "10:00"
       timezone: "Asia/Jakarta"
+    ignore:
+      - dependency-name: "*"
+        directories:
+          - "/backend/services/llama.cpp/**"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
@@ -20,7 +24,7 @@ updates:
 
   # Gradle dependencies untuk Android
   - package-ecosystem: "gradle"
-    directory: "/android"
+    directory: "/sensio_app"
     schedule:
       interval: "monthly"
       time: "10:00"
