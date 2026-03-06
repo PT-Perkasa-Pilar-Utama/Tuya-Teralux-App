@@ -54,6 +54,8 @@ jobs:
 
       - name: Diagnostic Info
         run: |
+          uname -a
+          arch
           docker buildx version
           docker buildx ls
           echo "Tags to be used: ${{ steps.meta.outputs.tags }}"

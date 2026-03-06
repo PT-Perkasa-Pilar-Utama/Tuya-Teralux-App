@@ -95,18 +95,23 @@ func (c *RAGChatController) StartMqttSubscription() error {
 		// client thread and gives the whisper handler enough time to download audio and set the active flag.
 		go func(mac string, req dtos.RAGChatRequestDTO) {
 			if mac != "" || req.TerminalID != "" {
-				time.Sleep(500 * time.Millisecond)
-
-				// 1. Check if Whisper is active (using both MAC from topic and TerminalID from payload)
+				// 1. Check if Whisper is active (with a small non-blocking retry loop to catch near-simultaneous starts)
 				isWhisperActive := false
-				if mac != "" {
-					if _, active := utils.ActiveTranscriptions.Load(mac); active {
-						isWhisperActive = true
+				for i := 0; i < 5; i++ {
+					if mac != "" {
+						if _, active := utils.ActiveTranscriptions.Load(mac); active {
+							isWhisperActive = true
+							break
+						}
 					}
-				}
-				if !isWhisperActive && req.TerminalID != "" {
-					if _, active := utils.ActiveTranscriptions.Load(req.TerminalID); active {
-						isWhisperActive = true
+					if req.TerminalID != "" {
+						if _, active := utils.ActiveTranscriptions.Load(req.TerminalID); active {
+							isWhisperActive = true
+							break
+						}
+					}
+					if i < 4 {
+						time.Sleep(30 * time.Millisecond)
 					}
 				}
 
