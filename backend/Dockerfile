@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ############################################
-# Base Builder
+# Base Builder (Cross-compilation for Go)
 ############################################
 FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS base-builder
 
@@ -17,16 +17,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     binutils \
     ca-certificates \
-    gcc-aarch64-linux-gnu \
-    g++-aarch64-linux-gnu \
-    libc6-dev-arm64-cross \
     && rm -rf /var/lib/apt/lists/*
 
 
 ############################################
-# AI Builder (whisper + llama)
+# Native Builder (For C++ compilation)
 ############################################
-FROM base-builder AS ai-builder
+FROM golang:1.25-bookworm AS native-builder
+
+WORKDIR /app
+ARG TARGETARCH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    build-essential \
+    git \
+    binutils \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+
+############################################
+# AI Builder (whisper + llama) - Native Target
+############################################
+FROM native-builder AS ai-builder
 
 # Stable pinned versions
 ARG WHISPER_TAG=v1.7.4
@@ -34,26 +48,15 @@ ARG LLAMA_TAG=b4765
 
 # ---- Build whisper.cpp ----
 COPY services/whisper.cpp /whisper.cpp
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
-        STRIP=aarch64-linux-gnu-strip; \
-    else \
-        STRIP=strip; \
-    fi && \
+RUN echo "🔨 Building whisper.cpp for $TARGETARCH..." && \
     cmake -S /whisper.cpp -B /whisper.cpp/build -DGGML_NATIVE=OFF && \
     cmake --build /whisper.cpp/build --config Release -t main && \
-    $STRIP --strip-unneeded /whisper.cpp/build/bin/main && \
+    strip --strip-unneeded /whisper.cpp/build/bin/main && \
     cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli
 
 # ---- Build llama.cpp ----
 COPY services/llama.cpp /llama.cpp
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
-        STRIP=aarch64-linux-gnu-strip; \
-    else \
-        STRIP=strip; \
-    fi && \
-    echo "🔨 Configuring llama.cpp..." && \
+RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
     cmake -S /llama.cpp -B /llama.cpp/build \
         -DGGML_NATIVE=OFF \
         -DLLAMA_BUILD_EXAMPLES=ON \
@@ -72,7 +75,7 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
         BIN_TARGET=/llama.cpp/build/bin/main; \
     fi && \
     test -x "$BIN_TARGET" && \
-    $STRIP --strip-unneeded "$BIN_TARGET" && \
+    strip --strip-unneeded "$BIN_TARGET" && \
     cp "$BIN_TARGET" /usr/local/bin/llama-cli
 
 
@@ -107,19 +110,17 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     if [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++; \
-        STRIP=aarch64-linux-gnu-strip; \
+        export GOARCH=arm64; \
     else \
-        STRIP=strip; \
+        export GOARCH=amd64; \
     fi && \
     CGO_ENABLED=1 \
     GOOS=linux \
-    GOARCH=$TARGETARCH \
     go build \
       -trimpath \
       -ldflags="-s -w" \
       -o app && \
-    $STRIP --strip-unneeded app
+    strip --strip-unneeded app
 
 
 ############################################
