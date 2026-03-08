@@ -364,6 +364,7 @@ fun MeetingTranscriberScreen(
                 } else {
                     viewModel.sendEmailSummary(target, subject, summaryLanguage)
                 }
+                showEmailDialog = false
             }
         )
     }

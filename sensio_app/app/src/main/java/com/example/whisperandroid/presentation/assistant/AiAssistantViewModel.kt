@@ -53,6 +53,13 @@ class AiAssistantViewModel(
     var mqttStatus by mutableStateOf(MqttHelper.MqttConnectionStatus.DISCONNECTED)
         private set
 
+    var lastAssistantError by mutableStateOf<String?>(null)
+        private set
+
+    val shouldWakeWordListen: Boolean
+        get() = assistantState == AssistantState.Idle &&
+            mqttStatus == MqttHelper.MqttConnectionStatus.CONNECTED
+
     private var lastUserMessageNormalized: String? = null
     private var lastUserMessageAtMs: Long = 0L
 
@@ -280,6 +287,10 @@ class AiAssistantViewModel(
         }
     }
 
+    fun clearLastError() {
+        lastAssistantError = null
+    }
+
     fun selectLanguage(language: String) {
         selectedLanguage = language
     }
@@ -336,6 +347,7 @@ class AiAssistantViewModel(
             return
         }
 
+        lastAssistantError = null
         val requestId = java.util.UUID.randomUUID().toString()
         activeRequestId = requestId
         activeRequestType = RequestType.Audio
@@ -343,13 +355,22 @@ class AiAssistantViewModel(
         assistantState = AssistantState.Recording
         requestStartedAtMs[requestId] = System.currentTimeMillis()
         currentRecordingFile = file
-        val started = audioRecorder.start(file)
-        if (!started) {
+
+        val result = audioRecorder.start(file)
+        if (result !is AudioRecorder.RecorderResult.Success) {
             requestStartedAtMs.remove(requestId)
             assistantState = AssistantState.Failed
             activeRequestId = null
             activeRequestType = null
-            android.util.Log.e("AiAssistantViewModel", "startRecording failed to initialize")
+
+            lastAssistantError = when (result) {
+                is AudioRecorder.RecorderResult.MicBusy ->
+                    "Microphone is busy. Please try again in a moment."
+                is AudioRecorder.RecorderResult.FileError ->
+                    "Storage error: ${result.details}"
+                else -> "Failed to initialize microphone."
+            }
+            android.util.Log.e("AiAssistantViewModel", "startRecording failed: $lastAssistantError")
         }
     }
 

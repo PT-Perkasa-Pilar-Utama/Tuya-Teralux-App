@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.whisperandroid.presentation.components.AnimatedEmailButton
 import com.example.whisperandroid.presentation.components.EmailInputDialog
 import com.example.whisperandroid.presentation.components.FeatureBackground
 import com.example.whisperandroid.presentation.components.FeatureHeader
@@ -165,31 +165,14 @@ fun SummaryPreviewScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    val emailState by viewModel.emailState.collectAsState()
+                    val isEmailSending = emailState is UiState.Loading
+
                     // Email Button
-                    Button(
-                        onClick = { showEmailDialog = true },
-                        modifier = Modifier.height(32.dp),
-                        colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = "Email",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            "Email",
-                            fontSize = 12.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    AnimatedEmailButton(
+                        isEmailSending = isEmailSending,
+                        onClick = { showEmailDialog = true }
+                    )
 
                     Spacer(modifier = Modifier.width(8.dp))
 
@@ -272,7 +255,7 @@ fun SummaryPreviewScreen(
         }
 
         // Observe Email State
-        val emailState by viewModel.emailState.collectAsState()
+        val emailState = viewModel.emailState.collectAsState().value
         LaunchedEffect(emailState) {
             when (val state = emailState) {
                 is UiState.Success -> {
