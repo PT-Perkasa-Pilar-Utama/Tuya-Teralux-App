@@ -55,7 +55,7 @@ func main() {
     to := []string{"recipient@example.com"}
     subject := "Terminal Alert"
     
-    // Uses template: domain/mail/templates/summary.html
+    // Uses template: assets/templates/mail/summary.html
     err := mailService.SendEmailWithTemplate(to, subject, "summary", nil)
     if err != nil {
         // Handle error
