@@ -19,6 +19,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"sensio/domain/common/utils"
 )
 
 type SummaryPDFMeta struct {
@@ -56,8 +57,6 @@ type templateData struct {
 }
 
 func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta SummaryPDFMeta) error {
-	basePath, _ := os.Getwd()
-
 	// Convert Markdown to HTML
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM), // GitHub Flavored Markdown (tables, etc.)
@@ -77,7 +76,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 	summaryHTML := template.HTML(buf.String())
 
 	// Read and encode logo
-	logoPath := filepath.Join(basePath, "assets/images/logo.png")
+	logoPath := utils.GetAssetPath("images/logo.png")
 	logoBase64 := ""
 	if imgData, err := os.ReadFile(logoPath); err == nil {
 		logoBase64 = "data:image/png;base64," + base64.StdEncoding.EncodeToString(imgData)
@@ -110,7 +109,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 	}
 
 	// Load templates
-	tmplDir := filepath.Join(basePath, "templates", "pdf")
+	tmplDir := utils.GetAssetPath("templates/pdf")
 	t, err := template.ParseGlob(filepath.Join(tmplDir, "*.html"))
 	if err != nil {
 		return fmt.Errorf("failed to parse templates: %w", err)
