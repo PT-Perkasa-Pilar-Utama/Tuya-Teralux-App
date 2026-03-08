@@ -17,7 +17,6 @@ services:
       start_period: 15m
     volumes:
       - ./bin:/app/models
-      - ./templates:/app/templates
       - ./uploads:/app/uploads
 
   sensio-db:
