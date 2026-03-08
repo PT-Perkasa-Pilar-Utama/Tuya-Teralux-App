@@ -27,8 +27,7 @@ type MailService struct {
 
 func NewMailService(cfg *utils.Config) *MailService {
 	// Determine template directory relative to workspace root
-	wd, _ := os.Getwd()
-	tmplDir := filepath.Join(wd, "templates", "mail")
+	tmplDir := utils.GetAssetPath("templates/mail")
 
 	return &MailService{
 		config:      cfg,
@@ -153,8 +152,7 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 
 	// 2. Logo Part (CID embedding)
 	// Try to find logo in assets/images/logo.png
-	wd, _ := os.Getwd()
-	logoPath := filepath.Join(wd, "assets", "images", "logo.png")
+	logoPath := utils.GetAssetPath("images/logo.png")
 
 	if _, err := os.Stat(logoPath); err == nil {
 		logoData, err := os.ReadFile(logoPath)
