@@ -23,14 +23,21 @@ class AudioRecorder(
     private val channelConfig = AudioFormat.CHANNEL_IN_MONO
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
 
+    sealed class RecorderResult {
+        object Success : RecorderResult()
+        object MicBusy : RecorderResult()
+        object InitFailed : RecorderResult()
+        data class FileError(val details: String) : RecorderResult()
+    }
+
     @android.annotation.SuppressLint("MissingPermission")
-    fun start(outputFile: File): Boolean {
-        if (isRecording.get()) return false
+    fun start(outputFile: File): RecorderResult {
+        if (isRecording.get()) return RecorderResult.InitFailed
 
         val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
         val bufferSize = (minBufferSize * 2).coerceAtLeast(sampleRate)
 
-        val recorder =
+        val recorder = try {
             AudioRecord(
                 MediaRecorder.AudioSource.MIC,
                 sampleRate,
@@ -38,11 +45,15 @@ class AudioRecorder(
                 audioFormat,
                 bufferSize
             )
+        } catch (e: Exception) {
+            Log.e("AudioRecorder", "AudioRecord constructor failed", e)
+            return RecorderResult.InitFailed
+        }
 
         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
             Log.e("AudioRecorder", "AudioRecord init failed")
             recorder.release()
-            return false
+            return RecorderResult.InitFailed
         }
 
         audioRecord = recorder
@@ -53,20 +64,34 @@ class AudioRecorder(
         } catch (e: Exception) {
             Log.e("AudioRecorder", "Failed to open output stream", e)
             recorder.release()
-            return false
+            return RecorderResult.FileError(e.message ?: "Unknown output error")
         }
 
         try {
             writeWavHeader(outputStream, 1, sampleRate, 16, 0)
         } catch (e: Exception) {
             Log.e("AudioRecorder", "Failed to write WAV header", e)
+            outputStream.close()
             recorder.release()
-            return false
+            return RecorderResult.FileError("Failed to write header")
+        }
+
+        try {
+            recorder.startRecording()
+            if (recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+                Log.e("AudioRecorder", "startRecording() called but state is not RECORDING")
+                outputStream.close()
+                recorder.release()
+                return RecorderResult.MicBusy
+            }
+        } catch (e: IllegalStateException) {
+            Log.e("AudioRecorder", "startRecording() threw IllegalStateException (Mic Busy)", e)
+            outputStream.close()
+            recorder.release()
+            return RecorderResult.MicBusy
         }
 
         isRecording.set(true)
-        recorder.startRecording()
-
         recordingThread =
             Thread {
                 val buffer = ByteArray(bufferSize)
@@ -90,7 +115,7 @@ class AudioRecorder(
                 }
             }.also { it.start() }
 
-        return true
+        return RecorderResult.Success
     }
 
     fun stop() {
