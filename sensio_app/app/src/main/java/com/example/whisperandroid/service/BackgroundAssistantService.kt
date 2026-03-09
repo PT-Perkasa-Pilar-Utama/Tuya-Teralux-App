@@ -70,8 +70,7 @@ class BackgroundAssistantService : Service() {
             AppLog.d(TAG, "Coordinator dismissed, hiding overlay")
             overlayController?.hide()
             if (NetworkModule.backgroundAssistantModeStore.isEnabled.value) {
-                checkPermissionsAndStart(isPeriodic = true)
-                wakeWordManager?.startListening()
+                checkPermissionsAndStart(isPeriodic = false)
             }
         }
 
@@ -100,7 +99,7 @@ class BackgroundAssistantService : Service() {
         serviceScope.launch {
             while (true) {
                 kotlinx.coroutines.delay(5000)
-                if (NetworkModule.backgroundAssistantModeStore.isEnabled.value) {
+                if (NetworkModule.backgroundAssistantModeStore.isEnabled.value && !coordinator.isSessionActive) {
                     checkPermissionsAndStart(isPeriodic = true)
                 }
             }
@@ -126,6 +125,11 @@ class BackgroundAssistantService : Service() {
     }
 
     private fun checkPermissionsAndStart(isPeriodic: Boolean = false) {
+        if (coordinator.isSessionActive) {
+            AppLog.d(TAG, "Skipping wake start: Session is active")
+            return
+        }
+
         if (!NetworkModule.isTuyaSyncReady.value) {
             if (!isPeriodic) {
                 AppLog.i(TAG, "Tuya sync not ready, deferring start")
