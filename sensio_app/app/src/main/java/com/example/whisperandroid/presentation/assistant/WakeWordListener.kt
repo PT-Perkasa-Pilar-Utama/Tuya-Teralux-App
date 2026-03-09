@@ -6,5 +6,7 @@ interface WakeWordListener {
 
     fun stopListening()
 
+    fun isListeningRequested(): Boolean
+
     fun destroy()
 }

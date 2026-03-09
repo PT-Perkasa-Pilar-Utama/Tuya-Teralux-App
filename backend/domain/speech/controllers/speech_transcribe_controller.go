@@ -89,14 +89,14 @@ func (c *SpeechTranscribeController) StartMqttSubscription() error {
 
 		// Immediately mark as active to prevent chat handler race condition.
 		// It will be deleted either in the defer below (on failure) or by TranscribeAudio async processor.
-		utils.ActiveTranscriptions.Store(req.TerminalID, true)
+		utils.ActiveTranscriptions.Store(mac, true)
 
 		// Create a local error flag to determine if we should clean up the transcription flag.
 		// If we successfully start TranscribeAudio, it takes ownership of deleting the flag.
 		var taskStarted bool
 		defer func() {
 			if !taskStarted {
-				utils.ActiveTranscriptions.Delete(req.TerminalID)
+				utils.ActiveTranscriptions.Delete(mac)
 			}
 		}()
 
@@ -133,6 +133,7 @@ func (c *SpeechTranscribeController) StartMqttSubscription() error {
 		taskID, err := c.transcribeUC.TranscribeAudio(context.Background(), tempPath, tempFilename, language, usecases.TranscriptionMetadata{
 			UID:         req.UID,
 			TerminalID:  mac,
+			RequestID:   req.RequestID,
 			Source:      "mqtt",
 			Trigger:     "mqtt:tera/transcribe",
 			DeleteAfter: true, // Delete file after transcription

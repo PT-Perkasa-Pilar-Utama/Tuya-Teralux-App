@@ -13,7 +13,7 @@ fi
 source "$COMMON_SCRIPT"
 
 preflight_check
-sync_source
+sync_source_delta
 
 log_info "Starting remote lint and build for Backend on $REMOTE_HOST..."
 start_time=$(date +%s)

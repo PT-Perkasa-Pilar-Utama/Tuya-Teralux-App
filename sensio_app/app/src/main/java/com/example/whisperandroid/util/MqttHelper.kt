@@ -42,6 +42,10 @@ class MqttHelper(
         return com.example.whisperandroid.util.DeviceUtils.getDeviceId(context)
     }
 
+    private fun resolveTuyaUid(): String? {
+        return tokenManager.getTuyaUid()?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
     fun getTaskTopic(): String? {
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
@@ -224,39 +228,43 @@ class MqttHelper(
 
     suspend fun publishAudio(
         payload: ByteArray,
-        language: String = "id"
+        language: String = "id",
+        requestId: String? = null
     ): Result<Unit> {
         val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
-        val json =
-            """
-            {
-                "audio": "$base64Audio",
-                "terminal_id": "$terminalId",
-                "language": "$language"
-            }
-            """.trimIndent()
+        val tuyaUid = resolveTuyaUid()
+        val jsonPayload = MqttPayloadFactory.buildAudioPayload(
+            base64Audio = base64Audio,
+            terminalId = terminalId,
+            language = language,
+            requestId = requestId,
+            tuyaUid = tuyaUid
+        )
+
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
-        return publishWithTimeout("users/$username/$env/whisper", json.toByteArray())
+        return publishWithTimeout("users/$username/$env/whisper", jsonPayload.toString().toByteArray())
     }
 
     suspend fun publishChat(
         text: String,
-        language: String = "id"
+        language: String = "id",
+        requestId: String? = null
     ): Result<Unit> {
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
-        val json =
-            """
-            {
-                "prompt": "$text",
-                "terminal_id": "$terminalId",
-                "language": "$language"
-            }
-            """.trimIndent()
+        val tuyaUid = resolveTuyaUid()
+        val jsonPayload = MqttPayloadFactory.buildChatPayload(
+            text = text,
+            terminalId = terminalId,
+            language = language,
+            requestId = requestId,
+            tuyaUid = tuyaUid
+        )
+
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
-        return publishWithTimeout("users/$username/$env/chat", json.toByteArray())
+        return publishWithTimeout("users/$username/$env/chat", jsonPayload.toString().toByteArray())
     }
 
     fun publishTaskMessage(event: String, task: String) {
