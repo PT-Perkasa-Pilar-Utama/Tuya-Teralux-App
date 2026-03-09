@@ -221,6 +221,73 @@ sync_remote_configs() {
     fi
 }
 
+sync_source_delta() {
+    log_info "Running robust delta sync (tracked changes only) to $REMOTE_HOST..."
+    
+    local repo_root=$(resolve_repo_root)
+    local sync_list=$(mktemp)
+    local del_list=$(mktemp)
+    
+    # Use null-terminated porcelain output to handle spaces/renames/special chars
+    while IFS= read -r -d $'\0' line; do
+        if [ -z "$line" ]; then continue; fi
+        
+        local status="${line:0:2}"
+        local file="${line:3}"
+        
+        case "$status" in
+            [RC]?|?[RC]) # Renames/Copies in either XY column (staged or unstaged)
+                # Both R and C have two NUL-terminated paths in porcelain -z
+                # Only R (Rename) should delete the original path on the remote
+                if [[ "$status" == *R* ]]; then
+                    printf "%s\0" "$file" >> "$del_list"
+                fi
+                
+                # Consume the 'to' path for both
+                if IFS= read -r -d $'\0' to_file; then
+                    printf "%s\0" "$to_file" >> "$sync_list"
+                else
+                    log_warn "Rename/Copy 'to' path missing in git status output for $file"
+                fi
+                ;;
+            ?D|D?) # Deletion in worktree or index
+                printf "%s\0" "$file" >> "$del_list"
+                ;;
+            "??") # Untracked
+                continue
+                ;;
+            "!!") # Ignored
+                continue
+                ;;
+            *) # Everything else (A, M, T, U etc.) is treated as a sync candidate
+                printf "%s\0" "$file" >> "$sync_list"
+                ;;
+        esac
+    done < <(git -C "$repo_root" status --porcelain -z)
+    
+    # 1. Propagate deletions in a single batch (NUL-safe, tilde-safe, and dash-safe)
+    if [ -s "$del_list" ]; then
+        local count=$(grep -cz . "$del_list")
+        log_info "Propagating $count deletions in batch..."
+        # Use a shell wrapper to ensure ~ expansion and space-safety in $REMOTE_REPO_DIR
+        ssh -q "$REMOTE_HOST" "bash -c 'target=\"$REMOTE_REPO_DIR\"; cd \"\${target/#~/\$HOME}\" && xargs -0 rm -f --'" < "$del_list"
+    fi
+    
+    # 2. Sync modified/new tracked files (NUL-safe via --from0)
+    if [ -s "$sync_list" ]; then
+        local count=$(grep -cz . "$sync_list")
+        log_info "Syncing $count changed files..."
+        run_rsync source --from0 \
+            --files-from="$sync_list" \
+            "$repo_root/" "$REMOTE_HOST:$REMOTE_REPO_DIR/"
+    else
+        log_info "No tracked file changes to sync."
+    fi
+    
+    rm -f "$sync_list" "$del_list"
+    log_info "Robust delta sync completed."
+}
+
 sync_source() {
     log_info "Syncing source code to $REMOTE_HOST:$REMOTE_REPO_DIR..."
     

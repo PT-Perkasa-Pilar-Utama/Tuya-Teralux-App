@@ -224,39 +224,47 @@ class MqttHelper(
 
     suspend fun publishAudio(
         payload: ByteArray,
-        language: String = "id"
+        language: String = "id",
+        requestId: String? = null
     ): Result<Unit> {
         val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
-        val json =
-            """
-            {
-                "audio": "$base64Audio",
-                "terminal_id": "$terminalId",
-                "language": "$language"
+        
+        val jsonPayload = org.json.JSONObject().apply {
+            put("audio", base64Audio)
+            put("terminal_id", terminalId)
+            put("uid", getUsername())
+            put("language", language)
+            if (requestId != null) {
+                put("request_id", requestId)
             }
-            """.trimIndent()
+        }
+
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
-        return publishWithTimeout("users/$username/$env/whisper", json.toByteArray())
+        return publishWithTimeout("users/$username/$env/whisper", jsonPayload.toString().toByteArray())
     }
 
     suspend fun publishChat(
         text: String,
-        language: String = "id"
+        language: String = "id",
+        requestId: String? = null
     ): Result<Unit> {
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
-        val json =
-            """
-            {
-                "prompt": "$text",
-                "terminal_id": "$terminalId",
-                "language": "$language"
+        
+        val jsonPayload = org.json.JSONObject().apply {
+            if (requestId != null) {
+                put("request_id", requestId)
             }
-            """.trimIndent()
+            put("prompt", text)
+            put("terminal_id", terminalId)
+            put("language", language)
+            put("uid", getUsername())
+        }
+
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
-        return publishWithTimeout("users/$username/$env/chat", json.toByteArray())
+        return publishWithTimeout("users/$username/$env/chat", jsonPayload.toString().toByteArray())
     }
 
     fun publishTaskMessage(event: String, task: String) {
