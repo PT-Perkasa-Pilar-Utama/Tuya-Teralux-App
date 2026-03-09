@@ -1,7 +1,10 @@
 package orchestrator
 
 import (
+	"encoding/json"
+	"fmt"
 	"sensio/domain/rag/skills"
+	tuyaDtos "sensio/domain/tuya/dtos"
 	"strings"
 )
 
@@ -10,6 +13,32 @@ type BaseOrchestrator struct{}
 
 func NewBaseOrchestrator() *BaseOrchestrator {
 	return &BaseOrchestrator{}
+}
+
+func renderRegisteredDevices(ctx *skills.SkillContext) string {
+	if ctx == nil || ctx.Vector == nil || strings.TrimSpace(ctx.UID) == "" {
+		return "No devices connected."
+	}
+
+	aggKey := fmt.Sprintf("tuya:devices:uid:%s", ctx.UID)
+	aggJSON, ok := ctx.Vector.Get(aggKey)
+	if !ok || strings.TrimSpace(aggJSON) == "" {
+		return "No devices connected."
+	}
+
+	var agg tuyaDtos.TuyaDevicesResponseDTO
+	if err := json.Unmarshal([]byte(aggJSON), &agg); err != nil {
+		return "No devices connected."
+	}
+	if len(agg.Devices) == 0 {
+		return "No devices connected."
+	}
+
+	names := make([]string, 0, len(agg.Devices))
+	for _, d := range agg.Devices {
+		names = append(names, fmt.Sprintf("- %s (ID: %s)", d.Name, d.ID))
+	}
+	return strings.Join(names, "\n")
 }
 
 func (b *BaseOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (*skills.SkillResult, error) {
@@ -22,6 +51,7 @@ func (b *BaseOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (*sk
 	finalPrompt := prompt
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{prompt}}", ctx.Prompt)
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{history}}", strings.Join(ctx.History, "\n"))
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{devices}}", renderRegisteredDevices(ctx))
 
 	// Special handling for Translation placeholders if present
 	if strings.Contains(finalPrompt, "{{target_lang}}") {

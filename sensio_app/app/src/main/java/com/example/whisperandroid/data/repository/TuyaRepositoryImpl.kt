@@ -15,6 +15,7 @@ class TuyaRepositoryImpl(
             val response = api.authenticate(apiKey)
             if (response.status && response.data?.accessToken != null) {
                 tokenManager.saveAccessToken(response.data.accessToken)
+                response.data.uid?.takeIf { it.isNotBlank() }?.let { tokenManager.saveTuyaUid(it) }
                 Result.success(response.data.accessToken)
             } else {
                 Result.failure(Exception(response.message))

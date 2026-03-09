@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -38,52 +40,65 @@ fun DashboardFeatureCard(
     description: String,
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (isPressed) 0.98f else 1f, label = "scale")
+    val scale by animateFloatAsState(if (isPressed && enabled) 0.98f else 1f, label = "scale")
 
     OutlinedCard(
-        onClick = onClick,
+        onClick = if (enabled) onClick else ({}),
         modifier =
         modifier
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = if (enabled) 1f else 0.5f
             },
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(24.dp),
         colors =
         CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
         ),
         border =
         BorderStroke(
             width = 1.dp,
-            color = if (isPressed) {
+            color = if (isPressed && enabled) {
                 MaterialTheme.colorScheme.primary
             } else {
                 MaterialTheme.colorScheme.outlineVariant.copy(
-                    alpha = 0.2f
+                    alpha = 0.1f
                 )
             }
         ),
         interactionSource = interactionSource
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
+            if (!enabled) {
+                androidx.compose.material3.Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Lock,
+                    contentDescription = "Locked",
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(20.dp)
+                )
+            }
             // Subtle internal glow/gradient for the icon area
             Box(
                 modifier =
                 Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 24.dp)
-                    .size(100.dp)
+                    .padding(top = 16.dp)
+                    .size(80.dp)
                     .background(
                         Brush.radialGradient(
                             colors =
                             listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                                 Color.Transparent
                             )
                         )
@@ -94,39 +109,38 @@ fun DashboardFeatureCard(
                 modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 // Icon Section
                 Box(
-                    modifier = Modifier.size(64.dp),
+                    modifier = Modifier.size(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     icon()
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Text Section
                 Text(
                     text = title,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.2).sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 24.sp,
-                    letterSpacing = (-0.2).sp
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = description,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
-                    lineHeight = 20.sp,
                     fontWeight = FontWeight.Medium
                 )
             }

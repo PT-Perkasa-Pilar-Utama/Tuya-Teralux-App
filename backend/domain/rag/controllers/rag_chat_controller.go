@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
@@ -19,6 +20,9 @@ import (
 	"github.com/google/uuid"
 )
 
+var tuyaUIDPattern = regexp.MustCompile(`^sg[0-9A-Za-z]{6,}$`)
+var hexIDPattern = regexp.MustCompile(`^[A-Fa-f0-9]{12,24}$`)
+
 type RAGChatController struct {
 	chatUC         usecases.ChatUseCase
 	mqttSvc        *infrastructure.MqttService
@@ -26,6 +30,43 @@ type RAGChatController struct {
 	lastPromptTime map[string]time.Time // terminalID -> lastTime
 	instanceID     string               // server start time identifier
 	mu             sync.Mutex
+}
+
+func isLikelyTuyaUID(uid string) bool {
+	uid = strings.TrimSpace(uid)
+	if uid == "" {
+		return false
+	}
+	return tuyaUIDPattern.MatchString(uid)
+}
+
+func isLikelyDeviceIdentity(uid string) bool {
+	normalized := strings.TrimSpace(strings.ToLower(uid))
+	if normalized == "" {
+		return false
+	}
+	if normalized == "unknown-terminal" {
+		return true
+	}
+	if strings.Contains(normalized, ":") || strings.Contains(normalized, "-") {
+		return true
+	}
+	return hexIDPattern.MatchString(normalized)
+}
+
+func resolveMQTTUID(reqUID string) string {
+	reqUID = strings.TrimSpace(reqUID)
+	if isLikelyTuyaUID(reqUID) {
+		return reqUID
+	}
+	if reqUID != "" {
+		if isLikelyDeviceIdentity(reqUID) {
+			utils.LogWarn("RAGChat MQTT: Rejected non-Tuya UID '%s' (looks like terminal/mac identity)", reqUID)
+		} else {
+			utils.LogWarn("RAGChat MQTT: Rejected malformed UID '%s'", reqUID)
+		}
+	}
+	return utils.GetConfig().TuyaUserID
 }
 
 func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService) *RAGChatController {
@@ -94,77 +135,85 @@ func (c *RAGChatController) StartMqttSubscription() error {
 		// we run the chat processing in a goroutine with a start delay. This prevents blocking the MQTT
 		// client thread and gives the whisper handler enough time to download audio and set the active flag.
 		go func(mac string, req dtos.RAGChatRequestDTO) {
-			if mac != "" || req.TerminalID != "" {
-				// 1. Check if Whisper is active (with a small non-blocking retry loop to catch near-simultaneous starts)
-				isWhisperActive := false
-				for i := 0; i < 5; i++ {
-					if mac != "" {
-						if _, active := utils.ActiveTranscriptions.Load(mac); active {
-							isWhisperActive = true
-							break
-						}
-					}
-					if req.TerminalID != "" {
-						if _, active := utils.ActiveTranscriptions.Load(req.TerminalID); active {
-							isWhisperActive = true
-							break
-						}
-					}
-					if i < 4 {
-						time.Sleep(30 * time.Millisecond)
-					}
-				}
-
-				if isWhisperActive {
-					utils.LogInfo("[%s] RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s", correlationID, mac, req.TerminalID)
-					if mac != "" {
-						respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
-						respData, _ := json.Marshal(commonDtos.StandardResponse{
-							Status:  true,
-							Message: "Chat request received (sync with active whisper)",
-						})
-						_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
-					}
-					return
-				}
-
-				// 2. Exact Deduplication (prevent processing the SAME prompt 3x)
-				c.mu.Lock()
-				terminalKey := req.TerminalID
-				if terminalKey == "" {
-					terminalKey = mac
-				}
-				last := c.lastPrompt[terminalKey]
-				lastTime := c.lastPromptTime[terminalKey]
-				now := time.Now()
-
-				// If prompt is exactly same as last one and happened < 3 seconds ago, drop it.
-				if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
-					c.mu.Unlock()
-					utils.LogInfo("[%s] RAGChat MQTT: Dropping duplicate prompt for %s: '%s'", correlationID, terminalKey, req.Prompt)
-					if mac != "" {
-						respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
-						respData, _ := json.Marshal(commonDtos.StandardResponse{
-							Status:  true,
-							Message: "Chat request received (duplicate dropped)",
-						})
-						_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
-					}
-					return
-				}
-
-				// Update cache
-				c.lastPrompt[terminalKey] = req.Prompt
-				c.lastPromptTime[terminalKey] = now
-				c.mu.Unlock()
+			// 1. Resolve requestID early for all response paths
+			requestID := req.RequestID
+			if requestID == "" {
+				requestID = correlationID
 			}
+
+			// 2. Check if Whisper is active (with a small non-blocking retry loop to catch near-simultaneous starts)
+			isWhisperActive := false
+			for i := 0; i < 5; i++ {
+				if mac != "" {
+					if _, active := utils.ActiveTranscriptions.Load(mac); active {
+						isWhisperActive = true
+						break
+					}
+				}
+				if req.TerminalID != "" {
+					if _, active := utils.ActiveTranscriptions.Load(req.TerminalID); active {
+						isWhisperActive = true
+						break
+					}
+				}
+				if i < 4 {
+					time.Sleep(30 * time.Millisecond)
+				}
+			}
+
+			if isWhisperActive {
+				utils.LogInfo("[%s] RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s", correlationID, mac, req.TerminalID)
+				if mac != "" {
+					respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
+					respData, _ := json.Marshal(commonDtos.StandardResponse{
+						Status:  true,
+						Message: "Chat request received (sync with active whisper)",
+						Data: dtos.RAGChatResponseDTO{
+							RequestID: requestID,
+							Source:    "MQTT_SYNC_DROP",
+						},
+					})
+					_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
+				}
+				return
+			}
+
+			// 3. Exact Deduplication (prevent processing the SAME prompt 3x)
+			c.mu.Lock()
+			terminalKey := req.TerminalID
+			if terminalKey == "" {
+				terminalKey = mac
+			}
+			last := c.lastPrompt[terminalKey]
+			lastTime := c.lastPromptTime[terminalKey]
+			now := time.Now()
+
+			// If prompt is exactly same as last one and happened < 3 seconds ago, drop it.
+			if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
+				c.mu.Unlock()
+				utils.LogInfo("[%s] RAGChat MQTT: Dropping duplicate prompt for %s: '%s'", correlationID, terminalKey, req.Prompt)
+				if mac != "" {
+					respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
+					respData, _ := json.Marshal(commonDtos.StandardResponse{
+						Status:  true,
+						Message: "Chat request received (duplicate dropped)",
+						Data: dtos.RAGChatResponseDTO{
+							RequestID: requestID,
+							Source:    "MQTT_DUP_DROP",
+						},
+					})
+					_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
+				}
+				return
+			}
+
+			// Update cache
+			c.lastPrompt[terminalKey] = req.Prompt
+			c.lastPromptTime[terminalKey] = now
+			c.mu.Unlock()
 
 			// Process chat
-			requestID := correlationID // Reuse the early ingress correlation ID
-			uid := req.UID
-			if uid == "" {
-				uid = utils.GetConfig().TuyaUserID
-			}
+			uid := resolveMQTTUID(req.UID)
 
 			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
 			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language)
@@ -256,6 +305,11 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		uidStr = uid.(string)
 	}
 
+	requestID := req.RequestID
+	if requestID == "" {
+		requestID = uuid.New().String()
+	}
+
 	// Apply deduplication to HTTP path as well
 	c.mu.Lock()
 	terminalKey := req.TerminalID
@@ -270,6 +324,10 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 			Status:  true,
 			Message: "Chat request received (duplicate dropped)",
+			Data: dtos.RAGChatResponseDTO{
+				RequestID: requestID,
+				Source:    "HTTP_DUP_DROP",
+			},
 		})
 		return
 	}
@@ -279,7 +337,6 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	c.lastPromptTime[terminalKey] = now
 	c.mu.Unlock()
 
-	requestID := uuid.New().String()
 	utils.LogInfo("[%s] RAGChat HTTP [Handler: Chat]: Starting chat process for UID: %s, Terminal: %s, Prompt: '%s'", requestID, uidStr, req.TerminalID, req.Prompt)
 
 	res, err := c.chatUC.Chat(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt, req.Language)

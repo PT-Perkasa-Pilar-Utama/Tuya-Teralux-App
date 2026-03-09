@@ -14,25 +14,22 @@
 
 - `backend/`: Main Go API/backend service.
   - Domain code: `backend/domain/...`
-  - Local automation: `backend/Makefile`
-  - Remote automation scripts: `backend/scripts/*.sh`
+  - Automation: `backend/Makefile`, `backend/scripts/*.sh`
 - `sensio_app/`: Android application module (Gradle + ktlint).
 - `sensio_notification/`: Notification application (KMP/Compose + ktlint).
-- `scripts/remote/`: Shared remote sync/deploy helpers (`common_arch.sh`).
 
 ## Component Boundaries
 
 - Keep backend API/domain logic in `backend/domain/...`.
 - Keep mobile app logic confined to `sensio_app/...`.
 - Keep notification app logic confined to `sensio_notification/...`.
-- Reuse shared remote helper behavior from `scripts/remote/common_arch.sh`; avoid duplicating transport/sync logic in module scripts.
 
 ## Common Validation Commands
 
 Run commands from each module root:
 
 - `backend/`
-  - `make lint` (local dev lint; ThinkPad guard may skip)
+  - `make lint` (always run golangci-lint)
   - `make lint-strict` (always run golangci-lint)
   - `make vet`
   - `make build`
@@ -43,7 +40,16 @@ Run commands from each module root:
 - `sensio_notification/`
   - `make lint`
   - `make build`
+- **Mandatory Baseline**: After every code/config change, run local `lint` and `build` in affected module(s).
+- **Behavior-Change Gate**: Run tests when behavior changes.
 
-## Engineering Goal
+## Planning Flow
+
+- Always read `.agents` files in this sequence:
+  1. `project-context.md`
+  2. `coding-rules.md`
+  3. `workflow-rules.md`
+- AI must explicitly confirm this read sequence in every implementation plan.
+- Plans must explicitly include post-change `lint` + `build` and explain that they are mandatory quality gates.
 
 Deliver minimal, safe, and reversible changes while preserving module boundaries, validation discipline, and secure configuration handling (`.env`, keystore, credentials).

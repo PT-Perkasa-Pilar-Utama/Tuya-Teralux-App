@@ -36,10 +36,13 @@ remote-pull-apk:
 	@rsync -az arch:~/Documents/Tuya-Teralux-App/sensio_app/app/build/outputs/apk/debug/app-debug.apk .remote-build/app-debug.apk
 	@echo "✅ APK successfully pulled to: .remote-build/app-debug.apk"
 
-# Build and deploy to device
-deploy:
-	@chmod +x deploy.sh gradlew
-	@./deploy.sh
+# Install built APK to device
+install:
+	@echo "📲 Installing APK..."
+	@adb install -t -r -g app/build/outputs/apk/debug/app-debug.apk
+
+# Build, Lint, and Install
+deploy: build lint install
 
 # Deploy to specific device
 deploy-%:

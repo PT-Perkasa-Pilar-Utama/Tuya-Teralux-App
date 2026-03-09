@@ -1,4 +1,4 @@
-package com.sensio.notification.ui.theme
+package com.sensio.app.notif.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

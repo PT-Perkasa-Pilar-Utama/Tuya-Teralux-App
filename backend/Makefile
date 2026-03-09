@@ -9,7 +9,7 @@ help:
 	@echo "  --- LOCAL DEV ---"
 	@echo "  make dev              - Run development server with hot reload (Air)"
 	@echo "  make test             - Run all unit tests"
-	@echo "  make lint             - Run golangci-lint (auto-skip only on local ThinkPad due to RAM limits)"
+	@echo "  make lint             - Run golangci-lint (checks domain packages)"
 	@echo "  make lint-strict      - Run golangci-lint (always enforced)"
 	@echo ""
 	@echo "  --- DOCKER & DEPLOY ---"
@@ -269,16 +269,7 @@ vet:
 
 # Run golangci-lint
 lint:
-	@vendor="$$(cat /sys/devices/virtual/dmi/id/sys_vendor 2>/dev/null || true)"; \
-	product_name="$$(cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || true)"; \
-	product_version="$$(cat /sys/devices/virtual/dmi/id/product_version 2>/dev/null || true)"; \
-	combined="$${vendor} $${product_name} $${product_version}"; \
-	if echo "$$combined" | grep -qi "thinkpad"; then \
-		echo "⚠️  ThinkPad detected. Skipping golangci-lint for local development (RAM-limited device policy)."; \
-		echo "ℹ️  Use 'make lint-strict' to enforce golangci-lint."; \
-	else \
-		$(MAKE) lint-strict; \
-	fi
+	@$(MAKE) lint-strict
 
 # Run golangci-lint without local-machine guard
 lint-strict:
