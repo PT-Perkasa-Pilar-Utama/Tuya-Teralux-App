@@ -11,6 +11,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/dtos"
 	"sensio/domain/rag/usecases"
+	terminalRepos "sensio/domain/terminal/repositories"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ var hexIDPattern = regexp.MustCompile(`^[A-Fa-f0-9]{12,24}$`)
 type RAGChatController struct {
 	chatUC         usecases.ChatUseCase
 	mqttSvc        *infrastructure.MqttService
+	terminalRepo   terminalRepos.ITerminalRepository
 	lastPrompt     map[string]string    // terminalID -> lastPrompt (deduplication)
 	lastPromptTime map[string]time.Time // terminalID -> lastTime
 	instanceID     string               // server start time identifier
@@ -48,31 +50,55 @@ func isLikelyDeviceIdentity(uid string) bool {
 	if normalized == "unknown-terminal" {
 		return true
 	}
+	// MAC address or device ID looking strings
 	if strings.Contains(normalized, ":") || strings.Contains(normalized, "-") {
 		return true
 	}
+	// 12 hex chars is likely a MAC address without colons
 	return hexIDPattern.MatchString(normalized)
 }
 
-func resolveMQTTUID(reqUID string) string {
+func (c *RAGChatController) resolveMQTTUID(mac, reqUID string) string {
 	reqUID = strings.TrimSpace(reqUID)
+
+	// 1. If payload contains a valid Tuya UID, use it
 	if isLikelyTuyaUID(reqUID) {
 		return reqUID
 	}
+
+	// 2. Reject if it looks like a MAC/Terminal ID
 	if reqUID != "" {
 		if isLikelyDeviceIdentity(reqUID) {
-			utils.LogWarn("RAGChat MQTT: Rejected non-Tuya UID '%s' (looks like terminal/mac identity)", reqUID)
+			utils.LogWarn("RAGChat MQTT: Rejected non-Tuya UID '%s' (looks like terminal/mac identity) from payload", reqUID)
 		} else {
 			utils.LogWarn("RAGChat MQTT: Rejected malformed UID '%s'", reqUID)
 		}
 	}
+
+	// 3. Fallback: Lookup mapping from database (MAC -> TuyaUID)
+	if mac != "" && c.terminalRepo != nil {
+		terminal, err := c.terminalRepo.GetByMacAddress(strings.ToUpper(mac))
+		if err == nil && terminal != nil && terminal.TuyaUID != "" {
+			utils.LogDebug("RAGChat MQTT: Resolved UID '%s' for terminal %s via DB mapping", terminal.TuyaUID, mac)
+			return terminal.TuyaUID
+		}
+		if err != nil {
+			utils.LogError("RAGChat MQTT: Database mapping lookup failed for terminal %s: %v", mac, err)
+		} else {
+			utils.LogWarn("RAGChat MQTT: No TuyaUID mapping found in database for terminal %s", mac)
+		}
+	}
+
+	// 4. Ultimate Fallback (Should be avoided in production)
+	utils.LogWarn("RAGChat MQTT: Failed to resolve per-user UID for terminal %s. Using global fallback.", mac)
 	return utils.GetConfig().TuyaUserID
 }
 
-func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService) *RAGChatController {
+func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService, terminalRepo terminalRepos.ITerminalRepository) *RAGChatController {
 	return &RAGChatController{
 		chatUC:         chatUC,
 		mqttSvc:        mqttSvc,
+		terminalRepo:   terminalRepo,
 		lastPrompt:     make(map[string]string),
 		lastPromptTime: make(map[string]time.Time),
 		instanceID:     time.Now().Format("2006-01-02 15:04:05"),
@@ -213,7 +239,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			c.mu.Unlock()
 
 			// Process chat
-			uid := resolveMQTTUID(req.UID)
+			uid := c.resolveMQTTUID(mac, req.UID)
 
 			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
 			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language)
