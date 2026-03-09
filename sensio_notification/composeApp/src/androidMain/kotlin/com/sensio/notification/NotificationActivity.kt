@@ -22,7 +22,7 @@ class NotificationActivity : ComponentActivity() {
                     message = message,
                     onDismiss = {
                         finish()
-                    },
+                    }
                 )
             }
         }

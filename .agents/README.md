@@ -44,4 +44,4 @@ These rules apply to code, scripts, tests, docs, and AI-generated review suggest
 ## Key Policies
 
 - **Plan Language**: All plans are English-only with rationale/explanation for each major step.
-- **Mandatory Remote Sync**: On a ThinkPad, you **must** sync to `arch` (Nitro 5) before running any `lint` or `build` commands. Remote checks without a fresh sync is non-compliant.
+- **Mandatory Local Validation**: After every code/config change, run `lint` and `build` in affected module(s) before completion.

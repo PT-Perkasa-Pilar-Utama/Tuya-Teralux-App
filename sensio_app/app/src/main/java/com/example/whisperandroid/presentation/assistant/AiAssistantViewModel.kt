@@ -530,6 +530,7 @@ class AiAssistantViewModel(
             val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
             val token = tm.getAccessToken()
             val terminalId = tm.getTerminalId() ?: username
+            val tuyaUid = tm.getTuyaUid()
 
             if (token == null) {
                 failRequest(requestId, "Authentication error: Token missing")
@@ -543,7 +544,7 @@ class AiAssistantViewModel(
                         prompt = text,
                         language = selectedLanguage,
                         terminalId = terminalId,
-                        uid = username,
+                        uid = tuyaUid,
                         token = token,
                         requestId = requestId,
                         idempotencyKey = fallbackIdempotencyKey
@@ -626,6 +627,7 @@ class AiAssistantViewModel(
         fallbackIdempotencyKey: String
     ) {
         val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+        val tuyaUid = com.example.whisperandroid.data.di.NetworkModule.tokenManager.getTuyaUid()
         viewModelScope.launch {
             var isCompleted = false
             var attempts = 0
@@ -659,7 +661,7 @@ class AiAssistantViewModel(
                         prompt = transcribedText,
                         language = selectedLanguage,
                         terminalId = terminalId,
-                        uid = username,
+                        uid = tuyaUid,
                         token = token,
                         requestId = requestId,
                         idempotencyKey = fallbackIdempotencyKey + "_chat"

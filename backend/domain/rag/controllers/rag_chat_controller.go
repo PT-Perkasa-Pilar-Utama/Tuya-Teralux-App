@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
@@ -19,6 +20,9 @@ import (
 	"github.com/google/uuid"
 )
 
+var tuyaUIDPattern = regexp.MustCompile(`^sg[0-9A-Za-z]{6,}$`)
+var hexIDPattern = regexp.MustCompile(`^[A-Fa-f0-9]{12,24}$`)
+
 type RAGChatController struct {
 	chatUC         usecases.ChatUseCase
 	mqttSvc        *infrastructure.MqttService
@@ -26,6 +30,43 @@ type RAGChatController struct {
 	lastPromptTime map[string]time.Time // terminalID -> lastTime
 	instanceID     string               // server start time identifier
 	mu             sync.Mutex
+}
+
+func isLikelyTuyaUID(uid string) bool {
+	uid = strings.TrimSpace(uid)
+	if uid == "" {
+		return false
+	}
+	return tuyaUIDPattern.MatchString(uid)
+}
+
+func isLikelyDeviceIdentity(uid string) bool {
+	normalized := strings.TrimSpace(strings.ToLower(uid))
+	if normalized == "" {
+		return false
+	}
+	if normalized == "unknown-terminal" {
+		return true
+	}
+	if strings.Contains(normalized, ":") || strings.Contains(normalized, "-") {
+		return true
+	}
+	return hexIDPattern.MatchString(normalized)
+}
+
+func resolveMQTTUID(reqUID string) string {
+	reqUID = strings.TrimSpace(reqUID)
+	if isLikelyTuyaUID(reqUID) {
+		return reqUID
+	}
+	if reqUID != "" {
+		if isLikelyDeviceIdentity(reqUID) {
+			utils.LogWarn("RAGChat MQTT: Rejected non-Tuya UID '%s' (looks like terminal/mac identity)", reqUID)
+		} else {
+			utils.LogWarn("RAGChat MQTT: Rejected malformed UID '%s'", reqUID)
+		}
+	}
+	return utils.GetConfig().TuyaUserID
 }
 
 func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService) *RAGChatController {
@@ -172,10 +213,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			c.mu.Unlock()
 
 			// Process chat
-			uid := req.UID
-			if uid == "" {
-				uid = utils.GetConfig().TuyaUserID
-			}
+			uid := resolveMQTTUID(req.UID)
 
 			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
 			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language)

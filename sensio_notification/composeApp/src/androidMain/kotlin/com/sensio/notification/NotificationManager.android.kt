@@ -11,7 +11,7 @@ lateinit var appContext: Context
 
 fun showNotification(
     title: String,
-    message: String,
+    message: String
 ) {
     // Create Intent to launch NotificationActivity
     val intent =
@@ -29,10 +29,12 @@ fun showNotification(
             appContext,
             0,
             intent,
-            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+            android.app.PendingIntent.FLAG_IMMUTABLE or
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-    val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    val notificationManager =
+        appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val channelId = "sensio_notification_channel"
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -40,7 +42,7 @@ fun showNotification(
             NotificationChannel(
                 channelId,
                 "Meeting Reminder",
-                NotificationManager.IMPORTANCE_DEFAULT,
+                NotificationManager.IMPORTANCE_DEFAULT
             )
         notificationManager.createNotificationChannel(channel)
     }

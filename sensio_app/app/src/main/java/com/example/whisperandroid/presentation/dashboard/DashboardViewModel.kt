@@ -1,20 +1,22 @@
 package com.example.whisperandroid.presentation.dashboard
 
+import android.content.Context
+import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.remote.dto.TuyaDeviceDto
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.provider.Settings
-import android.content.Context
 
 data class DashboardUiState(
-    val isLoading: Boolean = false,
-    val isAuthenticated: Boolean = false,
     val isBackgroundModeEnabled: Boolean = false,
     val isOverlayPermissionGranted: Boolean = false,
+    val isTuyaSyncReady: Boolean = false,
+    val syncedDevices: List<TuyaDeviceDto> = emptyList(),
     val error: String? = null
 )
 
@@ -25,15 +27,26 @@ class DashboardViewModel(
     private val backgroundAssistantModeStore:
         com.example.whisperandroid.data.local.BackgroundAssistantModeStore
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(DashboardUiState(
-        isLoading = true,
-        isBackgroundModeEnabled = backgroundAssistantModeStore.isEnabled.value
-    ))
+    private val _uiState = MutableStateFlow(
+        DashboardUiState(
+            isBackgroundModeEnabled = backgroundAssistantModeStore.isEnabled.value
+        )
+    )
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        authenticate()
         observeBackgroundMode()
+        observeTuyaSyncReady()
+    }
+
+    private fun observeTuyaSyncReady() {
+        viewModelScope.launch {
+            NetworkModule.isTuyaSyncReady.collect { ready ->
+                _uiState.value = _uiState.value.copy(
+                    isTuyaSyncReady = ready
+                )
+            }
+        }
     }
 
     private fun observeBackgroundMode() {
@@ -44,8 +57,27 @@ class DashboardViewModel(
         }
     }
 
-    fun setBackgroundMode(enabled: Boolean) {
+    fun setBackgroundMode(context: Context, enabled: Boolean) {
         backgroundAssistantModeStore.setEnabled(enabled)
+        val intent = android.content.`Intent`(context, com.example.whisperandroid.service.BackgroundAssistantService::class.java).apply {
+            action = if (enabled) {
+                com.example.whisperandroid.service.BackgroundAssistantService.ACTION_START_ASSISTANT
+            } else {
+                com.example.whisperandroid.service.BackgroundAssistantService.ACTION_STOP_ASSISTANT
+            }
+        }
+
+        if (enabled) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } else {
+            // Even if stopping, we send the action first for clean shutdown, then stopService
+            context.startService(intent)
+            context.stopService(intent)
+        }
     }
 
     fun checkOverlayPermission(context: Context) {
@@ -54,37 +86,33 @@ class DashboardViewModel(
         )
     }
 
-    fun authenticate() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+    private var lastFetchAtMs = 0L
+    private val FETCH_THROTTLE_MS = 5000L
 
-            // Call API to authenticate and get/refresh token
-            val result: Result<String> = authenticateUseCase()
-
-            result
-                .onSuccess {
-                    _uiState.value = _uiState.value.copy(isAuthenticated = true, isLoading = false)
-                }.onFailure { e ->
-                    _uiState.value =
-                        _uiState.value.copy(
-                            isLoading = false,
-                            isAuthenticated = false,
-                            error = e.message ?: "Authentication failed"
-                        )
-                }
+    fun fetchDevices(force: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        if (!force && currentTime - lastFetchAtMs < FETCH_THROTTLE_MS) {
+            android.util.Log.d("DashboardViewModel", "Fetch throttled (last fetch was ${currentTime - lastFetchAtMs}ms ago)")
+            return
         }
-    }
 
-    fun fetchDevices() {
         viewModelScope.launch {
-            // Fetch devices but don't store in state as requested
+            lastFetchAtMs = currentTime
             val result = getTuyaDevicesUseCase()
             result.onSuccess { response ->
+                NetworkModule.setTuyaSyncReady(true)
+                _uiState.value = _uiState.value.copy(
+                    syncedDevices = response.devices,
+                    error = null
+                )
                 android.util.Log.d(
                     "DashboardViewModel",
                     "Devices synced with backend (Found ${response.devices.size})"
                 )
             }.onFailure { e ->
+                // Keep non-blocking behavior: UI can continue even when sync fails.
+                NetworkModule.setTuyaSyncReady(true)
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to sync devices")
                 android.util.Log.e("DashboardViewModel", "Failed to sync devices", e)
             }
         }

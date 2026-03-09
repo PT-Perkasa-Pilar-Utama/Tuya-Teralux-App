@@ -1,31 +1,31 @@
 package com.example.whisperandroid
 
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.navigation.AppRoutes
+import com.example.whisperandroid.presentation.bootstrap.AppBootstrapViewModel
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
-import com.example.whisperandroid.service.BackgroundAssistantService
 import com.example.whisperandroid.ui.theme.SensioTheme
 import com.example.whisperandroid.util.FeatureAvailabilityGuard
-import com.example.whisperandroid.presentation.assistant.SensioWakeWordManager
-import android.widget.Toast
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -53,10 +53,22 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    bootstrapViewModel: AppBootstrapViewModel = viewModel {
+        AppBootstrapViewModel(
+            NetworkModule.authenticateUseCase
+        )
+    }
+) {
     val context = LocalContext.current
     val navController = rememberNavController()
-    
+
+    val bootstrapState by bootstrapViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        bootstrapViewModel.bootstrap()
+    }
+
     // Permission Handling
     val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
@@ -75,58 +87,17 @@ fun MainScreen() {
 
     val backgroundModeEnabled by NetworkModule.backgroundAssistantModeStore.isEnabled.collectAsState()
     val coordinator = remember { NetworkModule.backgroundAssistantCoordinator }
-    val scope = rememberCoroutineScope()
-    
-    val wakeWordManager = remember {
-        SensioWakeWordManager(context) {
-            coordinator.onWakeDetected()
-        }
-    }
 
-    DisposableEffect(Unit) {
-        coordinator.start(scope)
-        coordinator.onDismissed = {
-            if (NetworkModule.backgroundAssistantModeStore.isEnabled.value) {
-                wakeWordManager.startListening()
-            }
-        }
-        onDispose {
-            coordinator.stop()
-            wakeWordManager.destroy()
-        }
-    }
-
-    // Lifecycle - Start/Stop Vosk only in foreground
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(lifecycleOwner, backgroundModeEnabled) {
-        lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onResume(owner: LifecycleOwner) {
-                if (backgroundModeEnabled && androidx.core.content.ContextCompat.checkSelfPermission(
-                        context, android.Manifest.permission.RECORD_AUDIO
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    wakeWordManager.startListening()
-                }
-            }
-            override fun onPause(owner: LifecycleOwner) {
-                wakeWordManager.stopListening()
-            }
-        })
-    }
-
+    // Stop local listeners if background mode is enabled
+    // This allows the Service to own the runtime
     LaunchedEffect(backgroundModeEnabled) {
         if (backgroundModeEnabled) {
-            // Stop service if it was running (transition to foreground-only)
-            context.stopService(Intent(context, BackgroundAssistantService::class.java))
-
             val currentRoute = navController.currentBackStackEntry?.destination?.route
             if (currentRoute == AppRoutes.Meeting.route || currentRoute == AppRoutes.Assistant.route) {
                 navController.navigate(AppRoutes.Dashboard.route) {
                     popUpTo(AppRoutes.Dashboard.route) { inclusive = false }
                 }
             }
-        } else {
-            wakeWordManager.stopListening()
         }
     }
 
@@ -156,15 +127,20 @@ fun MainScreen() {
                     },
                     onNavigateToUpload = { },
                     onNavigateToStreaming = {
-                        if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                        if (!bootstrapState.isBootstrapped) {
+                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
+                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
                             navController.navigate(AppRoutes.Meeting.route)
                         }
                     },
                     onNavigateToEdge = {
-                        if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                        if (!bootstrapState.isBootstrapped) {
+                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
+                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
                             navController.navigate(AppRoutes.Assistant.route)
                         }
-                    }
+                    },
+                    bootstrapViewModel = bootstrapViewModel
                 )
             }
 
