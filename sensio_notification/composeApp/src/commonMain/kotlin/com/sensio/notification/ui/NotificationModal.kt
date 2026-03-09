@@ -1,4 +1,4 @@
-package com.sensio.notification.ui
+package com.sensio.app.notif.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,12 +30,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sensio.notification.ui.theme.Cyan400
-import com.sensio.notification.ui.theme.Cyan500
-import com.sensio.notification.ui.theme.Cyan600
-import com.sensio.notification.ui.theme.Slate400
-import com.sensio.notification.ui.theme.Slate50
-import com.sensio.notification.ui.theme.Slate900
+import com.sensio.app.notif.ui.theme.Cyan400
+import com.sensio.app.notif.ui.theme.Cyan500
+import com.sensio.app.notif.ui.theme.Cyan600
+import com.sensio.app.notif.ui.theme.Slate400
+import com.sensio.app.notif.ui.theme.Slate50
+import com.sensio.app.notif.ui.theme.Slate900
 
 @Composable
 @Suppress("FunctionName")

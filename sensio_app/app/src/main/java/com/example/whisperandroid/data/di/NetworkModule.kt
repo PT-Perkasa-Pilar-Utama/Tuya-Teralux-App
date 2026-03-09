@@ -51,14 +51,26 @@ object NetworkModule {
 
     lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
     lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
+    lateinit var backgroundAssistantModeStore: com.example.whisperandroid.data.local.BackgroundAssistantModeStore
+    val backgroundAssistantCoordinator: com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator by lazy {
+        com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator(
+            appContext as android.app.Application
+        )
+    }
     lateinit var appContext: android.content.Context
 
     fun init(context: android.content.Context) {
+        if (::appContext.isInitialized) return
         appContext = context.applicationContext
         tokenManager =
             com.example.whisperandroid.data.local
-                .TokenManager(context)
-        mqttHelper = com.example.whisperandroid.util.MqttHelper(context)
+                .TokenManager(appContext)
+        mqttHelper = com.example.whisperandroid.util.MqttHelper(appContext)
+        backgroundAssistantModeStore = com.example.whisperandroid.data.local.BackgroundAssistantModeStore(appContext)
+    }
+
+    fun ensureInitialized(context: android.content.Context) {
+        init(context)
     }
 
     private val api: TerminalApi by lazy {

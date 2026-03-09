@@ -1,7 +1,7 @@
-package com.sensio.notification.logic
+package com.sensio.app.notif.logic
 
-import com.sensio.notification.model.MeetingSession
-import com.sensio.notification.showNotification
+import com.sensio.app.notif.model.MeetingSession
+import com.sensio.app.notif.showNotification
 import kotlinx.datetime.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -24,7 +24,7 @@ class MeetingMonitor(
         if (timeUntilEnd <= reminderOffset && timeUntilEnd > Duration.ZERO) {
             showNotification(
                 title = "Sensio Notification",
-                message = "You have 10 minutes remaining",
+                message = "The current meeting session is ending soon",
             )
             session.reminderTriggered = true
         }

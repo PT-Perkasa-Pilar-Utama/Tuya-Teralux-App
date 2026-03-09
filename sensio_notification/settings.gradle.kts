@@ -5,14 +5,15 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://alphacephei.com/maven/") }
     }
 }
 
-rootProject.name = "sensio_notification"
+rootProject.name = "Smart Meeting Room Whisper Demo"
 include(":composeApp")

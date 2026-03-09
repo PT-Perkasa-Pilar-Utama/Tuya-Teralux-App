@@ -7,23 +7,51 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.provider.Settings
+import android.content.Context
 
 data class DashboardUiState(
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
+    val isBackgroundModeEnabled: Boolean = false,
+    val isOverlayPermissionGranted: Boolean = false,
     val error: String? = null
 )
 
 class DashboardViewModel(
     private val authenticateUseCase: AuthenticateUseCase,
     private val getTuyaDevicesUseCase:
-        com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
+        com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase,
+    private val backgroundAssistantModeStore:
+        com.example.whisperandroid.data.local.BackgroundAssistantModeStore
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(DashboardUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(DashboardUiState(
+        isLoading = true,
+        isBackgroundModeEnabled = backgroundAssistantModeStore.isEnabled.value
+    ))
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
         authenticate()
+        observeBackgroundMode()
+    }
+
+    private fun observeBackgroundMode() {
+        viewModelScope.launch {
+            backgroundAssistantModeStore.isEnabled.collect { enabled ->
+                _uiState.value = _uiState.value.copy(isBackgroundModeEnabled = enabled)
+            }
+        }
+    }
+
+    fun setBackgroundMode(enabled: Boolean) {
+        backgroundAssistantModeStore.setEnabled(enabled)
+    }
+
+    fun checkOverlayPermission(context: Context) {
+        _uiState.value = _uiState.value.copy(
+            isOverlayPermissionGranted = Settings.canDrawOverlays(context)
+        )
     }
 
     fun authenticate() {
