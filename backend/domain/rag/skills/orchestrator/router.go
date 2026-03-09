@@ -21,11 +21,11 @@ func isDeviceDiscoveryPrompt(prompt string) bool {
 		return false
 	}
 
-	deviceWords := []string{"device", "perangkat", "alat"}
+	deviceWords := []string{"device", "perangkat", "alat", "lampu", "ac", "tv"}
 	discoveryWords := []string{
-		"what can i control", "what devices", "which devices",
-		"bisa control", "bisa saya control", "bisa aku control",
-		"apa aja", "daftar", "list", "terdaftar", "tersambung",
+		"what can i control", "what devices", "which devices", "available devices", "connected devices",
+		"bisa control", "bisa saya control", "bisa aku control", "bisa dikontrol",
+		"apa aja", "apa saja", "daftar", "list", "terdaftar", "tersambung", "konek", "sambung",
 	}
 
 	hasDeviceWord := false
