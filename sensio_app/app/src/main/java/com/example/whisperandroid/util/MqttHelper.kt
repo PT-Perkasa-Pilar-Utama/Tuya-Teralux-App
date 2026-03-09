@@ -42,6 +42,10 @@ class MqttHelper(
         return com.example.whisperandroid.util.DeviceUtils.getDeviceId(context)
     }
 
+    private fun resolveTuyaUid(): String? {
+        return tokenManager.getTuyaUid()?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
     fun getTaskTopic(): String? {
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
@@ -229,16 +233,14 @@ class MqttHelper(
     ): Result<Unit> {
         val base64Audio = android.util.Base64.encodeToString(payload, android.util.Base64.NO_WRAP)
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
-        
-        val jsonPayload = org.json.JSONObject().apply {
-            put("audio", base64Audio)
-            put("terminal_id", terminalId)
-            put("uid", getUsername())
-            put("language", language)
-            if (requestId != null) {
-                put("request_id", requestId)
-            }
-        }
+        val tuyaUid = resolveTuyaUid()
+        val jsonPayload = MqttPayloadFactory.buildAudioPayload(
+            base64Audio = base64Audio,
+            terminalId = terminalId,
+            language = language,
+            requestId = requestId,
+            tuyaUid = tuyaUid
+        )
 
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
@@ -251,16 +253,14 @@ class MqttHelper(
         requestId: String? = null
     ): Result<Unit> {
         val terminalId = tokenManager.getTerminalId() ?: "unknown-terminal"
-        
-        val jsonPayload = org.json.JSONObject().apply {
-            if (requestId != null) {
-                put("request_id", requestId)
-            }
-            put("prompt", text)
-            put("terminal_id", terminalId)
-            put("language", language)
-            put("uid", getUsername())
-        }
+        val tuyaUid = resolveTuyaUid()
+        val jsonPayload = MqttPayloadFactory.buildChatPayload(
+            text = text,
+            terminalId = terminalId,
+            language = language,
+            requestId = requestId,
+            tuyaUid = tuyaUid
+        )
 
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT

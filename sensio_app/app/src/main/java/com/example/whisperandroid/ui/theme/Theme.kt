@@ -1,6 +1,8 @@
 package com.example.whisperandroid.ui.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -82,10 +84,12 @@ fun SensioTheme(
 
     val view = LocalView.current
     if (!view.isInEditMode) {
+        val currentContext = LocalContext.current
         SideEffect {
-            val window = (view.context as Activity).window
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            findActivity(currentContext)?.window?.let { window ->
+                WindowCompat.setDecorFitsSystemWindows(window, false)
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            }
         }
     }
 
@@ -93,4 +97,10 @@ fun SensioTheme(
         colorScheme = colorScheme,
         content = content
     )
+}
+
+private fun findActivity(context: Context): Activity? = when (context) {
+    is Activity -> context
+    is ContextWrapper -> findActivity(context.baseContext)
+    else -> null
 }

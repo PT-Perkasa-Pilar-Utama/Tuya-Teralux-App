@@ -174,6 +174,8 @@ class GoogleSpeechWakeWordManager(
         }
     }
 
+    override fun isListeningRequested(): Boolean = isListening
+
     override fun destroy() {
         isDestroyed = true
         isListening = false

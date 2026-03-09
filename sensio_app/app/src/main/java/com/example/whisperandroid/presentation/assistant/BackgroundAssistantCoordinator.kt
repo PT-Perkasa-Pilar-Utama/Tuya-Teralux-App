@@ -1,22 +1,25 @@
 package com.example.whisperandroid.presentation.assistant
 
 import android.app.Application
-import android.util.Log
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
+import com.example.whisperandroid.util.AppLog
 import com.example.whisperandroid.util.MqttHelper
-import com.example.whisperandroid.util.parseMarkdownToText
-import com.google.gson.JsonParser
-import kotlinx.coroutines.*
+import java.io.File
+import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import java.io.File
-import java.util.UUID
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 class BackgroundAssistantCoordinator(
     private val application: Application
 ) {
+    private val TAG = "Coordinator"
     private var scope: CoroutineScope? = null
     private val _uiState = MutableStateFlow(BackgroundAssistantUiState())
     val uiState = _uiState.asStateFlow()
@@ -26,7 +29,7 @@ class BackgroundAssistantCoordinator(
     private var currentRecordingFile: File? = null
     private var activeRequestId: String? = null
     private val requestStartedAtMs = mutableMapOf<String, Long>()
-    
+
     private var dismissJob: Job? = null
     private var greetingJob: Job? = null
     private var listeningTimeoutJob: Job? = null
@@ -34,6 +37,13 @@ class BackgroundAssistantCoordinator(
     private var mqttJob: Job? = null
 
     private var activeSessionJob: Job? = null
+    private companion object {
+        const val GREETING_DURATION_MS = 1000L
+        const val LISTENING_DURATION_MS = 3000L
+        const val LISTENING_TICK_MS = 120L
+        const val PROCESSING_DURATION_MS = 2200L
+        const val RESULT_DURATION_MS = 5000L
+    }
 
     private val dummyResponses = listOf(
         "Tentu, lampu ruang tamu sudah dinyalakan." to "Nyalakan lampu ruang tamu",
@@ -55,7 +65,7 @@ class BackgroundAssistantCoordinator(
     }
 
     fun onWakeDetected() {
-        Log.d("BGAssistantCoord", "Wake detected, starting dummy session")
+        AppLog.d(TAG, "Wake detected, starting session")
         runDummySession()
     }
 
@@ -65,46 +75,50 @@ class BackgroundAssistantCoordinator(
             val sessionId = UUID.randomUUID().toString()
             val (assistantResp, userPrompt) = dummyResponses.random()
 
-            // 1. Greeting (600ms)
+            // 1. Greeting
             _uiState.value = BackgroundAssistantUiState(
                 state = BackgroundAssistantUiState.State.Greeting,
                 sessionId = sessionId,
                 startedAtMs = System.currentTimeMillis()
             )
-            delay(600L)
+            AppLog.d(TAG, "[Session] Greeting")
+            delay(GREETING_DURATION_MS)
 
-            // 2. Listening (2000ms)
+            // 2. Listening
             _uiState.value = _uiState.value.copy(
                 state = BackgroundAssistantUiState.State.Listening,
                 recognizedText = ""
             )
-            
+            AppLog.d(TAG, "[Session] Listening")
+
             val words = userPrompt.split(" ")
             val listeningStart = System.currentTimeMillis()
-            while (System.currentTimeMillis() - listeningStart < 2000L) {
+            while (System.currentTimeMillis() - listeningStart < LISTENING_DURATION_MS) {
                 val elapsed = System.currentTimeMillis() - listeningStart
-                val progress = elapsed.toFloat() / 2000f
+                val progress = elapsed.toFloat() / LISTENING_DURATION_MS.toFloat()
                 val wordCount = (progress * words.size).toInt().coerceIn(0, words.size)
                 val currentText = words.take(wordCount).joinToString(" ")
-                
+
                 _uiState.value = _uiState.value.copy(
                     recognizedText = currentText,
                     micLevel = (0.2f + Math.random().toFloat() * 0.8f) // Simulated pulse
                 )
-                delay(100L)
+                delay(LISTENING_TICK_MS)
             }
             _uiState.value = _uiState.value.copy(recognizedText = userPrompt, micLevel = 0f)
 
-            // 3. Processing (1500ms)
+            // 3. Processing
             _uiState.value = _uiState.value.copy(state = BackgroundAssistantUiState.State.Processing)
-            delay(1500L)
+            AppLog.d(TAG, "[Session] Processing")
+            delay(PROCESSING_DURATION_MS)
 
-            // 4. Result (4000ms)
+            // 4. Result
             _uiState.value = _uiState.value.copy(
                 state = BackgroundAssistantUiState.State.Result,
                 assistantText = assistantResp
             )
-            delay(4000L)
+            AppLog.i(TAG, "[Session] Result shown: $assistantResp")
+            delay(RESULT_DURATION_MS)
 
             // 5. Dismiss
             dismissAndRearm()
@@ -141,13 +155,13 @@ class BackgroundAssistantCoordinator(
 
         if (!isConnected) {
             val deviceId = com.example.whisperandroid.util.DeviceUtils.getDeviceId(application)
-            Log.d("BGAssistantCoord", "MQTT disconnected, fetching password for $deviceId")
+            AppLog.d(TAG, "MQTT disconnected, fetching password for $deviceId")
             val pwdResult = NetworkModule.repository.fetchMqttPassword(deviceId)
-            
+
             if (pwdResult.isSuccess) {
                 val password = pwdResult.getOrNull()
                 if (password != null) {
-                    Log.d("BGAssistantCoord", "Attempting MQTT reconnect before publish")
+                    AppLog.d(TAG, "Attempting MQTT reconnect before publish")
                     mqttHelper.connect(password)
                     // Wait up to 3 seconds for connection
                     try {
@@ -155,11 +169,11 @@ class BackgroundAssistantCoordinator(
                             mqttHelper.connectionStatus.first { it == MqttHelper.MqttConnectionStatus.CONNECTED }
                         }
                     } catch (e: Exception) {
-                        Log.e("BGAssistantCoord", "Failed to reconnect MQTT within timeout")
+                        AppLog.e(TAG, "Failed to reconnect MQTT within timeout")
                     }
                 }
             } else {
-                Log.e("BGAssistantCoord", "Failed to fetch MQTT password: ${pwdResult.exceptionOrNull()?.message}")
+                AppLog.e(TAG, "Failed to fetch MQTT password: ${pwdResult.exceptionOrNull()?.message}")
             }
         }
     }
@@ -171,8 +185,12 @@ class BackgroundAssistantCoordinator(
             val data = json.getAsJsonObject("data")
             if (data.has("request_id") && !data.get("request_id").isJsonNull) {
                 data.get("request_id").asString
-            } else null
-        } else null
+            } else {
+                null
+            }
+        } else {
+            null
+        }
     }
 
     private fun parseSource(json: com.google.gson.JsonObject): String? {
@@ -188,7 +206,9 @@ class BackgroundAssistantCoordinator(
             json.get("message").asString
         } else if (raw.contains("Response: \"")) {
             raw.substringAfter("Response: \"").substringBeforeLast("\"")
-        } else null
+        } else {
+            null
+        }
     }
 
     private fun parseIsBlocked(json: com.google.gson.JsonObject): Boolean {

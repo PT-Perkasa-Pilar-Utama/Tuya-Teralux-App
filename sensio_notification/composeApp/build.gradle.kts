@@ -2,6 +2,18 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("org.jlleitschuh.gradle.ktlint")
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    android = true
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+    }
+    filter {
+        exclude("**/build/**")
+        exclude("**/generated/**")
+    }
 }
 
 android {
@@ -25,12 +37,12 @@ android {
             isMinifyEnabled = false
         }
     }
-    
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    
+
     kotlinOptions {
         jvmTarget = "11"
     }
@@ -38,7 +50,7 @@ android {
     buildFeatures {
         compose = true
     }
-    
+
     sourceSets {
         getByName("main") {
             manifest.srcFile("src/androidMain/AndroidManifest.xml")
@@ -57,7 +69,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
-    
+
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.compose.material:material:1.7.5")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")

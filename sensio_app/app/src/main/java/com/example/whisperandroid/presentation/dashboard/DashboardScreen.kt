@@ -1,5 +1,6 @@
 package com.example.whisperandroid.presentation.dashboard
 
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,28 +15,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.SmartToy
-import android.provider.Settings
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,13 +46,18 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.remote.dto.TuyaDeviceDto
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
+import com.example.whisperandroid.util.DeviceUtils
 import kotlinx.coroutines.launch
 
 private object DashboardLayoutTokens {
@@ -64,7 +68,7 @@ private object DashboardLayoutTokens {
     val Spacing20 = 20.dp
     val Spacing24 = 24.dp
     val Spacing32 = 32.dp
-    
+
     val CardRadiusPrimary = 20.dp
     val CardRadiusFeature = 24.dp
     val MaxContentWidth = 960.dp
@@ -76,6 +80,7 @@ fun DashboardScreen(
     onNavigateToUpload: () -> Unit,
     onNavigateToStreaming: () -> Unit,
     onNavigateToEdge: () -> Unit,
+    bootstrapViewModel: com.example.whisperandroid.presentation.bootstrap.AppBootstrapViewModel,
     viewModel: DashboardViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel {
             DashboardViewModel(
@@ -86,25 +91,15 @@ fun DashboardScreen(
         }
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val bootstrapState by bootstrapViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        viewModel.fetchDevices()
+        viewModel.fetchDevices(force = true)
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.checkOverlayPermission(context)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
     var hasMicPermission by remember {
         mutableStateOf(
             androidx.core.content.ContextCompat.checkSelfPermission(
@@ -114,16 +109,53 @@ fun DashboardScreen(
         )
     }
 
+    var wasBackgroundModeEnabled by remember { mutableStateOf(uiState.isBackgroundModeEnabled) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.checkOverlayPermission(context)
+                hasMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.RECORD_AUDIO
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val launcher =
         androidx.activity.compose.rememberLauncherForActivityResult(
             androidx.activity.result.contract.ActivityResultContracts
                 .RequestPermission()
         ) { isGranted ->
             hasMicPermission = isGranted
+            if (isGranted) {
+                viewModel.setBackgroundMode(context, true)
+            }
         }
 
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    androidx.compose.runtime.LaunchedEffect(uiState.isBackgroundModeEnabled) {
+        if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled) {
+            val currentMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.RECORD_AUDIO
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!currentMicPermission) {
+                snackbarHostState.showSnackbar(
+                    message = "Background Assistant turned off because microphone permission is disabled.",
+                    duration = androidx.compose.material3.SnackbarDuration.Long
+                )
+            }
+        }
+        wasBackgroundModeEnabled = uiState.isBackgroundModeEnabled
+    }
 
     androidx.compose.material3.Scaffold(
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
@@ -153,14 +185,22 @@ fun DashboardScreen(
                     )
             )
 
-            if (uiState.isLoading) {
+            if (bootstrapState.isSyncing) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Syncing devices...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    }
                 }
-            } else if (uiState.isAuthenticated) {
+            } else if (bootstrapState.isBootstrapped && uiState.isTuyaSyncReady) {
                 // Centered content container
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -177,7 +217,18 @@ fun DashboardScreen(
                             onNavigateToEdge = onNavigateToEdge,
                             isBackgroundModeEnabled = uiState.isBackgroundModeEnabled,
                             isOverlayPermissionGranted = uiState.isOverlayPermissionGranted,
-                            onBackgroundModeChange = { viewModel.setBackgroundMode(it) },
+                            syncedDevices = uiState.syncedDevices,
+                            onBackgroundModeChange = { enabled ->
+                                if (enabled) {
+                                    if (hasMicPermission) {
+                                        viewModel.setBackgroundMode(context, true)
+                                    } else {
+                                        launcher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                    }
+                                } else {
+                                    viewModel.setBackgroundMode(context, false)
+                                }
+                            },
                             onRequestOverlayPermission = {
                                 val intent = android.content.Intent(
                                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -195,23 +246,36 @@ fun DashboardScreen(
                         )
                     }
                 }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(DashboardLayoutTokens.Spacing24),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing16)
+            } else if (bootstrapState.error != null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = uiState.error ?: "Authentication Failed",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White,
-                        textAlign = TextAlign.Center
-                    )
-                    Button(onClick = { viewModel.authenticate() }) {
-                        Text("Retry Login")
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Text(
+                            bootstrapState.error ?: "Unknown error",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        androidx.compose.material3.Button(
+                            onClick = { bootstrapViewModel.bootstrap(forceRetry = true) }
+                        ) {
+                            Text("Retry")
+                        }
                     }
+                }
+            } else {
+                // Should not happen, but as a fallback
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }
@@ -327,11 +391,11 @@ private fun BackgroundAssistantCard(
 
             if (isEnabled) {
                 Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing12))
-                
+
                 Row(
-                   modifier = Modifier.fillMaxWidth(),
-                   horizontalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing8),
-                   verticalAlignment = Alignment.Top
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing8),
+                    verticalAlignment = Alignment.Top
                 ) {
                     // Feature Lock Impact (Condensed)
                     Row(
@@ -435,7 +499,7 @@ private fun FeatureGrid(
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val isWide = maxWidth > 600.dp
-        
+
         if (isWide) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -520,12 +584,24 @@ fun DashboardContent(
     onNavigateToEdge: () -> Unit,
     isBackgroundModeEnabled: Boolean,
     isOverlayPermissionGranted: Boolean,
+    syncedDevices: List<TuyaDeviceDto>,
     onBackgroundModeChange: (Boolean) -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onShowDisabledMessage: () -> Unit
 ) {
+    val context = LocalContext.current
+    val isPhone = DeviceUtils.isPhone(context)
+    val contentModifier =
+        if (isPhone) {
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        } else {
+            Modifier.fillMaxSize()
+        }
+
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = contentModifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing32)
     ) {
@@ -537,6 +613,8 @@ fun DashboardContent(
             onEnabledChange = onBackgroundModeChange,
             onRequestOverlayPermission = onRequestOverlayPermission
         )
+
+        ConnectedDevicesCard(devices = syncedDevices)
 
         Column(verticalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing20)) {
             Text(
@@ -554,7 +632,9 @@ fun DashboardContent(
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        if (!isPhone) {
+            Spacer(modifier = Modifier.weight(1f))
+        }
 
         // Footer
         Row(
@@ -574,6 +654,54 @@ fun DashboardContent(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun ConnectedDevicesCard(devices: List<TuyaDeviceDto>) {
+    androidx.compose.material3.Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(DashboardLayoutTokens.CardRadiusPrimary),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(DashboardLayoutTokens.Spacing16)) {
+            Text(
+                text = "Connected Devices (${devices.size})",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing8))
+
+            if (devices.isEmpty()) {
+                Text(
+                    text = "No devices synced yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            } else {
+                devices.take(5).forEach { device ->
+                    Text(
+                        text = "• ${device.name}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (devices.size > 5) {
+                    Text(
+                        text = "+${devices.size - 5} more devices",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = DashboardLayoutTokens.Spacing4)
+                    )
+                }
+            }
         }
     }
 }

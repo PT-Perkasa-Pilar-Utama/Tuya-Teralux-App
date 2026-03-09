@@ -9,30 +9,38 @@ import retrofit2.Response
  * Extension to extract error message from Retrofit Response
  */
 fun <T> Response<T>.getErrorMessage(): String =
-    try {
-        val errorBody = this.errorBody()?.string()
-        if (errorBody != null) {
-            parseErrorBody(errorBody)
-        } else {
+    if (this.code() == 500) {
+        "Internal server error"
+    } else {
+        try {
+            val errorBody = this.errorBody()?.string()
+            if (errorBody != null) {
+                parseErrorBody(errorBody)
+            } else {
+                "An error occurred. Please try again"
+            }
+        } catch (e: Exception) {
             "An error occurred. Please try again"
         }
-    } catch (e: Exception) {
-        "An error occurred. Please try again"
     }
 
 /**
  * Extension to extract error message from HttpException
  */
 fun HttpException.getErrorMessage(): String =
-    try {
-        val errorBody = response()?.errorBody()?.string()
-        if (errorBody != null) {
-            parseErrorBody(errorBody)
-        } else {
+    if (this.code() == 500) {
+        "Internal server error"
+    } else {
+        try {
+            val errorBody = response()?.errorBody()?.string()
+            if (errorBody != null) {
+                parseErrorBody(errorBody)
+            } else {
+                message() ?: "An error occurred"
+            }
+        } catch (e: Exception) {
             message() ?: "An error occurred"
         }
-    } catch (e: Exception) {
-        message() ?: "An error occurred"
     }
 
 private fun parseErrorBody(errorBody: String): String =

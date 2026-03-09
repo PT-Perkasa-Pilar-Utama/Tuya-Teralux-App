@@ -17,6 +17,8 @@ import com.example.whisperandroid.domain.usecase.SendEmailByMacUseCase
 import com.example.whisperandroid.domain.usecase.SummarizeTextUseCase
 import com.example.whisperandroid.domain.usecase.TranscribeAudioUseCase
 import com.example.whisperandroid.domain.usecase.TranslateTextUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -30,7 +32,7 @@ object NetworkModule {
     private val client by lazy {
         val logging =
             HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                level = HttpLoggingInterceptor.Level.BASIC
             }
         OkHttpClient.Builder()
             .addInterceptor(logging)
@@ -58,6 +60,13 @@ object NetworkModule {
         )
     }
     lateinit var appContext: android.content.Context
+
+    private val _isTuyaSyncReady = MutableStateFlow(false)
+    val isTuyaSyncReady = _isTuyaSyncReady.asStateFlow()
+
+    fun setTuyaSyncReady(ready: Boolean) {
+        _isTuyaSyncReady.value = ready
+    }
 
     fun init(context: android.content.Context) {
         if (::appContext.isInitialized) return

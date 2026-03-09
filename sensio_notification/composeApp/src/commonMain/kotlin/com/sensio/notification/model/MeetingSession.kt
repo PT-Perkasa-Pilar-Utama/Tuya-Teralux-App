@@ -6,5 +6,5 @@ data class MeetingSession(
     val id: String,
     val title: String,
     val endTime: Instant,
-    var reminderTriggered: Boolean = false,
+    var reminderTriggered: Boolean = false
 )

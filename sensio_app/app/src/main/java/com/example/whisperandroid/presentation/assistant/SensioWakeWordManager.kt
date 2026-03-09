@@ -3,7 +3,7 @@ package com.example.whisperandroid.presentation.assistant
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import com.example.whisperandroid.util.AppLog
 import java.io.IOException
 import org.vosk.Model
 import org.vosk.Recognizer
@@ -15,6 +15,7 @@ class SensioWakeWordManager(
     private val context: Context,
     private val onWakeWordDetected: () -> Unit
 ) : WakeWordListener {
+    private val TAG = "WakeWord"
     private var model: Model? = null
     private var speechService: SpeechService? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -43,25 +44,22 @@ class SensioWakeWordManager(
             "model",
             { model: Model ->
                 this.model = model
-                Log.d("SensioWakeWord", "Vosk model unpacked and loaded successfully")
+                AppLog.i(TAG, "Vosk model unpacked and loaded")
             },
             { exception: IOException ->
-                Log.e("SensioWakeWord", "Failed to unpack Vosk model: ${exception.message}")
+                AppLog.e(TAG, "Failed to unpack Vosk model", exception)
             }
         )
     }
 
     private val recognitionListener =
         object : RecognitionListener {
-            override fun onPartialResult(hypothesis: String?) {
-                // Triggering from partial results can cause repeated false starts.
-                // We only use stable onResult / onFinalResult for triggers in this flow.
-            }
+            override fun onPartialResult(hypothesis: String?) {}
 
             override fun onResult(hypothesis: String?) {
                 hypothesis?.let {
                     if (containsWakeWord(it)) {
-                        Log.d("SensioWakeWord", "Wake word detected: $it")
+                        AppLog.d(TAG, "Wake word detected: $it")
                         triggerWakeWord()
                     }
                 }
@@ -70,19 +68,17 @@ class SensioWakeWordManager(
             override fun onFinalResult(hypothesis: String?) {
                 hypothesis?.let {
                     if (containsWakeWord(it)) {
-                        Log.d("SensioWakeWord", "Wake word detected (final): $it")
+                        AppLog.d(TAG, "Wake word detected (final): $it")
                         triggerWakeWord()
                     }
                 }
             }
 
             override fun onError(exception: Exception?) {
-                Log.e("SensioWakeWord", "Vosk Error: ${exception?.message}")
+                AppLog.e(TAG, "Vosk Error: ${exception?.message}")
             }
 
-            override fun onTimeout() {
-                Log.d("SensioWakeWord", "Vosk Timeout")
-            }
+            override fun onTimeout() {}
         }
 
     private fun containsWakeWord(hypothesis: String): Boolean {
@@ -104,42 +100,27 @@ class SensioWakeWordManager(
 
     private fun triggerWakeWord() {
         val now = System.currentTimeMillis()
-        if (now - lastWakeDetectedAtMs < 3000L) {
-            Log.d("SensioWakeWord", "Wake word trigger ignored: Debounce active (3s)")
-            return
-        }
+        if (now - lastWakeDetectedAtMs < 3000L) return
 
-        if (isWakeCycleActive) {
-            Log.d("SensioWakeWord", "Wake word trigger ignored: Cycle already active")
-            return
-        }
+        if (isWakeCycleActive) return
 
         isWakeCycleActive = true
         lastWakeDetectedAtMs = now
 
+        AppLog.i(TAG, "Wake word triggered")
         // Stop listening immediately to avoid double trigger during pipeline start
         stopListening()
         onWakeWordDetected()
     }
 
     override fun startListening() {
-        Log.d("SensioWakeWord", "Request to START listening (requested=$isListeningRequested, destroyed=$isDestroyed)")
         isListeningRequested = true
         isWakeCycleActive = false // Reset cycle to allow new trigger
 
         handler.post {
-            if (isDestroyed) {
-                Log.w("SensioWakeWord", "startListening ignored: already destroyed")
-                return@post
-            }
-
-            if (!isListeningRequested) {
-                Log.d("SensioWakeWord", "startListening aborted: no longer requested")
-                return@post
-            }
+            if (isDestroyed || !isListeningRequested) return@post
 
             if (model == null) {
-                Log.w("SensioWakeWord", "Model not ready yet, retrying in 1s")
                 handler.postDelayed({
                     if (isListeningRequested && !isDestroyed) {
                         startListening()
@@ -150,17 +131,16 @@ class SensioWakeWordManager(
 
             try {
                 if (speechService == null) {
-                    Log.d("SensioWakeWord", "Creating new SpeechService")
                     val rec = Recognizer(model, 16000.0f, keywords)
                     speechService = SpeechService(rec, 16000.0f)
                 }
 
                 speechService?.setPause(false)
-                var started = speechService?.startListening(recognitionListener) ?: false
-                Log.d("SensioWakeWord", "Started offline listening (result=$started, serviceExists=${speechService != null})")
-
-                if (!started && isListeningRequested && !isDestroyed) {
-                    Log.w("SensioWakeWord", "Start failed, attempting self-healing (recreate service)")
+                val started = speechService?.startListening(recognitionListener) ?: false
+                if (started) {
+                    AppLog.d(TAG, "Started offline listening")
+                } else if (isListeningRequested && !isDestroyed) {
+                    AppLog.w(TAG, "Start failed, attempting self-healing")
                     speechService?.stop()
                     speechService?.shutdown()
                     speechService = null
@@ -170,42 +150,33 @@ class SensioWakeWordManager(
                         val rec = Recognizer(model, 16000.0f, keywords)
                         speechService = SpeechService(rec, 16000.0f)
                         speechService?.setPause(false)
-                        started = speechService?.startListening(recognitionListener) ?: false
-                        Log.d("SensioWakeWord", "Self-healing sync retry result: $started")
+                        val retryStarted = speechService?.startListening(recognitionListener) ?: false
+                        AppLog.d(TAG, "Self-healing retry result: $retryStarted")
                     } catch (e: Exception) {
-                        Log.e("SensioWakeWord", "Self-healing sync retry failed: ${e.message}")
-                    }
-
-                    // If still failed, schedule a delayed retry to avoid permanent death
-                    if (!started && isListeningRequested && !isDestroyed) {
-                        Log.w("SensioWakeWord", "Self-healing failed again, scheduling backoff retry in 1.5s")
-                        handler.postDelayed({
-                            if (isListeningRequested && !isDestroyed) {
-                                startListening()
-                            }
-                        }, 1500)
+                        AppLog.e(TAG, "Self-healing retry failed", e)
                     }
                 }
             } catch (e: Exception) {
-                Log.e("SensioWakeWord", "Failed to start Vosk: ${e.message}")
+                AppLog.e(TAG, "Failed to start Vosk", e)
             }
         }
     }
 
     override fun stopListening() {
-        Log.d("SensioWakeWord", "Request to STOP listening")
         isListeningRequested = false
         handler.removeCallbacksAndMessages(null)
 
         handler.post {
             speechService?.setPause(true)
             speechService?.stop()
-            Log.d("SensioWakeWord", "Stopped and paused SpeechService")
+            AppLog.d(TAG, "Stopped SpeechService")
         }
     }
 
+    override fun isListeningRequested(): Boolean = isListeningRequested
+
     override fun destroy() {
-        Log.d("SensioWakeWord", "Destroying WakeWordManager")
+        AppLog.i(TAG, "Destroying WakeWordManager")
         isDestroyed = true
         isListeningRequested = false
         handler.removeCallbacksAndMessages(null)
