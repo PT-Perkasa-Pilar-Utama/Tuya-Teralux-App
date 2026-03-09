@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.whisperandroid.data.di.NetworkModule
-import com.example.whisperandroid.data.remote.dto.TuyaDeviceDto
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
 import com.example.whisperandroid.util.DeviceUtils
 import kotlinx.coroutines.launch
@@ -217,7 +216,6 @@ fun DashboardScreen(
                             onNavigateToEdge = onNavigateToEdge,
                             isBackgroundModeEnabled = uiState.isBackgroundModeEnabled,
                             isOverlayPermissionGranted = uiState.isOverlayPermissionGranted,
-                            syncedDevices = uiState.syncedDevices,
                             onBackgroundModeChange = { enabled ->
                                 if (enabled) {
                                     if (hasMicPermission) {
@@ -584,7 +582,6 @@ fun DashboardContent(
     onNavigateToEdge: () -> Unit,
     isBackgroundModeEnabled: Boolean,
     isOverlayPermissionGranted: Boolean,
-    syncedDevices: List<TuyaDeviceDto>,
     onBackgroundModeChange: (Boolean) -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onShowDisabledMessage: () -> Unit
@@ -613,8 +610,6 @@ fun DashboardContent(
             onEnabledChange = onBackgroundModeChange,
             onRequestOverlayPermission = onRequestOverlayPermission
         )
-
-        ConnectedDevicesCard(devices = syncedDevices)
 
         Column(verticalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing20)) {
             Text(
@@ -654,54 +649,6 @@ fun DashboardContent(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp
             )
-        }
-    }
-}
-
-@Composable
-private fun ConnectedDevicesCard(devices: List<TuyaDeviceDto>) {
-    androidx.compose.material3.Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f),
-        shape = RoundedCornerShape(DashboardLayoutTokens.CardRadiusPrimary),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(DashboardLayoutTokens.Spacing16)) {
-            Text(
-                text = "Connected Devices (${devices.size})",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing8))
-
-            if (devices.isEmpty()) {
-                Text(
-                    text = "No devices synced yet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            } else {
-                devices.take(5).forEach { device ->
-                    Text(
-                        text = "• ${device.name}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (devices.size > 5) {
-                    Text(
-                        text = "+${devices.size - 5} more devices",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = DashboardLayoutTokens.Spacing4)
-                    )
-                }
-            }
         }
     }
 }
