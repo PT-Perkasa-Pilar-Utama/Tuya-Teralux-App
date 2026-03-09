@@ -12,7 +12,7 @@ fi
 source "$COMMON_SCRIPT"
 
 preflight_check
-sync_source
+sync_source_delta
 sync_remote_configs "sensio_notification"
 
 log_info "Starting remote lint and build for Sensio Notification on $REMOTE_HOST..."

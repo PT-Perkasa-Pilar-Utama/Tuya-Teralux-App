@@ -19,6 +19,7 @@
 - `sensio_app/`: Android application module (Gradle + ktlint).
 - `sensio_notification/`: Notification application (KMP/Compose + ktlint).
 - `scripts/remote/`: Shared remote sync/deploy helpers (`common_arch.sh`).
+- **Host Mapping**: `arch` == Nitro 5 host.
 
 ## Component Boundaries
 
@@ -32,7 +33,7 @@
 Run commands from each module root:
 
 - `backend/`
-  - `make lint` (local dev lint; ThinkPad guard may skip)
+  - `make lint` (always run golangci-lint)
   - `make lint-strict` (always run golangci-lint)
   - `make vet`
   - `make build`
@@ -43,7 +44,17 @@ Run commands from each module root:
 - `sensio_notification/`
   - `make lint`
   - `make build`
+- **ThinkPad Note**: If a ThinkPad is detected, local validation is disallowed.
+- **Source of Truth**: The ThinkPad working tree is the authoritative source; all remote validation on `arch` must use a snapshot synced from ThinkPad using `preflight_check` and `sync_source_delta`.
+  - **Delta-Only Policy**: Sync propagates tracked changes and deletions only.
+- **Host Mapping**: `arch` == Nitro 5 remote host.
 
-## Engineering Goal
+## Planning Flow
+
+- Always read `.agents` files in this sequence:
+  1. `project-context.md`
+  2. `coding-rules.md`
+  3. `workflow-rules.md`
+- AI must explicitly confirm this read sequence in every implementation plan.
 
 Deliver minimal, safe, and reversible changes while preserving module boundaries, validation discipline, and secure configuration handling (`.env`, keystore, credentials).

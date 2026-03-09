@@ -10,6 +10,11 @@
 - Add or update tests when behavior changes.
 - Fix lint/build failures caused or surfaced by your changes before finishing.
 
+- **ThinkPad Automation Rule**: Never execute `lint` or `build` locally on a ThinkPad-detected device.
+- **Mandatory Delta Sync**: Always execute `preflight_check` + `sync_source_delta` (+ `sync_remote_configs` when needed) before remote validation on `arch` (Nitro 5).
+  - **Delta Policy**: Sync change-tracked files + deletions; do not perform full raw copy by default.
+- **Fail-Fast**: If any sync stage fails, you **must** stop; no remote lint/build attempt is permitted.
+
 ## Go Rules (`backend/`)
 
 - Follow idiomatic Go formatting (`gofmt`) and existing project structure.
@@ -34,4 +39,5 @@
 ## Documentation
 
 - Update docs when commands, validation flow, or developer workflow changes.
+- **Remote Policy**: Always document that ThinkPad machines follow the remote `lint`/`build` flow via `ssh arch`.
 - Keep instructions concrete and repository-specific.
