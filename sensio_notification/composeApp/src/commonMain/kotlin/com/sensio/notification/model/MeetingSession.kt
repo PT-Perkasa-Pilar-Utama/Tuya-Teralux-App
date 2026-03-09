@@ -1,4 +1,4 @@
-package com.sensio.notification.model
+package com.sensio.app.notif.model
 
 import kotlinx.datetime.Instant
 

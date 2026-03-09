@@ -1,4 +1,4 @@
-package com.sensio.notification
+package com.sensio.app.notif
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,8 +9,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.sensio.notification.logic.MeetingMonitor
-import com.sensio.notification.model.MeetingSession
+import com.sensio.app.notif.logic.MeetingMonitor
+import com.sensio.app.notif.model.MeetingSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
