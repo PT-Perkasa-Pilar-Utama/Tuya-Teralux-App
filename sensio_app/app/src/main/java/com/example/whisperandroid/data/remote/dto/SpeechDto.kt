@@ -90,13 +90,16 @@ data class RAGChatRequestDto(
     @SerializedName("prompt") val prompt: String,
     @SerializedName("language") val language: String? = null,
     @SerializedName("terminal_id") val terminalId: String,
-    @SerializedName("uid") val uid: String? = null
+    @SerializedName("uid") val uid: String? = null,
+    @SerializedName("request_id") val requestId: String? = null
 )
 
 data class RAGChatResponseDto(
-    @SerializedName("response") val response: String,
-    @SerializedName("is_control") val isControl: Boolean,
-    @SerializedName("redirect") val redirect: RedirectDto? = null
+    @SerializedName("response") val response: String? = null,
+    @SerializedName("is_control") val isControl: Boolean? = null,
+    @SerializedName("redirect") val redirect: RedirectDto? = null,
+    @SerializedName("request_id") val requestId: String? = null,
+    @SerializedName("source") val source: String? = null
 )
 
 data class RedirectDto(

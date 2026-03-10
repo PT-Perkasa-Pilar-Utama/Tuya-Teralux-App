@@ -17,6 +17,8 @@ import com.example.whisperandroid.domain.usecase.SendEmailByMacUseCase
 import com.example.whisperandroid.domain.usecase.SummarizeTextUseCase
 import com.example.whisperandroid.domain.usecase.TranscribeAudioUseCase
 import com.example.whisperandroid.domain.usecase.TranslateTextUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -30,7 +32,7 @@ object NetworkModule {
     private val client by lazy {
         val logging =
             HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                level = HttpLoggingInterceptor.Level.BASIC
             }
         OkHttpClient.Builder()
             .addInterceptor(logging)
@@ -51,14 +53,33 @@ object NetworkModule {
 
     lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
     lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
+    lateinit var backgroundAssistantModeStore: com.example.whisperandroid.data.local.BackgroundAssistantModeStore
+    val backgroundAssistantCoordinator: com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator by lazy {
+        com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator(
+            appContext as android.app.Application
+        )
+    }
     lateinit var appContext: android.content.Context
 
+    private val _isTuyaSyncReady = MutableStateFlow(false)
+    val isTuyaSyncReady = _isTuyaSyncReady.asStateFlow()
+
+    fun setTuyaSyncReady(ready: Boolean) {
+        _isTuyaSyncReady.value = ready
+    }
+
     fun init(context: android.content.Context) {
+        if (::appContext.isInitialized) return
         appContext = context.applicationContext
         tokenManager =
             com.example.whisperandroid.data.local
-                .TokenManager(context)
-        mqttHelper = com.example.whisperandroid.util.MqttHelper(context)
+                .TokenManager(appContext)
+        mqttHelper = com.example.whisperandroid.util.MqttHelper(appContext)
+        backgroundAssistantModeStore = com.example.whisperandroid.data.local.BackgroundAssistantModeStore(appContext)
+    }
+
+    fun ensureInitialized(context: android.content.Context) {
+        init(context)
     }
 
     private val api: TerminalApi by lazy {

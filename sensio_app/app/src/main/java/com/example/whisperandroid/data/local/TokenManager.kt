@@ -15,6 +15,7 @@ class TokenManager(
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_TERMINAL_ID = "terminal_id"
+        private const val KEY_TUYA_UID = "tuya_uid"
     }
 
     fun saveAccessToken(token: String) {
@@ -29,7 +30,16 @@ class TokenManager(
 
     fun getTerminalId(): String? = prefs.getString(KEY_TERMINAL_ID, null)
 
+    fun saveTuyaUid(uid: String) {
+        prefs.edit { putString(KEY_TUYA_UID, uid) }
+    }
+
+    fun getTuyaUid(): String? = prefs.getString(KEY_TUYA_UID, null)
+
     fun clearToken() {
-        prefs.edit { remove(KEY_ACCESS_TOKEN) }
+        prefs.edit {
+            remove(KEY_ACCESS_TOKEN)
+            remove(KEY_TUYA_UID)
+        }
     }
 }

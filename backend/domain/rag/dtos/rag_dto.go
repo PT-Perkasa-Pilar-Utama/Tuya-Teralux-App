@@ -61,15 +61,16 @@ type RAGSummaryResponseDTO struct {
 }
 
 type RAGChatRequestDTO struct {
+	RequestID  string `json:"request_id,omitempty"`
 	Prompt     string `json:"prompt" binding:"required" example:"Nyalakan AC"`
 	Language   string `json:"language,omitempty" example:"id"`
 	TerminalID string `json:"terminal_id" binding:"required" example:"tx-1"`
-	UID        string `json:"uid,omitempty" example:"sg1765..."`
+	UID        string `json:"uid,omitempty" example:"sg1765..."` // Must be Tuya UID (never MAC/terminal identity)
 }
 
 type RAGChatResponseDTO struct {
-	Response       string       `json:"response"`
-	IsControl      bool         `json:"is_control"`
+	Response       string       `json:"response,omitempty"`
+	IsControl      bool         `json:"is_control,omitempty"`
 	IsBlocked      bool         `json:"is_blocked"`
 	Redirect       *RedirectDTO `json:"redirect,omitempty"`
 	HTTPStatusCode int          `json:"-"`                     // HTTP status code to return (not exposed in JSON)

@@ -1,6 +1,6 @@
 # Sensio App Backend - Makefile for Development Automation
 
-.PHONY: help dev build-docker push pull run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint lint-strict vet push-remote
+.PHONY: help dev build-docker push pull update run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint lint-strict vet push-remote
 
 # Default target
 help:
@@ -9,7 +9,7 @@ help:
 	@echo "  --- LOCAL DEV ---"
 	@echo "  make dev              - Run development server with hot reload (Air)"
 	@echo "  make test             - Run all unit tests"
-	@echo "  make lint             - Run golangci-lint (auto-skip only on local ThinkPad due to RAM limits)"
+	@echo "  make lint             - Run golangci-lint (checks domain packages)"
 	@echo "  make lint-strict      - Run golangci-lint (always enforced)"
 	@echo ""
 	@echo "  --- DOCKER & DEPLOY ---"
@@ -104,28 +104,14 @@ build-docker:
 	@echo "🐳 Building Docker image for local architecture..."
 	docker build --build-arg AUTO_MIGRATE=true -t $(IMAGE_BASE):$(IMAGE_TAG) .
 
-# Trigger GitHub CI Multi-Arch Build & Push
+# Direct push to GHCR (No GitHub CI)
 push:
-	@echo "🚀 Triggering GitHub Actions: Backend Docker Build and Push..."
-	@if command -v gh >/dev/null 2>&1; then \
-		gh workflow run backend-docker-publish.yml --ref $$(git rev-parse --abbrev-ref HEAD) -f tag=$(IMAGE_TAG); \
-		echo "✅ Workflow triggered successfully. Monitoring progress..."; \
-		sleep 2; \
-		gh run watch $$(gh run list --workflow=backend-docker-publish.yml --limit 1 --json databaseId -q '.[0].databaseId'); \
-	else \
-		echo "❌ Error: 'gh' (GitHub CLI) is not installed. Please install it or use the GitHub web UI."; \
-		exit 1; \
-	fi
-
-# Build and Push for Local Architecture only (using host specs)
-push-local:
-	@echo "🚀 [Local] Detecting host architecture..."
+	@echo "🚀 Building and Pushing to GHCR directly..."
 	@ARCH=$$(uname -m); \
 	if [ "$$ARCH" = "x86_64" ]; then PLATFORM="linux/amd64"; \
 	elif [ "$$ARCH" = "aarch64" ] || [ "$$ARCH" = "arm64" ]; then PLATFORM="linux/arm64"; \
 	else PLATFORM="linux/amd64"; fi; \
 	echo "📍 Target Platform: $$PLATFORM"; \
-	echo "🛠️ Building and pushing local image..."; \
 	docker buildx build --platform $$PLATFORM --build-arg AUTO_MIGRATE=true -t $(REPO):$(IMAGE_TAG) --push .
 
 
@@ -137,6 +123,14 @@ push-remote:
 pull:
 	@echo "📥 Pulling latest images from $(REGISTRY)..."
 	docker compose pull
+
+# Update production stack (Pull + Restart with Orphan Cleanup)
+update:
+	@echo "📥 Pulling latest images from GHCR..."
+	docker compose pull
+	@echo "🚀 Restarting production stack and cleaning orphans..."
+	docker compose up -d --remove-orphans
+	@echo "✅ Update complete!"
 
 # Run production stack
 run:
@@ -275,16 +269,7 @@ vet:
 
 # Run golangci-lint
 lint:
-	@vendor="$$(cat /sys/devices/virtual/dmi/id/sys_vendor 2>/dev/null || true)"; \
-	product_name="$$(cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || true)"; \
-	product_version="$$(cat /sys/devices/virtual/dmi/id/product_version 2>/dev/null || true)"; \
-	combined="$${vendor} $${product_name} $${product_version}"; \
-	if echo "$$combined" | grep -qi "thinkpad"; then \
-		echo "⚠️  ThinkPad detected. Skipping golangci-lint for local development (RAM-limited device policy)."; \
-		echo "ℹ️  Use 'make lint-strict' to enforce golangci-lint."; \
-	else \
-		$(MAKE) lint-strict; \
-	fi
+	@$(MAKE) lint-strict
 
 # Run golangci-lint without local-machine guard
 lint-strict:

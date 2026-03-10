@@ -42,17 +42,31 @@ func NewTuyaGetAllDevicesController(useCase usecases.TuyaGetAllDevicesUseCase) *
 func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	accessToken := ctx.MustGet("access_token").(string)
 
-	uid := utils.AppConfig.TuyaUserID
+	// Prioritize trusted uid from context (populated by AuthMiddleware)
+	uid := ""
+	if val, ok := ctx.Get("uid"); ok {
+		uid = val.(string)
+	}
+
+	// Fallback to tuya_uid header if set (already handled by middleware but explicit here for clarity)
+	if val, ok := ctx.Get("tuya_uid"); ok {
+		uid = val.(string)
+	}
+
 	if uid == "" {
-		utils.LogError("TUYA_USER_ID is not set in environment")
+		utils.LogWarn("Tuya UID not found in context, falling back to global config")
+		uid = utils.AppConfig.TuyaUserID
+	}
+
+	if uid == "" {
+		utils.LogError("Tuya UID missing from both context and global config")
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Server configuration error: TUYA_USER_ID missing",
-			Data:    nil,
+			Message: "Authentication error: User ID missing",
 		})
 		return
 	}
-	utils.LogDebug("Using TUYA_USER_ID from env: '%s'", uid)
+	utils.LogDebug("GetAllDevices: processing for UID '%s'", uid)
 
 	// Parse optional query parameters
 	pageStr := ctx.Query("page")

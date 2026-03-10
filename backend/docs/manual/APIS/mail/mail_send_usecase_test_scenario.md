@@ -31,7 +31,7 @@ Submits an email sending task asynchronously. Returns a `task_id` immediately (H
 ```
 - **Pre-conditions**:
   - Valid SMTP configuration in `.env`.
-  - `test.html` template exists in `domain/mail/templates`.
+  - `test.html` template exists in `assets/templates/mail`.
 - **Request Body**:
 ```json
 {

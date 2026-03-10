@@ -164,7 +164,8 @@ class RagRepositoryImpl(
         terminalId: String,
         uid: String?,
         token: String,
-        idempotencyKey: String?
+        idempotencyKey: String?,
+        requestId: String?
     ): Flow<Resource<com.example.whisperandroid.data.remote.dto.RAGChatResponseDto>> =
         flow {
             emit(Resource.Loading())
@@ -174,7 +175,8 @@ class RagRepositoryImpl(
                         prompt = prompt,
                         language = language,
                         terminalId = terminalId,
-                        uid = uid
+                        uid = uid,
+                        requestId = requestId
                     ),
                     "Bearer $token",
                     idempotencyKey

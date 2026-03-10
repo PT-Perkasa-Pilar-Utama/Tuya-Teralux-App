@@ -13,13 +13,14 @@ import (
 	"sensio/domain/rag/skills"
 	"sensio/domain/rag/skills/orchestrator"
 	"sensio/domain/rag/usecases"
+	terminal_repositories "sensio/domain/terminal/repositories"
 	tuyaUsecases "sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
 
 // InitModule initializes RAG module with protected router group, configuration and optional persistence.
-func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) (usecases.RefineUseCase, usecases.TranslateUseCase, usecases.SummaryUseCase) {
+func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, tuyaAuth tuyaUsecases.TuyaAuthUseCase, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService, terminalRepo terminal_repositories.ITerminalRepository) (usecases.RefineUseCase, usecases.TranslateUseCase, usecases.SummaryUseCase) {
 	// Initialize Dependencies	// Services
 	geminiService := commonServices.NewGeminiService(cfg)
 	orionService := commonServices.NewOrionService(cfg)
@@ -105,7 +106,7 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config, badger *infrastru
 	controlUC := usecases.NewControlUseCase(llmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill)
 	chatUC := usecases.NewChatUseCase(llmClient, llamaService, cfg, badger, vectorSvc, router)
 
-	chatController := controllers.NewRAGChatController(chatUC, mqttSvc)
+	chatController := controllers.NewRAGChatController(chatUC, mqttSvc, terminalRepo)
 	if err := chatController.StartMqttSubscription(); err != nil {
 		utils.LogError("RAG module MQTT subscription failed: %v", err)
 	}

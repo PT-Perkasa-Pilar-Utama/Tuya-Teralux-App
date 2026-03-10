@@ -1,4 +1,4 @@
-package com.sensio.notification
+package com.sensio.app.notif
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,8 +9,10 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.sensio.notification.logic.MeetingMonitor
-import com.sensio.notification.model.MeetingSession
+import com.sensio.app.notif.logic.MeetingMonitor
+import com.sensio.app.notif.model.MeetingSession
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,8 +21,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 
 class MeetingMonitorService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -35,7 +35,7 @@ class MeetingMonitorService : Service() {
             MeetingSession(
                 id = "1",
                 title = "Project Sync",
-                endTime = Clock.System.now() + 6.minutes,
+                endTime = Clock.System.now() + 6.minutes
             )
         monitor = MeetingMonitor(mockSession)
 
@@ -56,7 +56,7 @@ class MeetingMonitorService : Service() {
                 NotificationChannel(
                     channelId,
                     "Meeting Monitor",
-                    NotificationManager.IMPORTANCE_LOW,
+                    NotificationManager.IMPORTANCE_LOW
                 )
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)

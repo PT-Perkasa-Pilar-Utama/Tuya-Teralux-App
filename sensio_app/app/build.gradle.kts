@@ -7,11 +7,17 @@ plugins {
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    val isCi = providers.environmentVariable("CI").orNull == "true"
+
     android = true
-    ignoreFailures = false
+    // Keep local iteration fast, but still fail lint in CI pipelines.
+    ignoreFailures = !isCi
     reporters {
         reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
-        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+    }
+    filter {
+        exclude("**/build/**")
+        exclude("**/generated/**")
     }
 }
 
@@ -92,6 +98,10 @@ android {
             "\"${localProperties.getProperty("test.auth_token") ?: ""}\""
         )
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -131,6 +141,9 @@ dependencies {
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

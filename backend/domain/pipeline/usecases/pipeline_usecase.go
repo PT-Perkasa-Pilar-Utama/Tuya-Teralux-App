@@ -255,6 +255,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 			Result:          summResult,
 			DurationSeconds: time.Since(startTime).Seconds(),
 		}
+		utils.LogInfo("Pipeline Task %s: Summary stage completed (Duration: %.2fs)", taskID, status.Stages["summary"].DurationSeconds)
 		u.saveStatus(taskID, *status)
 		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "summary", "completed", 100, nil)
 	}

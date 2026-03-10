@@ -38,6 +38,7 @@ interface RagRepository {
         terminalId: String,
         uid: String?,
         token: String,
-        idempotencyKey: String? = null
+        idempotencyKey: String? = null,
+        requestId: String? = null
     ): Flow<Resource<com.example.whisperandroid.data.remote.dto.RAGChatResponseDto>>
 }
