@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -16,10 +15,11 @@ type AudioSegment struct {
 }
 
 // SplitAudioSegments splits an audio file into chunks of segmentSec duration with overlapSec overlap.
+// It encodes segments to PCM 16k mono WAV to ensure compatibility with Whisper.
 func SplitAudioSegments(inputPath string, segmentSec int, overlapSec int) ([]AudioSegment, error) {
 	baseDir := filepath.Dir(inputPath)
-	ext := filepath.Ext(inputPath)
-	baseName := strings.TrimSuffix(filepath.Base(inputPath), ext)
+	ext := ".wav" // Standardize output segments to WAV
+	baseName := strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
 	outDir := filepath.Join(baseDir, baseName+"_segments")
 
 	if err := os.MkdirAll(outDir, 0755); err != nil {
@@ -27,15 +27,11 @@ func SplitAudioSegments(inputPath string, segmentSec int, overlapSec int) ([]Aud
 	}
 
 	// 1. Get total duration
-	durationCmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", inputPath)
-	durationOut, err := durationCmd.Output()
+	probe, err := ProbeAudio(inputPath)
 	if err != nil {
-		return nil, fmt.Errorf("ffprobe error: %v", err)
+		return nil, fmt.Errorf("probe failed: %v", err)
 	}
-	totalDuration, err := strconv.ParseFloat(strings.TrimSpace(string(durationOut)), 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse duration: %v", err)
-	}
+	totalDuration := probe.Duration
 
 	var segments []AudioSegment
 	index := 0
@@ -56,13 +52,15 @@ func SplitAudioSegments(inputPath string, segmentSec int, overlapSec int) ([]Aud
 			duration += float64(overlapSec)
 		}
 
-		// ffmpeg -ss {start} -t {duration} -i {input} -c copy {output}
+		// Encode segment: ffmpeg -ss {start} -t {duration} -i {input} -ar 16000 -ac 1 -c:a pcm_s16le {output}
 		cmdArgs := []string{
 			"-y",
 			"-ss", fmt.Sprintf("%.3f", start),
 			"-t", fmt.Sprintf("%.3f", duration),
 			"-i", inputPath,
-			"-c", "copy",
+			"-ar", "16000",
+			"-ac", "1",
+			"-c:a", "pcm_s16le",
 			outPath,
 		}
 

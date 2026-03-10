@@ -316,7 +316,35 @@ func (c *SpeechTranscribeController) Transcribe(ctx *gin.Context) {
 
 	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
 
-	// Use the same TranscribeAudio with REST metadata
+	// 3. Content Validation via ffprobe
+	probe, err := utils.ProbeAudio(finalInputPath)
+	if err != nil {
+		utils.LogError("Transcribe.ProbeAudio: %v", err)
+		_ = os.Remove(finalInputPath) // Cleanup invalid file
+		ctx.JSON(http.StatusUnsupportedMediaType, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Unsupported Media Type: actual content check failed",
+		})
+		return
+	}
+
+	if !probe.HasAudio {
+		_ = os.Remove(finalInputPath)
+		ctx.JSON(http.StatusUnsupportedMediaType, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Invalid Audio: no audio stream found",
+		})
+		return
+	}
+
+	// Extension mismatch check
+	realExt := filepath.Ext(recording.Filename)
+	// Compare actual format to extension (simple check)
+	if !strings.Contains(strings.ToLower(probe.FormatName), strings.TrimPrefix(strings.ToLower(realExt), ".")) {
+		utils.LogWarn("Transcribe.Validation: Extension mismatch detected for %s. Extension: %s, Actual Format: %s. Proceeding anyway.", recording.Filename, realExt, probe.FormatName)
+	}
+
+	// 4. Start transcription
 	taskID, err := c.transcribeUC.TranscribeAudio(ctx.Request.Context(), finalInputPath, file.Filename, language, usecases.TranscriptionMetadata{
 		Source:         "rest",
 		Trigger:        ctx.Request.URL.Path,

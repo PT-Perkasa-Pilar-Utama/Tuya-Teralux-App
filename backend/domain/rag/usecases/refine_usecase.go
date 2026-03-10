@@ -6,6 +6,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/rag/skills"
 	"strings"
+	"time"
 )
 
 type RefineUseCase interface {
@@ -34,6 +35,10 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 		return "", nil
 	}
 
+	textChars := len(text)
+	startTime := time.Now()
+	utils.LogDebug("Refine: starting (lang=%s chars=%d)", lang, textChars)
+
 	if u.skill == nil {
 		return "", fmt.Errorf("refine skill not configured")
 	}
@@ -53,9 +58,11 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 	}
 
 	if err != nil {
+		utils.LogWarn("Refine: failed (lang=%s chars=%d duration=%s) err=%v", lang, textChars, time.Since(startTime), err)
 		return "", err
 	}
 
+	utils.LogDebug("Refine: completed (lang=%s chars=%d duration=%s output_chars=%d)", lang, textChars, time.Since(startTime), len(res.Message))
 	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, res.Message)
 	return res.Message, nil
 }
