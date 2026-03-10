@@ -36,11 +36,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -110,28 +110,51 @@ fun AiAssistantScreen(
             }
         }
 
-    // Wake Word Manager
-    val currentOnWakeWordDetected by rememberUpdatedState {
-        if (isMqttOnline && !isRecording && !isProcessing) {
-            viewModel.startRecording(File(context.cacheDir, "recording.wav"))
+    // 1. Wake Word Manager (No immediate callback dependency)
+    // Create a mutable state to hold the "detect" logic that we will fill later
+    val onDetectedLambda = remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    val wakeWordManager = remember {
+        WakeWordFactory.getManager(context) {
+            onDetectedLambda.value?.invoke()
         }
     }
 
-    val wakeWordManager =
-        remember {
-            WakeWordFactory.getManager(context) {
-                currentOnWakeWordDetected()
+    // 2. Microphone sequence helper (Uses wakeWordManager as key)
+    val safeStartRecording = remember(wakeWordManager, context) {
+        {
+            scope.launch {
+                // 1. Stop wake-word first (sync)
+                wakeWordManager.stopListening()
+                // 2. Small delay to let AudioRecord resources release
+                delay(200)
+                // 3. Start recording
+                viewModel.startRecording(File(context.cacheDir, "recording.wav"))
             }
         }
+    }
 
-    // Wake Word Lifecycle
-    DisposableEffect(hasPermission, isRecording, isProcessing, isMqttOnline) {
-        if (hasPermission && isMqttOnline && !isRecording && !isProcessing) {
+    // 3. Assign the detection logic now that safeStartRecording is available
+    SideEffect {
+        onDetectedLambda.value = {
+            if (isMqttOnline && !isRecording && !isProcessing) {
+                safeStartRecording()
+            }
+        }
+    }
+
+    // Wake Word Lifecycle - Deterministic
+    LaunchedEffect(viewModel.shouldWakeWordListen, hasPermission) {
+        if (hasPermission && viewModel.shouldWakeWordListen) {
+            android.util.Log.d("AiAssistantScreen", "Starting wake-word listening")
             wakeWordManager.startListening()
         } else {
+            android.util.Log.d("AiAssistantScreen", "Stopping wake-word listening")
             wakeWordManager.stopListening()
         }
+    }
 
+    DisposableEffect(Unit) {
         onDispose {
             wakeWordManager.stopListening()
             wakeWordManager.destroy()
@@ -140,6 +163,18 @@ fun AiAssistantScreen(
 
     // Smart Mic: Auto-stop if no command detected
     val snackbarHostState = remember { SnackbarHostState() }
+    // Observe Errors
+    LaunchedEffect(viewModel.lastAssistantError) {
+        viewModel.lastAssistantError?.let { error ->
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearLastError()
+        }
+    }
+
+    // Smart Mic: Auto-stop if no command detected
     LaunchedEffect(isRecording) {
         if (isRecording) {
             delay(6000)
@@ -193,7 +228,7 @@ fun AiAssistantScreen(
                         if (!hasPermission) {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         } else if (!isRecording && !isProcessing) {
-                            viewModel.startRecording(File(context.cacheDir, "recording.wav"))
+                            safeStartRecording()
                         }
                     },
                     onStopClick = {

@@ -33,3 +33,4 @@
 .kotlin/
 .vscode/
 *.log
+*.apk

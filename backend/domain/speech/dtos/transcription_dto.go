@@ -9,6 +9,7 @@ type WhisperResult struct {
 }
 
 type WhisperMqttRequestDTO struct {
+	RequestID  string `json:"request_id,omitempty"`
 	Audio      string `json:"audio" binding:"required"` // Base64 encoded audio
 	Language   string `json:"language,omitempty"`
 	TerminalID string `json:"terminal_id" binding:"required"`

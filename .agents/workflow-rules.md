@@ -9,32 +9,29 @@
 ## Mandatory Sequence
 
 All tasks should follow:
-1. Research and plan
-2. Plan approval
-3. Incremental implementation
-4. Validation (`lint`, `build`, and `test` when applicable)
-5. Final report with commands and pass/fail status
+
+1. **Plan Preparation**: Read `.agents` in canonical order (`project-context.md`, `coding-rules.md`, `workflow-rules.md`).
+2. **AI Plan Approval**:
+   - **Plan language = English only** (regardless of conversation language).
+   - **Plan must explicitly state** that the `.agents` read step was done.
+   - **Plan must include explanation/rationale** for each major step.
+   - **Plan must explicitly include** a post-change validation step: run `lint` and `build` in affected module(s), with rationale that these are mandatory quality gates before completion.
+3. Incremental implementation.
+4. Validation:
+   - Always run `lint` and `build` in affected module(s) after changes.
+   - Run `test` when behavior changes.
+5. Final report with commands and pass/fail status.
 
 ## Validation Gates by Module
 
 - `backend/`
-  - Local dev minimum: `make lint` + `make build`
-  - Strict gate (required for remote/CI/release-like flow): `make lint-strict` + `make vet` + `make build`
+  - Mandatory local baseline after changes: `make lint` + `make build`
+  - Strict gate (required for CI/release-like flow): `make lint-strict` + `make vet` + `make build`
   - Functional checks when behavior changes: `make test`
 - `sensio_app/`
-  - `make lint`
-  - `make build`
+  - Mandatory local baseline after changes: `make lint` + `make build`
 - `sensio_notification/`
-  - `make lint`
-  - `make build`
-
-## ThinkPad Lint Guard Policy (Backend)
-
-- `backend` target `make lint` may skip `golangci-lint` when local machine is detected as ThinkPad via DMI fields (`sys_vendor`, `product_name`, `product_version`).
-- This skip is local-dev convenience only for ThinkPad laptops.
-- Rationale: some ThinkPad dev machines have limited RAM and `golangci-lint` can get force-closed under memory pressure.
-- Remote scripts and strict pipelines must use `make lint-strict` so lint is always enforced.
-- Do not downgrade strict gates by replacing `lint-strict` with `lint` in remote/deploy scripts.
+  - Mandatory local baseline after changes: `make lint` + `make build`
 
 ## Quality and Safety Rules
 

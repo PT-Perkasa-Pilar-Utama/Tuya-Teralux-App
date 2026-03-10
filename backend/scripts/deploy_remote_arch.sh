@@ -14,7 +14,7 @@ source "$COMMON_SCRIPT"
 REMOTE_BINARY_NAME=${REMOTE_BINARY_NAME:-"main"}
 
 preflight_check
-sync_source
+sync_source_delta
 sync_remote_configs "backend"
 
 log_info "Starting remote lint and build for Backend on $REMOTE_HOST..."

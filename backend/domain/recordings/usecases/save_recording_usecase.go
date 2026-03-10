@@ -16,9 +16,13 @@ import (
 )
 
 type SaveRecordingUseCase interface {
-	SaveRecording(file *multipart.FileHeader, macAddress, baseURL string) (*entities.Recording, error)
-	SaveRecordingFromBytes(data []byte, originalName, macAddress, baseURL string) (*entities.Recording, error)
-	SaveRecordingFromPath(path, originalName, macAddress, baseURL string) (*entities.Recording, error)
+	SaveRecording(file *multipart.FileHeader, macAddress, baseURL string, opts ...SaveRecordingOption) (*entities.Recording, error)
+	SaveRecordingFromBytes(data []byte, originalName, macAddress, baseURL string, opts ...SaveRecordingOption) (*entities.Recording, error)
+	SaveRecordingFromPath(path, originalName, macAddress, baseURL string, opts ...SaveRecordingOption) (*entities.Recording, error)
+}
+
+type SaveRecordingOption struct {
+	NotifyBIG bool
 }
 
 type saveRecordingUseCase struct {
@@ -35,7 +39,17 @@ func NewSaveRecordingUseCase(repo repositories.RecordingRepository, fileService 
 	}
 }
 
-func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader, macAddress, baseURL string) (*entities.Recording, error) {
+func shouldNotifyBIG(opts []SaveRecordingOption) bool {
+	for _, opt := range opts {
+		if opt.NotifyBIG {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader, macAddress, baseURL string, opts ...SaveRecordingOption) (*entities.Recording, error) {
 	// 1. Generate UUIDv7 for filename
 	fileExt := filepath.Ext(fileHeader.Filename)
 	uuidFilename, _ := uuid.NewV7()
@@ -85,7 +99,7 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader, 
 	}
 
 	// 7. Trigger BIG Room Audio Update
-	if macAddress != "" {
+	if macAddress != "" && shouldNotifyBIG(opts) {
 		go func() {
 			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
 				utils.LogError("SaveRecordingUseCase.SaveRecording: Failed to update room occupied audio: %v", err)
@@ -96,7 +110,7 @@ func (uc *saveRecordingUseCase) SaveRecording(fileHeader *multipart.FileHeader, 
 	return recording, nil
 }
 
-func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName, macAddress, baseURL string) (*entities.Recording, error) {
+func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName, macAddress, baseURL string, opts ...SaveRecordingOption) (*entities.Recording, error) {
 	// 1. Generate UUIDv4 for filename
 	fileExt := filepath.Ext(originalName)
 	if fileExt == "" {
@@ -136,7 +150,7 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 	}
 
 	// 7. Trigger BIG Room Audio Update
-	if macAddress != "" {
+	if macAddress != "" && shouldNotifyBIG(opts) {
 		go func() {
 			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
 				utils.LogError("SaveRecordingUseCase.SaveRecordingFromBytes: Failed to update room occupied audio: %v", err)
@@ -147,7 +161,7 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 	return recording, nil
 }
 
-func (uc *saveRecordingUseCase) SaveRecordingFromPath(srcPath, originalName, macAddress, baseURL string) (*entities.Recording, error) {
+func (uc *saveRecordingUseCase) SaveRecordingFromPath(srcPath, originalName, macAddress, baseURL string, opts ...SaveRecordingOption) (*entities.Recording, error) {
 	// 1. Generate UUIDv7 for filename
 	fileExt := filepath.Ext(originalName)
 	if fileExt == "" {
@@ -187,7 +201,7 @@ func (uc *saveRecordingUseCase) SaveRecordingFromPath(srcPath, originalName, mac
 	}
 
 	// 7. Trigger BIG Room Audio Update
-	if macAddress != "" {
+	if macAddress != "" && shouldNotifyBIG(opts) {
 		go func() {
 			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
 				utils.LogError("SaveRecordingUseCase.SaveRecordingFromPath: Failed to update room occupied audio: %v", err)

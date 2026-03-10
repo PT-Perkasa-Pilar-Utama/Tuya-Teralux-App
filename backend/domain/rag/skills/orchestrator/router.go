@@ -15,6 +15,40 @@ type Router struct {
 	guard      *GuardOrchestrator
 }
 
+func isDeviceDiscoveryPrompt(prompt string) bool {
+	prompt = strings.ToLower(strings.TrimSpace(prompt))
+	if prompt == "" {
+		return false
+	}
+
+	deviceWords := []string{"device", "perangkat", "alat", "lampu", "ac", "tv"}
+	discoveryWords := []string{
+		"what can i control", "what devices", "which devices", "available devices", "connected devices",
+		"bisa control", "bisa saya control", "bisa aku control", "bisa dikontrol",
+		"apa aja", "apa saja", "daftar", "list", "terdaftar", "tersambung", "konek", "sambung",
+	}
+
+	hasDeviceWord := false
+	for _, w := range deviceWords {
+		if strings.Contains(prompt, w) {
+			hasDeviceWord = true
+			break
+		}
+	}
+
+	if !hasDeviceWord {
+		return false
+	}
+
+	for _, w := range discoveryWords {
+		if strings.Contains(prompt, w) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // NewRouter creates a new AI orchestrator with the provided registry.
 func NewRouter(registry *skills.SkillRegistry, translator skills.TranslateService, guard *GuardOrchestrator) *Router {
 	return &Router{
@@ -56,6 +90,27 @@ func (r *Router) RouteAndExecute(ctx *skills.SkillContext) (*skills.SkillResult,
 		return nil, fmt.Errorf("no skills registered in the orchestrator")
 	}
 
+	// Deterministic override for explicit device discovery/list intent.
+	if isDeviceDiscoveryPrompt(ctx.Prompt) {
+		if controlSkill, ok := r.registry.Get("Control"); ok {
+			utils.LogDebug("Router: deterministic routing to 'Control' for device discovery prompt '%s'", ctx.Prompt)
+			res, err := controlSkill.Execute(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if ctx.Language != "" && ctx.Language != "en" && r.translator != nil && res.Message != "" {
+				utils.LogDebug("Router: Translating response to '%s'", ctx.Language)
+				translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language)
+				if err == nil {
+					res.Message = translated
+				} else {
+					utils.LogWarn("Router: Translation failed: %v", err)
+				}
+			}
+			return res, nil
+		}
+	}
+
 	// 1. Build the routing prompt
 	skillDescriptions := make([]string, 0, len(allSkills))
 	for _, s := range allSkills {
@@ -72,9 +127,10 @@ User Request: "%s"
 Rules:
 1. Choose the single most appropriate Skill Name from the list above.
 2. If the user wants to control something (lights, AC, music, playback, etc.), use the "Control" skill.
-3. If the user is asking specifically about your identity, name, or general discovery of what you are, use the "Identity" skill.
-4. If no specific skill matches but it's a general conversation, use the "Identity" skill.
-5. ONLY return the Name of the chosen skill. No explanation.
+3. If the user asks about which/what devices are available, connected, registered, or controllable, use the "Control" skill.
+4. If the user is asking specifically about your identity, name, or general discovery of what you are, use the "Identity" skill.
+5. If no specific skill matches but it's a general conversation, use the "Identity" skill.
+6. ONLY return the Name of the chosen skill. No explanation.
 
 Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 

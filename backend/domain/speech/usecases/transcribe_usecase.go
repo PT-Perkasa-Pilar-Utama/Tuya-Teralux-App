@@ -26,6 +26,7 @@ type WhisperClient interface {
 type TranscriptionMetadata struct {
 	UID            string
 	TerminalID     string
+	RequestID      string
 	Source         string // "mqtt", "rest", etc.
 	Trigger        string // e.g., "/api/speech/transcribe"
 	DeleteAfter    bool   // Whether to delete the audio file after processing
@@ -333,6 +334,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 
 func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, inputPath string, reqLanguage string, metadata *TranscriptionMetadata) {
 	defer func() {
+		// Defensive cleanup in case of panic or early exit
 		if metadata != nil && metadata.TerminalID != "" && metadata.Source == "mqtt" {
 			utils.ActiveTranscriptions.Delete(metadata.TerminalID)
 		}
@@ -343,7 +345,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 	}()
 
 	diarize := false
-	refine := true // Default to true for existing flows
+	refine := false // Default to false to reduce latency
 	if metadata != nil {
 		diarize = metadata.Diarize
 		// If we add Refine to metadata in the future, we should use it here.
@@ -368,6 +370,12 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 
 	uc.updateStatus(taskID, "completed", finalResult, nil)
 
+	// Explicitly clear the transcription flag BEFORE chaining to /chat
+	// to prevent a race condition where the chat controller drops the request.
+	if metadata != nil && metadata.TerminalID != "" && metadata.Source == "mqtt" {
+		utils.ActiveTranscriptions.Delete(metadata.TerminalID)
+	}
+
 	// Chaining to /chat ONLY if initiated via MQTT
 	if metadata != nil && metadata.Source == "mqtt" && metadata.TerminalID != "" && uc.mqttSvc != nil {
 		chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.TerminalID, uc.config.ApplicationEnvironment)
@@ -381,6 +389,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 			"terminal_id": metadata.TerminalID,
 			"language":    finalResult.DetectedLanguage,
 			"uid":         metadata.UID,
+			"request_id":  metadata.RequestID,
 		}
 		payload, _ := json.Marshal(chatReq)
 		if err := uc.mqttSvc.Publish(chatTopic, 0, false, payload); err != nil {

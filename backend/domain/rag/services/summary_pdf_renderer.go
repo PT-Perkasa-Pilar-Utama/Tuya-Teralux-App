@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"html/template"
@@ -9,13 +10,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"sensio/domain/common/utils"
 )
 
 type SummaryPDFMeta struct {
@@ -53,8 +57,6 @@ type templateData struct {
 }
 
 func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta SummaryPDFMeta) error {
-	basePath, _ := os.Getwd()
-
 	// Convert Markdown to HTML
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM), // GitHub Flavored Markdown (tables, etc.)
@@ -74,7 +76,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 	summaryHTML := template.HTML(buf.String())
 
 	// Read and encode logo
-	logoPath := filepath.Join(basePath, "assets/images/logo.png")
+	logoPath := utils.GetAssetPath("images/logo.png")
 	logoBase64 := ""
 	if imgData, err := os.ReadFile(logoPath); err == nil {
 		logoBase64 = "data:image/png;base64," + base64.StdEncoding.EncodeToString(imgData)
@@ -107,7 +109,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 	}
 
 	// Load templates
-	tmplDir := filepath.Join(basePath, "templates", "pdf")
+	tmplDir := utils.GetAssetPath("templates/pdf")
 	t, err := template.ParseGlob(filepath.Join(tmplDir, "*.html"))
 	if err != nil {
 		return fmt.Errorf("failed to parse templates: %w", err)
@@ -128,41 +130,78 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 }
 
 func generatePDFFromHTML(htmlContent string, outputPath string) error {
-	// Create common browser launcher with flags
-	l := rod.New().ControlURL("") // Local
+	// Create context with hard timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
 
-	browser := l.MustConnect()
-	defer browser.MustClose()
+	// Use explicit system chromium to avoid auto-download and ensure stability
+	path := "/usr/bin/chromium"
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("system chromium not found at %s: PDF generation requires deterministic runtime: %w", path, err)
+	}
 
-	// Use a 20s timeout for the entire operation
-	return rod.Try(func() {
-		page := browser.MustPage()
-		defer page.MustClose()
+	l := launcher.New().
+		Bin(path).
+		Set("no-sandbox").
+		Set("disable-dev-shm-usage").
+		Headless(true)
 
-		// Set the HTML content
-		page.MustSetDocumentContent(htmlContent)
-		page.MustWaitLoad()
+	// In container, we want headless=new if possible, but go-rod handles it via flags
+	l.Set("headless", "new")
 
-		marginTop := 0.75
-		marginBottom := 0.75
-		marginLeft := 0.6
-		marginRight := 0.6
-		pdfStream, err := page.PDF(&proto.PagePrintToPDF{
-			PrintBackground: true,
-			MarginTop:       &marginTop,
-			MarginBottom:    &marginBottom,
-			MarginLeft:      &marginLeft,
-			MarginRight:     &marginRight,
-		})
-		if err != nil {
-			panic(err)
-		}
+	// Ensure launch is also covered by context
+	controlURL, err := l.Context(ctx).Launch()
+	if err != nil {
+		return fmt.Errorf("failed to launch chromium (timeout or binary error): %w", err)
+	}
 
-		pdfBytes, err := io.ReadAll(pdfStream)
-		if err != nil {
-			panic(err)
-		}
+	// Connect with context
+	browser := rod.New().ControlURL(controlURL).Context(ctx)
+	if err := browser.Connect(); err != nil {
+		return fmt.Errorf("failed to connect to browser: %w", err)
+	}
+	defer browser.Close()
 
-		_ = os.WriteFile(outputPath, pdfBytes, 0644)
+	// Create page
+	page, err := browser.Page(proto.TargetCreateTarget{URL: ""})
+	if err != nil {
+		return fmt.Errorf("failed to create page: %w", err)
+	}
+	defer page.Close()
+
+	// Set the HTML content
+	if err := page.SetDocumentContent(htmlContent); err != nil {
+		return fmt.Errorf("failed to set document content: %w", err)
+	}
+
+	// Wait for load with timeout (enforced by context)
+	if err := page.WaitLoad(); err != nil {
+		return fmt.Errorf("page wait load failed: %w", err)
+	}
+
+	marginTop := 0.75
+	marginBottom := 0.75
+	marginLeft := 0.6
+	marginRight := 0.6
+	pdfStream, err := page.PDF(&proto.PagePrintToPDF{
+		PrintBackground: true,
+		MarginTop:       &marginTop,
+		MarginBottom:    &marginBottom,
+		MarginLeft:      &marginLeft,
+		MarginRight:     &marginRight,
 	})
+	if err != nil {
+		return fmt.Errorf("pdf generation failed: %w", err)
+	}
+
+	pdfBytes, err := io.ReadAll(pdfStream)
+	if err != nil {
+		return fmt.Errorf("failed to read pdf stream: %w", err)
+	}
+
+	if err := os.WriteFile(outputPath, pdfBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write pdf file: %w", err)
+	}
+
+	return nil
 }
