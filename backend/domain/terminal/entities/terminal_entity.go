@@ -11,6 +11,7 @@ type Terminal struct {
 	ID           string         `gorm:"type:char(36);primaryKey" json:"id"`
 	MacAddress   string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"mac_address"`
 	RoomID       string         `gorm:"type:varchar(255);not null" json:"room_id"`
+	TuyaUID      string         `gorm:"type:varchar(255);index" json:"tuya_uid"`
 	Name         string         `gorm:"type:varchar(255);not null" json:"name"`
 	DeviceTypeID string         `gorm:"type:varchar(255)" json:"device_type_id"`
 	CreatedAt    time.Time      `gorm:"autoCreateTime" json:"created_at"`

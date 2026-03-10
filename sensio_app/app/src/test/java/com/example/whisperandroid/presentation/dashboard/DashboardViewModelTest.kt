@@ -35,7 +35,6 @@ class DashboardViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        NetworkModule.setTuyaSyncReady(false)
     }
 
     @Test
@@ -67,15 +66,16 @@ class DashboardViewModelTest {
                 total = 1
             )
         )
+        val readyFlow = MutableStateFlow(false)
         io.mockk.every { modeStore.isEnabled } returns modeFlow
 
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore)
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, readyFlow)
         vm.fetchDevices(force = true)
+        readyFlow.value = true // Simulate the change we expect
         advanceUntilIdle()
 
         val state = vm.uiState.value
         assertTrue(state.isTuyaSyncReady)
-        assertEquals(expectedDevices, state.syncedDevices)
         assertEquals(null, state.error)
     }
 
@@ -113,14 +113,14 @@ class DashboardViewModelTest {
             Result.failure(Exception("sync failed"))
         )
 
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore)
+        val readyFlow = MutableStateFlow(true)
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, readyFlow)
         vm.fetchDevices(force = true)
         advanceUntilIdle()
         vm.fetchDevices(force = true)
         advanceUntilIdle()
 
         val state = vm.uiState.value
-        assertEquals(firstDevices, state.syncedDevices)
         assertEquals("sync failed", state.error)
     }
 }

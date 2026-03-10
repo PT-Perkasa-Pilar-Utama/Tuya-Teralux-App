@@ -5,7 +5,6 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.di.NetworkModule
-import com.example.whisperandroid.data.remote.dto.TuyaDeviceDto
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +15,6 @@ data class DashboardUiState(
     val isBackgroundModeEnabled: Boolean = false,
     val isOverlayPermissionGranted: Boolean = false,
     val isTuyaSyncReady: Boolean = false,
-    val syncedDevices: List<TuyaDeviceDto> = emptyList(),
     val error: String? = null
 )
 
@@ -25,7 +23,8 @@ class DashboardViewModel(
     private val getTuyaDevicesUseCase:
         com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase,
     private val backgroundAssistantModeStore:
-        com.example.whisperandroid.data.local.BackgroundAssistantModeStore
+        com.example.whisperandroid.data.local.BackgroundAssistantModeStore,
+    private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         DashboardUiState(
@@ -41,7 +40,7 @@ class DashboardViewModel(
 
     private fun observeTuyaSyncReady() {
         viewModelScope.launch {
-            NetworkModule.isTuyaSyncReady.collect { ready ->
+            tuyaSyncReadyFlow.collect { ready ->
                 _uiState.value = _uiState.value.copy(
                     isTuyaSyncReady = ready
                 )
@@ -102,12 +101,11 @@ class DashboardViewModel(
             result.onSuccess { response ->
                 NetworkModule.setTuyaSyncReady(true)
                 _uiState.value = _uiState.value.copy(
-                    syncedDevices = response.devices,
                     error = null
                 )
                 android.util.Log.d(
                     "DashboardViewModel",
-                    "Devices synced with backend (Found ${response.devices.size})"
+                    "Devices synced with backend (Request complete)"
                 )
             }.onFailure { e ->
                 // Keep non-blocking behavior: UI can continue even when sync fails.

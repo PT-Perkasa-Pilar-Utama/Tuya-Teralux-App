@@ -230,7 +230,7 @@ func run() error {
 
 	// Initialize RAG first as it's a dependency for Speech
 	utils.LogInfo("Configuring RAG/Speech/Pipeline...")
-	refineUC, translateUC, summaryUC := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService)
+	refineUC, translateUC, summaryUC := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService, terminalRepo)
 
 	// Initialize Speech with RAG, Badger and Tuya Auth dependencies
 	transcribeUC, uploadSessionUC := speech.InitModule(protected, scfg, badgerService, refineUC, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
