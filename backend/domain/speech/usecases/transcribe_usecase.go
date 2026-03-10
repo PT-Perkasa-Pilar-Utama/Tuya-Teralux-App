@@ -190,8 +190,15 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	var rawTranscription string
 	var detectedLang string
 
-	fileInfo, err := os.Stat(inputPath)
-	useSegment := err == nil && fileInfo.Size() > 5*1024*1024 && uc.config.AudioSegmentEnabled
+	// 1. Audio Normalization (WAV PCM 16k Mono)
+	processingPath, audioCleanup, err := utils.NormalizeToWavPCM16k(inputPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to normalize audio: %w", err)
+	}
+	defer audioCleanup()
+
+	fileInfo, err := os.Stat(processingPath)
+	useSegment := err == nil && fileInfo.Size() > 20*1024*1024 && uc.config.AudioSegmentEnabled
 
 	if useSegment {
 		segmentSec := uc.config.AudioSegmentSec
@@ -201,7 +208,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		overlapSec := uc.config.AudioSegmentOverlapSec
 
 		utils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
-		segments, splitErr := utils.SplitAudioSegments(inputPath, segmentSec, overlapSec)
+		segments, splitErr := utils.SplitAudioSegments(processingPath, segmentSec, overlapSec)
 		if splitErr != nil {
 			utils.LogError("TranscribeSync: Failed to split audio, falling back to full file: %v", splitErr)
 			useSegment = false // Fallback to full file
@@ -299,10 +306,10 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	}
 
 	if !useSegment {
-		result, err := uc.whisperClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
+		result, err := uc.whisperClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
 		if err != nil && uc.fallbackClient != nil {
 			utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
-			result, err = uc.fallbackClient.Transcribe(ctx, inputPath, reqLanguage, diarize)
+			result, err = uc.fallbackClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
 		}
 
 		if err != nil {

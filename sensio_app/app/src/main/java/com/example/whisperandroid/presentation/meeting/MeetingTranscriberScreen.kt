@@ -159,9 +159,27 @@ fun MeetingTranscriberScreen(
             uri?.let { selectedUri ->
                 scope.launch(Dispatchers.IO) {
                     val contentResolver = context.contentResolver
-                    val type = contentResolver.getType(selectedUri)
-                    val extension = MimeTypeMap.getSingleton()
-                        .getExtensionFromMimeType(type) ?: "m4a"
+
+                    // 1. Try to get display name from ContentResolver
+                    var displayName: String? = null
+                    val cursor = contentResolver.query(selectedUri, null, null, null, null)
+                    cursor?.use {
+                        if (it.moveToFirst()) {
+                            val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                            if (nameIndex != -1) {
+                                displayName = it.getString(nameIndex)
+                            }
+                        }
+                    }
+
+                    // 2. Derive extension (prefer display name)
+                    val mimeType = contentResolver.getType(selectedUri)
+                    var extension = if (!displayName.isNullOrBlank() && displayName!!.contains(".")) {
+                        displayName!!.substringAfterLast(".").lowercase()
+                    } else {
+                        MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)?.lowercase() ?: "m4a"
+                    }
+
                     val outputFile =
                         com.example.whisperandroid.data.local.MeetingAudioFileStore
                             .createImportedAudioFile(context, extension)

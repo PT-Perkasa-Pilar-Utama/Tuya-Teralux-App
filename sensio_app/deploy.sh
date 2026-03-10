@@ -8,7 +8,7 @@ set -e
 DEVICE_ID=$1
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APK_PATH="$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
-PACKAGE_NAME="com.example.whisper_android"
+PACKAGE_NAME="com.example.whisperandroid"
 LAUNCHER_ACTIVITY=".MainActivity"
 
 echo "=== Whisper Android Build & Deploy ==="

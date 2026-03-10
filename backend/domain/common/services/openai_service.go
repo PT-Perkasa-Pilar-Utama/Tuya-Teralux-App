@@ -74,6 +74,9 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 		return "", fmt.Errorf("OPENAI_API_KEY is not configured")
 	}
 
+	promptChars := len(prompt)
+	approxTokens := (promptChars + 3) / 4
+
 	actualModel := model
 	switch {
 	case model == "high":
@@ -89,6 +92,19 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	}
 
 	url := "https://api.openai.com/v1/chat/completions"
+	startTime := time.Now()
+	ctxDeadline := "none"
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxDeadline = time.Until(deadline).String()
+	}
+	utils.LogDebug(
+		"OpenAI CallModel: model=%s prompt_chars=%d approx_tokens=%d client_timeout=%s ctx_deadline=%s",
+		actualModel,
+		promptChars,
+		approxTokens,
+		(60 * time.Second).String(),
+		ctxDeadline,
+	)
 	reqBody := openaiRequest{
 		Model: actualModel,
 		Messages: []openaiMessage{
@@ -112,16 +128,39 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		utils.LogWarn(
+			"OpenAI CallModel failed: model=%s duration=%s prompt_chars=%d approx_tokens=%d err=%v",
+			actualModel,
+			time.Since(startTime),
+			promptChars,
+			approxTokens,
+			err,
+		)
 		return "", fmt.Errorf("failed to call openai api: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		utils.LogWarn(
+			"OpenAI CallModel read body failed: model=%s duration=%s prompt_chars=%d approx_tokens=%d err=%v",
+			actualModel,
+			time.Since(startTime),
+			promptChars,
+			approxTokens,
+			err,
+		)
 		return "", fmt.Errorf("failed to read openai response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		utils.LogWarn(
+			"OpenAI CallModel non-200: model=%s status=%d duration=%s resp_bytes=%d",
+			actualModel,
+			resp.StatusCode,
+			time.Since(startTime),
+			len(body),
+		)
 		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("openai api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
@@ -135,6 +174,13 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	}
 
 	result := openaiResp.Choices[0].Message.Content
+	utils.LogDebug(
+		"OpenAI CallModel success: model=%s status=%d duration=%s resp_bytes=%d",
+		actualModel,
+		resp.StatusCode,
+		time.Since(startTime),
+		len(body),
+	)
 	utils.LogDebug("OpenAI: Response received: %s", result)
 	return result, nil
 }
@@ -146,6 +192,12 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 		return nil, fmt.Errorf("OPENAI_API_KEY is not configured")
 	}
 
+	// OpenAI Whisper has a 25MB strict limit for direct uploads.
+	fileInfo, err := os.Stat(audioPath)
+	if err == nil && fileInfo.Size() > 25*1024*1024 {
+		return nil, fmt.Errorf("file too large for direct OpenAI upload (%d bytes, max 25MB); segmentation should have been used", fileInfo.Size())
+	}
+
 	url := "https://api.openai.com/v1/audio/transcriptions"
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
@@ -154,6 +206,27 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 		defer pw.Close()
 		defer writer.Close()
 
+		// 1. Write metadata fields first (best practice for multipart)
+		model := s.config.OpenAIModelWhisper
+		if model == "" {
+			model = "whisper-1"
+		}
+
+		if err := writer.WriteField("model", model); err != nil {
+			utils.LogError("OpenAI Transcribe: failed to write model field: %v", err)
+			_ = pw.CloseWithError(err)
+			return
+		}
+
+		if language != "" && language != "auto" {
+			if err := writer.WriteField("language", language); err != nil {
+				utils.LogError("OpenAI Transcribe: failed to write language field: %v", err)
+				_ = pw.CloseWithError(err)
+				return
+			}
+		}
+
+		// 2. Write the file field last
 		file, err := os.Open(audioPath)
 		if err != nil {
 			utils.LogError("OpenAI Transcribe: failed to open file: %v", err)
@@ -173,25 +246,6 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 			utils.LogError("OpenAI Transcribe: failed to copy file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
-		}
-
-		model := s.config.OpenAIModelWhisper
-		if model == "" {
-			model = "whisper-1"
-		}
-
-		if err := writer.WriteField("model", model); err != nil {
-			utils.LogError("OpenAI Transcribe: failed to write model field: %v", err)
-			_ = pw.CloseWithError(err)
-			return
-		}
-
-		if language != "" && language != "auto" {
-			if err := writer.WriteField("language", language); err != nil {
-				utils.LogError("OpenAI Transcribe: failed to write language field: %v", err)
-				_ = pw.CloseWithError(err)
-				return
-			}
 		}
 	}()
 

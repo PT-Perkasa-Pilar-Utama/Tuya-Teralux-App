@@ -31,7 +31,7 @@ mkdir -p "$MODEL_DIR"
 
 # 2. Binary Verification
 echo -e "${INFO}[INFO] Verifying binaries...${NC}"
-for bin in "$WHISPER_CLI" "$LLAMA_CLI" "/app/app" "/usr/local/bin/migrate" "/usr/bin/chromium"; do
+for bin in "$WHISPER_CLI" "$LLAMA_CLI" "/app/app" "/usr/local/bin/migrate" "/usr/bin/chromium" "/usr/bin/ffmpeg" "/usr/bin/ffprobe"; do
     if [ ! -f "$bin" ]; then
         echo -e "${ERROR}[ERROR] Required binary missing: ${bin}${NC}"
         exit 1
