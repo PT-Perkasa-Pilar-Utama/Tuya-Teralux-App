@@ -90,8 +90,8 @@ object NetworkModule {
         retrofit.create(com.example.whisperandroid.data.remote.api.TuyaApi::class.java)
     }
 
-    private val speechApi: com.example.whisperandroid.data.remote.api.SpeechApi by lazy {
-        retrofit.create(com.example.whisperandroid.data.remote.api.SpeechApi::class.java)
+    private val whisperApi: com.example.whisperandroid.data.remote.api.WhisperApi by lazy {
+        retrofit.create(com.example.whisperandroid.data.remote.api.WhisperApi::class.java)
     }
 
     val repository: TerminalRepository by lazy {
@@ -112,9 +112,9 @@ object NetworkModule {
         retrofit.create(com.example.whisperandroid.data.remote.api.EmailApi::class.java)
     }
 
-    val speechRepository: com.example.whisperandroid.domain.repository.SpeechRepository by lazy {
+    val whisperRepository: com.example.whisperandroid.domain.repository.WhisperRepository by lazy {
         com.example.whisperandroid.data.repository
-            .SpeechRepositoryImpl(speechApi)
+            .WhisperRepositoryImpl(whisperApi)
     }
 
     val ragRepository: com.example.whisperandroid.domain.repository.RagRepository by lazy {
@@ -131,7 +131,7 @@ object NetworkModule {
     }
 
     val uploadRepository: UploadRepository by lazy {
-        UploadRepositoryImpl(speechApi)
+        UploadRepositoryImpl(whisperApi)
     }
 
     val registerUseCase: RegisterTerminalUseCase by lazy {
@@ -148,7 +148,7 @@ object NetworkModule {
 
     val transcribeAudioUseCase: TranscribeAudioUseCase by lazy {
         com.example.whisperandroid.domain.usecase
-            .TranscribeAudioUseCase(speechRepository)
+            .TranscribeAudioUseCase(whisperRepository)
     }
 
     val translateTextUseCase: TranslateTextUseCase by lazy {

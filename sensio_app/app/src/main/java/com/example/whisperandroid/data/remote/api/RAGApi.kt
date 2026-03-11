@@ -15,7 +15,7 @@ import retrofit2.http.Path
  * Retrofit interface for RAG (Retrieval-Augmented Generation) services.
  */
 interface RAGApi {
-    @POST("/api/rag/translate")
+    @POST("/api/models/rag/translate")
     suspend fun translate(
         @Body request: RAGRequestDto,
         @Header("Authorization") token: String,
@@ -23,7 +23,7 @@ interface RAGApi {
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
-    @POST("/api/rag/summary")
+    @POST("/api/models/rag/summary")
     suspend fun summary(
         @Body request: RAGSummaryRequestDto,
         @Header("Authorization") token: String,
@@ -31,14 +31,14 @@ interface RAGApi {
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
-    @GET("/api/rag/{task_id}")
+    @GET("/api/models/rag/{task_id}")
     suspend fun getStatus(
         @Path("task_id") taskId: String,
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<RAGStatusDto>
 
-    @POST("/api/rag/chat")
+    @POST("/api/models/rag/chat")
     suspend fun chat(
         @Body request: com.example.whisperandroid.data.remote.dto.RAGChatRequestDto,
         @Header("Authorization") token: String,

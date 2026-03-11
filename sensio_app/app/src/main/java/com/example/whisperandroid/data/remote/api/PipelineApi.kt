@@ -18,7 +18,7 @@ import retrofit2.http.Path
  */
 interface PipelineApi {
     @Multipart
-    @POST("/api/pipeline/job")
+    @POST("/api/models/pipeline/job")
     suspend fun executePipeline(
         @Part audio: MultipartBody.Part,
         @Part("language") language: String? = null,
@@ -37,14 +37,14 @@ interface PipelineApi {
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
-    @GET("/api/pipeline/status/{task_id}")
+    @GET("/api/models/pipeline/status/{task_id}")
     suspend fun getPipelineStatus(
         @Path("task_id") taskId: String,
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
     ): SpeechResponseDto<PipelineStatusDto>
 
-    @POST("/api/pipeline/job/by-upload")
+    @POST("/api/models/pipeline/job/by-upload")
     suspend fun executePipelineByUpload(
         @retrofit2.http.Body request: PipelineSubmitByUploadRequestDto,
         @Header("Authorization") token: String,

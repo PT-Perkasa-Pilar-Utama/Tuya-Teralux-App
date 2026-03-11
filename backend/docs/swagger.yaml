@@ -47,7 +47,7 @@ definitions:
       terminal_id:
         type: string
       trigger:
-        example: /api/speech/models/gemini
+        example: /api/whisper/models/gemini
         type: string
     type: object
   dtos.CreateSceneRequestDTO:
@@ -142,10 +142,13 @@ definitions:
       prompt:
         example: Nyalakan AC
         type: string
+      request_id:
+        type: string
       terminal_id:
         example: tx-1
         type: string
       uid:
+        description: Must be Tuya UID (never MAC/terminal identity)
         example: sg1765...
         type: string
     required:
@@ -990,7 +993,7 @@ paths:
       summary: Raw prompt query to Orion model
       tags:
       - 06. Models
-  /api/pipeline/job:
+  /api/models/pipeline/job:
     post:
       consumes:
       - multipart/form-data
@@ -1066,7 +1069,7 @@ paths:
       summary: Run unified AI pipeline (Transcribe -> Refine -> Translate -> Summarize)
       tags:
       - 05. RAG
-  /api/pipeline/status/{task_id}:
+  /api/models/pipeline/status/{task_id}:
     get:
       description: Poll for status and results of a unified pipeline job.
       parameters:
@@ -1096,7 +1099,7 @@ paths:
       summary: Get unified pipeline job status
       tags:
       - 05. RAG
-  /api/rag/{task_id}:
+  /api/models/rag/{task_id}:
     get:
       parameters:
       - description: Task ID
@@ -1125,7 +1128,7 @@ paths:
       summary: Get RAG task status
       tags:
       - 05. RAG
-  /api/rag/chat:
+  /api/models/rag/chat:
     post:
       consumes:
       - application/json
@@ -1158,7 +1161,7 @@ paths:
       summary: AI Assistant Chat
       tags:
       - 05. RAG
-  /api/rag/control:
+  /api/models/rag/control:
     post:
       consumes:
       - application/json
@@ -1190,7 +1193,7 @@ paths:
       summary: AI Assistant Control
       tags:
       - 05. RAG
-  /api/rag/summary:
+  /api/models/rag/summary:
     post:
       consumes:
       - application/json
@@ -1234,7 +1237,7 @@ paths:
       summary: Generate meeting minutes summary
       tags:
       - 05. RAG
-  /api/rag/translate:
+  /api/models/rag/translate:
     post:
       consumes:
       - application/json
@@ -1278,6 +1281,103 @@ paths:
       summary: Translate text to specified language
       tags:
       - 05. RAG
+  /api/models/whisper/transcribe:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 'Start transcription of audio file using the configured LLM provider
+        (LLM_PROVIDER). Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac,
+        .ogg, .flac.'
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      - description: Device MAC Address
+        in: formData
+        name: mac_address
+        type: string
+      - description: Identify speakers in transcription
+        in: formData
+        name: diarize
+        type: boolean
+      - description: Idempotency key to deduplicate requests
+        in: header
+        name: Idempotency-Key
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Unified)
+      tags:
+      - 04. Whisper
+  /api/models/whisper/transcribe/{transcribe_id}:
+    get:
+      description: Get the status and result of any transcription task (Short, Long,
+        or Orion).
+      parameters:
+      - description: Task ID
+        in: path
+        name: transcribe_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transcription status (Consolidated)
+      tags:
+      - 04. Whisper
   /api/recordings:
     get:
       description: Get a paginated list of all recordings.
@@ -1446,344 +1546,6 @@ paths:
       summary: List all scenes across all Terminal devices
       tags:
       - 03. Scenes
-  /api/speech/models/gemini:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Gemini. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Gemini)
-      tags:
-      - 04. Speech
-  /api/speech/models/groq:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Groq. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Groq)
-      tags:
-      - 04. Speech
-  /api/speech/models/openai:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via OpenAI. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (OpenAI)
-      tags:
-      - 04. Speech
-  /api/speech/models/orion:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Orion. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Orion)
-      tags:
-      - 04. Speech
-  /api/speech/models/whisper/cpp:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Whisper.cpp. Processing
-        is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Whisper.cpp)
-      tags:
-      - 04. Speech
-  /api/speech/transcribe:
-    post:
-      consumes:
-      - multipart/form-data
-      description: 'Start transcription of audio file using the configured LLM provider
-        (LLM_PROVIDER). Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac,
-        .ogg, .flac.'
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      - description: Device MAC Address
-        in: formData
-        name: mac_address
-        type: string
-      - description: Identify speakers in transcription
-        in: formData
-        name: diarize
-        type: boolean
-      - description: Idempotency key to deduplicate requests
-        in: header
-        name: Idempotency-Key
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Unified)
-      tags:
-      - 04. Speech
-  /api/speech/transcribe/{transcribe_id}:
-    get:
-      description: Get the status and result of any transcription task (Short, Long,
-        or Orion).
-      parameters:
-      - description: Task ID
-        in: path
-        name: transcribe_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.AsyncTranscriptionStatusDTO'
-              type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get transcription status (Consolidated)
-      tags:
-      - 04. Speech
   /api/terminal/{id}/scenes:
     get:
       description: Retrieve a list of all configured scenes for a specific Terminal
@@ -2163,6 +1925,247 @@ paths:
       summary: Get Sensor Data
       tags:
       - 02. Tuya
+  /api/whisper/models/gemini:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Gemini. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Gemini)
+      tags:
+      - 04. Whisper
+  /api/whisper/models/groq:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Groq. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Groq)
+      tags:
+      - 04. Whisper
+  /api/whisper/models/openai:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via OpenAI. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (OpenAI)
+      tags:
+      - 04. Whisper
+  /api/whisper/models/orion:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Orion. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Orion)
+      tags:
+      - 04. Whisper
+  /api/whisper/models/whisper/cpp:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Whisper.cpp. Processing
+        is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Whisper.cpp)
+      tags:
+      - 04. Whisper
 schemes:
 - http
 - https

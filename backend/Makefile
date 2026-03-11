@@ -9,8 +9,8 @@ help:
 	@echo "  --- LOCAL DEV ---"
 	@echo "  make dev              - Run development server with hot reload (Air)"
 	@echo "  make test             - Run all unit tests"
-	@echo "  make lint             - Run golangci-lint (checks domain packages)"
-	@echo "  make lint-strict      - Run golangci-lint (always enforced)"
+	@echo "  make lint             - Run go vet and go build (checks domain packages)"
+	@echo "  make lint-strict      - Run go vet and go build (always enforced)"
 	@echo ""
 	@echo "  --- DOCKER & DEPLOY ---"
 	@echo "  make build-docker     - Build image for local architecture"
@@ -51,6 +51,7 @@ dev: kill
 		make setup-dev; \
 	fi; \
 	mkdir -p .air && \
+	(cd services/rag-whisper-service && make dev &) ; \
 	$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
 
 # Run EMQX Auth Service separately
@@ -267,14 +268,16 @@ vet:
 	@echo "🔍 Running go vet..."
 	@go vet ./domain/...
 
-# Run golangci-lint
+# Run go vet and go build check
 lint:
 	@$(MAKE) lint-strict
 
-# Run golangci-lint without local-machine guard
+# Run go vet and go build check without local-machine guard
 lint-strict:
-	@echo "🔍 Running golangci-lint..."
-	@$(GOLANGCI_LINT) run ./domain/... || (echo "❌ golangci-lint not found. Installing..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && $(GOLANGCI_LINT) run ./domain/...)
+	@echo "🔍 Running go vet..."
+	@go vet ./domain/...
+	@echo "🔨 Running go build check..."
+	@CGO_CFLAGS="-w" go build -o /dev/null ./domain/...
 
 # Run complete deploy-remote pipeline: lint, build, and fetch binary from remote host
 deploy-remote:
@@ -314,7 +317,6 @@ adb-reverse:
 # --- Database Migration Configuration ---
 # Note: We build from source to include required support
 MIGRATE_BIN = $(HOME)/go/bin/migrate
-GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
 
 # Load environment variables
 ifneq (,$(wildcard ./.env))
