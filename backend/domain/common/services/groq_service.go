@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sensio/domain/common/utils"
-	"sensio/domain/speech/dtos"
+	"sensio/domain/models/whisper/dtos"
 	"strings"
 	"time"
 )

@@ -1,13 +1,13 @@
 package com.example.whisperandroid.domain.usecase
 
 import com.example.whisperandroid.domain.repository.Resource
-import com.example.whisperandroid.domain.repository.SpeechRepository
+import com.example.whisperandroid.domain.repository.WhisperRepository
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class TranscribeAudioUseCase(
-    private val speechRepository: SpeechRepository
+    private val whisperRepository: WhisperRepository
 ) {
     suspend fun initiate(
         audioFile: File,
@@ -18,7 +18,7 @@ class TranscribeAudioUseCase(
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-            speechRepository.transcribeAudio(
+            whisperRepository.transcribeAudio(
                 file = audioFile,
                 token = token,
                 language = language,
@@ -35,7 +35,7 @@ class TranscribeAudioUseCase(
     ): Flow<Resource<String>> =
         flow {
             emit(Resource.Loading())
-            speechRepository.pollTranscription(taskId, token).collect { result ->
+            whisperRepository.pollTranscription(taskId, token).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         val text = result.data?.transcription

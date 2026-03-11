@@ -1,0 +1,33 @@
+llm_models:
+  - id: openai/gpt-4o
+    provider: openai
+    model_name: gpt-4o
+    description: GPT-4o original
+  - id: openai/gpt-3.5-turbo
+    provider: openai
+    model_name: gpt-3.5-turbo
+    description: GPT-3.5 Turbo
+  - id: gemini/pro
+    provider: gemini
+    model_name: gemini-pro
+    description: Google Gemini Pro
+  - id: groq/llama3-70b
+    provider: groq
+    model_name: llama3-70b-8192
+    description: Groq Llama 3 70B
+
+embedding_models:
+  - id: openai/text-embedding-3-small
+    provider: openai
+    model_name: text-embedding-3-small
+  - id: gemini/embedding
+    provider: gemini
+    model_name: models/embedding-001
+
+whisper_models:
+  - id: openai/whisper-1
+    provider: openai
+    model_name: whisper-1
+  - id: local/whisper-tiny
+    provider: local
+    model_name: openai/whisper-tiny

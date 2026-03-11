@@ -1,6 +1,11 @@
 .PHONY: build deploy clean logs
 
 # Build DEBUG APK
+ADB := $(shell grep '^sdk.dir' local.properties | cut -d'=' -f2)/platform-tools/adb
+ifeq ($(ADB),/platform-tools/adb)
+  ADB := adb
+endif
+
 build:
 	@chmod +x gradlew
 	@echo "🔨 Building Whisper Android APK..."
@@ -39,7 +44,7 @@ remote-pull-apk:
 # Install built APK to device
 install:
 	@echo "📲 Installing APK..."
-	@adb install -t -r -g app/build/outputs/apk/debug/app-debug.apk
+	@$(ADB) install -t -r -g app/build/outputs/apk/debug/app-debug.apk
 
 # Build, Lint, and Install
 deploy: build lint install
@@ -57,7 +62,7 @@ clean:
 
 # View logcat from app
 logs:
-	adb logcat | grep whisper_android
+	$(ADB) logcat | grep whisperandroid
 
 # Install dependencies
 install-deps: setup-vosk
