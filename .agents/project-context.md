@@ -29,8 +29,8 @@
 Run commands from each module root:
 
 - `backend/`
-  - `make lint` (always run golangci-lint)
-  - `make lint-strict` (always run golangci-lint)
+  - `make lint` (always run go vet and go build)
+  - `make lint-strict` (always run go vet and go build)
   - `make vet`
   - `make build`
   - `make test`

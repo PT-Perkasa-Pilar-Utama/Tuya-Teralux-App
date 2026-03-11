@@ -1,7 +1,7 @@
 package com.example.whisperandroid.data.repository
 
 import android.util.Log
-import com.example.whisperandroid.data.remote.api.SpeechApi
+import com.example.whisperandroid.data.remote.api.WhisperApi
 import com.example.whisperandroid.data.remote.dto.CreateUploadSessionRequestDto
 import com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto
 import com.example.whisperandroid.domain.repository.Resource
@@ -21,7 +21,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 
 class UploadRepositoryImpl(
-    private val speechApi: SpeechApi
+    private val whisperApi: WhisperApi
 ) : UploadRepository {
 
     override fun uploadFile(
@@ -46,7 +46,7 @@ class UploadRepositoryImpl(
         // 1. Try to Resume if sessionId provided
         if (currentSessionId != null) {
             try {
-                val status = speechApi.getUploadSessionStatus(currentSessionId, "Bearer $token")
+                val status = whisperApi.getUploadSessionStatus(currentSessionId, "Bearer $token")
                 if (status.status && status.data != null) {
                     val data = status.data
                     chunksToUpload = if (data.missingRanges.isNullOrEmpty()) {
@@ -79,7 +79,7 @@ class UploadRepositoryImpl(
         // 2. Create New Session if not resuming
         if (currentSessionId == null) {
             val sessionResponse = try {
-                speechApi.createUploadSession(
+                whisperApi.createUploadSession(
                     CreateUploadSessionRequestDto(
                         fileName = file.name,
                         totalSizeBytes = totalSize,
@@ -155,7 +155,7 @@ class UploadRepositoryImpl(
 
                             for (retry in 0..3) {
                                 try {
-                                    val ackResponse = speechApi.uploadChunk(
+                                    val ackResponse = whisperApi.uploadChunk(
                                         sessionId = currentSessionId!!,
                                         chunkIndex = i,
                                         chunk = requestBody,
@@ -215,7 +215,7 @@ class UploadRepositoryImpl(
         token: String
     ): Resource<UploadSessionResponseDto> {
         return try {
-            val response = speechApi.getUploadSessionStatus(sessionId, "Bearer $token")
+            val response = whisperApi.getUploadSessionStatus(sessionId, "Bearer $token")
             if (response.status && response.data != null) {
                 Resource.Success(response.data)
             } else {

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"sensio/domain/common/utils"
-	"sensio/domain/speech/dtos"
+	"sensio/domain/models/whisper/dtos"
 )
 
 type WhisperLocalService struct {
