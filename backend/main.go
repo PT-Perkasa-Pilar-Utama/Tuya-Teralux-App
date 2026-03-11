@@ -15,17 +15,15 @@ import (
 	"sensio/domain/common/middlewares"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail"
-	"sensio/domain/pipeline"
-	"sensio/domain/rag"
 	"sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
 	"sensio/domain/scene"
 	scene_entities "sensio/domain/scene/entities"
-	"sensio/domain/speech"
 	"sensio/domain/terminal"
 	terminal_entities "sensio/domain/terminal/entities"
 	terminal_repositories "sensio/domain/terminal/repositories"
 	"sensio/domain/tuya"
+	"sensio/domain/proxy"
 )
 
 // @title           Sensio API
@@ -228,15 +226,26 @@ func run() error {
 		return fmt.Errorf("speech/RAG config incomplete: %v", missing)
 	}
 
-	// Initialize RAG first as it's a dependency for Speech
-	utils.LogInfo("Configuring RAG/Speech/Pipeline...")
-	refineUC, translateUC, summaryUC := rag.InitModule(protected, scfg, badgerService, vectorService, tuyaModule.AuthUseCase, tuyaModule.DeviceControlUseCase, mqttService, terminalRepo)
+	// ============================================================
+	// PROXY-ONLY MODE: RAG and Speech services via FastAPI proxy
+	// ============================================================
+	// The Python-based RAG and Speech services (rag-whisper-service)
+	// are now accessed exclusively through the proxy controller.
+	// Direct Go routes for RAG/Speech have been deprecated.
+	//
+	// Proxy routes:
+	//   - /api/v1/rag/*     -> FastAPI RAG service
+	//   - /api/v1/whisper/* -> FastAPI Whisper service
+	//   - /api/rag/*        -> Legacy support (backward compatible)
+	//   - /api/whisper/*    -> Legacy support (backward compatible)
+	// ============================================================
 
-	// Initialize Speech with RAG, Badger and Tuya Auth dependencies
-	transcribeUC, uploadSessionUC := speech.InitModule(protected, scfg, badgerService, refineUC, tuyaModule.AuthUseCase, mqttService, recordingsModule.SaveRecordingUseCase)
+	utils.LogInfo("RAG/Speech: Using FastAPI proxy mode (rag-whisper-service)")
 
-	// Initialize Pipeline with Speech and RAG usecases
-	pipeline.InitModule(protected, scfg, badgerService, transcribeUC, translateUC, summaryUC, recordingsModule.SaveRecordingUseCase, uploadSessionUC, mqttService)
+	// 5a. Proxy Module (FastAPI RAG+Whisper Service)
+	// This replaces the direct Go RAG and Speech routes
+	proxyController := proxy.NewProxyController()
+	proxyController.RegisterRoutes(protected)
 
 	// 6. Scene Module
 	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)

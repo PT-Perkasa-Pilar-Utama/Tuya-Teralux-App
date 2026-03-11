@@ -1,6 +1,8 @@
 package com.example.whisperandroid.presentation.assistant
 
 import android.app.Application
+import android.media.MediaPlayer
+import com.example.whisperandroid.R
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
@@ -11,6 +13,7 @@ import com.example.whisperandroid.util.parseMarkdownToText
 import com.google.gson.JsonParser
 import java.io.File
 import java.util.UUID
+import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 
 class BackgroundAssistantCoordinator(
@@ -45,6 +49,7 @@ class BackgroundAssistantCoordinator(
     private var mqttCollectorJob: Job? = null
     private var fallbackJob: Job? = null
     private var dismissTimerJob: Job? = null
+    private var greetingPlayer: MediaPlayer? = null
 
     var onDismissed: () -> Unit = {}
 
@@ -93,13 +98,7 @@ class BackgroundAssistantCoordinator(
             requestStartedAtMs[requestId] = System.currentTimeMillis()
 
             // 1. Greeting
-            _uiState.value = BackgroundAssistantUiState(
-                state = BackgroundAssistantUiState.State.Greeting,
-                sessionId = sessionId,
-                startedAtMs = System.currentTimeMillis()
-            )
-            AppLog.d(TAG, "[Session] Greeting")
-            delay(GREETING_DURATION_MS)
+            playGreetingAudioAndAwait()
 
             // 2. Listening
             startRecording(requestId)
@@ -385,6 +384,59 @@ class BackgroundAssistantCoordinator(
         }
     }
 
+    private suspend fun playGreetingAudioAndAwait() {
+        val sessionId = UUID.randomUUID().toString()
+        _uiState.value = BackgroundAssistantUiState(
+            state = BackgroundAssistantUiState.State.Greeting,
+            sessionId = sessionId,
+            startedAtMs = System.currentTimeMillis()
+        )
+        AppLog.d(TAG, "[Session] Greeting (Audio)")
+
+        val completed = suspendCancellableCoroutine<Boolean> { continuation ->
+            try {
+                val player = MediaPlayer.create(application, R.raw.greeting_sensio_pro_assistant)
+                if (player == null) {
+                    AppLog.e(TAG, "Failed to create MediaPlayer for greeting")
+                    if (continuation.isActive) continuation.resume(false)
+                    return@suspendCancellableCoroutine
+                }
+                greetingPlayer = player
+                player.setOnCompletionListener {
+                    it.release()
+                    if (greetingPlayer == it) greetingPlayer = null
+                    if (continuation.isActive) continuation.resume(true)
+                }
+                player.setOnErrorListener { it, what, extra ->
+                    AppLog.e(TAG, "MediaPlayer error: $what, $extra")
+                    it.release()
+                    if (greetingPlayer == it) greetingPlayer = null
+                    if (continuation.isActive) continuation.resume(false)
+                    true
+                }
+                player.start()
+
+                continuation.invokeOnCancellation {
+                    try {
+                        if (player.isPlaying) player.stop()
+                        player.release()
+                    } catch (e: Exception) {
+                        // Ignore
+                    }
+                    if (greetingPlayer == player) greetingPlayer = null
+                }
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error playing greeting audio", e)
+                if (continuation.isActive) continuation.resume(false)
+            }
+        }
+
+        if (!completed) {
+            AppLog.w(TAG, "Greeting audio failed or skipped, using fallback delay")
+            delay(GREETING_DURATION_MS)
+        }
+    }
+
     private fun transitionTo(newState: BackgroundAssistantUiState.State, trigger: String) {
         val oldState = _uiState.value.state
         if (oldState == newState && newState != BackgroundAssistantUiState.State.Hidden) return
@@ -400,6 +452,16 @@ class BackgroundAssistantCoordinator(
         fallbackJob?.cancel()
         dismissTimerJob?.cancel()
         audioRecorder.stop()
+
+        greetingPlayer?.let {
+            try {
+                if (it.isPlaying) it.stop()
+                it.release()
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error releasing greeting player", e)
+            }
+        }
+        greetingPlayer = null
     }
 
     private fun resetState() {

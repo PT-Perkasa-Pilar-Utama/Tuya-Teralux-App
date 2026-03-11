@@ -1,0 +1,30 @@
+[project]
+name = "rag-whisper-service"
+version = "0.1.0"
+description = "FastAPI RAG and Whisper service with LangChain and Milvus"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "python-multipart>=0.0.6",
+    "langchain>=0.1.0",
+    "langchain-openai>=0.0.2",
+    "langchain-community>=0.0.10",
+    "langchain-google-genai>=0.0.1",
+    "langchain-groq>=0.0.1",
+    "pymilvus>=2.3.0",
+    "openai>=1.0.0",
+    "pyyaml>=6.0",
+    "httpx>=0.24.0",
+    "dependency-injector>=4.41.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']

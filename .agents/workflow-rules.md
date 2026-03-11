@@ -26,7 +26,7 @@ All tasks should follow:
 
 - `backend/`
   - Mandatory local baseline after changes: `make lint` + `make build`
-  - Strict gate (required for CI/release-like flow): `make lint-strict` + `make vet` + `make build`
+  - Strict gate (required for CI/release-like flow): `make lint-strict` + `make test` + `make build`
   - Functional checks when behavior changes: `make test`
 - `sensio_app/`
   - Mandatory local baseline after changes: `make lint` + `make build`
