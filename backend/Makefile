@@ -107,8 +107,8 @@ install-swagger:
 openapi-tools:
 	@echo "📦 Installing OpenAPI tools..."
 	@mkdir -p bin
-	@cd scripts/openapi_convert && go build -o ../../bin/openapi_convert .
-	@cd scripts/openapi_validate && go build -o ../../bin/openapi_validate .
+	@cd ../scripts/backend/openapi_convert && go build -o ../../../bin/openapi_convert .
+	@cd ../scripts/backend/openapi_validate && go build -o ../../../bin/openapi_validate .
 	@echo "✅ OpenAPI tools installed successfully"
 
 # Generate Swagger documentation (legacy, intermediate step)
@@ -125,7 +125,7 @@ openapi: swagger generate-openapi validate-openapi
 # Generate OpenAPI from Swagger (conversion step)
 generate-openapi:
 	@echo "🔄 Converting Swagger 2.0 to OpenAPI 3.1..."
-	@bash scripts/generate_openapi.sh
+	@bash ../scripts/backend/generate_openapi.sh
 	@echo "✅ OpenAPI conversion completed"
 
 # Validate OpenAPI specification
@@ -180,7 +180,7 @@ push:
 
 # Build and Push Multi-Arch Image from remote host (arch)
 push-remote:
-	@bash scripts/push_remote_arch.sh
+	@bash ../scripts/backend/push_remote_arch.sh
 
 # Pull latest image from Registry
 pull:
@@ -320,20 +320,20 @@ rag:
 	@# Determine port preference: .env PORT > env PORT > 8081
 	@PORT_VAL=$$(grep -h '^PORT=' .env 2>/dev/null | sed 's/PORT=//' || true); \
 	if [ -z "$$PORT_VAL" ]; then PORT_VAL="$${PORT:-8081}"; fi; \
-	if [ -n "${text}" ]; then \
-		RAG_TEXT="${text}" bash scripts/rag.sh "" "${API_KEY}" "http://localhost:$$PORT_VAL"; \
+	@if [ -n "${text}" ]; then \
+		RAG_TEXT="${text}" bash ../scripts/backend/rag.sh "" "${API_KEY}" "http://localhost:$$PORT_VAL"; \
 	else \
-		bash scripts/rag.sh "" "${API_KEY}" "http://localhost:$$PORT_VAL"; \
+		bash ../scripts/backend/rag.sh "" "${API_KEY}" "http://localhost:$$PORT_VAL"; \
 	fi
 
 # Run all tests
 test:
-	@go run scripts/test_runner.go
+	@go run ../scripts/backend/test_runner.go
 
 # Run go vet excluding tmp
 vet:
 	@echo "🔍 Running go vet..."
-	@go vet . ./domain/... ./scripts/...
+	@go vet . ./domain/... ../scripts/backend/...
 
 # Run go vet and go build check
 lint:
@@ -342,19 +342,19 @@ lint:
 # Run go vet, golangci-lint, and go build check
 lint-strict:
 	@echo "🔍 Running go vet..."
-	@go vet . ./domain/... ./scripts/...
+	@go vet . ./domain/... ../scripts/backend/...
 	@echo "✨ Running golangci-lint..."
 	@golangci-lint run
 	@echo "🔨 Running go build check..."
-	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/... ./scripts/...
+	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/... ../scripts/backend/...
 
 # Run complete deploy-remote pipeline: lint, build, and fetch binary from remote host
 deploy-remote:
-	@bash scripts/deploy_remote_arch.sh
+	@bash ../scripts/backend/deploy_remote_arch.sh
 
 # Run remote lint and build on arch host (compatibility alias/standalone workflow)
 remote-lint-build:
-	@bash scripts/remote_lint_build_arch.sh
+	@bash ../scripts/backend/remote_lint_build_arch.sh
 
 # Clean build artifacts
 clean:

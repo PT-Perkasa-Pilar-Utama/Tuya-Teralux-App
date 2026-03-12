@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMMON_SCRIPT="$SCRIPT_DIR/../../scripts/remote/common_arch.sh"
+COMMON_SCRIPT="$SCRIPT_DIR/../remote/common_arch.sh"
 
 if [ ! -f "$COMMON_SCRIPT" ]; then
     echo "Error: Cannot find common script at $COMMON_SCRIPT"
