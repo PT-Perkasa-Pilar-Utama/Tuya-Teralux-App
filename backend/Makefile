@@ -58,7 +58,7 @@ dev: kill
 	make start-mysql-dev; \
 	echo "🟢 MySQL started"; \
 	echo "📂 Following Docker logs..."; \
-	docker compose -f docker-compose.dev.yml logs -f & LOGS_PID=$$!; \
+	docker compose -f docker-compose.dev.yml & LOGS_PID=$$!; \
 	make dev-server
 
 # Start only compose services
@@ -165,11 +165,13 @@ DOCKERFILE_SYNTAX_FALLBACK ?= 0
 # Build via Docker (Local Architecture)
 build-docker:
 	@echo "🐳 Building Docker image for local architecture..."
+	@mkdir -p scripts && cp ../scripts/backend/entrypoint.sh scripts/entrypoint.sh
 	docker build --build-arg AUTO_MIGRATE=true -t $(IMAGE_BASE):$(IMAGE_TAG) .
 
 # Direct push to GHCR (No GitHub CI)
 push:
 	@echo "🚀 Building and Pushing to GHCR directly..."
+	@mkdir -p scripts && cp ../scripts/backend/entrypoint.sh scripts/entrypoint.sh
 	@ARCH=$$(uname -m); \
 	if [ "$$ARCH" = "x86_64" ]; then PLATFORM="linux/amd64"; \
 	elif [ "$$ARCH" = "aarch64" ] || [ "$$ARCH" = "arm64" ]; then PLATFORM="linux/arm64"; \

@@ -56,7 +56,7 @@ func (c *MqttAuthClient) CreateMQTTUser(username, password string) (alreadyExist
 		return false, fmt.Errorf("failed to build mqtt create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("x-api-key", c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *MqttAuthClient) GetMQTTCredentials(username string) (*MQTTCredentials, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to build mqtt credentials request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("x-api-key", c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

@@ -9,6 +9,9 @@ import (
 	whisperControllers "sensio/domain/models-v1/whisper/controllers"
 	whisperRoutes "sensio/domain/models-v1/whisper/routes"
 	whisperServices "sensio/domain/models-v1/whisper/services"
+	ragControllers "sensio/domain/models-v1/rag/controllers"
+	ragRoutes "sensio/domain/models-v1/rag/routes"
+	ragServices "sensio/domain/models-v1/rag/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,14 +33,24 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config) {
 	// Initialize Pipeline Usecases
 	pipelineUC := pipelineUsecases.NewPipelineUseCase(pipelinePythonSvc)
 
-	// Initialize Whisper Controller (Upload Session only)
+	// Initialize Whisper Controllers
 	whisperUploadSessionCtrl := whisperControllers.NewUploadSessionController(whisperGrpcSvc)
+	whisperCtrl := whisperControllers.NewWhisperController(whisperGrpcSvc)
 
 	// Initialize Pipeline Controller
 	pipelineCtrl := pipelineControllers.NewPipelineController(pipelineUC)
 
+	// Initialize RAG components (Legacy V1 via REST)
+	ragSvc := ragServices.NewPythonRAGService(cfg)
+	ragCtrl := ragControllers.NewRAGController(ragSvc)
+
 	// Setup Routes
-	whisperRoutes.SetupWhisperRoutes(protected, whisperUploadSessionCtrl)
+	// All routes now use prefix /api/models/v1/domain
+	whisperRoutes.SetupWhisperRoutes(protected, whisperUploadSessionCtrl, whisperCtrl)
 
 	pipelineRoutes.SetupPipelineRoutes(protected, pipelineCtrl)
+
+	// Setup Legacy V1 Routes (Direct Python service access)
+	// Routes: /api/models/v1/rag/*
+	ragRoutes.SetupLegacyRAGRoutes(protected, ragCtrl)
 }

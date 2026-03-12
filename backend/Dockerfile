@@ -151,7 +151,7 @@ COPY --from=ai-builder /usr/local/bin/llama-cli /app/bin/llama-cli
 
 # Copy assets
 COPY --from=app-builder /app/domain/terminal/migrations /app/migrations
-COPY --from=app-builder /app/domain/rag/skills/definitions /app/domain/rag/skills/definitions
+COPY --from=app-builder /app/domain/models/rag/skills/definitions /app/domain/models/rag/skills/definitions
 COPY --from=app-builder /app/assets /app/assets
 COPY --from=app-builder /app/docs /app/docs
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
