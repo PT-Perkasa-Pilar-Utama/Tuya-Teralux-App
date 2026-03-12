@@ -118,11 +118,11 @@ interactive_select() {
     local ENTER="" # Handled by read -rn1
 
     # Hide cursor
-    printf "\e[?25l"
+    printf "\e[?25l" >&2
 
     # Function to cleanup on exit
     cleanup() {
-        printf "\e[?25h" # Show cursor
+        printf "\e[?25h" >&2 # Show cursor
     }
     trap cleanup EXIT
 
@@ -130,24 +130,25 @@ interactive_select() {
         # Clear previous menu (count lines + 1 for header)
         if [ -n "$key" ]; then
             for ((i=0; i<=count; i++)); do
-                printf "\e[K\e[1A"
+                printf "\e[K\e[1A" >&2
             done
-            printf "\e[K"
+            printf "\e[K" >&2
         fi
 
-        echo -e "${YELLOW}$header${NC}"
+        echo -e "${YELLOW}$header${NC}" >&2
         for i in "${!options[@]}"; do
             if [ "$i" -eq "$selected" ]; then
-                echo -e "  ${GREEN}❯ ${options[$i]}${NC}"
+                echo -e "  ${GREEN}❯ ${options[$i]}${NC}" >&2
             else
-                echo -e "    ${options[$i]}"
+                echo -e "    ${options[$i]}" >&2
             fi
         done
 
         # Read key press
-        read -rsn1 key
+        # Use /dev/tty for input to ensure it works even when stdin is redirected
+        read -rsn1 key < /dev/tty
         if [[ "$key" == "$ESC" ]]; then
-            read -rsn2 key
+            read -rsn2 key < /dev/tty
             key="$ESC$key"
         fi
 
@@ -161,7 +162,7 @@ interactive_select() {
                 if [ $selected -ge "$count" ]; then selected=0; fi
                 ;;
             "") # Enter key
-                printf "\e[?25h" # Show cursor
+                printf "\e[?25h" >&2 # Show cursor
                 trap - EXIT
                 echo "${options[$selected]}"
                 return 0
