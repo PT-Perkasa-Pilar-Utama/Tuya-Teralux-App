@@ -27,10 +27,10 @@ func NewMailSendController(useCase usecases.MailSendUseCase) *MailSendController
 // SendMail handles POST /api/mail/send
 // @Summary Send an email using a template
 // @Description Send an email using a server-side template and specified recipients
-// @Tags 08. Mail
+// @Tags 07. Mail
 // @Accept json
 // @Produce json
-// @Param request body mail_dtos.SwaggerMailSendRequestDTO true "Mail Request"
+// @Param        request body      mail_dtos.MailSendRequestDTO true "Mail Request"
 // @Security BearerAuth
 // @Success 202 {object} dtos.StandardResponse{data=mail_dtos.MailTaskResponseDTO}
 // @Failure 400 {object} dtos.StandardResponse

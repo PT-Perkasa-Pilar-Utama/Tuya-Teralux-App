@@ -25,7 +25,7 @@ func NewTuyaSendIRCommandController(useCase usecases.TuyaSendIRCommandUseCase) *
 // SendIRACCommand handles the request to send an IR AC command
 // @Summary      Send IR AC Command
 // @Description  Sends an infrared command (e.g., AC control) to an IR-enabled Tuya device.
-// @Tags         02. Tuya
+// @Tags 01. Tuya
 // @Accept       json
 // @Produce      json
 // @Param        id    path      string                    true  "Infrared Device ID (Hub/Remote)"

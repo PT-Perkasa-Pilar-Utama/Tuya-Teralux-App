@@ -154,7 +154,7 @@ func (ctrl *DocsController) ServeDocs(c *gin.Context) {
 		},
 	})
 
-	tmpl, err = tmpl.ParseGlob("/home/farismnrr/Documents/Programs/sensio/backend/views/docs/*.html")
+	tmpl, err = tmpl.ParseGlob("./views/docs/*.html")
 	if err != nil {
 		utils.LogError("Template loading error: %v", err)
 		c.String(http.StatusInternalServerError, "Template error")

@@ -3,17 +3,19 @@ package terminal
 import (
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
-	device "sensio/domain/terminal/controllers/device"
-	device_status "sensio/domain/terminal/controllers/device_status"
-	terminal "sensio/domain/terminal/controllers/terminal"
-	"sensio/domain/terminal/repositories"
-	"sensio/domain/terminal/routes"
+	device "sensio/domain/terminal/device/controllers"
+	device_repositories "sensio/domain/terminal/device/repositories"
+	device_status "sensio/domain/terminal/device_status/controllers"
+	device_status_repositories "sensio/domain/terminal/device_status/repositories"
+	terminal "sensio/domain/terminal/terminal/controllers"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	"sensio/domain/terminal/terminal/routes"
 
 	"sensio/domain/common/middlewares"
-	terminal_services "sensio/domain/terminal/services"
-	device_usecases "sensio/domain/terminal/usecases/device"
-	device_status_usecases "sensio/domain/terminal/usecases/device_status"
-	terminal_usecases "sensio/domain/terminal/usecases/terminal"
+	device_usecases "sensio/domain/terminal/device/usecases"
+	device_status_usecases "sensio/domain/terminal/device_status/usecases"
+	terminal_services "sensio/domain/terminal/terminal/services"
+	terminal_usecases "sensio/domain/terminal/terminal/usecases"
 
 	tuya_usecases "sensio/domain/tuya/usecases"
 
@@ -49,7 +51,7 @@ type TerminalModule struct {
 // NewTerminalModule initializes the Terminal module
 func NewTerminalModule(
 	badger *infrastructure.BadgerService,
-	deviceRepository *repositories.DeviceRepository,
+	deviceRepository *device_repositories.DeviceRepository,
 	tuyaAuthUC tuya_usecases.TuyaAuthUseCase,
 	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
 	tuyaDeviceControlUC device_status_usecases.TuyaDeviceControlExecutor,
@@ -62,8 +64,8 @@ func NewTerminalModule(
 	mqttAuthClient := terminal_services.NewMqttAuthClient(cfg.EmqxAuthBaseURL, cfg.EmqxAuthApiKey)
 
 	// Repositories
-	terminalRepository := repositories.NewTerminalRepository(badger)
-	deviceStatusRepository := repositories.NewDeviceStatusRepository(badger)
+	terminalRepository := terminal_repositories.NewTerminalRepository(badger)
+	deviceStatusRepository := device_status_repositories.NewDeviceStatusRepository(badger)
 
 	// Terminal Use Cases
 	createTerminalUseCase := terminal_usecases.NewCreateTerminalUseCase(terminalRepository, terminalExternalService, mqttAuthClient)

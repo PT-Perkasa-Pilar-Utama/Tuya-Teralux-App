@@ -3,7 +3,8 @@ package tuya
 import (
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/middlewares"
-	terminal_repositories "sensio/domain/terminal/repositories"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/tuya/controllers"
 	"sensio/domain/tuya/routes"
 	"sensio/domain/tuya/services"
@@ -29,7 +30,7 @@ type TuyaModule struct {
 }
 
 // NewTuyaModule initializes the Tuya module
-func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *terminal_repositories.DeviceRepository, terminalRepo *terminal_repositories.TerminalRepository) *TuyaModule {
+func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *device_repositories.DeviceRepository, terminalRepo *terminal_repositories.TerminalRepository) *TuyaModule {
 	// Services
 	tuyaAuthService := services.NewTuyaAuthService()
 	tuyaDeviceService := services.NewTuyaDeviceService()

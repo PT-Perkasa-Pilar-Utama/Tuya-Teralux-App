@@ -5,7 +5,7 @@ type MailSendRequestDTO struct {
 	To             []string               `json:"to" binding:"required" swaggertype:"array,string" example:"user@example.com"`
 	Subject        string                 `json:"subject" binding:"required" example:"Notification"`
 	Template       string                 `json:"template" binding:"omitempty" example:"test"`
-	Data           map[string]interface{} `json:"data,omitempty" example:"{\"customer_name\": \"John Doe\"}"`
+	Data           map[string]interface{} `json:"data,omitempty"`
 	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
 }
 
@@ -13,7 +13,7 @@ type MailSendRequestDTO struct {
 type SendMailByMacRequestDTO struct {
 	Subject        string                 `json:"subject" binding:"required" example:"Booking Confirmation"`
 	Template       string                 `json:"template" binding:"omitempty" example:"test"`
-	Data           map[string]interface{} `json:"data,omitempty" example:"{\"customer_name\": \"John Doe\"}"`
+	Data           map[string]interface{} `json:"data,omitempty"`
 	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
 }
 

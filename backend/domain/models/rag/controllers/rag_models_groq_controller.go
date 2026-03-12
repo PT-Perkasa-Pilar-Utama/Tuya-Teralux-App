@@ -25,7 +25,7 @@ func NewRAGModelsGroqController(usecase usecases.QueryGroqModelUseCase) RAGModel
 // Query godoc
 // @Summary Raw prompt query to Groq model
 // @Description Send a raw prompt directly to the Groq LLM model without RAG orchestration.
-// @Tags 06. Models
+// @Tags 04. Models
 // @Accept json
 // @Produce json
 // @Security BearerAuth

@@ -28,6 +28,7 @@ services:
   milvus-standalone:
     image: milvusdb/milvus:v2.3.0
     container_name: dev-milvus
+    command: ["milvus", "run", "standalone"]
     restart: unless-stopped
 
     environment:
