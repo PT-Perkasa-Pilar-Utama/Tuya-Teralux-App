@@ -38,12 +38,4 @@ func SetupRAGRoutes(
 	}
 
 	// Legacy support: /api/rag/* (backward compatibility)
-	legacy := rg.Group("/api/rag")
-	{
-		legacy.POST("/translate", translateController.Translate)
-		legacy.POST("/summary", summaryController.Summary)
-		legacy.POST("/chat", chatController.Chat)
-		legacy.POST("/control", controlController.Control)
-		legacy.GET("/:task_id", statusController.GetStatus)
-	}
 }

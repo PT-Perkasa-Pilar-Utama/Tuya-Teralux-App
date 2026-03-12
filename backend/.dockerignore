@@ -15,9 +15,9 @@ test/
 vendor/
 services/EMQX-Auth-Service
 bin/
+services/*/build/
+services/*/venv/
 uploads/
-models/
-node_modules/
 
 # Logs
 *.log

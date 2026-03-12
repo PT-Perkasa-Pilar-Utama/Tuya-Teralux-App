@@ -42,18 +42,4 @@ func SetupWhisperRoutes(
 		models.POST("/whisper/cpp", cppModelController.Transcribe)
 	}
 
-	// Legacy support: /api/speech/* (backward compatibility)
-	legacy := rg.Group("/api/speech")
-	{
-		legacy.POST("/transcribe", transcribeController.Transcribe)
-		legacy.POST("/transcribe/by-upload", transcribeController.TranscribeByUpload)
-		legacy.GET("/transcribe/:transcribe_id", statusController.GetStatus)
-
-		uploads := legacy.Group("/uploads")
-		{
-			uploads.POST("/sessions", uploadSessionController.CreateSession)
-			uploads.PUT("/sessions/:id/chunks/:index", uploadSessionController.UploadChunk)
-			uploads.GET("/sessions/:id", uploadSessionController.GetSessionStatus)
-		}
-	}
 }
