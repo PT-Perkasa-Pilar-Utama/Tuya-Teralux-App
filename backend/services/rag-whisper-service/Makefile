@@ -16,11 +16,17 @@ help:
 install:
 	@echo "📦 Installing dependencies..."
 	./venv/bin/pip install --upgrade pip
-	./venv/bin/pip install .
+	./venv/bin/pip install -e ".[standard]"
 	@echo "✅ Dependencies installed"
 
 # Run development server
 dev:
+	@if [ ! -d venv ]; then \
+		echo "🛠️ Creating venv..."; \
+		python3 -m venv venv; \
+		./venv/bin/pip install --upgrade pip; \
+		./venv/bin/pip install -e ".[standard]"; \
+	fi
 	@echo "🚀 Starting RAG+Whisper Service..."
 	./venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 

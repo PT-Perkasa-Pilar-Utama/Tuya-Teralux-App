@@ -24,7 +24,7 @@ func NewRAGTranslateController(translateUC usecases.TranslateUseCase) *RAGTransl
 // Translate handles POST /api/models/rag/translate
 // @Summary Translate text to specified language
 // @Description Translate text to a target language asynchronously. Returns a Task ID for polling.
-// @Tags 05. RAG
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept json
 // @Produce json

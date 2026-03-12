@@ -56,6 +56,12 @@ type Config struct {
 	MaxFileSize         int64  // bytes
 	Port                string
 
+	// Python Services (for models-v1 proxy)
+	PythonWhisperServiceURL  string // URL for Python Whisper service (HTTP - legacy)
+	PythonRAGServiceURL      string // URL for Python RAG service (HTTP - legacy)
+	PythonPipelineServiceURL string // URL for Python Pipeline service (HTTP - legacy)
+	PythonGrpcServiceURL     string // URL for Python gRPC service (e.g., "localhost:50051")
+
 	// MQTT
 	MqttBroker            string
 	MqttUsername          string
@@ -189,6 +195,12 @@ func LoadConfig() {
 		OrionWhisperBaseURL: os.Getenv("ORION_WHISPER_BASE_URL"),
 		MaxFileSize:         maxFileSize,
 		Port:                os.Getenv("PORT"),
+
+		// Python Services (for models-v1 proxy)
+		PythonWhisperServiceURL:  getEnvAsDefault("PYTHON_WHISPER_SERVICE_URL", "http://localhost:8001"),
+		PythonRAGServiceURL:      getEnvAsDefault("PYTHON_RAG_SERVICE_URL", "http://localhost:8001"),
+		PythonPipelineServiceURL: getEnvAsDefault("PYTHON_PIPELINE_SERVICE_URL", "http://localhost:8001"),
+		PythonGrpcServiceURL:     getEnvAsDefault("PYTHON_GRPC_SERVICE_URL", "localhost:50051"),
 
 		MqttBroker:            os.Getenv("MQTT_BROKER"),
 		MqttUsername:          os.Getenv("MQTT_USERNAME"),

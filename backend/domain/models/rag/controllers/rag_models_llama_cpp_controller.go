@@ -25,7 +25,7 @@ func NewRAGModelsLlamaCppController(usecase usecases.QueryLlamaCppModelUseCase) 
 // Query godoc
 // @Summary Raw prompt query to local Llama.cpp model
 // @Description Send a raw prompt directly to the local Llama.cpp LLM model without RAG orchestration.
-// @Tags 06. Models
+// @Tags 04. Models
 // @Accept json
 // @Produce json
 // @Security BearerAuth

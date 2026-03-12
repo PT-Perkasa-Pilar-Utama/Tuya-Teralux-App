@@ -214,7 +214,7 @@ func (c *WhisperTranscribeController) publishMqttResponse(mac string, resp commo
 // Transcribe handles POST /api/models/whisper/transcribe
 // @Summary Transcribe audio file (Unified)
 // @Description Start transcription of audio file using the configured LLM provider (LLM_PROVIDER). Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.
-// @Tags 04. Whisper
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json

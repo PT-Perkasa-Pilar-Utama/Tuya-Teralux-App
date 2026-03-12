@@ -25,7 +25,7 @@ func NewRAGModelsOpenAIController(usecase usecases.QueryOpenAIModelUseCase) RAGM
 // Query godoc
 // @Summary Raw prompt query to OpenAI model
 // @Description Send a raw prompt directly to the OpenAI LLM model without RAG orchestration.
-// @Tags 06. Models
+// @Tags 04. Models
 // @Accept json
 // @Produce json
 // @Security BearerAuth

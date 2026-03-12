@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// MailStatusController handles GET /api/email/status/:task_id.
+// MailStatusController handles GET /api/mail/status/{task_id}.
 type MailStatusController struct {
 	statusUC tasks.GenericStatusUseCase[mail_dtos.MailStatusDTO]
 }
@@ -20,10 +20,10 @@ func NewMailStatusController(statusUC tasks.GenericStatusUseCase[mail_dtos.MailS
 	}
 }
 
-// GetStatus handles GET /api/email/status/:task_id
+// GetStatus handles GET /api/mail/status/{task_id}
 // @Summary Get email task status
 // @Description Get the status and result of an email sending task.
-// @Tags 08. Mail
+// @Tags 07. Mail
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"

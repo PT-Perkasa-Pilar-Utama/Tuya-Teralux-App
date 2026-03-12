@@ -34,7 +34,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "01. Common"
+                    "08. Common"
                 ],
                 "summary": "Fetch device and booking info by MAC address",
                 "parameters": [
@@ -102,7 +102,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "09. Common"
+                    "08. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -121,6 +121,605 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/devices": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all registered devices with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get all devices",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by terminal ID",
+                        "name": "terminal_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register a new device under a terminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Create a new device",
+                "parameters": [
+                    {
+                        "description": "Device registration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CreateDeviceRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all device statuses",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get all device statuses",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/terminal/{terminal_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all devices associated with a specific terminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get devices by terminal ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal ID",
+                        "name": "terminal_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve device information by device ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get device by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update device information by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Update a device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated device data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateDeviceRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a device by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Delete a device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a specific device status (e.g., power, temperature)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Update device status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated status data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateDeviceStatusRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/statuses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all statuses for a specific device",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get device statuses by device ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceStatusListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/statuses/{code}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific device status by status code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get device status by code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/health": {
             "get": {
                 "description": "Check if the application and database are healthy",
@@ -128,7 +727,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "09. Common"
+                    "08. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -162,7 +761,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Mail"
+                    "07. Mail"
                 ],
                 "summary": "Send an email using a template",
                 "parameters": [
@@ -172,7 +771,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtos.SwaggerMailSendRequestDTO"
+                            "$ref": "#/definitions/dtos.MailSendRequestDTO"
                         }
                     }
                 ],
@@ -225,7 +824,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Mail"
+                    "07. Mail"
                 ],
                 "summary": "Send an email by Terminal MAC Address",
                 "parameters": [
@@ -242,7 +841,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dtos.SwaggerSendMailByMacRequestDTO"
+                            "$ref": "#/definitions/dtos.SendMailByMacRequestDTO"
                         }
                     }
                 ],
@@ -298,7 +897,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Mail"
+                    "07. Mail"
                 ],
                 "summary": "Get email task status",
                 "parameters": [
@@ -359,7 +958,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Models"
+                    "04. Models"
                 ],
                 "summary": "Raw prompt query to Gemini model",
                 "parameters": [
@@ -428,7 +1027,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Models"
+                    "04. Models"
                 ],
                 "summary": "Raw prompt query to Groq model",
                 "parameters": [
@@ -497,7 +1096,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Models"
+                    "04. Models"
                 ],
                 "summary": "Raw prompt query to local Llama.cpp model",
                 "parameters": [
@@ -566,7 +1165,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Models"
+                    "04. Models"
                 ],
                 "summary": "Raw prompt query to OpenAI model",
                 "parameters": [
@@ -635,7 +1234,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Models"
+                    "04. Models"
                 ],
                 "summary": "Raw prompt query to Orion model",
                 "parameters": [
@@ -689,7 +1288,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/pipeline/job": {
+        "/api/models/pipeline/job": {
             "post": {
                 "security": [
                     {
@@ -704,7 +1303,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. RAG"
+                    "04. Models"
                 ],
                 "summary": "Run unified AI pipeline (Transcribe -\u003e Refine -\u003e Translate -\u003e Summarize)",
                 "parameters": [
@@ -810,7 +1409,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/pipeline/status/{task_id}": {
+        "/api/models/pipeline/status/{task_id}": {
             "get": {
                 "security": [
                     {
@@ -822,7 +1421,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. RAG"
+                    "04. Models"
                 ],
                 "summary": "Get unified pipeline job status",
                 "parameters": [
@@ -862,7 +1461,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/chat": {
+        "/api/models/rag/chat": {
             "post": {
                 "security": [
                     {
@@ -877,7 +1476,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. RAG"
+                    "04. Models"
                 ],
                 "summary": "AI Assistant Chat",
                 "parameters": [
@@ -913,7 +1512,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/control": {
+        "/api/models/rag/control": {
             "post": {
                 "security": [
                     {
@@ -928,7 +1527,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. RAG"
+                    "04. Models"
                 ],
                 "summary": "AI Assistant Control",
                 "parameters": [
@@ -964,7 +1563,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/summary": {
+        "/api/models/rag/summary": {
             "post": {
                 "security": [
                     {
@@ -979,7 +1578,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. RAG"
+                    "04. Models"
                 ],
                 "summary": "Generate meeting minutes summary",
                 "parameters": [
@@ -1036,7 +1635,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/translate": {
+        "/api/models/rag/translate": {
             "post": {
                 "security": [
                     {
@@ -1051,7 +1650,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. RAG"
+                    "04. Models"
                 ],
                 "summary": "Translate text to specified language",
                 "parameters": [
@@ -1108,7 +1707,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/rag/{task_id}": {
+        "/api/models/rag/{task_id}": {
             "get": {
                 "security": [
                     {
@@ -1119,7 +1718,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "05. RAG"
+                    "04. Models"
                 ],
                 "summary": "Get RAG task status",
                 "parameters": [
@@ -1159,684 +1758,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/recordings": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a paginated list of all recordings.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "07. Recordings"
-                ],
-                "summary": "List all recordings",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Page number (default 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page (default 10)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/recordings_dtos.GetAllRecordingsResponseDto"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Upload an audio file and save its metadata.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "07. Recordings"
-                ],
-                "summary": "Save a new recording",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Device MAC Address",
-                        "name": "mac_address",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/recordings/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve metadata for a specific recording.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "07. Recordings"
-                ],
-                "summary": "Get recording by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Recording ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Remove a recording and its associated file from the system.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "07. Recordings"
-                ],
-                "summary": "Delete a recording",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Recording ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/scenes": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve all configured scenes grouped under each Terminal device",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "03. Scenes"
-                ],
-                "summary": "List all scenes across all Terminal devices",
-                "responses": {
-                    "200": {
-                        "description": "All scenes grouped by Terminal",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dtos.TerminalScenesWrapperDTO"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/models/gemini": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Submit audio file for transcription via Gemini. Processing is asynchronous.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "04. Speech"
-                ],
-                "summary": "Transcribe audio file (Gemini)",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Language code (e.g. id, en)",
-                        "name": "language",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/models/groq": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Submit audio file for transcription via Groq. Processing is asynchronous.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "04. Speech"
-                ],
-                "summary": "Transcribe audio file (Groq)",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Language code (e.g. id, en)",
-                        "name": "language",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/models/openai": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Submit audio file for transcription via OpenAI. Processing is asynchronous.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "04. Speech"
-                ],
-                "summary": "Transcribe audio file (OpenAI)",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Language code (e.g. id, en)",
-                        "name": "language",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/models/orion": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Submit audio file for transcription via Orion. Processing is asynchronous.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "04. Speech"
-                ],
-                "summary": "Transcribe audio file (Orion)",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Language code (e.g. id, en)",
-                        "name": "language",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/models/whisper/cpp": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Submit audio file for transcription via Whisper.cpp. Processing is asynchronous.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "04. Speech"
-                ],
-                "summary": "Transcribe audio file (Whisper.cpp)",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Language code (e.g. id, en)",
-                        "name": "language",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/speech/transcribe": {
+        "/api/models/whisper/transcribe": {
             "post": {
                 "security": [
                     {
@@ -1851,7 +1773,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "04. Speech"
+                    "04. Models"
                 ],
                 "summary": "Transcribe audio file (Unified)",
                 "parameters": [
@@ -1933,7 +1855,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/speech/transcribe/{transcribe_id}": {
+        "/api/models/whisper/transcribe/{transcribe_id}": {
             "get": {
                 "security": [
                     {
@@ -1945,7 +1867,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "04. Speech"
+                    "04. Models"
                 ],
                 "summary": "Get transcription status (Consolidated)",
                 "parameters": [
@@ -1984,6 +1906,689 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mqtt/credentials/{username}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get MQTT credentials by username for device authentication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get MQTT credentials",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "MQTT Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.MQTTCredentialsResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/recordings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a paginated list of all recordings.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Recordings"
+                ],
+                "summary": "List all recordings",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/recordings_dtos.GetAllRecordingsResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upload an audio file and save its metadata.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Recordings"
+                ],
+                "summary": "Save a new recording",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Device MAC Address",
+                        "name": "mac_address",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/recordings/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve metadata for a specific recording.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Recordings"
+                ],
+                "summary": "Get recording by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Recording ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/recordings_dtos.RecordingResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a recording and its associated file from the system.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "06. Recordings"
+                ],
+                "summary": "Delete a recording",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Recording ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/scenes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all configured scenes grouped under each Terminal device",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "03. Scenes"
+                ],
+                "summary": "List all scenes across all Terminal devices",
+                "responses": {
+                    "200": {
+                        "description": "All scenes grouped by Terminal",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dtos.TerminalScenesWrapperDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/terminal": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all registered terminals with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get all terminals",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by MAC address",
+                        "name": "mac_address",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by terminal name",
+                        "name": "name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register a new terminal device with MAC address and metadata",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Create a new terminal",
+                "parameters": [
+                    {
+                        "description": "Terminal registration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.CreateTerminalRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/terminal/mac/{mac}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve terminal information by MAC address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get terminal by MAC address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal MAC Address",
+                        "name": "mac",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TerminalResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/terminal/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve terminal information by terminal ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get terminal by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TerminalResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update terminal information by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Update a terminal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated terminal data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateTerminalRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft delete a terminal by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Delete a terminal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -2250,7 +2855,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "01. Auth"
+                    "01. Tuya"
                 ],
                 "summary": "Authenticate with Tuya",
                 "responses": {
@@ -2296,7 +2901,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "02. Tuya"
+                    "01. Tuya"
                 ],
                 "summary": "Get All Devices",
                 "parameters": [
@@ -2368,7 +2973,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "02. Tuya"
+                    "01. Tuya"
                 ],
                 "summary": "Get Device by ID",
                 "parameters": [
@@ -2435,7 +3040,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "02. Tuya"
+                    "01. Tuya"
                 ],
                 "summary": "Send IR AC Command",
                 "parameters": [
@@ -2493,7 +3098,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "02. Tuya"
+                    "01. Tuya"
                 ],
                 "summary": "Send Switch Command",
                 "parameters": [
@@ -2551,7 +3156,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "02. Tuya"
+                    "01. Tuya"
                 ],
                 "summary": "Get Sensor Data",
                 "parameters": [
@@ -2584,6 +3189,556 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/pipeline/job": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Execute a full AI pipeline (transcribe, translate, summarize)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Execute AI pipeline job",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source language (default: id)",
+                        "name": "language",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target language (default: en)",
+                        "name": "target_language",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable summarization (true/false)",
+                        "name": "summarize",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable speaker diarization (true/false)",
+                        "name": "diarize",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enable refinement (true/false)",
+                        "name": "refine",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated participant names",
+                        "name": "participants",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TaskIDResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/pipeline/status/{task_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the status of a pipeline job by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Get pipeline status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.V1PipelineStatusResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/whisper/models/gemini": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Gemini. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Models"
+                ],
+                "summary": "Transcribe audio file (Gemini)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/whisper/models/groq": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Groq. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Models"
+                ],
+                "summary": "Transcribe audio file (Groq)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/whisper/models/openai": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via OpenAI. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Models"
+                ],
+                "summary": "Transcribe audio file (OpenAI)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/whisper/models/orion": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Orion. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Models"
+                ],
+                "summary": "Transcribe audio file (Orion)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/whisper/models/whisper/cpp": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submit audio file for transcription via Whisper.cpp. Processing is asynchronous.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Models"
+                ],
+                "summary": "Transcribe audio file (Whisper.cpp)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
+                        "name": "audio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language code (e.g. id, en)",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TranscriptionTaskResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -2667,7 +3822,26 @@ const docTemplate = `{
                 },
                 "trigger": {
                     "type": "string",
-                    "example": "/api/speech/models/gemini"
+                    "example": "/api/whisper/models/gemini"
+                }
+            }
+        },
+        "dtos.CreateDeviceRequestDTO": {
+            "type": "object",
+            "required": [
+                "id",
+                "name",
+                "terminal_id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "terminal_id": {
+                    "type": "string"
                 }
             }
         },
@@ -2685,6 +3859,198 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.CreateTerminalRequestDTO": {
+            "type": "object",
+            "required": [
+                "device_type_id",
+                "mac_address",
+                "name",
+                "room_id"
+            ],
+            "properties": {
+                "device_type_id": {
+                    "type": "string"
+                },
+                "mac_address": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "room_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.DeviceListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.DeviceResponseDTO"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.DeviceResponseDTO": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "collections": {
+                    "type": "string"
+                },
+                "create_time": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "custom_name": {
+                    "type": "string"
+                },
+                "gateway_id": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "local_key": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "remote_category": {
+                    "type": "string"
+                },
+                "remote_id": {
+                    "type": "string"
+                },
+                "remote_product_name": {
+                    "type": "string"
+                },
+                "terminal_id": {
+                    "type": "string"
+                },
+                "update_time": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.DeviceStatusListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "device_statuses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.DeviceStatusResponseDTO": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "device_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.MQTTCredentialsResponseDTO": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "secret_password"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "device_001"
+                }
+            }
+        },
+        "dtos.MailSendRequestDTO": {
+            "type": "object",
+            "required": [
+                "subject",
+                "to"
+            ],
+            "properties": {
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
+                },
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Notification"
+                },
+                "template": {
+                    "type": "string",
+                    "example": "test"
+                },
+                "to": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "user@example.com"
+                    ]
                 }
             }
         },
@@ -2810,11 +4176,15 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Nyalakan AC"
                 },
+                "request_id": {
+                    "type": "string"
+                },
                 "terminal_id": {
                     "type": "string",
                     "example": "tx-1"
                 },
                 "uid": {
+                    "description": "Must be Tuya UID (never MAC/terminal identity)",
                     "type": "string",
                     "example": "sg1765..."
                 }
@@ -3044,6 +4414,30 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.SendMailByMacRequestDTO": {
+            "type": "object",
+            "required": [
+                "subject"
+            ],
+            "properties": {
+                "attachment_path": {
+                    "type": "string",
+                    "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
+                },
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Booking Confirmation"
+                },
+                "template": {
+                    "type": "string",
+                    "example": "test"
+                }
+            }
+        },
         "dtos.SensorDataDTO": {
             "type": "object",
             "properties": {
@@ -3069,7 +4463,7 @@ const docTemplate = `{
             "properties": {
                 "data": {},
                 "details": {
-                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted."
+                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted.\n@Schema(oneOf=[[]ValidationErrorDetailDTO, string, object])"
                 },
                 "message": {
                     "type": "string",
@@ -3081,106 +4475,44 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.SwaggerEmailTemplateData": {
+        "dtos.TaskIDResponseDTO": {
             "type": "object",
             "properties": {
-                "agenda_context": {
+                "task_id": {
                     "type": "string",
-                    "example": "Persiapan Kunjungan UNIAPEC"
-                },
-                "booking_date": {
-                    "type": "string",
-                    "example": "24 Februari 2026"
-                },
-                "booking_place": {
-                    "type": "string",
-                    "example": "Lt. 3"
-                },
-                "booking_room": {
-                    "type": "string",
-                    "example": "Ruang Cendrawasih"
-                },
-                "booking_time_start": {
-                    "type": "string",
-                    "example": "10:00"
-                },
-                "booking_time_stop": {
-                    "type": "string",
-                    "example": "12:00"
-                },
-                "customer_company": {
-                    "type": "string",
-                    "example": "PT Perkasa Pilar Utama"
-                },
-                "customer_name": {
-                    "type": "string",
-                    "example": "John Doe"
-                },
-                "email": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "override@example.com",
-                        "user2@example.com"
-                    ]
+                    "example": "task-123"
                 }
             }
         },
-        "dtos.SwaggerMailSendRequestDTO": {
+        "dtos.TerminalResponseDTO": {
             "type": "object",
-            "required": [
-                "subject",
-                "to"
-            ],
             "properties": {
-                "attachment_path": {
-                    "type": "string",
-                    "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
+                "created_at": {
+                    "type": "string"
                 },
-                "data": {
-                    "$ref": "#/definitions/dtos.SwaggerEmailTemplateData"
+                "device_type_id": {
+                    "type": "string"
                 },
-                "subject": {
-                    "type": "string",
-                    "example": "Notification"
+                "id": {
+                    "type": "string"
                 },
-                "template": {
-                    "type": "string",
-                    "example": "summary"
+                "mac_address": {
+                    "type": "string"
                 },
-                "to": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "user@example.com"
-                    ]
-                }
-            }
-        },
-        "dtos.SwaggerSendMailByMacRequestDTO": {
-            "type": "object",
-            "required": [
-                "subject"
-            ],
-            "properties": {
-                "attachment_path": {
-                    "type": "string",
-                    "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
+                "mqtt_password": {
+                    "type": "string"
                 },
-                "data": {
-                    "$ref": "#/definitions/dtos.SwaggerEmailTemplateData"
+                "mqtt_username": {
+                    "type": "string"
                 },
-                "subject": {
-                    "type": "string",
-                    "example": "Booking Confirmation"
+                "name": {
+                    "type": "string"
                 },
-                "template": {
-                    "type": "string",
-                    "example": "summary"
+                "room_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -3379,6 +4711,30 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.UpdateDeviceRequestDTO": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.UpdateDeviceStatusRequestDTO": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "remote_id": {
+                    "description": "Optional, for IR devices",
+                    "type": "string"
+                },
+                "value": {}
+            }
+        },
         "dtos.UpdateSceneRequestDTO": {
             "type": "object",
             "required": [
@@ -3393,6 +4749,55 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.UpdateTerminalRequestDTO": {
+            "type": "object",
+            "properties": {
+                "device_type_id": {
+                    "type": "string"
+                },
+                "mac_address": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "room_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.V1PipelineStatusResponseDTO": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "refined_text": {
+                    "type": "string",
+                    "example": "Hello, world."
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                },
+                "summary": {
+                    "type": "string",
+                    "example": "A greeting to the world."
+                },
+                "task_id": {
+                    "type": "string",
+                    "example": "pipeline_task_123"
+                },
+                "transcript": {
+                    "type": "string",
+                    "example": "Hello world"
+                },
+                "translated": {
+                    "type": "string",
+                    "example": "Halo dunia"
                 }
             }
         },
@@ -3452,40 +4857,36 @@ const docTemplate = `{
     },
     "tags": [
         {
-            "description": "Authentication endpoints",
-            "name": "01. Auth"
+            "description": "Tuya authentication and device control endpoints",
+            "name": "01. Tuya"
         },
         {
-            "description": "Tuya related endpoints",
-            "name": "02. Tuya"
+            "description": "Terminal and device management endpoints",
+            "name": "02. Terminal"
         },
         {
             "description": "Scene management and control endpoints",
             "name": "03. Scenes"
         },
         {
-            "description": "Speech endpoints",
-            "name": "04. Speech"
+            "description": "AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain",
+            "name": "04. Models"
         },
         {
-            "description": "RAG endpoints",
-            "name": "05. RAG"
-        },
-        {
-            "description": "Direct AI Model access endpoints (Non-RAG)",
-            "name": "06. Models"
+            "description": "New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API",
+            "name": "05. Models-v1"
         },
         {
             "description": "Recordings management endpoints",
-            "name": "07. Recordings"
+            "name": "06. Recordings"
         },
         {
             "description": "Mail service endpoints",
-            "name": "08. Mail"
+            "name": "07. Mail"
         },
         {
-            "description": "Common endpoints (Health, Cache)",
-            "name": "09. Common"
+            "description": "Common endpoints (Health, Cache, External APIs)",
+            "name": "08. Common"
         }
     ]
 }`

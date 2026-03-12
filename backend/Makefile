@@ -1,6 +1,6 @@
 # Sensio App Backend - Makefile for Development Automation
 
-.PHONY: help dev build-docker push pull update run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint lint-strict vet push-remote
+.PHONY: help dev dev-compose dev-server build-docker push pull update run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint lint-strict vet push-remote
 
 # Default target
 help:
@@ -9,8 +9,17 @@ help:
 	@echo "  --- LOCAL DEV ---"
 	@echo "  make dev              - Run development server with hot reload (Air)"
 	@echo "  make test             - Run all unit tests"
-	@echo "  make lint             - Run go vet and go build (checks domain packages)"
-	@echo "  make lint-strict      - Run go vet and go build (always enforced)"
+	@echo "  make lint             - Run go vet, golangci-lint, and go build check"
+	@echo "  make lint-strict      - Run all linters (vet, golangci-lint, build check)"
+	@echo ""
+	@echo "  --- API DOCS (OpenAPI 3.1) ---"
+	@echo "  make openapi-tools    - Install OpenAPI converter and validator tools"
+	@echo "  make openapi          - Generate OpenAPI 3.1 docs (auto: swagger → convert → validate)"
+	@echo "  make swagger          - Generate Swagger 2.0 docs only (intermediate step)"
+	@echo "  make validate-openapi - Validate OpenAPI 3.1 specification"
+	@echo "  make openapi-check    - Check if docs are in sync (for CI)"
+	@echo ""
+	@echo "  📖 Scalar API Reference: http://localhost:8080/openapi"
 	@echo ""
 	@echo "  --- DOCKER & DEPLOY ---"
 	@echo "  make build-docker     - Build image for local architecture"
@@ -41,18 +50,37 @@ stop-mysql-dev:
 
 # Run development server with hot reload (requires air)
 dev: kill
-	@trap 'make stop-mysql-dev' EXIT INT TERM; \
+	@trap 'echo "🛑 Stopping all services..."; \
+	  [ -n "$$AIR_PID" ] && kill $$AIR_PID 2>/dev/null || true; \
+	  [ -n "$$LOGS_PID" ] && kill $$LOGS_PID 2>/dev/null || true; \
+	  make stop-mysql-dev' EXIT INT TERM; \
 	set -e; \
 	make start-mysql-dev; \
 	echo "🟢 MySQL started"; \
-	echo "🚀 Starting development server with hot reload..."; \
+	echo "📂 Following Docker logs..."; \
+	docker compose -f docker-compose.dev.yml logs -f & LOGS_PID=$$!; \
+	make dev-server
+
+# Start only compose services
+dev-compose: start-mysql-dev
+	@echo "✅ Docker Compose services started in background."
+
+# Start only the backend server and RAG service
+dev-server: kill-server
+	@echo "🚀 Starting development server with hot reload..."; \
 	if [ ! -f bin/whisper-cli ] || [ ! -f bin/llama-cli ] || [ ! -f bin/llama-server ]; then \
 		echo "🛠️ Some AI binaries missing. Running setup..."; \
 		make setup-dev; \
 	fi; \
-	mkdir -p .air && \
-	(cd services/rag-whisper-service && make dev &) ; \
-	$(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)
+	if [ ! -d services/rag-whisper-service/venv ]; then \
+		echo "🛠️ Python venv missing. Running RAG service setup..."; \
+		cd services/rag-whisper-service && python3 -m venv venv && ./venv/bin/pip install --upgrade pip && ./venv/bin/pip install .; \
+	fi; \
+	mkdir -p .air; \
+	echo "🚀 Starting backend with Air (Port 8081)..."; \
+	($(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air)) & AIR_PID=$$!; \
+	echo "🚀 Starting RAG+Whisper Service (Port 8000)..."; \
+	cd services/rag-whisper-service && make dev
 
 # Run EMQX Auth Service separately
 emqx-dev:
@@ -75,15 +103,49 @@ install-swagger:
 	go install github.com/swaggo/swag/cmd/swag@latest
 	@echo "✅ Swag installed successfully"
 
-# Generate Swagger documentation
+# Install OpenAPI tools (converter and validator)
+openapi-tools:
+	@echo "📦 Installing OpenAPI tools..."
+	@mkdir -p bin
+	@cd scripts/openapi_convert && go build -o ../../bin/openapi_convert .
+	@cd scripts/openapi_validate && go build -o ../../bin/openapi_validate .
+	@echo "✅ OpenAPI tools installed successfully"
+
+# Generate Swagger documentation (legacy, intermediate step)
 swagger:
 	@echo "📝 Generating Swagger documentation..."
 	@$(shell go env GOPATH)/bin/swag init -g main.go -o docs/swagger --parseDependency --parseInternal
 	@sed -i 's/package docs/package swagger/g' docs/swagger/docs.go
 	@echo "✅ Swagger documentation updated"
 
-# Build release binary
-build:
+# Generate OpenAPI 3.1 documentation (full pipeline)
+openapi: swagger generate-openapi validate-openapi
+	@echo "✅ OpenAPI 3.1 documentation generated and validated"
+
+# Generate OpenAPI from Swagger (conversion step)
+generate-openapi:
+	@echo "🔄 Converting Swagger 2.0 to OpenAPI 3.1..."
+	@bash scripts/generate_openapi.sh
+	@echo "✅ OpenAPI conversion completed"
+
+# Validate OpenAPI specification
+validate-openapi:
+	@echo "✅ Validating OpenAPI 3.1 specification..."
+	@./bin/openapi_validate
+	@echo "✅ OpenAPI validation passed"
+
+# Check if OpenAPI docs are in sync with code (for CI)
+openapi-check: swagger generate-openapi validate-openapi
+	@echo "🔍 Checking for uncommitted changes in generated docs..."
+	@if ! git diff --exit-code -- docs/openapi/; then \
+		echo "❌ Error: Generated OpenAPI docs are not committed!"; \
+		echo "   Please run 'make openapi' and commit the changes."; \
+		exit 1; \
+	fi
+	@echo "✅ OpenAPI docs are in sync"
+
+# Build release binary (with auto-generated OpenAPI docs)
+build: openapi
 	@echo "🔨 Building release binary..."
 	CGO_CFLAGS="-w" go build -o main .
 
@@ -210,6 +272,11 @@ setup:
 	else \
 		echo "❌ llama-server binary not found"; exit 1; \
 	fi
+	@echo "🐍 Setting up RAG+Whisper Service..."
+	@if [ ! -d services/rag-whisper-service/venv ]; then \
+		cd services/rag-whisper-service && python3 -m venv venv; \
+	fi
+	@cd services/rag-whisper-service && ./venv/bin/pip install --upgrade pip && ./venv/bin/pip install .
 	@$(MAKE) download-models
 	@echo "✅ Setup complete. Use 'make dev' to start."
 
@@ -266,18 +333,20 @@ test:
 # Run go vet excluding tmp
 vet:
 	@echo "🔍 Running go vet..."
-	@go vet ./domain/...
+	@go vet . ./domain/... ./scripts/...
 
 # Run go vet and go build check
 lint:
 	@$(MAKE) lint-strict
 
-# Run go vet and go build check without local-machine guard
+# Run go vet, golangci-lint, and go build check
 lint-strict:
 	@echo "🔍 Running go vet..."
-	@go vet ./domain/...
+	@go vet . ./domain/... ./scripts/...
+	@echo "✨ Running golangci-lint..."
+	@golangci-lint run
 	@echo "🔨 Running go build check..."
-	@CGO_CFLAGS="-w" go build -o /dev/null ./domain/...
+	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/... ./scripts/...
 
 # Run complete deploy-remote pipeline: lint, build, and fetch binary from remote host
 deploy-remote:
@@ -294,19 +363,27 @@ clean:
 	rm -rf .air
 	@echo "✅ Clean completed"
 
-# Kill process running on port 8081 (server's default port)
-kill:
-	@echo "🔪 Killing processes on port 8081..."
-	@# Kill local processes
-	@lsof -ti:8081 | xargs -r kill -9 || true
-	@fuser -k 8081/tcp 2>/dev/null || true
-	@# Kill Docker processes/containers
+# Kill all dev components
+kill: kill-server kill-compose
+	@echo "✅ Full kill completed"
+
+# Kill only server processes (Go, Air, Python RAG)
+kill-server:
+	@echo "🔪 Killing server processes (Ports 8081, 8080, 8000)..."
+	@# Kill processes by ports
+	@lsof -ti:8081,8080,8000 | xargs -r kill -9 2>/dev/null || true
+	@# Kill air specifically if still alive (use more specific matching)
+	@pkill -x air 2>/dev/null || true
+	@echo "✅ Server processes killed"
+
+# Kill and cleanup Docker Compose services
+kill-compose:
 	@echo "🐳 Cleaning up Docker containers..."
 	@docker compose down --remove-orphans 2>/dev/null || true
 	@docker compose -f docker-compose.dev.yml down --remove-orphans 2>/dev/null || true
 	@docker stop sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@docker rm sensio-backend sensio-db dev-mysql 2>/dev/null || true
-	@echo "✅ Kill completed"
+	@echo "✅ Docker cleanup completed"
 
 # Expose backend port to Android device via ADB
 adb-reverse:

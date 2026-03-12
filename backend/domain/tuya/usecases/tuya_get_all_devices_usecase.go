@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
-	terminal_repositories "sensio/domain/terminal/repositories"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/services"
 	tuya_utils "sensio/domain/tuya/utils"
@@ -27,12 +28,12 @@ type tuyaGetAllDevicesUseCase struct {
 	deviceStateUC DeviceStateUseCase
 	cache         *infrastructure.BadgerService
 	vectorSvc     *infrastructure.VectorService
-	deviceRepo    *terminal_repositories.DeviceRepository
+	deviceRepo    *device_repositories.DeviceRepository
 	terminalRepo  *terminal_repositories.TerminalRepository
 }
 
 // NewTuyaGetAllDevicesUseCase initializes a new TuyaGetAllDevicesUseCase.
-func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *terminal_repositories.DeviceRepository, terminalRepo *terminal_repositories.TerminalRepository) TuyaGetAllDevicesUseCase {
+func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStateUC DeviceStateUseCase, cache *infrastructure.BadgerService, vectorSvc *infrastructure.VectorService, deviceRepo *device_repositories.DeviceRepository, terminalRepo *terminal_repositories.TerminalRepository) TuyaGetAllDevicesUseCase {
 	return &tuyaGetAllDevicesUseCase{
 		service:       service,
 		deviceStateUC: deviceStateUC,

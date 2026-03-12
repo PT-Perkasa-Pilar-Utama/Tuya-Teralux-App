@@ -20,7 +20,7 @@ func NewBigExternalController(bigSvc *services.BigExternalService) *BigExternalC
 // GetDeviceInfo fetches device and booking information from Big API
 // @Summary Fetch device and booking info by MAC address
 // @Description Fetches specific device information including booking_id, time_start, and time_stop directly from the Big API.
-// @Tags 01. Common
+// @Tags 08. Common
 // @Accept json
 // @Produce json
 // @Param mac_address path string true "MAC Address"
