@@ -47,8 +47,21 @@ definitions:
       terminal_id:
         type: string
       trigger:
-        example: /api/speech/models/gemini
+        example: /api/whisper/models/gemini
         type: string
+    type: object
+  dtos.CreateDeviceRequestDTO:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      terminal_id:
+        type: string
+    required:
+    - id
+    - name
+    - terminal_id
     type: object
   dtos.CreateSceneRequestDTO:
     properties:
@@ -60,6 +73,135 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  dtos.CreateTerminalRequestDTO:
+    properties:
+      device_type_id:
+        type: string
+      mac_address:
+        type: string
+      name:
+        type: string
+      room_id:
+        type: string
+    required:
+    - device_type_id
+    - mac_address
+    - name
+    - room_id
+    type: object
+  dtos.DeviceListResponseDTO:
+    properties:
+      devices:
+        items:
+          $ref: '#/definitions/dtos.DeviceResponseDTO'
+        type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dtos.DeviceResponseDTO:
+    properties:
+      category:
+        type: string
+      collections:
+        type: string
+      create_time:
+        type: integer
+      created_at:
+        type: string
+      custom_name:
+        type: string
+      gateway_id:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      ip:
+        type: string
+      local_key:
+        type: string
+      model:
+        type: string
+      name:
+        type: string
+      product_name:
+        type: string
+      remote_category:
+        type: string
+      remote_id:
+        type: string
+      remote_product_name:
+        type: string
+      terminal_id:
+        type: string
+      update_time:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  dtos.DeviceStatusListResponseDTO:
+    properties:
+      device_statuses:
+        items:
+          $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
+        type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dtos.DeviceStatusResponseDTO:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      device_id:
+        type: string
+      updated_at:
+        type: string
+      value:
+        type: string
+    type: object
+  dtos.MQTTCredentialsResponseDTO:
+    properties:
+      password:
+        example: secret_password
+        type: string
+      username:
+        example: device_001
+        type: string
+    type: object
+  dtos.MailSendRequestDTO:
+    properties:
+      attachment_path:
+        example: /uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf
+        type: string
+      data:
+        additionalProperties: true
+        type: object
+      subject:
+        example: Notification
+        type: string
+      template:
+        example: test
+        type: string
+      to:
+        example:
+        - user@example.com
+        items:
+          type: string
+        type: array
+    required:
+    - subject
+    - to
     type: object
   dtos.MailStatusDTO:
     properties:
@@ -142,10 +284,13 @@ definitions:
       prompt:
         example: Nyalakan AC
         type: string
+      request_id:
+        type: string
       terminal_id:
         example: tx-1
         type: string
       uid:
+        description: Must be Tuya UID (never MAC/terminal identity)
         example: sg1765...
         type: string
     required:
@@ -306,6 +451,23 @@ definitions:
       terminal_id:
         type: string
     type: object
+  dtos.SendMailByMacRequestDTO:
+    properties:
+      attachment_path:
+        example: /uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf
+        type: string
+      data:
+        additionalProperties: true
+        type: object
+      subject:
+        example: Booking Confirmation
+        type: string
+      template:
+        example: test
+        type: string
+    required:
+    - subject
+    type: object
   dtos.SensorDataDTO:
     properties:
       battery_percentage:
@@ -326,6 +488,7 @@ definitions:
         description: |-
           Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.
           For all other status codes, including 500, this field is nil/omitted.
+          @Schema(oneOf=[[]ValidationErrorDetailDTO, string, object])
       message:
         example: Success
         type: string
@@ -333,78 +496,32 @@ definitions:
         example: true
         type: boolean
     type: object
-  dtos.SwaggerEmailTemplateData:
+  dtos.TaskIDResponseDTO:
     properties:
-      agenda_context:
-        example: Persiapan Kunjungan UNIAPEC
+      task_id:
+        example: task-123
         type: string
-      booking_date:
-        example: 24 Februari 2026
-        type: string
-      booking_place:
-        example: Lt. 3
-        type: string
-      booking_room:
-        example: Ruang Cendrawasih
-        type: string
-      booking_time_start:
-        example: "10:00"
-        type: string
-      booking_time_stop:
-        example: "12:00"
-        type: string
-      customer_company:
-        example: PT Perkasa Pilar Utama
-        type: string
-      customer_name:
-        example: John Doe
-        type: string
-      email:
-        example:
-        - override@example.com
-        - user2@example.com
-        items:
-          type: string
-        type: array
     type: object
-  dtos.SwaggerMailSendRequestDTO:
+  dtos.TerminalResponseDTO:
     properties:
-      attachment_path:
-        example: /uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf
+      created_at:
         type: string
-      data:
-        $ref: '#/definitions/dtos.SwaggerEmailTemplateData'
-      subject:
-        example: Notification
+      device_type_id:
         type: string
-      template:
-        example: summary
+      id:
         type: string
-      to:
-        example:
-        - user@example.com
-        items:
-          type: string
-        type: array
-    required:
-    - subject
-    - to
-    type: object
-  dtos.SwaggerSendMailByMacRequestDTO:
-    properties:
-      attachment_path:
-        example: /uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf
+      mac_address:
         type: string
-      data:
-        $ref: '#/definitions/dtos.SwaggerEmailTemplateData'
-      subject:
-        example: Booking Confirmation
+      mqtt_password:
         type: string
-      template:
-        example: summary
+      mqtt_username:
         type: string
-    required:
-    - subject
+      name:
+        type: string
+      room_id:
+        type: string
+      updated_at:
+        type: string
     type: object
   dtos.TerminalScenesDTO:
     properties:
@@ -535,6 +652,22 @@ definitions:
     - code
     - remote_id
     type: object
+  dtos.UpdateDeviceRequestDTO:
+    properties:
+      name:
+        type: string
+    type: object
+  dtos.UpdateDeviceStatusRequestDTO:
+    properties:
+      code:
+        type: string
+      remote_id:
+        description: Optional, for IR devices
+        type: string
+      value: {}
+    required:
+    - code
+    type: object
   dtos.UpdateSceneRequestDTO:
     properties:
       actions:
@@ -545,6 +678,40 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  dtos.UpdateTerminalRequestDTO:
+    properties:
+      device_type_id:
+        type: string
+      mac_address:
+        type: string
+      name:
+        type: string
+      room_id:
+        type: string
+    type: object
+  dtos.V1PipelineStatusResponseDTO:
+    properties:
+      error:
+        type: string
+      refined_text:
+        example: Hello, world.
+        type: string
+      status:
+        example: completed
+        type: string
+      summary:
+        example: A greeting to the world.
+        type: string
+      task_id:
+        example: pipeline_task_123
+        type: string
+      transcript:
+        example: Hello world
+        type: string
+      translated:
+        example: Halo dunia
+        type: string
     type: object
   recordings_dtos.GetAllRecordingsResponseDto:
     properties:
@@ -625,7 +792,7 @@ paths:
             $ref: '#/definitions/dtos.StandardResponse'
       summary: Fetch device and booking info by MAC address
       tags:
-      - 01. Common
+      - 08. Common
   /api/cache/flush:
     delete:
       consumes:
@@ -646,7 +813,378 @@ paths:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - 09. Common
+      - 08. Common
+  /api/devices:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all registered devices with optional filtering
+      parameters:
+      - description: Filter by terminal ID
+        in: query
+        name: terminal_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all devices
+      tags:
+      - 02. Terminal
+    post:
+      consumes:
+      - application/json
+      description: Register a new device under a terminal
+      parameters:
+      - description: Device registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateDeviceRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new device
+      tags:
+      - 02. Terminal
+  /api/devices/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a device by ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a device
+      tags:
+      - 02. Terminal
+    get:
+      consumes:
+      - application/json
+      description: Retrieve device information by device ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get device by ID
+      tags:
+      - 02. Terminal
+    put:
+      consumes:
+      - application/json
+      description: Update device information by ID
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated device data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateDeviceRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a device
+      tags:
+      - 02. Terminal
+  /api/devices/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Update a specific device status (e.g., power, temperature)
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated status data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateDeviceStatusRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Update device status
+      tags:
+      - 02. Terminal
+  /api/devices/{id}/statuses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all statuses for a specific device
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get device statuses by device ID
+      tags:
+      - 02. Terminal
+  /api/devices/{id}/statuses/{code}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific device status by status code
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get device status by code
+      tags:
+      - 02. Terminal
+  /api/devices/statuses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all device statuses
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all device statuses
+      tags:
+      - 02. Terminal
+  /api/devices/terminal/{terminal_id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all devices associated with a specific terminal
+      parameters:
+      - description: Terminal ID
+        in: path
+        name: terminal_id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceListResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get devices by terminal ID
+      tags:
+      - 02. Terminal
   /api/health:
     get:
       description: Check if the application and database are healthy
@@ -663,7 +1201,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - 09. Common
+      - 08. Common
   /api/mail/send:
     post:
       consumes:
@@ -675,7 +1213,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dtos.SwaggerMailSendRequestDTO'
+          $ref: '#/definitions/dtos.MailSendRequestDTO'
       produces:
       - application/json
       responses:
@@ -700,7 +1238,7 @@ paths:
       - BearerAuth: []
       summary: Send an email using a template
       tags:
-      - 08. Mail
+      - 07. Mail
   /api/mail/send/mac/{mac_address}:
     post:
       consumes:
@@ -718,7 +1256,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dtos.SwaggerSendMailByMacRequestDTO'
+          $ref: '#/definitions/dtos.SendMailByMacRequestDTO'
       produces:
       - application/json
       responses:
@@ -747,7 +1285,7 @@ paths:
       - BearerAuth: []
       summary: Send an email by Terminal MAC Address
       tags:
-      - 08. Mail
+      - 07. Mail
   /api/mail/status/{task_id}:
     get:
       description: Get the status and result of an email sending task.
@@ -781,7 +1319,7 @@ paths:
       - BearerAuth: []
       summary: Get email task status
       tags:
-      - 08. Mail
+      - 07. Mail
   /api/models/gemini:
     post:
       consumes:
@@ -823,7 +1361,7 @@ paths:
       - BearerAuth: []
       summary: Raw prompt query to Gemini model
       tags:
-      - 06. Models
+      - 04. Models
   /api/models/groq:
     post:
       consumes:
@@ -864,7 +1402,7 @@ paths:
       - BearerAuth: []
       summary: Raw prompt query to Groq model
       tags:
-      - 06. Models
+      - 04. Models
   /api/models/llama/cpp:
     post:
       consumes:
@@ -906,7 +1444,7 @@ paths:
       - BearerAuth: []
       summary: Raw prompt query to local Llama.cpp model
       tags:
-      - 06. Models
+      - 04. Models
   /api/models/openai:
     post:
       consumes:
@@ -948,7 +1486,7 @@ paths:
       - BearerAuth: []
       summary: Raw prompt query to OpenAI model
       tags:
-      - 06. Models
+      - 04. Models
   /api/models/orion:
     post:
       consumes:
@@ -989,8 +1527,8 @@ paths:
       - BearerAuth: []
       summary: Raw prompt query to Orion model
       tags:
-      - 06. Models
-  /api/pipeline/job:
+      - 04. Models
+  /api/models/pipeline/job:
     post:
       consumes:
       - multipart/form-data
@@ -1065,8 +1603,8 @@ paths:
       - BearerAuth: []
       summary: Run unified AI pipeline (Transcribe -> Refine -> Translate -> Summarize)
       tags:
-      - 05. RAG
-  /api/pipeline/status/{task_id}:
+      - 04. Models
+  /api/models/pipeline/status/{task_id}:
     get:
       description: Poll for status and results of a unified pipeline job.
       parameters:
@@ -1095,8 +1633,8 @@ paths:
       - BearerAuth: []
       summary: Get unified pipeline job status
       tags:
-      - 05. RAG
-  /api/rag/{task_id}:
+      - 04. Models
+  /api/models/rag/{task_id}:
     get:
       parameters:
       - description: Task ID
@@ -1124,8 +1662,8 @@ paths:
       - BearerAuth: []
       summary: Get RAG task status
       tags:
-      - 05. RAG
-  /api/rag/chat:
+      - 04. Models
+  /api/models/rag/chat:
     post:
       consumes:
       - application/json
@@ -1157,8 +1695,8 @@ paths:
       - BearerAuth: []
       summary: AI Assistant Chat
       tags:
-      - 05. RAG
-  /api/rag/control:
+      - 04. Models
+  /api/models/rag/control:
     post:
       consumes:
       - application/json
@@ -1189,8 +1727,8 @@ paths:
       - BearerAuth: []
       summary: AI Assistant Control
       tags:
-      - 05. RAG
-  /api/rag/summary:
+      - 04. Models
+  /api/models/rag/summary:
     post:
       consumes:
       - application/json
@@ -1233,8 +1771,8 @@ paths:
       - BearerAuth: []
       summary: Generate meeting minutes summary
       tags:
-      - 05. RAG
-  /api/rag/translate:
+      - 04. Models
+  /api/models/rag/translate:
     post:
       consumes:
       - application/json
@@ -1277,417 +1815,8 @@ paths:
       - BearerAuth: []
       summary: Translate text to specified language
       tags:
-      - 05. RAG
-  /api/recordings:
-    get:
-      description: Get a paginated list of all recordings.
-      parameters:
-      - description: Page number (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: Items per page (default 10)
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/recordings_dtos.GetAllRecordingsResponseDto'
-              type: object
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: List all recordings
-      tags:
-      - 07. Recordings
-    post:
-      consumes:
-      - multipart/form-data
-      description: Upload an audio file and save its metadata.
-      parameters:
-      - description: Audio file
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: Device MAC Address
-        in: formData
-        name: mac_address
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/recordings_dtos.RecordingResponseDto'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Save a new recording
-      tags:
-      - 07. Recordings
-  /api/recordings/{id}:
-    delete:
-      description: Remove a recording and its associated file from the system.
-      parameters:
-      - description: Recording ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete a recording
-      tags:
-      - 07. Recordings
-    get:
-      description: Retrieve metadata for a specific recording.
-      parameters:
-      - description: Recording ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/recordings_dtos.RecordingResponseDto'
-              type: object
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get recording by ID
-      tags:
-      - 07. Recordings
-  /api/scenes:
-    get:
-      description: Retrieve all configured scenes grouped under each Terminal device
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: All scenes grouped by Terminal
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/dtos.TerminalScenesWrapperDTO'
-                  type: array
-              type: object
-      security:
-      - BearerAuth: []
-      summary: List all scenes across all Terminal devices
-      tags:
-      - 03. Scenes
-  /api/speech/models/gemini:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Gemini. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Gemini)
-      tags:
-      - 04. Speech
-  /api/speech/models/groq:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Groq. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Groq)
-      tags:
-      - 04. Speech
-  /api/speech/models/openai:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via OpenAI. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (OpenAI)
-      tags:
-      - 04. Speech
-  /api/speech/models/orion:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Orion. Processing is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Orion)
-      tags:
-      - 04. Speech
-  /api/speech/models/whisper/cpp:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Submit audio file for transcription via Whisper.cpp. Processing
-        is asynchronous.
-      parameters:
-      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: Language code (e.g. id, en)
-        in: formData
-        name: language
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "413":
-          description: Request Entity Too Large
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "415":
-          description: Unsupported Media Type
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio file (Whisper.cpp)
-      tags:
-      - 04. Speech
-  /api/speech/transcribe:
+      - 04. Models
+  /api/models/whisper/transcribe:
     post:
       consumes:
       - multipart/form-data
@@ -1748,8 +1877,8 @@ paths:
       - BearerAuth: []
       summary: Transcribe audio file (Unified)
       tags:
-      - 04. Speech
-  /api/speech/transcribe/{transcribe_id}:
+      - 04. Models
+  /api/models/whisper/transcribe/{transcribe_id}:
     get:
       description: Get the status and result of any transcription task (Short, Long,
         or Orion).
@@ -1783,7 +1912,382 @@ paths:
       - BearerAuth: []
       summary: Get transcription status (Consolidated)
       tags:
-      - 04. Speech
+      - 04. Models
+  /api/mqtt/credentials/{username}:
+    get:
+      consumes:
+      - application/json
+      description: Get MQTT credentials by username for device authentication
+      parameters:
+      - description: MQTT Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.MQTTCredentialsResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get MQTT credentials
+      tags:
+      - 02. Terminal
+  /api/recordings:
+    get:
+      description: Get a paginated list of all recordings.
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/recordings_dtos.GetAllRecordingsResponseDto'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: List all recordings
+      tags:
+      - 06. Recordings
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an audio file and save its metadata.
+      parameters:
+      - description: Audio file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Device MAC Address
+        in: formData
+        name: mac_address
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/recordings_dtos.RecordingResponseDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Save a new recording
+      tags:
+      - 06. Recordings
+  /api/recordings/{id}:
+    delete:
+      description: Remove a recording and its associated file from the system.
+      parameters:
+      - description: Recording ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a recording
+      tags:
+      - 06. Recordings
+    get:
+      description: Retrieve metadata for a specific recording.
+      parameters:
+      - description: Recording ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/recordings_dtos.RecordingResponseDto'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get recording by ID
+      tags:
+      - 06. Recordings
+  /api/scenes:
+    get:
+      description: Retrieve all configured scenes grouped under each Terminal device
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All scenes grouped by Terminal
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dtos.TerminalScenesWrapperDTO'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List all scenes across all Terminal devices
+      tags:
+      - 03. Scenes
+  /api/terminal:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all registered terminals with optional filtering
+      parameters:
+      - description: Filter by MAC address
+        in: query
+        name: mac_address
+        type: string
+      - description: Filter by terminal name
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all terminals
+      tags:
+      - 02. Terminal
+    post:
+      consumes:
+      - application/json
+      description: Register a new terminal device with MAC address and metadata
+      parameters:
+      - description: Terminal registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateTerminalRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new terminal
+      tags:
+      - 02. Terminal
+  /api/terminal/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a terminal by ID
+      parameters:
+      - description: Terminal ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a terminal
+      tags:
+      - 02. Terminal
+    get:
+      consumes:
+      - application/json
+      description: Retrieve terminal information by terminal ID
+      parameters:
+      - description: Terminal ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TerminalResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get terminal by ID
+      tags:
+      - 02. Terminal
+    put:
+      consumes:
+      - application/json
+      description: Update terminal information by ID
+      parameters:
+      - description: Terminal ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated terminal data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateTerminalRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a terminal
+      tags:
+      - 02. Terminal
   /api/terminal/{id}/scenes:
     get:
       description: Retrieve a list of all configured scenes for a specific Terminal
@@ -1938,6 +2442,46 @@ paths:
       summary: Apply/Trigger a scene
       tags:
       - 03. Scenes
+  /api/terminal/mac/{mac}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve terminal information by MAC address
+      parameters:
+      - description: Terminal MAC Address
+        in: path
+        name: mac
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TerminalResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get terminal by MAC address
+      tags:
+      - 02. Terminal
   /api/tuya/auth:
     get:
       consumes:
@@ -1963,7 +2507,7 @@ paths:
       - ApiKeyAuth: []
       summary: Authenticate with Tuya
       tags:
-      - 01. Auth
+      - 01. Tuya
   /api/tuya/devices:
     get:
       consumes:
@@ -2009,7 +2553,7 @@ paths:
       - BearerAuth: []
       summary: Get All Devices
       tags:
-      - 02. Tuya
+      - 01. Tuya
   /api/tuya/devices/{id}:
     get:
       consumes:
@@ -2049,7 +2593,7 @@ paths:
       - BearerAuth: []
       summary: Get Device by ID
       tags:
-      - 02. Tuya
+      - 01. Tuya
   /api/tuya/devices/{id}/commands/ir:
     post:
       consumes:
@@ -2087,7 +2631,7 @@ paths:
       - BearerAuth: []
       summary: Send IR AC Command
       tags:
-      - 02. Tuya
+      - 01. Tuya
   /api/tuya/devices/{id}/commands/switch:
     post:
       consumes:
@@ -2125,7 +2669,7 @@ paths:
       - BearerAuth: []
       summary: Send Switch Command
       tags:
-      - 02. Tuya
+      - 01. Tuya
   /api/tuya/devices/{id}/sensor:
     get:
       consumes:
@@ -2162,7 +2706,342 @@ paths:
       - BearerAuth: []
       summary: Get Sensor Data
       tags:
-      - 02. Tuya
+      - 01. Tuya
+  /api/v1/models/pipeline/job:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Execute a full AI pipeline (transcribe, translate, summarize)
+      parameters:
+      - description: Audio file
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: 'Source language (default: id)'
+        in: formData
+        name: language
+        type: string
+      - description: 'Target language (default: en)'
+        in: formData
+        name: target_language
+        type: string
+      - description: Enable summarization (true/false)
+        in: formData
+        name: summarize
+        type: string
+      - description: Enable speaker diarization (true/false)
+        in: formData
+        name: diarize
+        type: string
+      - description: Enable refinement (true/false)
+        in: formData
+        name: refine
+        type: string
+      - description: Comma-separated participant names
+        in: formData
+        name: participants
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TaskIDResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Execute AI pipeline job
+      tags:
+      - 05. Models-v1
+  /api/v1/models/pipeline/status/{task_id}:
+    get:
+      description: Get the status of a pipeline job by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.V1PipelineStatusResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Get pipeline status
+      tags:
+      - 05. Models-v1
+  /api/whisper/models/gemini:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Gemini. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Gemini)
+      tags:
+      - 04. Models
+  /api/whisper/models/groq:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Groq. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Groq)
+      tags:
+      - 04. Models
+  /api/whisper/models/openai:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via OpenAI. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (OpenAI)
+      tags:
+      - 04. Models
+  /api/whisper/models/orion:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Orion. Processing is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Orion)
+      tags:
+      - 04. Models
+  /api/whisper/models/whisper/cpp:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Submit audio file for transcription via Whisper.cpp. Processing
+        is asynchronous.
+      parameters:
+      - description: Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: Language code (e.g. id, en)
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TranscriptionTaskResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio file (Whisper.cpp)
+      tags:
+      - 04. Models
 schemes:
 - http
 - https
@@ -2178,21 +3057,19 @@ securityDefinitions:
     type: apiKey
 swagger: "2.0"
 tags:
-- description: Authentication endpoints
-  name: 01. Auth
-- description: Tuya related endpoints
-  name: 02. Tuya
+- description: Tuya authentication and device control endpoints
+  name: 01. Tuya
+- description: Terminal and device management endpoints
+  name: 02. Terminal
 - description: Scene management and control endpoints
   name: 03. Scenes
-- description: Speech endpoints
-  name: 04. Speech
-- description: RAG endpoints
-  name: 05. RAG
-- description: Direct AI Model access endpoints (Non-RAG)
-  name: 06. Models
+- description: AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain
+  name: 04. Models
+- description: New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API
+  name: 05. Models-v1
 - description: Recordings management endpoints
-  name: 07. Recordings
+  name: 06. Recordings
 - description: Mail service endpoints
-  name: 08. Mail
-- description: Common endpoints (Health, Cache)
-  name: 09. Common
+  name: 07. Mail
+- description: Common endpoints (Health, Cache, External APIs)
+  name: 08. Common

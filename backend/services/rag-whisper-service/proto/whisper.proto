@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package whisper;
+
+option go_package = "sensio/domain/models-v1/whisper/services/grpc";
+option py_generic_services = true;
+
+// Whisper gRPC Service for transcription
+service WhisperService {
+    // Transcribe audio file (synchronous)
+    rpc Transcribe(TranscribeRequest) returns (TranscribeResponse);
+    
+    // Get transcription job status
+    rpc GetJobStatus(GetJobStatusRequest) returns (JobStatusResponse);
+    
+    // Create upload session for chunked upload
+    rpc CreateUploadSession(CreateUploadSessionRequest) returns (UploadSessionResponse);
+    
+    // Upload audio chunk (streaming)
+    rpc UploadChunk(stream UploadChunkRequest) returns (UploadChunkResponse);
+    
+    // Get upload session status
+    rpc GetUploadSessionStatus(GetUploadSessionStatusRequest) returns (UploadSessionResponse);
+    
+    // Finalize upload session and get merged file path
+    rpc FinalizeUploadSession(FinalizeUploadSessionRequest) returns (FinalizeUploadSessionResponse);
+}
+
+// ============ Transcription Messages ============
+
+message TranscribeRequest {
+    bytes audio_data = 1;           // Audio file content
+    string file_name = 2;           // Original file name
+    string language = 3;            // Language code (e.g., "id", "en")
+    bool diarize = 4;               // Enable speaker diarization
+    string model_id = 5;            // Optional model ID
+    string correlation_id = 6;      // Request tracking ID
+}
+
+message TranscribeResponse {
+    string task_id = 1;             // Task/Job ID for polling
+    string status = 2;              // "pending", "processing", "completed", "failed"
+    string transcript = 3;          // Transcription result (if completed)
+    string error = 4;               // Error message (if failed)
+    int64 duration_ms = 5;          // Processing duration in milliseconds
+}
+
+// ============ Job Status Messages ============
+
+message GetJobStatusRequest {
+    string job_id = 1;              // Job/Task ID
+    string correlation_id = 2;      // Request tracking ID
+}
+
+message JobStatusResponse {
+    string job_id = 1;
+    string status = 2;              // "processing", "completed", "failed"
+    string result = 3;              // Transcription text (if completed)
+    string error = 4;               // Error message (if failed)
+    string file_name = 5;           // Original file name
+    int64 created_at = 6;           // Unix timestamp
+    int64 updated_at = 7;           // Unix timestamp
+}
+
+// ============ Upload Session Messages ============
+
+message CreateUploadSessionRequest {
+    string file_name = 1;           // Original file name
+    int64 total_size = 2;           // Total file size in bytes
+    int32 chunk_count = 3;          // Number of chunks
+    string correlation_id = 4;      // Request tracking ID
+}
+
+message UploadSessionResponse {
+    string session_id = 1;
+    string file_name = 2;
+    int64 total_size = 3;
+    int32 chunk_count = 4;
+    int32 uploaded_chunks = 5;
+    string status = 6;              // "uploading", "ready", "consumed", "expired"
+    int64 created_at = 7;           // Unix timestamp
+    int64 expires_at = 8;           // Unix timestamp
+}
+
+message UploadChunkRequest {
+    string session_id = 1;
+    int32 chunk_index = 2;
+    bytes chunk_data = 3;
+    string correlation_id = 4;
+}
+
+message UploadChunkResponse {
+    string session_id = 1;
+    int32 chunk_index = 2;
+    bool success = 3;
+    string error = 4;
+    int32 uploaded_chunks = 5;
+}
+
+message GetUploadSessionStatusRequest {
+    string session_id = 1;
+    string correlation_id = 2;
+}
+
+message FinalizeUploadSessionRequest {
+    string session_id = 1;
+    string correlation_id = 2;
+}
+
+message FinalizeUploadSessionResponse {
+    string session_id = 1;
+    string merged_file_path = 2;    // Path to merged audio file
+    string file_name = 3;
+    int64 total_size = 4;
+    bool success = 5;
+    string error = 6;
+}

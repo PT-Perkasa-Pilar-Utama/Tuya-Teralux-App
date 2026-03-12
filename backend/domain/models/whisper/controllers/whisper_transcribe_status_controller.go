@@ -23,7 +23,7 @@ func NewWhisperTranscribeStatusController(statusUC tasks.GenericStatusUseCase[dt
 // GetStatus handles GET /api/models/whisper/transcribe/:transcribe_id
 // @Summary Get transcription status (Consolidated)
 // @Description Get the status and result of any transcription task (Short, Long, or Orion).
-// @Tags 04. Whisper
+// @Tags 04. Models
 // @Security BearerAuth
 // @Produce json
 // @Param transcribe_id path string true "Task ID"

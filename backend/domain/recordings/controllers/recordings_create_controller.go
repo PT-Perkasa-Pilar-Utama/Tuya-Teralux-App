@@ -24,7 +24,7 @@ func NewRecordingsCreateController(useCase usecases.SaveRecordingUseCase) *Recor
 // CreateRecording handles POST /api/recordings endpoint
 // @Summary Save a new recording
 // @Description Upload an audio file and save its metadata.
-// @Tags 07. Recordings
+// @Tags 06. Recordings
 // @Security BearerAuth
 // @Accept mpfd
 // @Produce json

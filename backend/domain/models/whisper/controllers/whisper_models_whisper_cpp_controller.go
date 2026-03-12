@@ -33,7 +33,7 @@ func NewWhisperModelsWhisperCppController(
 // Transcribe handles POST /api/whisper/models/whisper/cpp
 // @Summary Transcribe audio file (Whisper.cpp)
 // @Description Submit audio file for transcription via Whisper.cpp. Processing is asynchronous.
-// @Tags 04. Whisper
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json

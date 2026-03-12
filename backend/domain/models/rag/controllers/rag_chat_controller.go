@@ -11,7 +11,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/usecases"
-	terminalRepos "sensio/domain/terminal/repositories"
+	terminalRepos "sensio/domain/terminal/terminal/repositories"
 	"strings"
 	"sync"
 	"time"
@@ -303,7 +303,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 // Chat handles the AI Assistant chat/command classification.
 // @Summary AI Assistant Chat
 // @Description Classifies user prompt into Chat or Control and returns appropriate response or redirection.
-// @Tags 05. RAG
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept json
 // @Produce json

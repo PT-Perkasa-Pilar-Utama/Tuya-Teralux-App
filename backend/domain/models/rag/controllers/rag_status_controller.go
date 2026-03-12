@@ -22,7 +22,7 @@ func NewRAGStatusController(statusUC tasks.GenericStatusUseCase[dtos.RAGStatusDT
 
 // GetStatus handles GET /api/models/rag/:task_id
 // @Summary Get RAG task status
-// @Tags 05. RAG
+// @Tags 04. Models
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"

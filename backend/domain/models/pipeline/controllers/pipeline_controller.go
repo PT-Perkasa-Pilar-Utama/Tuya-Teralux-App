@@ -44,7 +44,7 @@ func NewPipelineController(
 // ExecuteJob handles POST /api/models/pipeline/job
 // @Summary Run unified AI pipeline (Transcribe -> Refine -> Translate -> Summarize)
 // @Description Submits a single job that orchestrates multiple AI stages.
-// @Tags 05. RAG
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
@@ -177,7 +177,7 @@ func (c *PipelineController) ExecuteJob(ctx *gin.Context) {
 // GetStatus handles GET /api/models/pipeline/status/:task_id
 // @Summary Get unified pipeline job status
 // @Description Poll for status and results of a unified pipeline job.
-// @Tags 05. RAG
+// @Tags 04. Models
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"

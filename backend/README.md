@@ -59,12 +59,54 @@ A dedicated domain for managing audio recording files:
 
 ---
 
-## 📚 API Documentation (Swagger)
+## 📚 API Documentation (OpenAPI 3.1)
 
-The project uses [Swaggo](https://github.com/swaggo/swag) to generate Swagger/OpenAPI documentation.
+The project uses [Swaggo](https://github.com/swaggo/swag) to generate Swagger 2.0, which is then automatically converted to **OpenAPI 3.1.0** (strict).
 
-- **Access**: When the server is running, visit `http://localhost:8081/swagger/index.html` to view the interactive API docs.
-- **Update Docs**: If you modify API comments, run `swag init` (or `make build` if configured) to regenerate the documentation.
+### Access API Docs
+
+- **Primary (OpenAPI 3.1)**: `http://localhost:8081/openapi/` - Modern interactive docs using Scalar
+- **Legacy (Swagger 2.0)**: `http://localhost:8081/swagger/` - Redirects to OpenAPI docs
+- **Raw JSON**: `http://localhost:8081/openapi/openapi.json`
+- **Raw YAML**: `http://localhost:8081/openapi/openapi.yaml`
+
+### Auto-Generation Pipeline
+
+API documentation is **automatically generated** during development and build:
+
+```
+Go Annotations → Swagger 2.0 → OpenAPI 3.1 → Validation → Publish
+```
+
+**Manual Commands:**
+
+```bash
+# Install OpenAPI tools (converter + validator)
+make openapi-tools
+
+# Generate full OpenAPI 3.1 docs (Swagger → Convert → Validate)
+make openapi
+
+# Validate OpenAPI spec only
+make validate-openapi
+
+# Check if docs are in sync (for CI)
+make openapi-check
+```
+
+**Development Workflow:**
+
+- `make dev` - Auto-generates docs on every code change (via Air pre-command)
+- `make build` - Auto-generates docs before building binary
+
+**CI/CD:**
+
+A GitHub Actions workflow (`backend-openapi-check.yml`) validates OpenAPI spec on every push/PR:
+- Generates docs from source
+- Validates OpenAPI 3.1 compliance
+- Fails if generated docs are not committed
+
+---
 
 ## ⚡ Caching
 

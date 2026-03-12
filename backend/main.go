@@ -20,10 +20,13 @@ import (
 	"sensio/domain/scene"
 	scene_entities "sensio/domain/scene/entities"
 	"sensio/domain/terminal"
-	terminal_entities "sensio/domain/terminal/entities"
-	terminal_repositories "sensio/domain/terminal/repositories"
+	terminal_entities "sensio/domain/terminal/terminal/entities"
+	device_entities "sensio/domain/terminal/device/entities"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/tuya"
 	"sensio/domain/proxy"
+	models_v1 "sensio/domain/models-v1"
 )
 
 // @title           Sensio API
@@ -49,32 +52,29 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
 
-// @tag.name 01. Auth
-// @tag.description Authentication endpoints
+// @tag.name 01. Tuya
+// @tag.description Tuya authentication and device control endpoints
 
-// @tag.name 02. Tuya
-// @tag.description Tuya related endpoints
+// @tag.name 02. Terminal
+// @tag.description Terminal and device management endpoints
 
 // @tag.name 03. Scenes
 // @tag.description Scene management and control endpoints
 
-// @tag.name 04. Speech
-// @tag.description Speech endpoints
+// @tag.name 04. Models
+// @tag.description AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain
 
-// @tag.name 05. RAG
-// @tag.description RAG endpoints
+// @tag.name 05. Models-v1
+// @tag.description New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API
 
-// @tag.name 06. Models
-// @tag.description Direct AI Model access endpoints (Non-RAG)
-
-// @tag.name 07. Recordings
+// @tag.name 06. Recordings
 // @tag.description Recordings management endpoints
 
-// @tag.name 08. Mail
+// @tag.name 07. Mail
 // @tag.description Mail service endpoints
 
-// @tag.name 09. Common
-// @tag.description Common endpoints (Health, Cache)
+// @tag.name 08. Common
+// @tag.description Common endpoints (Health, Cache, External APIs)
 func main() {
 	// CLI: Healthcheck
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -112,8 +112,7 @@ func run() error {
 	// Auto Migrate Entities
 	if err := infrastructure.DB.AutoMigrate(
 		&terminal_entities.Terminal{},
-		&terminal_entities.Device{},
-		&terminal_entities.DeviceStatus{},
+		&device_entities.Device{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
 	); err != nil {
@@ -145,7 +144,7 @@ func run() error {
 	}
 
 	// Shared Repositories
-	deviceRepo := terminal_repositories.NewDeviceRepository(badgerService)
+	deviceRepo := device_repositories.NewDeviceRepository(badgerService)
 	terminalRepo := terminal_repositories.NewTerminalRepository(badgerService)
 
 	// Initialize Modules
@@ -246,6 +245,11 @@ func run() error {
 	// This replaces the direct Go RAG and Speech routes
 	proxyController := proxy.NewProxyController()
 	proxyController.RegisterRoutes(protected)
+
+	// 5b. Models-v1 Module (Go Proxy to Python Services)
+	// This provides a Go-based proxy layer to Python AI services
+	// Routes: /api/v1/models/whisper/*, /api/v1/models/rag/*, /api/v1/models/pipeline/*
+	models_v1.InitModule(protected, scfg)
 
 	// 6. Scene Module
 	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
