@@ -14,6 +14,7 @@ help:
 	@echo "  make kill-server    - Kill only backend server and RAG processes"
 	@echo "  make kill-compose   - Kill and cleanup Docker Compose services"
 	@echo "  make adb-reverse    - Expose backend port (8081) to Android device via ADB"
+	@echo "  make install-remote - Pull APK from arch host and install to connected device"
 	@echo ""
 
 # Setup everything
@@ -80,3 +81,7 @@ push-local:
 # Expose backend port to Android device via ADB
 adb-reverse:
 	@$(MAKE) -C backend adb-reverse
+
+# Pull APK from arch host and install to connected device
+install-remote:
+	@$(MAKE) -C sensio_app install-remote
