@@ -33,7 +33,7 @@ func NewWhisperModelsGeminiController(
 // Transcribe handles POST /api/whisper/models/gemini
 // @Summary Transcribe audio file (Gemini)
 // @Description Submit audio file for transcription via Gemini. Processing is asynchronous.
-// @Tags 04. Whisper
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json

@@ -33,7 +33,7 @@ func NewWhisperModelsOpenAIController(
 // Transcribe handles POST /api/whisper/models/openai
 // @Summary Transcribe audio file (OpenAI)
 // @Description Submit audio file for transcription via OpenAI. Processing is asynchronous.
-// @Tags 04. Whisper
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json

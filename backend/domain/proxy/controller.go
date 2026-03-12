@@ -69,14 +69,31 @@ func (pc *ProxyController) RegisterRoutes(rg *gin.RouterGroup) {
 	// New standard: /api/models/*
 	models := rg.Group("/api/models")
 	{
+		// @Summary      Proxy RAG requests
+		// @Description  Proxy requests to RAG service
+		// @Tags         04.0. Models (Proxy)
+		// @Router       /api/models/rag/{path} [post]
+		// @Security     BearerAuth
 		rag := models.Group("/rag")
 		{
 			rag.Any("/*path", pc.ProxyRequest)
 		}
+
+		// @Summary      Proxy Whisper requests
+		// @Description  Proxy requests to Whisper service
+		// @Tags         04.0. Models (Proxy)
+		// @Router       /api/models/whisper/{path} [post]
+		// @Security     BearerAuth
 		whisper := models.Group("/whisper")
 		{
 			whisper.Any("/*path", pc.ProxyRequest)
 		}
+
+		// @Summary      Proxy Pipeline requests
+		// @Description  Proxy requests to Pipeline service
+		// @Tags         04.0. Models (Proxy)
+		// @Router       /api/models/pipeline/{path} [post]
+		// @Security     BearerAuth
 		pipeline := models.Group("/pipeline")
 		{
 			pipeline.Any("/*path", pc.ProxyRequest)
@@ -84,6 +101,13 @@ func (pc *ProxyController) RegisterRoutes(rg *gin.RouterGroup) {
 	}
 
 	// Models info endpoint (Go native, not proxied)
+	// @Summary      Get available AI models
+	// @Description  Get list of available AI models and services
+	// @Tags         04. Models
+	// @Produce      json
+	// @Success      200  {object}  map[string]interface{}
+	// @Router       /api/models [get]
+	// @Security     BearerAuth
 	models.GET("", pc.GetModelsInfo)
 
 	// Legacy support: /api/v1/* (backward compatibility)
@@ -93,6 +117,7 @@ func (pc *ProxyController) RegisterRoutes(rg *gin.RouterGroup) {
 		{
 			rag.Any("/*path", pc.ProxyRequest)
 		}
+
 		whisper := v1.Group("/whisper")
 		{
 			whisper.Any("/*path", pc.ProxyRequest)
@@ -107,6 +132,7 @@ func (pc *ProxyController) RegisterRoutes(rg *gin.RouterGroup) {
 		{
 			rag.Any("/*path", pc.ProxyRequest)
 		}
+
 		whisper := legacy.Group("/whisper")
 		{
 			whisper.Any("/*path", pc.ProxyRequest)

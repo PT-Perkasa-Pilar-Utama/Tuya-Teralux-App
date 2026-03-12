@@ -25,7 +25,7 @@ func NewTuyaGetDeviceByIDController(useCase *usecases.TuyaGetDeviceByIDUseCase) 
 // GetDeviceByID handles GET /api/tuya/devices/:id endpoint
 // @Summary      Get Device by ID
 // @Description  Retrieves details of a specific device by its ID
-// @Tags         02. Tuya
+// @Tags 01. Tuya
 // @Accept       json
 // @Produce      json
 // @Param        id         path      string  true   "Device ID"

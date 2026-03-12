@@ -1,7 +1,7 @@
 """
 Base Whisper Adapter providing common functionality.
 
-Follows DRY principle by centralizing common Whisper adapter logic.
+Follows DDRY principle by centralizing common Whisper adapter logic.
 """
 from typing import Optional
 from abc import ABC
@@ -41,24 +41,25 @@ class BaseWhisperAdapter(WhisperClientPort, ABC):
     async def transcribe(
         self,
         file_path: str,
-        model_id: Optional[str] = None
+        language: str = "id",
+        diarize: bool = False
     ) -> str:
         """
         Transcribe audio file using OpenAI-compatible API.
 
         Args:
             file_path: Path to the audio file.
-            model_id: Optional model identifier override.
+            language: Language code (e.g., "id", "en").
+            diarize: Enable speaker diarization (not supported by all providers).
 
         Returns:
             Transcribed text.
         """
-        model = model_id or self.model_name
-
         with open(file_path, "rb") as audio_file:
             transcript = await self.client.audio.transcriptions.create(
-                model=model,
-                file=audio_file
+                model=self.model_name,
+                file=audio_file,
+                language=language if language else "id"
             )
 
         return transcript.text

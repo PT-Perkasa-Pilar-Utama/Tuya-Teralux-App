@@ -23,7 +23,7 @@ func NewRAGControlController(controlUC usecases.ControlUseCase) *RAGControlContr
 // Control handles the redirected device control commands.
 // @Summary AI Assistant Control
 // @Description Processes natural language device control commands.
-// @Tags 05. RAG
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept json
 // @Produce json

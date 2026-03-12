@@ -25,7 +25,7 @@ func NewRAGModelsGeminiController(usecase usecases.QueryGeminiModelUseCase) RAGM
 // Query godoc
 // @Summary Raw prompt query to Gemini model
 // @Description Send a raw prompt directly to the Gemini LLM model without RAG orchestration.
-// @Tags 06. Models
+// @Tags 04. Models
 // @Accept json
 // @Produce json
 // @Security BearerAuth

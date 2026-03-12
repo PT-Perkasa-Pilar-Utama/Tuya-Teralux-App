@@ -1,6 +1,6 @@
 # Sensio App - Root Makefile for Project-Wide Automation
 
-.PHONY: help setup backend-setup dev clean kill test vet push-local adb-reverse
+.PHONY: help setup backend-setup dev dev-compose dev-server clean kill kill-compose kill-server test vet push-local adb-reverse
 
 # Default target
 help:
@@ -10,7 +10,9 @@ help:
 	@echo "  make backend-setup  - Setup Backend (install tools, run migrations)"
 	@echo "  make dev            - Run Backend in dev mode"
 	@echo "  make clean          - Clean backend artifacts"
-	@echo "  make kill           - Kill backend service (port 8081)"
+	@echo "  make kill           - Kill all backend and compose services"
+	@echo "  make kill-server    - Kill only backend server and RAG processes"
+	@echo "  make kill-compose   - Kill and cleanup Docker Compose services"
 	@echo "  make adb-reverse    - Expose backend port (8081) to Android device via ADB"
 	@echo ""
 
@@ -21,9 +23,7 @@ setup: backend-setup
 # Backend Setup
 backend-setup:
 	@echo "🚀 Setting up Backend..."
-	@cd backend && $(MAKE) install-watch
-	@cd backend && $(MAKE) install-swagger
-	@cd backend && $(MAKE) migrate-up
+	@$(MAKE) -C backend setup
 
 # Run development mode for the backend
 # Use 'make dev' to run backend with hot-reload (Air)
@@ -32,6 +32,16 @@ dev:
 	@echo "💡 Tip: Use separate terminals for other tasks."
 	@(cd backend && $(MAKE) dev)
 
+# Start only compose services
+dev-compose:
+	@echo "🚀 Starting backend compose services in background..."
+	@(cd backend && $(MAKE) dev-compose)
+
+# Start only the backend server and RAG service
+dev-server:
+	@echo "🚀 Starting backend server..."
+	@(cd backend && $(MAKE) dev-server)
+
 # Clean all
 clean:
 	@echo "🧹 Cleaning backend artifacts..."
@@ -39,8 +49,18 @@ clean:
 
 # Kill all
 kill:
-	@echo "🔪 Killing backend service..."
+	@echo "🔪 Killing all project components..."
 	@$(MAKE) -C backend kill
+
+# Kill only server processes
+kill-server:
+	@echo "🔪 Killing backend server processes..."
+	@$(MAKE) -C backend kill-server
+
+# Kill and cleanup Docker Compose
+kill-compose:
+	@echo "🐳 Cleaning up Docker containers..."
+	@$(MAKE) -C backend kill-compose
 
 # Run tests
 test:

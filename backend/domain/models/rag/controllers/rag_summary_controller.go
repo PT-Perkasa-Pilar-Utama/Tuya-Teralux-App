@@ -25,7 +25,7 @@ func NewRAGSummaryController(summaryUC usecases.SummaryUseCase) *RAGSummaryContr
 // Summary handles POST /api/models/rag/summary
 // @Summary Generate meeting minutes summary
 // @Description Generate meeting minutes summary asynchronously. Returns a Task ID for polling.
-// @Tags 05. RAG
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept json
 // @Produce json

@@ -33,7 +33,7 @@ func NewWhisperModelsOrionController(
 // Transcribe handles POST /api/whisper/models/orion
 // @Summary Transcribe audio file (Orion)
 // @Description Submit audio file for transcription via Orion. Processing is asynchronous.
-// @Tags 04. Whisper
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json

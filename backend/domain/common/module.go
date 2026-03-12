@@ -1,15 +1,13 @@
 package common
 
 import (
-	"sensio/docs/swagger"
+	"net/http"
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/routes"
 	"sensio/domain/common/services"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // CommonModule encapsulates common domain components
@@ -38,26 +36,9 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	// Markdown Docs
 	router.GET("/docs/*path", m.DocsController.ServeDocs)
 
-	// Swagger Routes
-	router.Static("/swagger-assets", "./docs/swagger-ui")
-	router.GET("/swagger/*any", func(c *gin.Context) {
-		// Dynamic Host and Scheme based on the request
-		swagger.SwaggerInfo.Host = c.Request.Host
-
-		// Handle proxies for scheme detection
-		scheme := "http"
-		if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
-			scheme = "https"
-		}
-		swagger.SwaggerInfo.Schemes = []string{scheme}
-
-		if c.Param("any") == "" || c.Param("any") == "/" || c.Param("any") == "/index.html" {
-			c.Header("Content-Type", "text/html; charset=utf-8")
-			c.String(200, swagger.CustomSwaggerHTML)
-		} else {
-			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
-		}
-	})
+	// OpenAPI 3.1 Routes (Primary docs endpoint)
+	// Serve Swagger UI at /openapi
+	router.StaticFS("/openapi", http.Dir("./docs/openapi"))
 
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)

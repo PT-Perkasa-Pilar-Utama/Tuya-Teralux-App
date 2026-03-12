@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensio API - Documentation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Bearer Token Status Indicator */
+        .token-status-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .token-status {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .token-status.set {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .token-status.not-set {
+            background: rgba(107, 114, 128, 0.15);
+            color: #9ca3af;
+            border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+
+        .token-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .token-status.set .token-status-dot {
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+        }
+
+        .clear-token-btn {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clear-token-btn:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Copy Token Button */
+        .copy-token-btn {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-token-btn:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+
+        .token-actions {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Token Status Indicator -->
+    <div class="token-status-container" id="tokenStatusContainer">
+        <div class="token-status not-set" id="tokenStatus">
+            <span class="token-status-dot"></span>
+            <span id="tokenStatusText">No Bearer Token</span>
+        </div>
+        <div class="token-actions">
+            <button class="copy-token-btn hidden" id="copyTokenBtn" title="Copy token to clipboard">📋 Copy</button>
+            <button class="clear-token-btn hidden" id="clearTokenBtn">Clear Token</button>
+        </div>
+    </div>
+
+    <!-- Info Banner -->
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; max-width: 350px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #60a5fa;" id="infoBanner">
+        <strong>ℹ️ Auto-Auth Enabled</strong>
+        <p style="margin: 6px 0 0 0; opacity: 0.9;">Token akan otomatis ditambahkan ke semua request. Field Bearer Auth mungkin terlihat kosong, tapi request tetap terautentikasi.</p>
+    </div>
+
+    <script
+        id="api-reference"
+        data-url="./openapi.json"
+        data-theme="deepSpace"
+        data-layout="modern"
+        data-sidebar-sorter="alpha"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script>
+        // ============================================
+        // Configuration
+        // ============================================
+        const TOKEN_STORAGE_KEY = 'sensio_api_bearer_token';
+        const AUTH_ENDPOINT_PATTERNS = ['/login', '/auth', '/token', '/oauth'];
+        const TOKEN_RESPONSE_KEYS = ['access_token', 'token', 'bearer_token', 'jwt', 'AccessToken'];
+        const STANDARD_RESPONSE_WRAPPER = ['data', 'result', 'response'];
+
+        // ============================================
+        // Bearer Token Management
+        // ============================================
+        function getStoredToken() {
+            return sessionStorage.getItem(TOKEN_STORAGE_KEY);
+        }
+
+        function setStoredToken(token) {
+            if (token) {
+                // Sanitize token: remove any whitespace, newlines, or extra spaces
+                const sanitizedToken = token.trim().replace(/\s+/g, ' ');
+                sessionStorage.setItem(TOKEN_STORAGE_KEY, sanitizedToken);
+                updateTokenStatusUI(true);
+                // Dispatch custom event for Scalar to pick up the change
+                window.dispatchEvent(new CustomEvent('token-updated', { detail: { token: sanitizedToken } }));
+                console.log('[Token Manager] Token stored and sanitized');
+            } else {
+                sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+                updateTokenStatusUI(false);
+            }
+        }
+
+        function clearStoredToken() {
+            sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+            updateTokenStatusUI(false);
+            window.dispatchEvent(new CustomEvent('token-cleared'));
+        }
+
+        function updateTokenStatusUI(isSet) {
+            const statusEl = document.getElementById('tokenStatus');
+            const statusText = document.getElementById('tokenStatusText');
+            const clearBtn = document.getElementById('clearTokenBtn');
+            const copyBtn = document.getElementById('copyTokenBtn');
+            const infoBanner = document.getElementById('infoBanner');
+
+            if (isSet) {
+                statusEl.className = 'token-status set';
+                statusText.textContent = 'Bearer Token Active';
+                clearBtn.classList.remove('hidden');
+                copyBtn.classList.remove('hidden');
+                infoBanner.classList.add('hidden');
+            } else {
+                statusEl.className = 'token-status not-set';
+                statusText.textContent = 'No Bearer Token';
+                clearBtn.classList.add('hidden');
+                copyBtn.classList.add('hidden');
+                infoBanner.classList.remove('hidden');
+            }
+        }
+
+        function copyTokenToClipboard() {
+            try {
+                const token = getStoredToken();
+                console.log('[Token Manager] Attempting to copy token:', token ? (token.substring(0, 20) + '...') : 'null');
+                if (token) {
+                    const decodedToken = token.toString();
+                    
+                    // Fallback for navigator.clipboard if undefined (insecure contexts)
+                    if (!navigator.clipboard) {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = decodedToken;
+                        textArea.style.position = "fixed";
+                        textArea.style.left = "-9999px";
+                        textArea.style.top = "0";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            showCopySuccess();
+                        } catch (err) {
+                            console.error('[Token Manager] Fallback copy failed:', err);
+                        }
+                        document.body.removeChild(textArea);
+                        return;
+                    }
+
+                    navigator.clipboard.writeText(decodedToken).then(() => {
+                        showCopySuccess();
+                    }).catch(err => {
+                        console.error('Failed to copy token:', err);
+                    });
+                }
+            } catch (e) {
+                console.error('[Token Manager] Copy failed:', e);
+            }
+        }
+
+        function showCopySuccess() {
+            console.log('[Token Manager] Token copied to clipboard');
+            const copyBtn = document.getElementById('copyTokenBtn');
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = '✅ Copied!';
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+            }, 2000);
+        }
+
+        function extractTokenFromResponse(url, response) {
+            try {
+                // Check if this is an auth endpoint
+                const isAuthEndpoint = AUTH_ENDPOINT_PATTERNS.some(pattern =>
+                    url.toLowerCase().includes(pattern.toLowerCase())
+                );
+
+                if (!isAuthEndpoint) {
+                    console.log('[Scalar Helper] Not an auth endpoint:', url);
+                    return null;
+                }
+
+                // Try to parse response as JSON
+                let data;
+                if (typeof response === 'string') {
+                    data = JSON.parse(response);
+                } else if (response instanceof Blob) {
+                    console.log('[Scalar Helper] Response is Blob, skipping');
+                    return null;
+                } else if (typeof response === 'object') {
+                    data = response;
+                } else {
+                    console.log('[Scalar Helper] Unknown response type:', typeof response);
+                    return null;
+                }
+
+                console.log('[Scalar Helper] Processing response for token extraction');
+
+                // Helper function to search for token in object recursively
+                function findTokenInObject(obj, depth = 0) {
+                    if (!obj || depth > 5) return null;
+
+                    // Direct search
+                    for (const key of TOKEN_RESPONSE_KEYS) {
+                        if (obj[key] && typeof obj[key] === 'string') {
+                            console.log('[Scalar Helper] Found token at key:', key);
+                            return obj[key];
+                        }
+                    }
+
+                    // Search in wrapper objects (data, result, response)
+                    for (const wrapper of STANDARD_RESPONSE_WRAPPER) {
+                        if (obj[wrapper] && typeof obj[wrapper] === 'object') {
+                            const found = findTokenInObject(obj[wrapper], depth + 1);
+                            if (found) {
+                                console.log('[Scalar Helper] Found token in wrapper:', wrapper);
+                                return found;
+                            }
+                        }
+                    }
+
+                    return null;
+                }
+
+                const token = findTokenInObject(data);
+                
+                // Final validation: Ensure it's a JWT (has at least 2 dots separating 3 parts)
+                function isJWT(str) {
+                    if (typeof str !== 'string') return false;
+                    const parts = str.split('.');
+                    return parts.length === 3;
+                }
+
+                if (token && isJWT(token)) {
+                    console.log('[Scalar Helper] Successfully extracted JWT token');
+                    return token;
+                } else {
+                    // Specific fallback for Sensio API structure: data.access_token
+                    if (data && data.data && data.data.access_token && isJWT(data.data.access_token)) {
+                        console.log('[Scalar Helper] Found JWT token in data.access_token');
+                        return data.data.access_token;
+                    }
+                    console.warn('[Scalar Helper] No valid JWT token found in response');
+                    return null;
+                }
+            } catch (e) {
+                console.warn('[Scalar Helper] Error extracting token:', e);
+                return null;
+            }
+        }
+
+        // ============================================
+        // Scalar Authentication State Management (Disabled)
+        // ============================================
+        function updateScalarAuth(token) {
+            // Auto-fill disabled as per user request. 
+            // Users will manually copy and paste the token.
+            console.log('[Scalar Helper] Auto-fill disabled. Use the Copy button.');
+        }
+
+        function getScalarAuthState() {
+            return null;
+        }
+
+        // Listen for Scalar component initialization (no-op)
+        window.addEventListener('scalar-loaded', function(e) {
+            // Auto-fill disabled.
+        });
+
+        // ============================================
+        // Scalar Configuration with Hooks
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // ============================================
+            // Storage Transition & Cleanup
+            // ============================================
+            // 1. Clear legacy localStorage
+            localStorage.removeItem(TOKEN_STORAGE_KEY);
+            
+            // 2. Validate current sessionStorage token (must be JWT)
+            const currentToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+            function isJWT(str) {
+                if (typeof str !== 'string') return false;
+                const parts = str.split('.');
+                return parts.length === 3;
+            }
+            
+            if (currentToken && !isJWT(currentToken)) {
+                console.warn('[Token Manager] Purging invalid token');
+                sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+            }
+
+            const storedToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+            const currentOrigin = window.location.origin;
+            const script = document.getElementById('api-reference');
+
+            // Set up Scalar configuration with minimal hooks
+            const configuration = {
+                // Use current origin (auto-detected from browser)
+                servers: [
+                    {
+                        url: currentOrigin,
+                        description: 'Current server'
+                    }
+                ],
+                proxy: '',
+
+                // Hook: Extract token from responses
+                onResponse: (response) => {
+                    try {
+                        const url = response.request?.url || response.url || '';
+                        const token = extractTokenFromResponse(url, response.data || response._data || response.body);
+                        if (token) {
+                            setStoredToken(token);
+                            console.log('[Scalar Helper] Token captured and stored for Copy button');
+                        }
+                    } catch (e) {
+                        console.warn('[Scalar Helper] Error processing response:', e);
+                    }
+                    return response;
+                }
+            };
+
+            updateTokenStatusUI(!!storedToken);
+
+            script.setAttribute('data-configuration', JSON.stringify(configuration));
+
+            // ============================================
+            // Bearer Token Management
+            // ============================================
+            const clearTokenBtn = document.getElementById('clearTokenBtn');
+            const copyTokenBtn = document.getElementById('copyTokenBtn');
+
+            // Clear token button
+            clearTokenBtn.addEventListener('click', () => {
+                clearStoredToken();
+            });
+
+            // Copy token button
+            copyTokenBtn.addEventListener('click', () => {
+                copyTokenToClipboard();
+            });
+
+            // ============================================
+            // Fallback: Intercept fetch for token extraction
+            // ============================================
+            // This is a fallback in case Scalar's onResponse hook doesn't work
+            const originalFetch = window.fetch;
+            window.fetch = function(input, init) {
+                // Log the request for debugging
+                const url = typeof input === 'string' ? input : input.url || '';
+                const authHeader = init?.headers?.Authorization || 'not set';
+                console.log('[Fetch Interceptor] Request:', url, 'Auth:', authHeader.substring(0, 20) + '...');
+                
+                return originalFetch.apply(this, arguments).then(response => {
+                    // Clone the response to read it
+                    const clone = response.clone();
+
+                    // Check if this is an auth endpoint
+                    const isAuthEndpoint = AUTH_ENDPOINT_PATTERNS.some(pattern =>
+                        url.toLowerCase().includes(pattern.toLowerCase())
+                    );
+
+                    if (isAuthEndpoint && clone.status >= 200 && clone.status < 300) {
+                        clone.json().then(data => {
+                            const token = extractTokenFromResponse(url, data);
+                            if (token) {
+                                setStoredToken(token);
+                                console.log('[Fetch Interceptor] Token stored successfully');
+                            }
+                        }).catch(() => {
+                            // Ignore parse errors
+                        });
+                    }
+
+                    return response;
+                });
+            };
+        });
+    </script>
+</body>
+</html>

@@ -27,7 +27,7 @@ var _ = tuya_dtos.TuyaAuthResponseDTO{}
 // Authenticate handles GET /api/tuya/auth endpoint
 // @Summary      Authenticate with Tuya
 // @Description  Authenticates the user and retrieves a Tuya access token
-// @Tags         01. Auth
+// @Tags         01. Tuya
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaAuthResponseDTO}

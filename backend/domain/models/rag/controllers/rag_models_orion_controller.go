@@ -25,7 +25,7 @@ func NewRAGModelsOrionController(usecase usecases.QueryOrionModelUseCase) RAGMod
 // Query godoc
 // @Summary Raw prompt query to Orion model
 // @Description Send a raw prompt directly to the Orion LLM model without RAG orchestration.
-// @Tags 06. Models
+// @Tags 04. Models
 // @Accept json
 // @Produce json
 // @Security BearerAuth

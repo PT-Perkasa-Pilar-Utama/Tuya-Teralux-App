@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     DEBUG: bool = True
 
+    # gRPC Settings
+    GRPC_PORT: int = 50051
+
     # Security
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
@@ -21,6 +24,15 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     ORION_API_KEY: Optional[str] = None
+
+    # Whisper Settings
+    WHISPER_PROVIDER: str = "openai"  # openai, groq, gemini, orion, local
+    OPENAI_WHISPER_MODEL: str = "whisper-1"
+    GROQ_WHISPER_MODEL: str = "whisper-large-v3"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+    ORION_MODEL: str = "orion-whisper"
+    WHISPER_MODEL_PATH: Optional[str] = None
+    WHISPER_TEMP_DIR: str = "tmp/uploads"
 
     # Default Models
     DEFAULT_LLM_MODEL: str = "openai/gpt-4o"

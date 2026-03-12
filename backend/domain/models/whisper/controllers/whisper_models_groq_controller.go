@@ -33,7 +33,7 @@ func NewWhisperModelsGroqController(
 // Transcribe handles POST /api/whisper/models/groq
 // @Summary Transcribe audio file (Groq)
 // @Description Submit audio file for transcription via Groq. Processing is asynchronous.
-// @Tags 04. Whisper
+// @Tags 04. Models
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json

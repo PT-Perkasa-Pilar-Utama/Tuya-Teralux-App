@@ -22,7 +22,7 @@ async def transcribe_sync(
     model_id: Optional[str] = None,
     service: WhisperApplicationService = Depends(get_whisper_service)
 ):
-    temp_dir = "tmp/uploads"
+    temp_dir = settings.WHISPER_TEMP_DIR
     os.makedirs(temp_dir, exist_ok=True)
     file_path = f"{temp_dir}/{uuid.uuid4()}_{file.filename}"
     
@@ -43,7 +43,7 @@ async def transcribe_async(
     model_id: Optional[str] = None,
     service: WhisperApplicationService = Depends(get_whisper_service)
 ):
-    temp_dir = "tmp/uploads"
+    temp_dir = settings.WHISPER_TEMP_DIR
     os.makedirs(temp_dir, exist_ok=True)
     file_path = f"{temp_dir}/{uuid.uuid4()}_{file.filename}"
     
