@@ -7,15 +7,11 @@ import (
 )
 
 // SetupPipelineRoutes registers pipeline endpoints under the protected router group.
-func SetupPipelineRoutes(
-	protected *gin.RouterGroup,
-	pipelineCtrl *controllers.PipelineController,
-) {
-	// V1 API: /api/v1/models/pipeline/*
-	models := protected.Group("/api/v1/models/pipeline")
+func SetupPipelineRoutes(rg *gin.RouterGroup, ctrl *controllers.PipelineController) {
+	// V1 API: /api/models/v1/pipeline/*
+	models := rg.Group("/api/models/v1/pipeline")
 	{
-		models.POST("/job", pipelineCtrl.ExecuteJob)
-		models.POST("/job/by-upload", pipelineCtrl.ExecuteJobByUpload)
-		models.GET("/status/:task_id", pipelineCtrl.GetStatus)
+		models.POST("/job", ctrl.ExecuteJob)
+		models.GET("/status/:id", ctrl.GetStatus)
 	}
 }

@@ -25,7 +25,7 @@ import (
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/tuya"
-	"sensio/domain/proxy"
+	"sensio/domain/models"
 	models_v1 "sensio/domain/models-v1"
 )
 
@@ -225,30 +225,22 @@ func run() error {
 		return fmt.Errorf("speech/RAG config incomplete: %v", missing)
 	}
 
-	// ============================================================
-	// PROXY-ONLY MODE: RAG and Speech services via FastAPI proxy
-	// ============================================================
-	// The Python-based RAG and Speech services (rag-whisper-service)
-	// are now accessed exclusively through the proxy controller.
-	// Direct Go routes for RAG/Speech have been deprecated.
-	//
-	// Proxy routes:
-	//   - /api/v1/rag/*     -> FastAPI RAG service
-	//   - /api/v1/whisper/* -> FastAPI Whisper service
-	//   - /api/rag/*        -> Legacy support (backward compatible)
-	//   - /api/whisper/*    -> Legacy support (backward compatible)
-	// ============================================================
-
-	utils.LogInfo("RAG/Speech: Using FastAPI proxy mode (rag-whisper-service)")
-
-	// 5a. Proxy Module (FastAPI RAG+Whisper Service)
+	// 5. Models Module (Consolidated Whisper, RAG, and Pipeline)
 	// This replaces the direct Go RAG and Speech routes
-	proxyController := proxy.NewProxyController()
-	proxyController.RegisterRoutes(protected)
+	models.InitModule(
+		protected,
+		scfg,
+		badgerService,
+		vectorService,
+		tuyaModule.AuthUseCase,
+		tuyaModule.DeviceControlUseCase,
+		mqttService,
+		terminalRepo,
+		recordingsModule.SaveRecordingUseCase,
+	)
 
-	// 5b. Models-v1 Module (Go Proxy to Python Services)
-	// This provides a Go-based proxy layer to Python AI services
-	// Routes: /api/v1/models/whisper/*, /api/v1/models/rag/*, /api/v1/models/pipeline/*
+	// 5b. Models-v1 Module (v1 routes: /api/models/v1/...)
+	// This provides access to Python AI services via gRPC/REST
 	models_v1.InitModule(protected, scfg)
 
 	// 6. Scene Module
