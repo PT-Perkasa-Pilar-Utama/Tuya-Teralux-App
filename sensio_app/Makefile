@@ -28,11 +28,11 @@ lint-fix:
 
 # Run complete deploy-remote pipeline: lint, build, and deploy via local ADB
 deploy-remote:
-	@bash scripts/deploy_remote_arch.sh
+	@bash ../scripts/sensio_app/deploy_remote_arch.sh
 
 # Run remote lint and build on arch host
 remote-lint-build:
-	@bash scripts/remote_lint_build_arch.sh
+	@bash ../scripts/sensio_app/remote_lint_build_arch.sh
 
 # Pull built APK from remote host manually
 remote-pull-apk:
@@ -41,18 +41,26 @@ remote-pull-apk:
 	@rsync -az arch:~/Documents/Tuya-Teralux-App/sensio_app/app/build/outputs/apk/debug/app-debug.apk .remote-build/app-debug.apk
 	@echo "✅ APK successfully pulled to: .remote-build/app-debug.apk"
 
+# Pull and install APK from remote arch host
+install-remote:
+	@bash ../scripts/sensio_app/install_remote_arch.sh
+
 # Install built APK to device
 install:
-	@echo "📲 Installing APK..."
-	@$(ADB) install -t -r -g app/build/outputs/apk/debug/app-debug.apk
+	@if [ ! -f "app/build/outputs/apk/debug/app-debug.apk" ] && [ ! -f ".remote-build/app-debug.apk" ]; then \
+		echo "❌ No APK found. Please run 'make build' or 'make install-remote' first."; \
+		exit 1; \
+	fi
+	@bash ../scripts/sensio_app/deploy.sh --install-only
 
-# Build, Lint, and Install
-deploy: build lint install
+# Build, Lint, but DO NOT install automatically
+deploy: build lint
+	@echo "✅ Build and Lint complete. Run 'make install' to deploy to device."
 
 # Deploy to specific device
 deploy-%:
-	@chmod +x deploy.sh gradlew
-	@./deploy.sh $*
+	@chmod +x ../scripts/sensio_app/deploy.sh gradlew
+	@../scripts/sensio_app/deploy.sh $*
 
 # Clean build artifacts
 clean:
