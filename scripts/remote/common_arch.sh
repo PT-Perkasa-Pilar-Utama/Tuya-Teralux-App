@@ -3,7 +3,7 @@
 
 # Hard defaults, overrideable via env
 REMOTE_HOST=${REMOTE_HOST:-"arch"}
-REMOTE_REPO_DIR=${REMOTE_REPO_DIR:-"~/Documents/Tuya-Teralux-App"}
+REMOTE_REPO_DIR=${REMOTE_REPO_DIR:-"~/Documents/Programs/teralux_app"}
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -100,6 +100,77 @@ ssh_exec() {
     fi
 }
 
+# Helper for interactive selection menu using arrow keys
+# Usage: interactive_select "Header Message" "option1" "option2" ...
+# Returns selected option string via stdout
+interactive_select() {
+    local header="$1"
+    shift
+    local options=("$@")
+    local count=${#options[@]}
+    local selected=0
+    local key=""
+
+    # ANSI escape codes
+    local ESC=$'\e'
+    local UP="${ESC}[A"
+    local DOWN="${ESC}[B"
+    local ENTER="" # Handled by read -rn1
+
+    # Hide cursor
+    printf "\e[?25l" >&2
+
+    # Function to cleanup on exit
+    cleanup() {
+        printf "\e[?25h" >&2 # Show cursor
+    }
+    trap cleanup EXIT
+
+    while true; do
+        # Clear previous menu (count lines + 1 for header)
+        if [ -n "$key" ]; then
+            for ((i=0; i<=count; i++)); do
+                printf "\e[K\e[1A" >&2
+            done
+            printf "\e[K" >&2
+        fi
+
+        echo -e "${YELLOW}$header${NC}" >&2
+        for i in "${!options[@]}"; do
+            if [ "$i" -eq "$selected" ]; then
+                echo -e "  ${GREEN}❯ ${options[$i]}${NC}" >&2
+            else
+                echo -e "    ${options[$i]}" >&2
+            fi
+        done
+
+        # Read key press
+        # Use /dev/tty for input to ensure it works even when stdin is redirected
+        read -rsn1 key < /dev/tty
+        if [[ "$key" == "$ESC" ]]; then
+            read -rsn2 key < /dev/tty
+            key="$ESC$key"
+        fi
+
+        case "$key" in
+            "$UP")
+                ((selected--))
+                if [ $selected -lt 0 ]; then selected=$((count - 1)); fi
+                ;;
+            "$DOWN")
+                ((selected++))
+                if [ $selected -ge "$count" ]; then selected=0; fi
+                ;;
+            "") # Enter key
+                printf "\e[?25h" >&2 # Show cursor
+                trap - EXIT
+                echo "${options[$selected]}"
+                return 0
+                ;;
+        esac
+    done
+}
+
 adb_install_apk() {
     local apk_path="$1"
     local package_name="$2"
@@ -117,18 +188,21 @@ adb_install_apk() {
         selected_device="$DEVICE_ID"
         log_info "Using specified device: $selected_device"
     else
-        # Count connected devices (excluding "List of devices attached" line and empty lines)
-        local device_count=$(adb devices | grep -v "List of devices" | grep "device$" | wc -l)
+        # Count connected devices
+        local device_list=$(adb devices | grep -v "List of devices" | grep "device$" | awk '{print $1}')
+        local device_count=$(echo "$device_list" | grep -v "^$" | wc -l)
+
         if [ "$device_count" -eq 0 ]; then
             log_error "No Android devices connected via ADB."
             exit 1
         elif [ "$device_count" -gt 1 ]; then
-            log_error "Multiple Android devices connected."
-            log_error "Please specify DEVICE_ID=<adb_serial>."
-            adb devices
-            exit 1
+            log_warn "Multiple Android devices connected."
+            # Convert newline-separated list to array for interactive_select
+            IFS=$'\n' read -rd '' -a device_arr <<<"$device_list" || true
+            selected_device=$(interactive_select "Select target device:" "${device_arr[@]}")
+            log_info "Selected device: $selected_device"
         else
-            selected_device=$(adb devices | grep -v "List of devices" | grep "device$" | awk '{print $1}')
+            selected_device=$(echo "$device_list" | tr -d '\n')
             log_info "Auto-selected single connected device: $selected_device"
         fi
     fi
