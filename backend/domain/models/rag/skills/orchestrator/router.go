@@ -6,6 +6,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/skills"
 	"strings"
+	"time"
 )
 
 // Router coordinates the execution of skills using LLM-based routing.
@@ -60,9 +61,14 @@ func NewRouter(registry *skills.SkillRegistry, translator skills.TranslateServic
 
 // RouteAndExecute analyzes the prompt, picks the best skill, and executes it.
 func (r *Router) RouteAndExecute(ctx *skills.SkillContext) (*skills.SkillResult, error) {
+	routerStart := time.Now()
+	
 	// 0. Guard: Check for spam before wasting an LLM call
+	guardStart := time.Now()
+	guardDuration := time.Duration(0)
 	if r.guard != nil {
 		guardResult := r.guard.CheckPrompt(ctx)
+		guardDuration = time.Since(guardStart)
 		if guardResult != GuardClean {
 			// Route to Identity skill for a more natural response
 			skill, ok := r.registry.Get("Identity")
@@ -81,8 +87,10 @@ func (r *Router) RouteAndExecute(ctx *skills.SkillContext) (*skills.SkillResult,
 			}
 			// Mark as blocked ONLY for PureSpam and Irrelevant (to hide user bubble)
 			res.IsBlocked = (guardResult == GuardPureSpam || guardResult == GuardIrrelevant)
+			utils.LogInfo("Router: Guard blocked prompt | guard_duration_ms=%d", guardDuration.Milliseconds())
 			return res, nil
 		}
+		utils.LogDebug("Router: Guard check passed | guard_duration_ms=%d", guardDuration.Milliseconds())
 	}
 
 	allSkills := r.registry.GetAll()
@@ -94,19 +102,26 @@ func (r *Router) RouteAndExecute(ctx *skills.SkillContext) (*skills.SkillResult,
 	if isDeviceDiscoveryPrompt(ctx.Prompt) {
 		if controlSkill, ok := r.registry.Get("Control"); ok {
 			utils.LogDebug("Router: deterministic routing to 'Control' for device discovery prompt '%s'", ctx.Prompt)
+			skillStart := time.Now()
 			res, err := controlSkill.Execute(ctx)
+			skillDuration := time.Since(skillStart)
 			if err != nil {
 				return nil, err
 			}
+			
+			translateDuration := time.Duration(0)
 			if ctx.Language != "" && ctx.Language != "en" && r.translator != nil && res.Message != "" {
 				utils.LogDebug("Router: Translating response to '%s'", ctx.Language)
+				translateStart := time.Now()
 				translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language, ctx.TerminalID)
+				translateDuration = time.Since(translateStart)
 				if err == nil {
 					res.Message = translated
 				} else {
 					utils.LogWarn("Router: Translation failed: %v", err)
 				}
 			}
+			utils.LogInfo("Router: Deterministic Control skill completed | skill_duration_ms=%d | translate_duration_ms=%d", skillDuration.Milliseconds(), translateDuration.Milliseconds())
 			return res, nil
 		}
 	}
@@ -138,13 +153,15 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 	model := "high"
 
 	utils.LogDebug("Router: Routing prompt for '%s'", ctx.Prompt)
+	routeSelectionStart := time.Now()
 	chosenSkillName, err := ctx.LLM.CallModel(ctx.Ctx, routingPrompt, model)
+	routeSelectionDuration := time.Since(routeSelectionStart)
 	if err != nil {
-		return nil, fmt.Errorf("orchestrator routing failed: %w", err)
+		return nil, fmt.Errorf("orchestrator routing failed: %w | route_selection_duration_ms=%d", err, routeSelectionDuration.Milliseconds())
 	}
 
 	chosenSkillName = strings.TrimSpace(chosenSkillName)
-	utils.LogDebug("Router: LLM chose skill '%s'", chosenSkillName)
+	utils.LogDebug("Router: LLM chose skill '%s' | route_selection_duration_ms=%d", chosenSkillName, routeSelectionDuration.Milliseconds())
 
 	// 3. Execute the chosen skill
 	skill, ok := r.registry.Get(chosenSkillName)
@@ -157,21 +174,29 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 		}
 	}
 
+	skillStart := time.Now()
 	res, err := skill.Execute(ctx)
+	skillDuration := time.Since(skillStart)
 	if err != nil {
 		return nil, err
 	}
 
 	// 4. Translate response if needed
+	translateDuration := time.Duration(0)
 	if ctx.Language != "" && ctx.Language != "en" && r.translator != nil && res.Message != "" {
 		utils.LogDebug("Router: Translating response to '%s'", ctx.Language)
+		translateStart := time.Now()
 		translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language, ctx.TerminalID)
+		translateDuration = time.Since(translateStart)
 		if err == nil {
 			res.Message = translated
 		} else {
 			utils.LogWarn("Router: Translation failed: %v", err)
 		}
 	}
+
+	totalDuration := time.Since(routerStart)
+	utils.LogInfo("Router: Routing completed | guard_duration_ms=%d | route_selection_duration_ms=%d | skill_duration_ms=%d | translate_duration_ms=%d | total_duration_ms=%d", guardDuration.Milliseconds(), routeSelectionDuration.Milliseconds(), skillDuration.Milliseconds(), translateDuration.Milliseconds(), totalDuration.Milliseconds())
 
 	return res, nil
 }

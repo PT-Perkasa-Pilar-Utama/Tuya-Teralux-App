@@ -115,6 +115,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		correlationID := uuid.New().String()
+		startedAt := time.Now()
 		utils.LogInfo("[%s] RAGChat MQTT: Received message on %s, payload size: %d", correlationID, msg.Topic(), len(payload))
 		if len(payload) == 0 {
 			return
@@ -122,11 +123,14 @@ func (c *RAGChatController) StartMqttSubscription() error {
 
 		var req dtos.RAGChatRequestDTO
 		// Strictly JSON unmarshalling as per user request
+		parseStart := time.Now()
 		err := json.Unmarshal(payload, &req)
+		parseDuration := time.Since(parseStart)
 		if err != nil {
-			utils.LogError("[%s] RAGChat MQTT: Failed to unmarshal message: %v", correlationID, err)
+			utils.LogError("[%s] RAGChat MQTT: Failed to unmarshal message: %v | parse_duration_ms=%d", correlationID, err, parseDuration.Milliseconds())
 			return
 		}
+		utils.LogDebug("[%s] RAGChat MQTT: Payload parsed | parse_duration_ms=%d", correlationID, parseDuration.Milliseconds())
 
 		// Extract MAC from topic: (optionally $share/group/)users/MAC/env/chat
 		topicParts := strings.Split(msg.Topic(), "/")
@@ -139,7 +143,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 		}
 
 		if req.Prompt == "" || req.TerminalID == "" {
-			utils.LogError("[%s] RAGChat MQTT: Missing prompt or terminal_id", correlationID)
+			utils.LogError("[%s] RAGChat MQTT: Missing prompt or terminal_id | total_duration_ms=%d", correlationID, time.Since(startedAt).Milliseconds())
 			if mac != "" {
 				respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
 				respData, _ := json.Marshal(commonDtos.StandardResponse{
@@ -161,6 +165,9 @@ func (c *RAGChatController) StartMqttSubscription() error {
 		// we run the chat processing in a goroutine with a start delay. This prevents blocking the MQTT
 		// client thread and gives the whisper handler enough time to download audio and set the active flag.
 		go func(mac string, req dtos.RAGChatRequestDTO) {
+			// Use startedAt from outer scope for true end-to-end timing (includes pre-goroutine parsing)
+			handlerStart := startedAt
+
 			// 1. Resolve requestID early for all response paths
 			requestID := req.RequestID
 			if requestID == "" {
@@ -168,6 +175,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			}
 
 			// 2. Check if Whisper is active (with a small non-blocking retry loop to catch near-simultaneous starts)
+			whisperCheckStart := time.Now()
 			isWhisperActive := false
 			for i := 0; i < 5; i++ {
 				if mac != "" {
@@ -186,9 +194,10 @@ func (c *RAGChatController) StartMqttSubscription() error {
 					time.Sleep(30 * time.Millisecond)
 				}
 			}
+			whisperCheckDuration := time.Since(whisperCheckStart)
 
 			if isWhisperActive {
-				utils.LogInfo("[%s] RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s", correlationID, mac, req.TerminalID)
+				utils.LogInfo("[%s] RAGChat MQTT: Dropping text query because a Whisper task is active for Terminal %s/%s | whisper_check_duration_ms=%d", correlationID, mac, req.TerminalID, whisperCheckDuration.Milliseconds())
 				if mac != "" {
 					respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
 					respData, _ := json.Marshal(commonDtos.StandardResponse{
@@ -205,6 +214,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			}
 
 			// 3. Exact Deduplication (prevent processing the SAME prompt 3x)
+			dedupStart := time.Now()
 			c.mu.Lock()
 			terminalKey := req.TerminalID
 			if terminalKey == "" {
@@ -217,7 +227,8 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			// If prompt is exactly same as last one and happened < 3 seconds ago, drop it.
 			if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
 				c.mu.Unlock()
-				utils.LogInfo("[%s] RAGChat MQTT: Dropping duplicate prompt for %s: '%s'", correlationID, terminalKey, req.Prompt)
+				dedupDuration := time.Since(dedupStart)
+				utils.LogInfo("[%s] RAGChat MQTT: Dropping duplicate prompt for %s: '%s' | dedup_duration_ms=%d", correlationID, terminalKey, req.Prompt, dedupDuration.Milliseconds())
 				if mac != "" {
 					respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
 					respData, _ := json.Marshal(commonDtos.StandardResponse{
@@ -237,14 +248,21 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			c.lastPrompt[terminalKey] = req.Prompt
 			c.lastPromptTime[terminalKey] = now
 			c.mu.Unlock()
+			dedupDuration := time.Since(dedupStart)
+			utils.LogDebug("[%s] RAGChat MQTT: Deduplication check passed | dedup_duration_ms=%d", correlationID, dedupDuration.Milliseconds())
 
 			// Process chat
+			uidResolveStart := time.Now()
 			uid := c.resolveMQTTUID(mac, req.UID)
+			uidResolveDuration := time.Since(uidResolveStart)
+			utils.LogDebug("[%s] RAGChat MQTT: UID resolved | uid_resolve_duration_ms=%d", requestID, uidResolveDuration.Milliseconds())
 
 			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
+			chatStart := time.Now()
 			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language)
+			chatDuration := time.Since(chatStart)
 			if err != nil {
-				utils.LogError("[%s] RAGChat MQTT: Chat processing failed: %v", requestID, err)
+				utils.LogError("[%s] RAGChat MQTT: Chat processing failed: %v | chat_duration_ms=%d | total_duration_ms=%d", requestID, err, chatDuration.Milliseconds(), time.Since(handlerStart).Milliseconds())
 				if mac != "" {
 					respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
 					respData, _ := json.Marshal(commonDtos.StandardResponse{
@@ -277,9 +295,13 @@ func (c *RAGChatController) StartMqttSubscription() error {
 					Data:    res,
 				}
 				respData, _ := json.Marshal(resp)
+				publishStart := time.Now()
 				utils.LogInfo("[%s] [Instance: %s] RAGChat MQTT [Handler: StartMqttSubscription]: Publishing answer to %s. Response: %s", requestID, c.instanceID, respTopic, res.Response)
 				if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-					utils.LogError("[%s] RAGChat MQTT: Failed to publish chat response: %v", requestID, err)
+					utils.LogError("[%s] RAGChat MQTT: Failed to publish chat response: %v | total_duration_ms=%d", requestID, err, time.Since(handlerStart).Milliseconds())
+				} else {
+					publishDuration := time.Since(publishStart)
+					utils.LogInfo("[%s] RAGChat MQTT: Request completed successfully | chat_duration_ms=%d | publish_duration_ms=%d | total_duration_ms=%d", requestID, chatDuration.Milliseconds(), publishDuration.Milliseconds(), time.Since(handlerStart).Milliseconds())
 				}
 			}
 		}(mac, req)
@@ -312,8 +334,11 @@ func (c *RAGChatController) StartMqttSubscription() error {
 // @Failure 400 {object} commonDtos.StandardResponse
 // @Router /api/models/rag/chat [post]
 func (c *RAGChatController) Chat(ctx *gin.Context) {
+	handlerStart := time.Now()
+	
 	var req dtos.RAGChatRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		bindDuration := time.Since(handlerStart)
 		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Validation Error",
@@ -321,8 +346,11 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 				{Field: "payload", Message: "Invalid request body: " + err.Error()},
 			},
 		})
+		utils.LogError("RAGChat HTTP: Bind JSON failed | bind_duration_ms=%d | error=%v", bindDuration.Milliseconds(), err)
 		return
 	}
+	bindDuration := time.Since(handlerStart)
+	utils.LogDebug("RAGChat HTTP: JSON bound | bind_duration_ms=%d", bindDuration.Milliseconds())
 
 	uid, _ := ctx.Get("uid")
 	uidStr := ""
@@ -336,6 +364,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	}
 
 	// Apply deduplication to HTTP path as well
+	dedupStart := time.Now()
 	c.mu.Lock()
 	terminalKey := req.TerminalID
 	last := c.lastPrompt[terminalKey]
@@ -344,7 +373,8 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 
 	if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
 		c.mu.Unlock()
-		utils.LogInfo("RAGChat HTTP: Dropping duplicate prompt for %s (from HTTP): '%s'", terminalKey, req.Prompt)
+		dedupDuration := time.Since(dedupStart)
+		utils.LogInfo("RAGChat HTTP: Dropping duplicate prompt for %s (from HTTP): '%s' | dedup_duration_ms=%d", terminalKey, req.Prompt, dedupDuration.Milliseconds())
 		// Return previous success but don't re-process
 		ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
 			Status:  true,
@@ -361,18 +391,23 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	c.lastPrompt[terminalKey] = req.Prompt
 	c.lastPromptTime[terminalKey] = now
 	c.mu.Unlock()
+	dedupDuration := time.Since(dedupStart)
+	utils.LogDebug("RAGChat HTTP: Deduplication passed | dedup_duration_ms=%d", dedupDuration.Milliseconds())
 
 	utils.LogInfo("[%s] RAGChat HTTP [Handler: Chat]: Starting chat process for UID: %s, Terminal: %s, Prompt: '%s'", requestID, uidStr, req.TerminalID, req.Prompt)
 
+	chatStart := time.Now()
 	res, err := c.chatUC.Chat(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt, req.Language)
+	chatDuration := time.Since(chatStart)
 	if err != nil {
-		utils.LogError("[%s] RAGChatController.Chat: %v", requestID, err)
+		utils.LogError("[%s] RAGChatController.Chat: %v | chat_duration_ms=%d | total_duration_ms=%d", requestID, err, chatDuration.Milliseconds(), time.Since(handlerStart).Milliseconds())
 		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",
 		})
 		return
 	}
+	utils.LogInfo("[%s] RAGChat HTTP: Chat usecase completed | chat_duration_ms=%d", requestID, chatDuration.Milliseconds())
 
 	// Add tracking metadata
 	res.Source = "HTTP_HANDLER"
@@ -404,11 +439,17 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		// Using req.TerminalID as the identifier for MQTT response topic
 		respTopic := fmt.Sprintf("users/%s/%s/chat/answer", req.TerminalID, utils.GetConfig().ApplicationEnvironment)
 		respData, _ := json.Marshal(resp)
+		mqttPublishStart := time.Now()
 		utils.LogInfo("[%s] [Instance: %s] RAGChat HTTP [Handler: Chat]: Publishing answer to %s. Response: %s", requestID, c.instanceID, respTopic, res.Response)
 		if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
-			utils.LogError("[%s] RAGChatController.Chat: Failed to publish to MQTT: %v", requestID, err)
+			utils.LogError("[%s] RAGChatController.Chat: Failed to publish to MQTT: %v | total_duration_ms=%d", requestID, err, time.Since(handlerStart).Milliseconds())
+		} else {
+			mqttPublishDuration := time.Since(mqttPublishStart)
+			utils.LogDebug("[%s] RAGChat HTTP: MQTT mirror publish completed | mqtt_publish_duration_ms=%d", requestID, mqttPublishDuration.Milliseconds())
 		}
 	}
 
+	totalDuration := time.Since(handlerStart)
+	utils.LogInfo("[%s] RAGChat HTTP: Request completed | bind_duration_ms=%d | dedup_duration_ms=%d | chat_duration_ms=%d | total_duration_ms=%d", requestID, bindDuration.Milliseconds(), dedupDuration.Milliseconds(), chatDuration.Milliseconds(), totalDuration.Milliseconds())
 	ctx.JSON(http.StatusOK, resp)
 }
