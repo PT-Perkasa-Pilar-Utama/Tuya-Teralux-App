@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/infrastructure"
@@ -56,6 +57,7 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 	err := c.mqttSvc.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
 		correlationID := uuid.New().String()
+		handlerStart := time.Now()
 
 		utils.LogInfo("[%s] WhisperTranscribe MQTT: Received message on %s, payload size: %d", correlationID, msg.Topic(), len(payload))
 
@@ -64,10 +66,14 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 		}
 
 		var req dtos.WhisperMqttRequestDTO
+		parseStart := time.Now()
 		if err := json.Unmarshal(payload, &req); err != nil {
-			utils.LogError("[%s] WhisperTranscribe MQTT: Failed to unmarshal JSON: %v", correlationID, err)
+			parseDuration := time.Since(parseStart)
+			utils.LogError("[%s] WhisperTranscribe MQTT: Failed to unmarshal JSON: %v | parse_duration_ms=%d", correlationID, err, parseDuration.Milliseconds())
 			return
 		}
+		parseDuration := time.Since(parseStart)
+		utils.LogDebug("[%s] WhisperTranscribe MQTT: Payload parsed | parse_duration_ms=%d", correlationID, parseDuration.Milliseconds())
 
 		// Extract MAC from topic: (optionally $share/group/)users/MAC/env/whisper
 		topicParts := strings.Split(msg.Topic(), "/")
@@ -80,7 +86,7 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 		}
 
 		if req.Audio == "" || req.TerminalID == "" {
-			utils.LogError("WhisperTranscribe MQTT: Missing audio or terminal_id")
+			utils.LogError("[%s] WhisperTranscribe MQTT: Missing audio or terminal_id | total_duration_ms=%d", correlationID, time.Since(handlerStart).Milliseconds())
 			if mac != "" {
 				c.publishMqttValidationError(mac, "audio/terminal_id", "audio and terminal_id are required")
 			}
@@ -101,14 +107,17 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 		}()
 
 		// Decode Base64 audio
+		decodeStart := time.Now()
 		audioBytes, err := base64.StdEncoding.DecodeString(req.Audio)
+		decodeDuration := time.Since(decodeStart)
 		if err != nil {
-			utils.LogError("WhisperTranscribe MQTT: Failed to decode base64: %v", err)
+			utils.LogError("[%s] WhisperTranscribe MQTT: Failed to decode base64: %v | decode_duration_ms=%d", correlationID, err, decodeDuration.Milliseconds())
 			if mac != "" {
 				c.publishMqttValidationError(mac, "audio", "Failed to decode base64 audio")
 			}
 			return
 		}
+		utils.LogDebug("[%s] WhisperTranscribe MQTT: Base64 decoded | decode_duration_ms=%d", correlationID, decodeDuration.Milliseconds())
 
 		language := req.Language
 		if language == "" {
@@ -121,15 +130,20 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 		tempPath := filepath.Join("uploads", "audio", tempFilename)
 
 		// Save audio bytes to disk manually (without DB entry)
+		fileWriteStart := time.Now()
 		if err := os.WriteFile(tempPath, audioBytes, 0644); err != nil {
-			utils.LogError("WhisperTranscribe MQTT: Failed to save temporary audio: %v", err)
+			fileWriteDuration := time.Since(fileWriteStart)
+			utils.LogError("[%s] WhisperTranscribe MQTT: Failed to save temporary audio: %v | file_write_duration_ms=%d", correlationID, err, fileWriteDuration.Milliseconds())
 			if mac != "" {
 				c.publishMqttError(mac, "Failed to process audio")
 			}
 			return
 		}
+		fileWriteDuration := time.Since(fileWriteStart)
+		utils.LogDebug("[%s] WhisperTranscribe MQTT: File saved | file_write_duration_ms=%d", correlationID, fileWriteDuration.Milliseconds())
 
 		// Start transcription task using usecase
+		transcribeSubmitStart := time.Now()
 		taskID, err := c.transcribeUC.TranscribeAudio(context.Background(), tempPath, tempFilename, language, usecases.TranscriptionMetadata{
 			UID:         req.UID,
 			TerminalID:  req.TerminalID,
@@ -140,20 +154,24 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 			DeleteAfter: true, // Delete file after transcription
 			Diarize:     req.Diarize,
 		})
+		transcribeSubmitDuration := time.Since(transcribeSubmitStart)
 		if err != nil {
-			utils.LogError("WhisperTranscribe MQTT: Failed to start transcription: %v", err)
+			utils.LogError("[%s] WhisperTranscribe MQTT: Failed to start transcription: %v | transcribe_submit_duration_ms=%d", correlationID, err, transcribeSubmitDuration.Milliseconds())
 			if mac != "" {
 				c.publishMqttError(mac, "Failed to start transcription task: "+err.Error())
 			}
 			_ = os.Remove(tempPath) // Clean up immediately on error
 			return
 		}
+		utils.LogInfo("[%s] WhisperTranscribe MQTT: Transcription submitted | transcribe_submit_duration_ms=%d", correlationID, transcribeSubmitDuration.Milliseconds())
 
 		taskStarted = true
 
 		// Publish success status with empty RecordingID (since not saved in DB)
+		ackPublishStart := time.Now()
+		ackPublishSuccess := false
 		if mac != "" {
-			c.publishMqttResponse(mac, commonDtos.StandardResponse{
+			publishErr := c.publishMqttResponse(mac, commonDtos.StandardResponse{
 				Status:  true,
 				Message: "Transcription task submitted successfully (Ephemeral)",
 				Data: dtos.TranscriptionTaskResponseDTO{
@@ -162,9 +180,12 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 					RecordingID: "", // No DB entry
 				},
 			})
+			ackPublishSuccess = (publishErr == nil)
 		}
+		ackPublishDuration := time.Since(ackPublishStart)
 
-		utils.LogInfo("[%s] WhisperTranscribe MQTT: Started ephemeral task %s for file %s", correlationID, taskID, tempFilename)
+		totalDuration := time.Since(handlerStart)
+		utils.LogInfo("[%s] WhisperTranscribe MQTT: Started ephemeral task %s for file %s | parse_duration_ms=%d | decode_duration_ms=%d | file_write_duration_ms=%d | transcribe_submit_duration_ms=%d | ack_publish_duration_ms=%d | ack_publish_success=%v | total_duration_ms=%d", correlationID, taskID, tempFilename, parseDuration.Milliseconds(), decodeDuration.Milliseconds(), fileWriteDuration.Milliseconds(), transcribeSubmitDuration.Milliseconds(), ackPublishDuration.Milliseconds(), ackPublishSuccess, totalDuration.Milliseconds())
 	})
 
 	// Subscribe to general task signaling as well
@@ -200,16 +221,18 @@ func (c *WhisperTranscribeController) publishMqttError(mac, details string) {
 	})
 }
 
-func (c *WhisperTranscribeController) publishMqttResponse(mac string, resp commonDtos.StandardResponse) {
+func (c *WhisperTranscribeController) publishMqttResponse(mac string, resp commonDtos.StandardResponse) error {
 	if c.mqttSvc == nil {
-		return
+		return nil
 	}
 	// Response topic matches device ACL: users/MAC/env/whisper/answer
 	respTopic := fmt.Sprintf("users/%s/%s/whisper/answer", mac, c.config.ApplicationEnvironment)
 	respData, _ := json.Marshal(resp)
 	if err := c.mqttSvc.Publish(respTopic, 0, false, respData); err != nil {
 		utils.LogError("WhisperTranscribe MQTT: Failed to publish response: %v", err)
+		return err
 	}
+	return nil
 }
 
 // Transcribe handles POST /api/models/whisper/transcribe
