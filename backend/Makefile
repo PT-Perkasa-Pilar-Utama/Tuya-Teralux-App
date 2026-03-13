@@ -335,7 +335,7 @@ test:
 # Run go vet excluding tmp
 vet:
 	@echo "🔍 Running go vet..."
-	@go vet . ./domain/... ../scripts/backend/...
+	@go vet . ./domain/...
 
 # Run go vet and go build check
 lint:
@@ -344,11 +344,11 @@ lint:
 # Run go vet, golangci-lint, and go build check
 lint-strict:
 	@echo "🔍 Running go vet..."
-	@go vet . ./domain/... ../scripts/backend/...
+	@go vet . ./domain/...
 	@echo "✨ Running golangci-lint..."
 	@golangci-lint run
 	@echo "🔨 Running go build check..."
-	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/... ../scripts/backend/...
+	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/...
 
 # Run complete deploy-remote pipeline: lint, build, and fetch binary from remote host
 deploy-remote:
@@ -415,19 +415,19 @@ $(MIGRATE_BIN):
 # Run all pending migrations
 migrate-up: $(MIGRATE_BIN)
 	@echo "⬆️  Running migrations..."
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" up
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" up
 	@echo "✅ Migrations completed"
 
 # Rollback last migration
 migrate-down: $(MIGRATE_BIN)
 	@echo "⬇️  Rolling back last migration..."
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" down 1
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" down 1
 	@echo "✅ Rollback completed"
 
 # Show current migration version
 migrate-version: $(MIGRATE_BIN)
 	@echo "📊 Current migration version:"
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" version
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" version
 
 # Force database to a specific version (use: make migrate-force VERSION=3)
 migrate-force: $(MIGRATE_BIN)
@@ -436,5 +436,5 @@ migrate-force: $(MIGRATE_BIN)
 		exit 1; \
 	fi
 	@echo "⚠️  Forcing database to version $(VERSION)..."
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" force $(VERSION)
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" force $(VERSION)
 	@echo "✅ Database forced to version $(VERSION)"

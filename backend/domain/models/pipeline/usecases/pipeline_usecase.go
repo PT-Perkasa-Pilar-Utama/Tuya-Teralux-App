@@ -181,7 +181,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 
 	transResult, err := u.transcribeUC.TranscribeAudioSync(ctx, inputPath, req.Language, req.Diarize, refine, func(progress int) {
 		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "transcription", "processing", progress, nil)
-	})
+	}, req.MacAddress)
 	if err != nil {
 		u.failStage(taskID, req.MacAddress, "transcription", err)
 		return
@@ -222,7 +222,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 		u.saveStatus(taskID, *status)
 		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "translation", "processing", 0, nil)
 
-		transText, err := u.translateUC.TranslateTextSync(ctx, refinedText, req.TargetLanguage)
+		transText, err := u.translateUC.TranslateTextSync(ctx, refinedText, req.TargetLanguage, req.MacAddress)
 		if err != nil {
 			u.failStage(taskID, req.MacAddress, "translation", err)
 			return

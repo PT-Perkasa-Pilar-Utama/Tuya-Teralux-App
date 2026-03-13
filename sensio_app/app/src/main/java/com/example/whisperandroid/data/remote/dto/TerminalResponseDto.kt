@@ -25,6 +25,8 @@ data class TerminalItemDto(
     @SerializedName("mac_address") val macAddress: String,
     @SerializedName("room_id") val roomId: String,
     @SerializedName("name") val name: String,
+    @SerializedName("device_type_id") val deviceTypeId: String? = null,
+    @SerializedName("ai_provider") val aiProvider: String? = null,
     @SerializedName("mqtt_username") val mqttUsername: String? = null,
     @SerializedName("mqtt_password") val mqttPassword: String? = null,
     @SerializedName("created_at") val createdAt: String? = null,

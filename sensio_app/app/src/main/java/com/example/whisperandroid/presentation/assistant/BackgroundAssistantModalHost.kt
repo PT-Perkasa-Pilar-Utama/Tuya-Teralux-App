@@ -15,6 +15,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,7 +56,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun BackgroundAssistantModalHost(
-    coordinator: BackgroundAssistantCoordinator
+    coordinator: BackgroundAssistantCoordinator,
+    onDismiss: () -> Unit = {}
 ) {
     val uiState by coordinator.uiState.collectAsState()
     val configuration = LocalConfiguration.current
@@ -74,11 +76,22 @@ fun BackgroundAssistantModalHost(
         ) + fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.45f)),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
+            // Scrim layer - clickable to dismiss
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(
+                        onClick = onDismiss,
+                        interactionSource = null,
+                        indication = null
+                    )
+            )
+
+            // Sheet layer - does NOT dismiss on tap inside
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -91,7 +104,13 @@ fun BackgroundAssistantModalHost(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        // Consume clicks inside the sheet to prevent dismissal
+                        .clickable(
+                            onClick = {},
+                            interactionSource = null,
+                            indication = null
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Header Handle
@@ -277,7 +296,7 @@ private fun AssistantResult(userText: String?, assistantText: String?) {
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Text(
-                    text = "“$userText”",
+                    text = "\"$userText\"",
                     style = MaterialTheme.typography.bodyMedium,
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -299,9 +318,9 @@ private fun AssistantResult(userText: String?, assistantText: String?) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Auto-close indicator
+        // Dismiss hint
         Text(
-            text = "Menutup otomatis... ",
+            text = "Tap outside to close",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )

@@ -31,7 +31,7 @@ func NewGetTerminalByIDController(useCase *usecases.GetTerminalByIDUseCase) *Get
 // @Accept       json
 // @Produce      json
 // @Param        id  path  string  true  "Terminal ID"
-// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalResponseDTO}
+// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalSingleResponseDTO}
 // @Failure      400  {object}  dtos.StandardResponse
 // @Failure      404  {object}  dtos.StandardResponse
 // @Router       /api/terminal/{id} [get]

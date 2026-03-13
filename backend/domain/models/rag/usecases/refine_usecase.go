@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"sensio/domain/common/providers"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/skills"
 	"strings"
@@ -10,27 +11,30 @@ import (
 )
 
 type RefineUseCase interface {
-	RefineText(ctx context.Context, text string, lang string) (string, error)
+	RefineText(ctx context.Context, text string, lang string, args ...string) (string, error)
 }
 
 type refineUseCase struct {
-	llm         skills.LLMClient
-	fallbackLLM skills.LLMClient
-	config      *utils.Config
-	skill       skills.Skill
+	llm              skills.LLMClient
+	fallbackLLM      skills.LLMClient
+	config           *utils.Config
+	skill            skills.Skill
+	providerResolver providers.ProviderResolver
 }
 
-func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, skill skills.Skill) RefineUseCase {
+func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, skill skills.Skill, providerResolver providers.ProviderResolver) RefineUseCase {
 	return &refineUseCase{
-		llm:         llm,
-		fallbackLLM: fallbackLLM,
-		config:      cfg,
-		skill:       skill,
+		llm:              llm,
+		fallbackLLM:      fallbackLLM,
+		config:           cfg,
+		skill:            skill,
+		providerResolver: providerResolver,
 	}
 }
 
 // RefineText improves the grammar and clarity of the transcribed text based on the detected language.
-func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string) (string, error) {
+// Optional: pass macAddress as third argument for terminal-specific provider resolution
+func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string, args ...string) (string, error) {
 	if strings.TrimSpace(text) == "" {
 		return "", nil
 	}
@@ -42,18 +46,34 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 	if u.skill == nil {
 		return "", fmt.Errorf("refine skill not configured")
 	}
+
+	// Resolve provider based on macAddress if provided
+	llmClient := u.llm
+	fallbackClient := u.fallbackLLM
+	if u.providerResolver != nil && len(args) > 0 && args[0] != "" {
+		macAddress := args[0]
+		resolved, err := u.providerResolver.ResolveByMacAddress(macAddress)
+		if err != nil {
+			utils.LogWarn("RefineUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
+		} else {
+			llmClient = resolved.LLM
+			fallbackClient = resolved.FallbackLLM
+			utils.LogInfo("RefineUseCase: Using terminal-specific provider '%s' for MAC %s", resolved.ProviderName, macAddress)
+		}
+	}
+
 	skillCtx := &skills.SkillContext{
 		Ctx:      ctx,
 		Prompt:   text,
 		Language: lang,
-		LLM:      u.llm,
+		LLM:      llmClient,
 		Config:   u.config,
 	}
 
 	res, err := u.skill.Execute(skillCtx)
-	if err != nil && u.fallbackLLM != nil {
+	if err != nil && fallbackClient != nil {
 		utils.LogWarn("Refine: Primary LLM failed, falling back to local model: %v", err)
-		skillCtx.LLM = u.fallbackLLM
+		skillCtx.LLM = fallbackClient
 		res, err = u.skill.Execute(skillCtx)
 	}
 

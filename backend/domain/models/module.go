@@ -6,6 +6,7 @@ import (
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
+	"sensio/domain/common/providers"
 	pipelineControllers "sensio/domain/models/pipeline/controllers"
 	pipelinedtos "sensio/domain/models/pipeline/dtos"
 	pipelineRoutes "sensio/domain/models/pipeline/routes"
@@ -29,6 +30,31 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// providerResolverTerminalRepoWrapper adapts ITerminalRepository to providers.TerminalRepository
+type providerResolverTerminalRepoWrapper struct {
+	repo terminalRepositories.ITerminalRepository
+}
+
+func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*providers.Terminal, error) {
+	term, err := w.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return &providers.Terminal{
+		AiProvider: term.AiProvider,
+	}, nil
+}
+
+func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string) (*providers.Terminal, error) {
+	term, err := w.repo.GetByMacAddress(macAddress)
+	if err != nil {
+		return nil, err
+	}
+	return &providers.Terminal{
+		AiProvider: term.AiProvider,
+	}, nil
+}
+
 // InitModule initializes the consolidated models module (Whisper, RAG, and Pipeline).
 func InitModule(
 	protected *gin.RouterGroup,
@@ -43,32 +69,36 @@ func InitModule(
 ) (whisperUsecases.TranscribeUseCase, whisperUsecases.UploadSessionUseCase, ragUsecases.RefineUseCase, ragUsecases.TranslateUseCase, ragUsecases.SummaryUseCase) {
 
 	// 1. Initialize RAG Sub-module
-	geminiService := commonServices.NewGeminiService(cfg)
-	orionService := commonServices.NewOrionService(cfg)
-	openaiService := commonServices.NewOpenAIService(cfg)
-	groqService := commonServices.NewGroqService(cfg)
-	llamaService := commonServices.NewLlamaLocalService(cfg)
+	// Initialize all provider services upfront for provider resolution
+	geminiService, openaiService, groqService, orionService, llamaService, whisperService := providers.GetProviderServices(cfg)
 
-	var ragLlmClient ragSkills.LLMClient
-	switch cfg.LLMProvider {
-	case "gemini":
-		utils.LogInfo("RAG: Using Gemini as LLM Provider")
-		ragLlmClient = geminiService
-	case "orion":
-		utils.LogInfo("RAG: Using Orion as LLM Provider")
-		ragLlmClient = orionService
-	case "openai":
-		utils.LogInfo("RAG: Using OpenAI as LLM Provider")
-		ragLlmClient = openaiService
-	case "groq":
-		utils.LogInfo("RAG: Using Groq as LLM Provider")
-		ragLlmClient = groqService
-	case "local":
-		utils.LogInfo("RAG: Using Local Llama (llama.cpp) as LLM Provider")
-		ragLlmClient = llamaService
-	default:
-		utils.LogFatal("RAG: Invalid or missing LLM_PROVIDER for RAG.")
+	// Create provider resolver for terminal-specific provider selection
+	// Wrap terminalRepo to match the interface expected by ProviderResolver
+	providerResolverRepo := &providerResolverTerminalRepoWrapper{terminalRepo}
+	providerResolver := providers.NewProviderResolver(
+		cfg,
+		geminiService,
+		openaiService,
+		groqService,
+		orionService,
+		llamaService,
+		whisperService,
+		providerResolverRepo,
+	)
+
+	// Get default provider for backward compatibility
+	defaultResolved := providerResolver.ResolveDefault()
+	
+	// CRITICAL: Fail fast at startup if no remote providers are configured
+	// This prevents runtime nil pointer panics from misconfigured providers
+	if defaultResolved.LLM == nil || defaultResolved.WhisperClient == nil {
+		utils.LogError("Module Init: Provider resolution failed - no remote providers configured")
+		utils.LogError("Module Init: Please set at least one of: OPENAI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, ORION_API_KEY")
+		utils.LogError("Module Init: Or set LLM_PROVIDER to a valid provider (gemini/openai/groq/orion)")
+		panic("Provider configuration error: no remote providers available")
 	}
+	
+	ragLlmClient := defaultResolved.LLM
 
 	ragStore := tasks.NewStatusStore[ragdtos.RAGStatusDTO]()
 	ragCache := tasks.NewBadgerTaskCacheFromService(badger, "cache:rag:task:")
@@ -105,16 +135,16 @@ func InitModule(
 	guardSkill, _ := skillRegistry.Get("Guard")
 	chunkSkill, _ := skillRegistry.Get("ChunkSummary")
 
-	refineUC := ragUsecases.NewRefineUseCase(ragLlmClient, llamaService, cfg, refineSkill)
-	translateUC := ragUsecases.NewTranslateUseCase(ragLlmClient, llamaService, cfg, ragCache, ragStore, mqttSvc, translateSkill)
+	refineUC := ragUsecases.NewRefineUseCase(ragLlmClient, llamaService, cfg, refineSkill, providerResolver)
+	translateUC := ragUsecases.NewTranslateUseCase(ragLlmClient, llamaService, cfg, ragCache, ragStore, mqttSvc, translateSkill, providerResolver)
 	guardOrch := ragOrchestrator.NewGuardOrchestrator(guardSkill)
 	router := ragOrchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewBigExternalService()
-	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, llamaService, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill)
+	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, llamaService, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill, providerResolver)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
-	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill)
-	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, llamaService, cfg, badger, vectorSvc, router)
+	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)
+	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, llamaService, cfg, badger, vectorSvc, router, providerResolver)
 
 	chatController := ragControllers.NewRAGChatController(chatUC, mqttSvc, terminalRepo)
 	if err := chatController.StartMqttSubscription(); err != nil {
@@ -142,38 +172,20 @@ func InitModule(
 	)
 
 	// 2. Initialize Whisper Sub-module
-	localWhisperService := commonServices.NewWhisperLocalService(cfg)
-	var whisperClient whisperUsecases.WhisperClient
-	switch cfg.LLMProvider {
-	case "gemini":
-		utils.LogInfo("Whisper: Using Gemini Whisper (Multimodal)")
-		whisperClient = geminiService
-	case "openai":
-		utils.LogInfo("Whisper: Using OpenAI Whisper")
-		whisperClient = openaiService
-	case "groq":
-		utils.LogInfo("Whisper: Using Groq Whisper")
-		whisperClient = groqService
-	case "orion":
-		if cfg.OrionWhisperBaseURL != "" {
-			utils.LogInfo("Whisper: Using Remote Whisper (Orion)")
-			whisperClient = orionService
-		} else {
-			utils.LogFatal("Whisper: LLM_PROVIDER is 'orion' but ORION_WHISPER_BASE_URL is not set.")
-		}
-	default:
-		utils.LogFatal("Whisper: Invalid or missing LLM_PROVIDER for Whisper.")
-	}
+	// Use provider resolver for Whisper client - no longer fixed to local
+	// Default resolved provider includes both LLM and Whisper clients
+	defaultWhisperClient := defaultResolved.WhisperClient
+	defaultFallbackWhisper := defaultResolved.FallbackWhisper
 
 	whisperCache := tasks.NewBadgerTaskCacheFromService(badger, "cache:transcribe:task:")
 	whisperStore := tasks.NewStatusStore[whisperDtos.AsyncTranscriptionStatusDTO]()
 
-	transcribeUC := whisperUsecases.NewTranscribeUseCase(whisperClient, localWhisperService, refineUC, whisperStore, whisperCache, cfg, mqttSvc)
+	transcribeUC := whisperUsecases.NewTranscribeUseCase(defaultWhisperClient, defaultFallbackWhisper, refineUC, whisperStore, whisperCache, cfg, mqttSvc, providerResolver)
 	geminiWhisperModelUC := whisperUsecases.NewTranscribeGeminiModelUseCase(geminiService, whisperStore, whisperCache, cfg)
 	openaiWhisperModelUC := whisperUsecases.NewTranscribeOpenAIModelUseCase(openaiService, whisperStore, whisperCache, cfg)
 	groqWhisperModelUC := whisperUsecases.NewTranscribeGroqModelUseCase(groqService, whisperStore, whisperCache, cfg)
 	orionWhisperModelUC := whisperUsecases.NewTranscribeOrionModelUseCase(orionService, whisperStore, whisperCache, cfg)
-	cppWhisperModelUC := whisperUsecases.NewTranscribeWhisperCppModelUseCase(localWhisperService, whisperStore, whisperCache, cfg)
+	cppWhisperModelUC := whisperUsecases.NewTranscribeWhisperCppModelUseCase(whisperService, whisperStore, whisperCache, cfg)
 	uploadSessionUC := whisperUsecases.NewUploadSessionUseCase(badger, cfg)
 	whisperStatusUC := tasks.NewGenericStatusUseCase(whisperCache, whisperStore)
 

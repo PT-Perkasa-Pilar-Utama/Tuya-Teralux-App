@@ -100,7 +100,7 @@ func (r *Router) RouteAndExecute(ctx *skills.SkillContext) (*skills.SkillResult,
 			}
 			if ctx.Language != "" && ctx.Language != "en" && r.translator != nil && res.Message != "" {
 				utils.LogDebug("Router: Translating response to '%s'", ctx.Language)
-				translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language)
+				translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language, ctx.TerminalID)
 				if err == nil {
 					res.Message = translated
 				} else {
@@ -165,7 +165,7 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 	// 4. Translate response if needed
 	if ctx.Language != "" && ctx.Language != "en" && r.translator != nil && res.Message != "" {
 		utils.LogDebug("Router: Translating response to '%s'", ctx.Language)
-		translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language)
+		translated, err := r.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language, ctx.TerminalID)
 		if err == nil {
 			res.Message = translated
 		} else {
@@ -174,4 +174,9 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 	}
 
 	return res, nil
+}
+
+// GetSkillRegistry returns the skill registry for direct skill access (e.g., fallback to Identity)
+func (r *Router) GetSkillRegistry() *skills.SkillRegistry {
+	return r.registry
 }

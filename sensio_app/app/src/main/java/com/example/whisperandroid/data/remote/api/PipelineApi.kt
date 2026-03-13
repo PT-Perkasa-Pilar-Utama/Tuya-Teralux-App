@@ -34,20 +34,20 @@ interface PipelineApi {
         @Part("mac_address") macAddress: String? = null,
         @Header("Authorization") token: String,
         @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+        @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/models/pipeline/status/{task_id}")
     suspend fun getPipelineStatus(
         @Path("task_id") taskId: String,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+        @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<PipelineStatusDto>
 
     @POST("/api/models/pipeline/job/by-upload")
     suspend fun executePipelineByUpload(
         @retrofit2.http.Body request: PipelineSubmitByUploadRequestDto,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+        @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
 }

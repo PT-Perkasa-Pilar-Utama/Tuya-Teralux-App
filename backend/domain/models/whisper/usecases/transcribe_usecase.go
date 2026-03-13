@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sensio/domain/common/providers"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	ragUsecases "sensio/domain/models/rag/usecases"
@@ -26,6 +27,7 @@ type WhisperClient interface {
 type TranscriptionMetadata struct {
 	UID            string
 	TerminalID     string
+	MacAddress     string // Used for terminal-specific provider resolution
 	RequestID      string
 	Source         string // "mqtt", "rest", etc.
 	Trigger        string // e.g., "/api/whisper/transcribe"
@@ -36,18 +38,19 @@ type TranscriptionMetadata struct {
 
 type TranscribeUseCase interface {
 	TranscribeAudio(ctx context.Context, inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error)
-	TranscribeAudioSync(ctx context.Context, inputPath string, language string, diarize bool, refine bool, progressCallback func(int)) (*whisperdtos.AsyncTranscriptionResultDTO, error)
+	TranscribeAudioSync(ctx context.Context, inputPath string, language string, diarize bool, refine bool, progressCallback func(int), terminalContext ...string) (*whisperdtos.AsyncTranscriptionResultDTO, error)
 	CheckIdempotency(idempotencyKey string, audioHash string, language string, terminalID string) (string, bool)
 }
 
 type transcribeUseCase struct {
-	whisperClient  WhisperClient
-	fallbackClient WhisperClient
-	refineUC       ragUsecases.RefineUseCase
-	store          *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
-	cache          *tasks.BadgerTaskCache
-	config         *utils.Config
-	mqttSvc        mqttPublisher
+	whisperClient    WhisperClient
+	fallbackClient   WhisperClient
+	refineUC         ragUsecases.RefineUseCase
+	store            *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
+	cache            *tasks.BadgerTaskCache
+	config           *utils.Config
+	mqttSvc          mqttPublisher
+	providerResolver providers.ProviderResolver
 }
 
 func NewTranscribeUseCase(
@@ -58,15 +61,17 @@ func NewTranscribeUseCase(
 	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
 	mqttSvc mqttPublisher,
+	providerResolver providers.ProviderResolver,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
-		whisperClient:  whisperClient,
-		fallbackClient: fallbackClient,
-		refineUC:       refineUC,
-		store:          store,
-		cache:          cache,
-		config:         config,
-		mqttSvc:        mqttSvc,
+		whisperClient:    whisperClient,
+		fallbackClient:   fallbackClient,
+		refineUC:         refineUC,
+		store:            store,
+		cache:            cache,
+		config:           config,
+		mqttSvc:          mqttSvc,
+		providerResolver: providerResolver,
 	}
 }
 
@@ -186,9 +191,26 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 	return taskID, nil
 }
 
-func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, reqLanguage string, diarize bool, refine bool, progressCallback func(int)) (*whisperdtos.AsyncTranscriptionResultDTO, error) {
+func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, reqLanguage string, diarize bool, refine bool, progressCallback func(int), terminalContext ...string) (*whisperdtos.AsyncTranscriptionResultDTO, error) {
 	var rawTranscription string
 	var detectedLang string
+
+	// Resolve provider from terminal context (MAC address) if available
+	whisperClient := uc.whisperClient
+	fallbackClient := uc.fallbackClient
+	
+	// Use terminal context for provider resolution if provided
+	if uc.providerResolver != nil && len(terminalContext) > 0 && terminalContext[0] != "" {
+		macAddress := terminalContext[0]
+		resolved, err := uc.providerResolver.ResolveByMacAddress(macAddress)
+		if err != nil {
+			utils.LogWarn("TranscribeUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
+		} else {
+			whisperClient = resolved.WhisperClient
+			fallbackClient = resolved.FallbackWhisper
+			utils.LogInfo("TranscribeUseCase: Using terminal-specific provider '%s' for MAC %s", resolved.ProviderName, macAddress)
+		}
+	}
 
 	// 1. Audio Normalization (WAV PCM 16k Mono)
 	processingPath, audioCleanup, err := utils.NormalizeToWavPCM16k(inputPath)
@@ -251,10 +273,10 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 
 					// Retry logic (max 2 attempts)
 					for attempt := 1; attempt <= 2; attempt++ {
-						res, transErr = uc.whisperClient.Transcribe(ctx, path, reqLanguage, diarize)
-						if transErr != nil && uc.fallbackClient != nil {
+						res, transErr = whisperClient.Transcribe(ctx, path, reqLanguage, diarize)
+						if transErr != nil && fallbackClient != nil {
 							utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client failed, falling back to local: %v", idx, attempt, transErr)
-							res, transErr = uc.fallbackClient.Transcribe(ctx, path, reqLanguage, diarize)
+							res, transErr = fallbackClient.Transcribe(ctx, path, reqLanguage, diarize)
 						}
 						if transErr == nil {
 							break
@@ -306,10 +328,10 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	}
 
 	if !useSegment {
-		result, err := uc.whisperClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
-		if err != nil && uc.fallbackClient != nil {
+		result, err := whisperClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
+		if err != nil && fallbackClient != nil {
 			utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
-			result, err = uc.fallbackClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
+			result, err = fallbackClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
 		}
 
 		if err != nil {
@@ -329,7 +351,12 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		if reqLanguage != "" {
 			refineLang = reqLanguage
 		}
-		refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
+		// Pass terminalContext for terminal-specific provider resolution
+		if len(terminalContext) > 0 && terminalContext[0] != "" {
+			refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang, terminalContext[0])
+		} else {
+			refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
+		}
 	}
 
 	return &whisperdtos.AsyncTranscriptionResultDTO{
@@ -358,7 +385,13 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 		// If we add Refine to metadata in the future, we should use it here.
 	}
 
-	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, reqLanguage, diarize, refine, nil)
+	// Pass terminal MAC for terminal-specific provider resolution in refine
+	var refineContext string
+	if metadata != nil && metadata.MacAddress != "" {
+		refineContext = metadata.MacAddress
+	}
+
+	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, reqLanguage, diarize, refine, nil, refineContext)
 	if err != nil {
 		utils.LogError("Transcribe Task %s: Failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil, err)

@@ -16,6 +16,7 @@ class TokenManager(
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_TERMINAL_ID = "terminal_id"
         private const val KEY_TUYA_UID = "tuya_uid"
+        private const val KEY_MAC_ADDRESS = "mac_address"
     }
 
     fun saveAccessToken(token: String) {
@@ -36,10 +37,18 @@ class TokenManager(
 
     fun getTuyaUid(): String? = prefs.getString(KEY_TUYA_UID, null)
 
+    fun saveMacAddress(mac: String) {
+        prefs.edit { putString(KEY_MAC_ADDRESS, mac) }
+    }
+
+    fun getMacAddress(): String? = prefs.getString(KEY_MAC_ADDRESS, null)
+
     fun clearToken() {
         prefs.edit {
             remove(KEY_ACCESS_TOKEN)
             remove(KEY_TUYA_UID)
+            remove(KEY_TERMINAL_ID)
+            remove(KEY_MAC_ADDRESS)
         }
     }
 }

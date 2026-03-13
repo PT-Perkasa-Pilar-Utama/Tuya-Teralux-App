@@ -56,6 +56,7 @@ func (uc *GetAllTerminalUseCase) ListTerminal(filter *dtos.TerminalFilterDTO) (*
 			Name:         item.Name,
 			RoomID:       item.RoomID,
 			DeviceTypeID: item.DeviceTypeID,
+			AiProvider:   item.AiProvider,
 			CreatedAt:    item.CreatedAt,
 			UpdatedAt:    item.UpdatedAt,
 		})

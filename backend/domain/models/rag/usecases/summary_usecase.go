@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	commonServices "sensio/domain/common/services"
+	"sensio/domain/common/providers"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
@@ -39,6 +40,7 @@ type summaryUseCase struct {
 	renderTimeout time.Duration
 	skill         skills.Skill
 	chunkSkill    skills.Skill
+	providerResolver providers.ProviderResolver
 }
 
 func NewSummaryUseCase(
@@ -52,20 +54,22 @@ func NewSummaryUseCase(
 	mqttSvc mqttPublisher,
 	skill skills.Skill,
 	chunkSkill skills.Skill,
+	providerResolver providers.ProviderResolver,
 ) SummaryUseCase {
 	return &summaryUseCase{
-		llm:           llm,
-		fallbackLLM:   fallbackLLM,
-		config:        cfg,
-		cache:         cache,
-		store:         store,
-		renderer:      renderer,
-		bigExternal:   bigExternal,
-		mqttSvc:       mqttSvc,
-		llmTimeout:    5 * time.Minute,
-		renderTimeout: 30 * time.Second,
-		skill:         skill,
-		chunkSkill:    chunkSkill,
+		llm:              llm,
+		fallbackLLM:      fallbackLLM,
+		config:           cfg,
+		cache:            cache,
+		store:            store,
+		renderer:         renderer,
+		bigExternal:      bigExternal,
+		mqttSvc:          mqttSvc,
+		llmTimeout:       5 * time.Minute,
+		renderTimeout:    30 * time.Second,
+		skill:            skill,
+		chunkSkill:       chunkSkill,
+		providerResolver: providerResolver,
 	}
 }
 
@@ -115,11 +119,25 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		return nil, fmt.Errorf("summary skill not configured")
 	}
 
+	// Resolve provider based on terminal MAC address
+	llmClient := u.llm
+	fallbackClient := u.fallbackLLM
+	if u.providerResolver != nil && macAddress != "" {
+		resolved, err := u.providerResolver.ResolveByMacAddress(macAddress)
+		if err != nil {
+			utils.LogWarn("SummaryUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
+		} else {
+			llmClient = resolved.LLM
+			fallbackClient = resolved.FallbackLLM
+			utils.LogInfo("SummaryUseCase: Using terminal-specific provider '%s' for MAC %s", resolved.ProviderName, macAddress)
+		}
+	}
+
 	skillCtx := &skills.SkillContext{
 		Ctx:          ctx,
 		Prompt:       text,
 		Language:     language,
-		LLM:          u.llm,
+		LLM:          llmClient,
 		Config:       u.config,
 		Date:         date,
 		Location:     location,
@@ -136,7 +154,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	// Phase 3: Chunked Summarization for long transcripts
 	if len(text) > 4000*4 { // Heuristic: ~4000 tokens
 		utils.LogInfo("SummaryUseCase: Text too long (%d chars), using chunked summarization", len(text))
-		chunkedSummary, chunkErr := u.summarizeInChunks(ctx, text, language, meetingContext)
+		chunkedSummary, chunkErr := u.summarizeInChunks(ctx, text, language, meetingContext, llmClient)
 		if chunkErr == nil {
 			skillCtx.Prompt = chunkedSummary
 			res, err = u.skill.Execute(skillCtx)
@@ -151,9 +169,9 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	// Single-pass execution
 	if trimmedSummary == "" {
 		res, err = u.skill.Execute(skillCtx)
-		if err != nil && u.fallbackLLM != nil {
+		if err != nil && fallbackClient != nil {
 			utils.LogWarn("SummaryTask: Primary LLM failed, falling back to local: %v", err)
-			skillCtx.LLM = u.fallbackLLM
+			skillCtx.LLM = fallbackClient
 			res, err = u.skill.Execute(skillCtx)
 		}
 		if err != nil {
@@ -218,7 +236,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	}, nil
 }
 
-func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, language string, meetingContext string) (string, error) {
+func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, language string, meetingContext string, llmClient skills.LLMClient) (string, error) {
 	if u.chunkSkill == nil {
 		return "", fmt.Errorf("chunk summary skill not configured")
 	}
@@ -236,7 +254,7 @@ func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, lan
 			Ctx:      ctx,
 			Prompt:   chunk,
 			Language: language,
-			LLM:      u.llm,
+			LLM:      llmClient,
 			Config:   u.config,
 			Context:  meetingContext,
 		}

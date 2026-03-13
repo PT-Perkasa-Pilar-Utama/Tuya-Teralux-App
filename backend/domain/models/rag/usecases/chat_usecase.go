@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/providers"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
@@ -17,22 +18,24 @@ type ChatUseCase interface {
 }
 
 type ChatUseCaseImpl struct {
-	llm          skills.LLMClient
-	fallbackLLM  skills.LLMClient
-	config       *utils.Config
-	badger       *infrastructure.BadgerService
-	vector       *infrastructure.VectorService
-	orchestrator *orchestrator.Router
+	llm              skills.LLMClient
+	fallbackLLM      skills.LLMClient
+	config           *utils.Config
+	badger           *infrastructure.BadgerService
+	vector           *infrastructure.VectorService
+	orchestrator     *orchestrator.Router
+	providerResolver providers.ProviderResolver
 }
 
-func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *orchestrator.Router) ChatUseCase {
+func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *orchestrator.Router, providerResolver providers.ProviderResolver) ChatUseCase {
 	return &ChatUseCaseImpl{
-		llm:          llm,
-		fallbackLLM:  fallbackLLM,
-		config:       cfg,
-		badger:       badger,
-		vector:       vector,
-		orchestrator: orchestrator,
+		llm:              llm,
+		fallbackLLM:      fallbackLLM,
+		config:           cfg,
+		badger:           badger,
+		vector:           vector,
+		orchestrator:     orchestrator,
+		providerResolver: providerResolver,
 	}
 }
 
@@ -54,7 +57,21 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		}
 	}
 
-	// 2. Prepare Skill Context
+	// 2. Resolve provider based on terminal ID
+	llmClient := u.llm
+	fallbackClient := u.fallbackLLM
+	if u.providerResolver != nil && terminalID != "" {
+		resolved, err := u.providerResolver.ResolveByTerminalID(terminalID)
+		if err != nil {
+			utils.LogWarn("ChatUseCase: Provider resolution failed for terminal %s: %v, using default", terminalID, err)
+		} else {
+			llmClient = resolved.LLM
+			fallbackClient = resolved.FallbackLLM
+			utils.LogInfo("ChatUseCase: Using terminal-specific provider '%s' for terminal %s", resolved.ProviderName, terminalID)
+		}
+	}
+
+	// 3. Prepare Skill Context
 	skillCtx := &skills.SkillContext{
 		Ctx:        ctx,
 		UID:        uid,
@@ -62,22 +79,54 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		Prompt:     prompt,
 		Language:   language,
 		History:    history,
-		LLM:        u.llm,
+		LLM:        llmClient,
 		Config:     u.config,
 		Vector:     u.vector,
 		Badger:     u.badger,
 	}
 
-	// 3. Route and Execute via Orchestrator
+	// 4. Route and Execute via Orchestrator
 	result, err := u.orchestrator.RouteAndExecute(skillCtx)
-	if err != nil && u.fallbackLLM != nil {
+	if err != nil && fallbackClient != nil {
 		utils.LogWarn("Chat: Primary LLM failed, falling back to local model: %v", err)
-		skillCtx.LLM = u.fallbackLLM
+		skillCtx.LLM = fallbackClient
 		result, err = u.orchestrator.RouteAndExecute(skillCtx)
 	}
 
+	// If orchestrator still fails, fallback to ServiceIssue skill for graceful error handling
 	if err != nil {
-		return nil, fmt.Errorf("orchestrator execution failed: %w", err)
+		utils.LogWarn("Chat: Orchestrator failed after fallback, using ServiceIssue skill for graceful response: %v", err)
+		serviceIssueSkill, hasServiceIssue := u.orchestrator.GetSkillRegistry().Get("ServiceIssue")
+		if hasServiceIssue {
+			serviceIssueCtx := &skills.SkillContext{
+				Ctx:        ctx,
+				UID:        uid,
+				TerminalID: terminalID,
+				Prompt:     "Service unavailable",
+				Language:   language,
+				History:    history,
+				LLM:        fallbackClient,
+				Config:     u.config,
+				Vector:     u.vector,
+				Badger:     u.badger,
+			}
+			serviceIssueResult, serviceIssueExecErr := serviceIssueSkill.Execute(serviceIssueCtx)
+			if serviceIssueExecErr == nil {
+				result = serviceIssueResult
+			} else {
+				// Last resort: return a simple service-issue response
+				result = &skills.SkillResult{
+					Message:   "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya.",
+					IsBlocked: false,
+				}
+			}
+		} else {
+			// ServiceIssue skill not available, return simple response
+			result = &skills.SkillResult{
+				Message:   "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya.",
+				IsBlocked: false,
+			}
+		}
 	}
 
 	// 4. Update History (skip if blocked)

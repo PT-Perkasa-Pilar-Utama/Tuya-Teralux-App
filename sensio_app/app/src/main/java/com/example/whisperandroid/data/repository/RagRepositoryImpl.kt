@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class RagRepositoryImpl(
-    private val api: RAGApi
+    private val api: RAGApi,
+    private val apiKey: String
 ) : RagRepository {
     override suspend fun translate(
         text: String,
@@ -27,7 +28,8 @@ class RagRepositoryImpl(
                     api.translate(
                         RAGRequestDto(text = text, language = targetLang, macAddress = macAddress),
                         "Bearer $token",
-                        idempotencyKey
+                        idempotencyKey,
+                        apiKey
                     )
                 val taskId = response.data?.taskId
 
@@ -48,7 +50,7 @@ class RagRepositoryImpl(
         flow {
             emit(Resource.Loading())
             try {
-                val response = api.getStatus(taskId, "Bearer $token")
+                val response = api.getStatus(taskId, "Bearer $token", apiKey)
                 val statusData = response.data
                 val status = statusData?.status?.lowercase()
 
@@ -100,7 +102,8 @@ class RagRepositoryImpl(
                             macAddress = macAddress
                         ),
                         "Bearer $token",
-                        idempotencyKey
+                        idempotencyKey,
+                        apiKey
                     )
                 val taskId = response.data?.taskId
 
@@ -121,7 +124,7 @@ class RagRepositoryImpl(
         flow {
             emit(Resource.Loading())
             try {
-                val response = api.getStatus(taskId, "Bearer $token")
+                val response = api.getStatus(taskId, "Bearer $token", apiKey)
                 val statusData = response.data
                 val status = statusData?.status?.lowercase()
 
@@ -179,7 +182,8 @@ class RagRepositoryImpl(
                         requestId = requestId
                     ),
                     "Bearer $token",
-                    idempotencyKey
+                    idempotencyKey,
+                    apiKey
                 )
                 if (response.status && response.data != null) {
                     emit(Resource.Success(response.data))
