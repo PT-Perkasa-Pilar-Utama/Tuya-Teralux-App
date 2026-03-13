@@ -8,6 +8,9 @@ WARNING='\033[0;33m'
 ERROR='\033[0;31m'
 NC='\033[0m'
 
+# Setup library path for llama shared libraries
+export LD_LIBRARY_PATH=/app/lib/llama:${LD_LIBRARY_PATH:-}
+
 echo -e "${INFO}[INFO] Starting Sensio Backend (10/10 Production Grade)...${NC}"
 
 # 1. Environment & Path Setup

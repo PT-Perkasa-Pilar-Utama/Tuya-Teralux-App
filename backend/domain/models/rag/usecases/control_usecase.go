@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/providers"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
@@ -17,26 +18,28 @@ type ControlUseCase interface {
 }
 
 type controlUseCase struct {
-	llm          skills.LLMClient
-	fallbackLLM  skills.LLMClient
-	config       *utils.Config
-	vector       *infrastructure.VectorService
-	badger       *infrastructure.BadgerService
-	tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor
-	tuyaAuth     tuyaUsecases.TuyaAuthUseCase
-	skill        skills.Skill
+	llm              skills.LLMClient
+	fallbackLLM      skills.LLMClient
+	config           *utils.Config
+	vector           *infrastructure.VectorService
+	badger           *infrastructure.BadgerService
+	tuyaExecutor     tuyaUsecases.TuyaDeviceControlExecutor
+	tuyaAuth         tuyaUsecases.TuyaAuthUseCase
+	skill            skills.Skill
+	providerResolver providers.ProviderResolver
 }
 
-func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase, skill skills.Skill) ControlUseCase {
+func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase, skill skills.Skill, providerResolver providers.ProviderResolver) ControlUseCase {
 	return &controlUseCase{
-		llm:          llm,
-		fallbackLLM:  fallbackLLM,
-		config:       cfg,
-		vector:       vector,
-		badger:       badger,
-		tuyaExecutor: tuyaExecutor,
-		tuyaAuth:     tuyaAuth,
-		skill:        skill,
+		llm:              llm,
+		fallbackLLM:      fallbackLLM,
+		config:           cfg,
+		vector:           vector,
+		badger:           badger,
+		tuyaExecutor:     tuyaExecutor,
+		tuyaAuth:         tuyaAuth,
+		skill:            skill,
+		providerResolver: providerResolver,
 	}
 }
 
@@ -53,12 +56,26 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 		return nil, fmt.Errorf("control skill not configured")
 	}
 
+	// Resolve provider based on terminal ID
+	llmClient := u.llm
+	fallbackClient := u.fallbackLLM
+	if u.providerResolver != nil && terminalID != "" {
+		resolved, err := u.providerResolver.ResolveByTerminalID(terminalID)
+		if err != nil {
+			utils.LogWarn("ControlUseCase: Provider resolution failed for terminal %s: %v, using default", terminalID, err)
+		} else {
+			llmClient = resolved.LLM
+			fallbackClient = resolved.FallbackLLM
+			utils.LogInfo("ControlUseCase: Using terminal-specific provider '%s' for terminal %s", resolved.ProviderName, terminalID)
+		}
+	}
+
 	skillCtx := &skills.SkillContext{
 		Ctx:        ctx,
 		UID:        uid,
 		TerminalID: terminalID,
 		Prompt:     prompt,
-		LLM:        u.llm,
+		LLM:        llmClient,
 		Config:     u.config,
 		Vector:     u.vector,
 		Badger:     u.badger,
@@ -77,9 +94,9 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 	skillCtx.History = history
 
 	res, err := u.skill.Execute(skillCtx)
-	if err != nil && u.fallbackLLM != nil {
+	if err != nil && fallbackClient != nil {
 		utils.LogWarn("Control: Primary LLM failed, falling back to local model: %v", err)
-		skillCtx.LLM = u.fallbackLLM
+		skillCtx.LLM = fallbackClient
 		res, err = u.skill.Execute(skillCtx)
 	}
 

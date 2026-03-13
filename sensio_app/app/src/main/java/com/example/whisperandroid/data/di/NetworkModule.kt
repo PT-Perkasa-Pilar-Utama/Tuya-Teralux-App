@@ -99,6 +99,10 @@ object NetworkModule {
         TerminalRepositoryImpl(api, API_KEY, tokenManager)
     }
 
+    val terminalRepository: TerminalRepository by lazy {
+        repository
+    }
+
     val tuyaRepository: com.example.whisperandroid.domain.repository.TuyaRepository by lazy {
         com.example.whisperandroid.data.repository
             .TuyaRepositoryImpl(tuyaApi, API_KEY, tokenManager)
@@ -114,12 +118,12 @@ object NetworkModule {
 
     val whisperRepository: com.example.whisperandroid.domain.repository.WhisperRepository by lazy {
         com.example.whisperandroid.data.repository
-            .WhisperRepositoryImpl(whisperApi)
+            .WhisperRepositoryImpl(whisperApi, API_KEY)
     }
 
     val ragRepository: com.example.whisperandroid.domain.repository.RagRepository by lazy {
         com.example.whisperandroid.data.repository
-            .RagRepositoryImpl(ragApi)
+            .RagRepositoryImpl(ragApi, API_KEY)
     }
 
     private val pipelineApi: PipelineApi by lazy {
@@ -127,11 +131,11 @@ object NetworkModule {
     }
 
     val pipelineRepository: PipelineRepository by lazy {
-        PipelineRepositoryImpl(pipelineApi)
+        PipelineRepositoryImpl(pipelineApi, API_KEY)
     }
 
     val uploadRepository: UploadRepository by lazy {
-        UploadRepositoryImpl(whisperApi)
+        UploadRepositoryImpl(whisperApi, API_KEY)
     }
 
     val registerUseCase: RegisterTerminalUseCase by lazy {

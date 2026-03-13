@@ -1468,7 +1468,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Classifies user prompt into Chat or Control and returns appropriate response or redirection.",
+                "description": "Classifies user prompt into Chat or Control and returns appropriate response or redirection. Infrastructure failures (network, timeout, backend processing) return a graceful service-issue response, not an error.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1494,17 +1494,23 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.RAGChatResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
                         }
@@ -2398,7 +2404,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.TerminalResponseDTO"
+                                            "$ref": "#/definitions/dtos.TerminalSingleResponseDTO"
                                         }
                                     }
                                 }
@@ -2465,7 +2471,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dtos.TerminalResponseDTO"
+                                            "$ref": "#/definitions/dtos.TerminalSingleResponseDTO"
                                         }
                                     }
                                 }
@@ -4190,6 +4196,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.RAGChatResponseDTO": {
+            "type": "object",
+            "properties": {
+                "instance_id": {
+                    "description": "Server start time",
+                    "type": "string"
+                },
+                "is_blocked": {
+                    "type": "boolean"
+                },
+                "is_control": {
+                    "type": "boolean"
+                },
+                "redirect": {
+                    "$ref": "#/definitions/dtos.RedirectDTO"
+                },
+                "request_id": {
+                    "description": "Tracking ID",
+                    "type": "string"
+                },
+                "response": {
+                    "type": "string"
+                },
+                "source": {
+                    "description": "e.g., \"MQTT\", \"HTTP\"",
+                    "type": "string"
+                }
+            }
+        },
         "dtos.RAGControlRequestDTO": {
             "type": "object",
             "required": [
@@ -4377,6 +4412,18 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.RedirectDTO": {
+            "type": "object",
+            "properties": {
+                "body": {},
+                "endpoint": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.SceneItemDTO": {
             "type": "object",
             "properties": {
@@ -4487,6 +4534,9 @@ const docTemplate = `{
         "dtos.TerminalResponseDTO": {
             "type": "object",
             "properties": {
+                "ai_provider": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -4535,6 +4585,14 @@ const docTemplate = `{
             "properties": {
                 "terminal": {
                     "$ref": "#/definitions/dtos.TerminalScenesDTO"
+                }
+            }
+        },
+        "dtos.TerminalSingleResponseDTO": {
+            "type": "object",
+            "properties": {
+                "terminal": {
+                    "$ref": "#/definitions/dtos.TerminalResponseDTO"
                 }
             }
         },
@@ -4755,6 +4813,9 @@ const docTemplate = `{
         "dtos.UpdateTerminalRequestDTO": {
             "type": "object",
             "properties": {
+                "ai_provider": {
+                    "type": "string"
+                },
                 "device_type_id": {
                     "type": "string"
                 },

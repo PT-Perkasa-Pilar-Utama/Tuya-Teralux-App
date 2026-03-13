@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sensio/domain/common/providers"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
@@ -16,48 +17,67 @@ import (
 type TranslateUseCase interface {
 	TranslateText(text, targetLang string, args ...string) (string, error)
 	TranslateTextWithTrigger(text, targetLang string, trigger string, args ...string) (string, error)
-	TranslateTextSync(ctx context.Context, text, targetLang string) (string, error)
+	TranslateTextSync(ctx context.Context, text, targetLang string, args ...string) (string, error)
 }
 
 type translateUseCase struct {
-	llm         skills.LLMClient
-	fallbackLLM skills.LLMClient
-	config      *utils.Config
-	cache       *tasks.BadgerTaskCache
-	store       *tasks.StatusStore[dtos.RAGStatusDTO]
-	mqttSvc     mqttPublisher
-	skill       skills.Skill
+	llm              skills.LLMClient
+	fallbackLLM      skills.LLMClient
+	config           *utils.Config
+	cache            *tasks.BadgerTaskCache
+	store            *tasks.StatusStore[dtos.RAGStatusDTO]
+	mqttSvc          mqttPublisher
+	skill            skills.Skill
+	providerResolver providers.ProviderResolver
 }
 
-func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher, skill skills.Skill) TranslateUseCase {
+func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher, skill skills.Skill, providerResolver providers.ProviderResolver) TranslateUseCase {
 	return &translateUseCase{
-		llm:         llm,
-		fallbackLLM: fallbackLLM,
-		config:      cfg,
-		cache:       cache,
-		store:       store,
-		mqttSvc:     mqttSvc,
-		skill:       skill,
+		llm:              llm,
+		fallbackLLM:      fallbackLLM,
+		config:           cfg,
+		cache:            cache,
+		store:            store,
+		mqttSvc:          mqttSvc,
+		skill:            skill,
+		providerResolver: providerResolver,
 	}
 }
 
 // translateInternal (private internal for use by Execute)
-func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLang string) (string, error) {
+// Optional: pass macAddress as third argument for terminal-specific provider resolution
+func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLang string, args ...string) (string, error) {
 	if u.skill == nil {
 		return "", fmt.Errorf("translation skill not configured")
 	}
+
+	// Resolve provider based on macAddress if provided
+	llmClient := u.llm
+	fallbackClient := u.fallbackLLM
+	if u.providerResolver != nil && len(args) > 0 && args[0] != "" {
+		macAddress := args[0]
+		resolved, err := u.providerResolver.ResolveByMacAddress(macAddress)
+		if err != nil {
+			utils.LogWarn("TranslateUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
+		} else {
+			llmClient = resolved.LLM
+			fallbackClient = resolved.FallbackLLM
+			utils.LogInfo("TranslateUseCase: Using terminal-specific provider '%s' for MAC %s", resolved.ProviderName, macAddress)
+		}
+	}
+
 	skillCtx := &skills.SkillContext{
 		Ctx:      ctx,
 		Prompt:   text,
 		Language: targetLang,
-		LLM:      u.llm,
+		LLM:      llmClient,
 		Config:   u.config,
 	}
 
 	res, err := u.skill.Execute(skillCtx)
-	if err != nil && u.fallbackLLM != nil {
+	if err != nil && fallbackClient != nil {
 		utils.LogWarn("Translate: Primary LLM failed, falling back to local model: %v", err)
-		skillCtx.LLM = u.fallbackLLM
+		skillCtx.LLM = fallbackClient
 		res, err = u.skill.Execute(skillCtx)
 	}
 
@@ -69,11 +89,11 @@ func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLa
 	return res.Message, nil
 }
 
-func (u *translateUseCase) TranslateTextSync(ctx context.Context, text, targetLang string) (string, error) {
+func (u *translateUseCase) TranslateTextSync(ctx context.Context, text, targetLang string, args ...string) (string, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return u.translateInternal(ctx, text, targetLang)
+	return u.translateInternal(ctx, text, targetLang, args...)
 }
 
 func (u *translateUseCase) TranslateText(text, targetLang string, args ...string) (string, error) {

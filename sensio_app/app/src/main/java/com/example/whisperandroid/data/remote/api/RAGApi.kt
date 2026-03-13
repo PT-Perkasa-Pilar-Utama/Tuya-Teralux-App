@@ -20,7 +20,7 @@ interface RAGApi {
         @Body request: RAGRequestDto,
         @Header("Authorization") token: String,
         @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+        @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @POST("/api/models/rag/summary")
@@ -28,14 +28,14 @@ interface RAGApi {
         @Body request: RAGSummaryRequestDto,
         @Header("Authorization") token: String,
         @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+        @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/models/rag/{task_id}")
     suspend fun getStatus(
         @Path("task_id") taskId: String,
         @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+        @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<RAGStatusDto>
 
     @POST("/api/models/rag/chat")
@@ -43,6 +43,6 @@ interface RAGApi {
         @Body request: com.example.whisperandroid.data.remote.dto.RAGChatRequestDto,
         @Header("Authorization") token: String,
         @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String = "REDACTED_SECRET"
+        @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<com.example.whisperandroid.data.remote.dto.RAGChatResponseDto>
 }

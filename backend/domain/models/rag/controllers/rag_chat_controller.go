@@ -302,15 +302,14 @@ func (c *RAGChatController) StartMqttSubscription() error {
 
 // Chat handles the AI Assistant chat/command classification.
 // @Summary AI Assistant Chat
-// @Description Classifies user prompt into Chat or Control and returns appropriate response or redirection.
+// @Description Classifies user prompt into Chat or Control and returns appropriate response or redirection. Infrastructure failures (network, timeout, backend processing) return a graceful service-issue response, not an error.
 // @Tags 04. Models
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGChatRequestDTO true "Chat Request"
-// @Success 200 {object} commonDtos.StandardResponse
+// @Success 200 {object} commonDtos.StandardResponse{data=dtos.RAGChatResponseDTO}
 // @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
 // @Router /api/models/rag/chat [post]
 func (c *RAGChatController) Chat(ctx *gin.Context) {
 	var req dtos.RAGChatRequestDTO

@@ -136,6 +136,43 @@ class AiAssistantViewModel(
         transitionTo(AssistantState.Idle, "failRequest", requestId)
     }
 
+    /**
+     * Completes a request with a friendly service-issue message.
+     * Used for recoverable transport/network/server failures that should not show as errors.
+     */
+    private fun completeWithServiceIssue(requestId: String?, source: String) {
+        val currentRequestId = activeRequestId
+        if (requestId != null && (currentRequestId == null || requestId != currentRequestId)) {
+            android.util.Log.w(
+                "AiAssistantViewModel",
+                "completeWithServiceIssue ignored (stale/unowned RID). " +
+                    "Expected: $currentRequestId, Got: $requestId, State: $assistantState"
+            )
+            return
+        }
+
+        val elapsed = requestId?.let { rid ->
+            requestStartedAtMs[rid]?.let { start ->
+                System.currentTimeMillis() - start
+            }
+        }
+
+        // Friendly service-issue message (matches backend ServiceIssue skill)
+        val serviceIssueMessage = when (selectedLanguage) {
+            "en" -> "Sorry, the AI service or network is having trouble right now. Please try again shortly."
+            else -> "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya."
+        }
+
+        transcriptionResults = transcriptionResults + TranscriptionMessage(
+            text = serviceIssueMessage,
+            role = MessageRole.ASSISTANT,
+            requestId = requestId,
+            finishedInMs = elapsed,
+            source = source
+        )
+        transitionTo(AssistantState.Idle, "completeWithServiceIssue ($source)", requestId)
+    }
+
     init {
         viewModelScope.launch {
             mqttHelper.messages.collect { (rawTopic, rawMessage) ->
@@ -432,7 +469,7 @@ class AiAssistantViewModel(
                 if (result.isSuccess) {
                     startResponseTimeout(requestId)
                 } else {
-                    failRequest(requestId, "Gagal mengirim pesan (MQTT error)")
+                    completeWithServiceIssue(requestId, "mqtt_publish_fail")
                     android.util.Log.e("AiAssistantViewModel", "publishChat failed")
                 }
             }
@@ -486,7 +523,7 @@ class AiAssistantViewModel(
                     if (result.isSuccess) {
                         startResponseTimeout(requestId)
                     } else {
-                        failRequest(requestId, "Gagal mengirim audio (MQTT error)")
+                        completeWithServiceIssue(requestId, "mqtt_audio_publish_fail")
                         android.util.Log.e("AiAssistantViewModel", "publishAudio failed")
                     }
                 }
@@ -530,6 +567,7 @@ class AiAssistantViewModel(
             val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
             val token = tm.getAccessToken()
             val terminalId = tm.getTerminalId() ?: username
+            val macAddress = tm.getMacAddress() ?: username
 
             if (token == null) {
                 failRequest(requestId, "Authentication error: Token missing")
@@ -567,7 +605,7 @@ class AiAssistantViewModel(
                                 }
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Error -> {
-                                failRequest(requestId, "Fallback API error")
+                                completeWithServiceIssue(requestId, "http_fallback_error")
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
                         }
@@ -584,7 +622,7 @@ class AiAssistantViewModel(
                         audioFile = file,
                         token = token,
                         language = selectedLanguage,
-                        macAddress = terminalId,
+                        macAddress = macAddress,
                         idempotencyKey = fallbackIdempotencyKey
                     ).collect { result ->
                         if (activeRequestId != requestId) return@collect
@@ -604,7 +642,7 @@ class AiAssistantViewModel(
                                 }
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Error -> {
-                                failRequest(requestId, "Fallback audio API error")
+                                completeWithServiceIssue(requestId, "http_audio_fallback_error")
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
                         }
@@ -683,13 +721,13 @@ class AiAssistantViewModel(
                                 }
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Error -> {
-                                failRequest(requestId, "Poll API error")
+                                completeWithServiceIssue(requestId, "http_poll_error")
                             }
                             is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
                         }
                     }
                 } else if (hasError) {
-                    failRequest(requestId, "Transcription poll failed")
+                    completeWithServiceIssue(requestId, "transcription_poll_fail")
                     return@launch
                 } else {
                     attempts++
@@ -697,7 +735,7 @@ class AiAssistantViewModel(
                 }
             }
             if (!isCompleted) {
-                failRequest(requestId, "Polling timeout")
+                completeWithServiceIssue(requestId, "polling_timeout")
             }
         }
     }

@@ -32,7 +32,7 @@ func NewGetTerminalByMACController(useCase *usecases.GetTerminalByMACUseCase) *G
 // @Accept       json
 // @Produce      json
 // @Param        mac  path  string  true  "Terminal MAC Address"
-// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalResponseDTO}
+// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalSingleResponseDTO}
 // @Failure      400  {object}  dtos.StandardResponse
 // @Failure      404  {object}  dtos.StandardResponse
 // @Failure      500  {object}  dtos.StandardResponse

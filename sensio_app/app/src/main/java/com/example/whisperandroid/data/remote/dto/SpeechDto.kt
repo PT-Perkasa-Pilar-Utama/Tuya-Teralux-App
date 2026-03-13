@@ -55,6 +55,9 @@ data class RAGSummaryRequestDto(
     @SerializedName("language") val language: String? = null,
     @SerializedName("context") val context: String? = null,
     @SerializedName("style") val style: String? = null,
+    @SerializedName("date") val date: String? = null,
+    @SerializedName("location") val location: String? = null,
+    @SerializedName("participants") val participants: List<String>? = null,
     @SerializedName("mac_address") val macAddress: String? = null
 )
 
@@ -97,9 +100,11 @@ data class RAGChatRequestDto(
 data class RAGChatResponseDto(
     @SerializedName("response") val response: String? = null,
     @SerializedName("is_control") val isControl: Boolean? = null,
+    @SerializedName("is_blocked") val isBlocked: Boolean? = null,
     @SerializedName("redirect") val redirect: RedirectDto? = null,
     @SerializedName("request_id") val requestId: String? = null,
-    @SerializedName("source") val source: String? = null
+    @SerializedName("source") val source: String? = null,
+    @SerializedName("instance_id") val instanceId: String? = null
 )
 
 data class RedirectDto(
@@ -127,7 +132,9 @@ data class PipelineStatusDto(
     @SerializedName("overall_status") val overallStatus: String,
     @SerializedName("stages") val stages: Map<String, PipelineStageStatus>? = null,
     @SerializedName("started_at") val startedAt: String? = null,
-    @SerializedName("duration_seconds") val durationSeconds: Double? = null
+    @SerializedName("duration_seconds") val durationSeconds: Double? = null,
+    @SerializedName("expires_at") val expiresAt: String? = null,
+    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null
 )
 
 data class PipelineStageStatus(

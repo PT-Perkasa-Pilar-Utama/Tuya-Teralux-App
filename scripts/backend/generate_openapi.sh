@@ -1,6 +1,6 @@
 #!/bin/bash
 # generate_openapi.sh - Orchestrates Swagger 2.0 to OpenAPI 3.1 conversion
-# 
+#
 # This script:
 # 1. Reads Swagger 2.0 JSON from docs/swagger/swagger.json
 # 2. Converts to OpenAPI 3.1.0 using custom tool
@@ -9,7 +9,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$(dirname "$SCRIPT_DIR")"
+BACKEND_DIR="$(cd "$SCRIPT_DIR/../../backend" && pwd)"
 SWAGGER_JSON="$BACKEND_DIR/docs/swagger/swagger.json"
 OPENAPI_DIR="$BACKEND_DIR/docs/openapi"
 CONVERTER_BIN="$BACKEND_DIR/bin/openapi_convert"

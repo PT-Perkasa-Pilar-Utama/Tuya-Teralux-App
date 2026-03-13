@@ -132,7 +132,8 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 		// Start transcription task using usecase
 		taskID, err := c.transcribeUC.TranscribeAudio(context.Background(), tempPath, tempFilename, language, usecases.TranscriptionMetadata{
 			UID:         req.UID,
-			TerminalID:  mac,
+			TerminalID:  req.TerminalID,
+			MacAddress:  mac,
 			RequestID:   req.RequestID,
 			Source:      "mqtt",
 			Trigger:     "mqtt:tera/transcribe",
@@ -349,6 +350,7 @@ func (c *WhisperTranscribeController) Transcribe(ctx *gin.Context) {
 		Source:         "rest",
 		Trigger:        ctx.Request.URL.Path,
 		TerminalID:     macAddress,
+		MacAddress:     macAddress,
 		Diarize:        diarize,
 		IdempotencyKey: idempotencyKey,
 	})
@@ -426,6 +428,7 @@ func (c *WhisperTranscribeController) TranscribeByUpload(ctx *gin.Context) {
 		Source:         "by-upload",
 		Trigger:        ctx.Request.URL.Path,
 		TerminalID:     req.MacAddress,
+		MacAddress:     req.MacAddress,
 		Diarize:        req.Diarize,
 		IdempotencyKey: req.IdempotencyKey,
 	})

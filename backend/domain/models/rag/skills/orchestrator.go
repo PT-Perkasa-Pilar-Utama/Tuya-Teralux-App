@@ -1,7 +1,11 @@
+// DEPRECATED: This legacy orchestrator does not support terminal-specific provider resolution.
+// Use the router-based orchestrator in skills/orchestrator/router.go instead.
+// This file is kept for backward compatibility only and should not be used in new code.
+//
+// Package skills provides AI skill orchestration.
 package skills
 
 import (
-	"context"
 	"fmt"
 	"sensio/domain/common/utils"
 	"strings"
@@ -78,16 +82,19 @@ Chosen Skill Name:`, strings.Join(skillDescriptions, "\n"), ctx.Prompt)
 		return nil, err
 	}
 
-	// 4. Translate response if needed
-	if ctx.Language != "" && ctx.Language != "en" && o.translator != nil && res.Message != "" {
-		utils.LogDebug("Orchestrator: Translating response to '%s'", ctx.Language)
-		translated, err := o.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language)
-		if err == nil {
-			res.Message = translated
-		} else {
-			utils.LogWarn("Orchestrator: Translation failed: %v", err)
-		}
-	}
+	// DEPRECATED: Translation without terminal context is not supported in this legacy orchestrator.
+	// Callers should use the router-based orchestrator (skills/orchestrator/router.go) for
+	// terminal-specific provider resolution. This translation block is intentionally disabled.
+	//
+	// if ctx.Language != "" && ctx.Language != "en" && o.translator != nil && res.Message != "" {
+	//     utils.LogDebug("Orchestrator: Translating response to '%s'", ctx.Language)
+	//     translated, err := o.translator.TranslateTextSync(context.Background(), res.Message, ctx.Language)
+	//     if err == nil {
+	//         res.Message = translated
+	//     } else {
+	//         utils.LogWarn("Orchestrator: Translation failed: %v", err)
+	//     }
+	// }
 
 	return res, nil
 }

@@ -48,7 +48,6 @@ class BackgroundAssistantCoordinator(
     private var timeoutJob: Job? = null
     private var mqttCollectorJob: Job? = null
     private var fallbackJob: Job? = null
-    private var dismissTimerJob: Job? = null
     private var greetingPlayer: MediaPlayer? = null
 
     var onDismissed: () -> Unit = {}
@@ -61,8 +60,7 @@ class BackgroundAssistantCoordinator(
         const val LISTENING_TICK_MS = 100L
         const val LISTENING_TIMEOUT_MS = 10000L
         const val PROCESSING_TIMEOUT_MS = 12000L
-        const val RESULT_DURATION_MS = 6000L
-        const val ERROR_DURATION_MS = 3500L
+        // Note: RESULT and ERROR no longer auto-dismiss; user dismisses manually via outside tap
     }
 
     fun start(serviceScope: CoroutineScope) {
@@ -156,7 +154,7 @@ class BackgroundAssistantCoordinator(
                     startProcessingTimeout(requestId)
                 } else {
                     AppLog.e(TAG, "Failed to publish audio via MQTT")
-                    failSession(requestId, "Gagal mengirim perintah")
+                    showServiceIssue(requestId, "mqtt_publish_fail")
                 }
             }
         } else {
@@ -231,12 +229,7 @@ class BackgroundAssistantCoordinator(
         fallbackJob?.cancel()
         transitionTo(BackgroundAssistantUiState.State.Result, "showResult")
         _uiState.value = _uiState.value.copy(assistantText = text)
-
-        dismissTimerJob?.cancel()
-        dismissTimerJob = scope?.launch {
-            delay(RESULT_DURATION_MS)
-            dismissAndRearm()
-        }
+        // No auto-dismiss: user dismisses manually via outside tap
     }
 
     private fun failSession(requestId: String, error: String) {
@@ -245,12 +238,27 @@ class BackgroundAssistantCoordinator(
         fallbackJob?.cancel()
         transitionTo(BackgroundAssistantUiState.State.Error, "failSession")
         _uiState.value = _uiState.value.copy(errorText = error)
+        // No auto-dismiss: user dismisses manually via outside tap
+    }
 
-        dismissTimerJob?.cancel()
-        dismissTimerJob = scope?.launch {
-            delay(ERROR_DURATION_MS)
-            dismissAndRearm()
+    /**
+     * Shows a friendly service-issue message instead of an error state.
+     * Used for recoverable transport/network/server failures.
+     */
+    private fun showServiceIssue(requestId: String, source: String) {
+        if (activeRequestId != requestId) return
+        timeoutJob?.cancel()
+        fallbackJob?.cancel()
+        transitionTo(BackgroundAssistantUiState.State.Result, "showServiceIssue ($source)")
+
+        // Friendly service-issue message (matches backend ServiceIssue skill)
+        val serviceIssueMessage = when (selectedLanguage) {
+            "en" -> "Sorry, the AI service or network is having trouble right now. Please try again shortly."
+            else -> "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya."
         }
+
+        _uiState.value = _uiState.value.copy(assistantText = serviceIssueMessage)
+        // No auto-dismiss: user dismisses manually via outside tap
     }
 
     private fun startProcessingTimeout(requestId: String) {
@@ -278,13 +286,14 @@ class BackgroundAssistantCoordinator(
                 val token = tm.getAccessToken() ?: return@launch failSession(requestId, "Auth error")
                 val terminalId = tm.getTerminalId() ?: DeviceUtils.getDeviceId(application)
                 val username = DeviceUtils.getDeviceId(application)
+                val macAddress = tm.getMacAddress() ?: username
                 val fallbackIdempotencyKey = "bg_$requestId"
 
                 NetworkModule.transcribeAudioUseCase.initiate(
                     audioFile = file,
                     token = token,
                     language = selectedLanguage,
-                    macAddress = terminalId,
+                    macAddress = macAddress,
                     idempotencyKey = fallbackIdempotencyKey
                 ).collect { result ->
                     if (activeRequestId != requestId) return@collect
@@ -298,14 +307,14 @@ class BackgroundAssistantCoordinator(
                             }
                         }
                         is Resource.Error -> {
-                            failSession(requestId, "Gagal memproses (Transcribe API error)")
+                            showServiceIssue(requestId, "http_transcribe_error")
                         }
                         is Resource.Loading -> {}
                     }
                 }
             } catch (e: Exception) {
                 AppLog.e(TAG, "HTTP Fallback failed", e)
-                failSession(requestId, "Koneksi bermasalah")
+                showServiceIssue(requestId, "http_fallback_exception")
             }
         }
     }
@@ -365,13 +374,13 @@ class BackgroundAssistantCoordinator(
                                 }
                             }
                             is Resource.Error -> {
-                                failSession(requestId, "Gagal memproses (Chat API error)")
+                                showServiceIssue(requestId, "http_chat_error")
                             }
                             is Resource.Loading -> {}
                         }
                     }
                 } else if (hasError) {
-                    failSession(requestId, "Gagal mengenali suara")
+                    showServiceIssue(requestId, "transcription_poll_error")
                     return@launch
                 } else {
                     attempts++
@@ -379,7 +388,7 @@ class BackgroundAssistantCoordinator(
                 }
             }
             if (!isCompleted && activeRequestId == requestId) {
-                failSession(requestId, "Batas waktu polling terlampaui")
+                showServiceIssue(requestId, "polling_timeout")
             }
         }
     }
@@ -450,7 +459,6 @@ class BackgroundAssistantCoordinator(
         timeoutJob?.cancel()
         mqttCollectorJob?.cancel()
         fallbackJob?.cancel()
-        dismissTimerJob?.cancel()
         audioRecorder.stop()
 
         greetingPlayer?.let {

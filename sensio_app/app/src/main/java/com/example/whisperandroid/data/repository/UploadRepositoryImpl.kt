@@ -21,7 +21,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 
 class UploadRepositoryImpl(
-    private val whisperApi: WhisperApi
+    private val whisperApi: WhisperApi,
+    private val apiKey: String
 ) : UploadRepository {
 
     override fun uploadFile(
@@ -46,7 +47,7 @@ class UploadRepositoryImpl(
         // 1. Try to Resume if sessionId provided
         if (currentSessionId != null) {
             try {
-                val status = whisperApi.getUploadSessionStatus(currentSessionId, "Bearer $token")
+                val status = whisperApi.getUploadSessionStatus(currentSessionId, "Bearer $token", apiKey)
                 if (status.status && status.data != null) {
                     val data = status.data
                     chunksToUpload = if (data.missingRanges.isNullOrEmpty()) {
@@ -85,7 +86,8 @@ class UploadRepositoryImpl(
                         totalSizeBytes = totalSize,
                         chunkSizeByes = chunkSize.toInt()
                     ),
-                    "Bearer $token"
+                    "Bearer $token",
+                    apiKey
                 )
             } catch (e: Exception) {
                 emit(UploadState.Error("Failed to create session: ${e.message}"))
@@ -159,7 +161,8 @@ class UploadRepositoryImpl(
                                         sessionId = currentSessionId!!,
                                         chunkIndex = i,
                                         chunk = requestBody,
-                                        token = "Bearer $token"
+                                        token = "Bearer $token",
+                                        apiKey = apiKey
                                     )
                                     if (ackResponse.status) {
                                         success = true
@@ -215,7 +218,7 @@ class UploadRepositoryImpl(
         token: String
     ): Resource<UploadSessionResponseDto> {
         return try {
-            val response = whisperApi.getUploadSessionStatus(sessionId, "Bearer $token")
+            val response = whisperApi.getUploadSessionStatus(sessionId, "Bearer $token", apiKey)
             if (response.status && response.data != null) {
                 Resource.Success(response.data)
             } else {
