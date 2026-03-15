@@ -8,6 +8,7 @@ import (
 	"sensio/domain/models/rag/skills"
 	whisperdtos "sensio/domain/models/whisper/dtos"
 	"strings"
+	"time"
 )
 
 // User-selectable AI providers (excludes 'local' which is fallback-only)
@@ -122,34 +123,62 @@ func NewProviderResolver(
 }
 
 func (r *providerResolverImpl) ResolveByTerminalID(terminalID string) (*ResolvedProviderSet, error) {
+	start := time.Now()
+	
 	if terminalID == "" {
+		utils.LogDebug("ProviderResolver: ResolveByTerminalID called with empty terminalID, using default | duration_ms=%d", time.Since(start).Milliseconds())
 		return r.ResolveDefault(), nil
 	}
 
+	repoStart := time.Now()
 	terminal, err := r.terminalRepo.GetByID(terminalID)
+	repoDuration := time.Since(repoStart)
+	
 	if err != nil {
-		utils.LogWarn("ProviderResolver: Failed to get terminal %s: %v, using default provider", terminalID, err)
+		utils.LogWarn("ProviderResolver: Failed to get terminal %s | repo_duration_ms=%d | error=%v, using default provider", terminalID, repoDuration.Milliseconds(), err)
+		totalDuration := time.Since(start)
+		utils.LogDebug("ProviderResolver: ResolveByTerminalID completed | terminalID=%s | status=not_found | total_duration_ms=%d", terminalID, totalDuration.Milliseconds())
 		return r.ResolveDefault(), nil
 	}
+	
+	utils.LogDebug("ProviderResolver: Terminal %s retrieved | repo_duration_ms=%d", terminalID, repoDuration.Milliseconds())
 
-	return r.resolveFromTerminal(terminal)
+	result, _ := r.resolveFromTerminal(terminal) // ignore error, always returns default on error
+	totalDuration := time.Since(start)
+	utils.LogDebug("ProviderResolver: ResolveByTerminalID completed | terminalID=%s | provider=%s | total_duration_ms=%d", terminalID, result.ProviderName, totalDuration.Milliseconds())
+	return result, nil
 }
 
 func (r *providerResolverImpl) ResolveByMacAddress(macAddress string) (*ResolvedProviderSet, error) {
+	start := time.Now()
+	
 	if macAddress == "" {
+		utils.LogDebug("ProviderResolver: ResolveByMacAddress called with empty MAC, using default | duration_ms=%d", time.Since(start).Milliseconds())
 		return r.ResolveDefault(), nil
 	}
 
+	repoStart := time.Now()
 	terminal, err := r.terminalRepo.GetByMacAddress(macAddress)
+	repoDuration := time.Since(repoStart)
+	
 	if err != nil {
-		utils.LogWarn("ProviderResolver: Failed to get terminal for MAC %s: %v, using default provider", macAddress, err)
+		utils.LogWarn("ProviderResolver: Failed to get terminal for MAC %s | repo_duration_ms=%d | error=%v, using default provider", macAddress, repoDuration.Milliseconds(), err)
+		totalDuration := time.Since(start)
+		utils.LogDebug("ProviderResolver: ResolveByMacAddress completed | MAC=%s | status=not_found | total_duration_ms=%d", macAddress, totalDuration.Milliseconds())
 		return r.ResolveDefault(), nil
 	}
+	
+	utils.LogDebug("ProviderResolver: Terminal %s retrieved | repo_duration_ms=%d", macAddress, repoDuration.Milliseconds())
 
-	return r.resolveFromTerminal(terminal)
+	result, _ := r.resolveFromTerminal(terminal) // ignore error, always returns default on error
+	totalDuration := time.Since(start)
+	utils.LogDebug("ProviderResolver: ResolveByMacAddress completed | MAC=%s | provider=%s | total_duration_ms=%d", macAddress, result.ProviderName, totalDuration.Milliseconds())
+	return result, nil
 }
 
 func (r *providerResolverImpl) resolveFromTerminal(terminal *Terminal) (*ResolvedProviderSet, error) {
+	start := time.Now()
+	
 	// If terminal has a provider preference, use it
 	if terminal.AiProvider != nil && *terminal.AiProvider != "" {
 		provider := NormalizeProvider(*terminal.AiProvider)
@@ -157,18 +186,21 @@ func (r *providerResolverImpl) resolveFromTerminal(terminal *Terminal) (*Resolve
 		// Handle legacy 'local' value: treat as unset/default for primary provider resolution
 		// Local remains available as internal fallback
 		if IsFallbackOnlyProvider(provider) {
-			utils.LogDebug("ProviderResolver: Legacy 'local' provider detected in terminal, using default primary provider with local fallback")
+			utils.LogDebug("ProviderResolver: Legacy 'local' provider detected in terminal, using default primary provider with local fallback | duration_ms=%d", time.Since(start).Milliseconds())
 			return r.ResolveDefault(), nil
 		}
 
 		if IsValidProvider(provider) {
+			utils.LogDebug("ProviderResolver: Using terminal provider '%s' | duration_ms=%d", provider, time.Since(start).Milliseconds())
 			return r.resolveProvider(provider), nil
 		}
-		utils.LogWarn("ProviderResolver: Invalid provider '%s' in terminal, using default", *terminal.AiProvider)
+		utils.LogWarn("ProviderResolver: Invalid provider '%s' in terminal, using default | duration_ms=%d", *terminal.AiProvider, time.Since(start).Milliseconds())
 	}
 
 	// Fall back to default
-	return r.ResolveDefault(), nil
+	result := r.ResolveDefault()
+	utils.LogDebug("ProviderResolver: Using default provider '%s' | duration_ms=%d", result.ProviderName, time.Since(start).Milliseconds())
+	return result, nil
 }
 
 func (r *providerResolverImpl) ResolveDefault() *ResolvedProviderSet {
@@ -227,29 +259,31 @@ func (r *providerResolverImpl) selectRemoteDefault() string {
 }
 
 func (r *providerResolverImpl) resolveProvider(provider string) *ResolvedProviderSet {
+	start := time.Now()
+	
 	var llm skills.LLMClient
 	var whisper WhisperProvider
 
 	switch provider {
 	case "gemini":
-		utils.LogDebug("ProviderResolver: Using Gemini provider")
+		utils.LogDebug("ProviderResolver: Using Gemini provider | duration_ms=%d", time.Since(start).Milliseconds())
 		llm = r.geminiService
 		whisper = r.geminiService
 	case "openai":
-		utils.LogDebug("ProviderResolver: Using OpenAI provider")
+		utils.LogDebug("ProviderResolver: Using OpenAI provider | duration_ms=%d", time.Since(start).Milliseconds())
 		llm = r.openaiService
 		whisper = r.openaiService
 	case "groq":
-		utils.LogDebug("ProviderResolver: Using Groq provider")
+		utils.LogDebug("ProviderResolver: Using Groq provider | duration_ms=%d", time.Since(start).Milliseconds())
 		llm = r.groqService
 		whisper = r.groqService
 	case "orion":
-		utils.LogDebug("ProviderResolver: Using Orion provider")
+		utils.LogDebug("ProviderResolver: Using Orion provider | duration_ms=%d", time.Since(start).Milliseconds())
 		llm = r.orionService
 		whisper = r.orionService
 	default:
 		// Default to local if invalid (should not happen for validated providers)
-		utils.LogError("ProviderResolver: Invalid provider '%s', using local fallback", provider)
+		utils.LogError("ProviderResolver: Invalid provider '%s', using local fallback | duration_ms=%d", provider, time.Since(start).Milliseconds())
 		llm = r.llamaService
 		whisper = r.whisperService
 	}
@@ -258,6 +292,7 @@ func (r *providerResolverImpl) resolveProvider(provider string) *ResolvedProvide
 	fallbackLLM := r.llamaService
 	fallbackWhisper := r.whisperService
 
+	utils.LogDebug("ProviderResolver: resolveProvider completed | provider=%s | duration_ms=%d", provider, time.Since(start).Milliseconds())
 	return &ResolvedProviderSet{
 		LLM:             llm,
 		FallbackLLM:     fallbackLLM,

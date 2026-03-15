@@ -10,6 +10,7 @@ import (
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
 	"sensio/domain/models/rag/skills/orchestrator"
+	tuyaDtos "sensio/domain/tuya/dtos"
 	"strings"
 	"time"
 )
@@ -24,25 +25,48 @@ type ChatUseCaseImpl struct {
 	config           *utils.Config
 	badger           *infrastructure.BadgerService
 	vector           *infrastructure.VectorService
-	orchestrator     *orchestrator.Router
+	guard            *orchestrator.GuardOrchestrator
+	fastIntentRouter *orchestrator.FastIntentRouter
+	decisionEngine   *orchestrator.AssistantDecisionEngineImpl
 	providerResolver providers.ProviderResolver
+	controlUseCase   ControlUseCase // For actual device execution
+	// Keep orchestrator for backward compatibility during migration
+	orchestrator *orchestrator.Router
 }
 
-func NewChatUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, badger *infrastructure.BadgerService, vector *infrastructure.VectorService, orchestrator *orchestrator.Router, providerResolver providers.ProviderResolver) ChatUseCase {
+func NewChatUseCase(
+	llm skills.LLMClient,
+	fallbackLLM skills.LLMClient,
+	cfg *utils.Config,
+	badger *infrastructure.BadgerService,
+	vector *infrastructure.VectorService,
+	guard *orchestrator.GuardOrchestrator,
+	fastIntentRouter *orchestrator.FastIntentRouter,
+	decisionEngine *orchestrator.AssistantDecisionEngineImpl,
+	providerResolver providers.ProviderResolver,
+	controlUseCase ControlUseCase,
+	orchestrator *orchestrator.Router, // kept for migration
+) ChatUseCase {
 	return &ChatUseCaseImpl{
 		llm:              llm,
 		fallbackLLM:      fallbackLLM,
 		config:           cfg,
 		badger:           badger,
 		vector:           vector,
-		orchestrator:     orchestrator,
+		guard:            guard,
+		fastIntentRouter: fastIntentRouter,
+		decisionEngine:   decisionEngine,
 		providerResolver: providerResolver,
+		controlUseCase:   controlUseCase,
+		orchestrator:     orchestrator,
 	}
 }
 
 func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
 	ucStart := time.Now()
-	
+	pipelinePath := "unknown"
+	var controlDuration time.Duration // Track control execution time separately
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -57,28 +81,33 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 	if u.badger != nil {
 		data, _ := u.badger.Get(historyKey)
 		if data != nil {
+			unmarshalStart := time.Now()
 			_ = json.Unmarshal(data, &history)
+			utils.LogDebug("ChatUseCase: History retrieved | key=%s | cache_duration_ms=%d | unmarshal_duration_ms=%d | history_size=%d", historyKey, time.Since(historyStart).Milliseconds()-time.Since(unmarshalStart).Milliseconds(), time.Since(unmarshalStart).Milliseconds(), len(history))
+		} else {
+			utils.LogDebug("ChatUseCase: History not found | key=%s | duration_ms=%d", historyKey, time.Since(historyStart).Milliseconds())
 		}
 	}
 	historyDuration := time.Since(historyStart)
-	utils.LogDebug("ChatUseCase: History loaded for terminal %s | history_duration_ms=%d", terminalID, historyDuration.Milliseconds())
 
-	// 2. Resolve provider based on terminal ID
+	// 2. Resolve provider
 	providerStart := time.Now()
 	llmClient := u.llm
 	fallbackClient := u.fallbackLLM
 	if u.providerResolver != nil && terminalID != "" {
+		resolveStart := time.Now()
 		resolved, err := u.providerResolver.ResolveByTerminalID(terminalID)
+		resolveDuration := time.Since(resolveStart)
+		
 		if err != nil {
-			utils.LogWarn("ChatUseCase: Provider resolution failed for terminal %s: %v, using default", terminalID, err)
+			utils.LogWarn("ChatUseCase: Provider resolution failed for terminal %s | duration_ms=%d | error=%v, using default", terminalID, resolveDuration.Milliseconds(), err)
 		} else {
 			llmClient = resolved.LLM
 			fallbackClient = resolved.FallbackLLM
-			utils.LogInfo("ChatUseCase: Using terminal-specific provider '%s' for terminal %s", resolved.ProviderName, terminalID)
+			utils.LogInfo("ChatUseCase: Using terminal-specific provider '%s' for terminal %s | resolution_duration_ms=%d", resolved.ProviderName, terminalID, resolveDuration.Milliseconds())
 		}
 	}
 	providerDuration := time.Since(providerStart)
-	utils.LogDebug("ChatUseCase: Provider resolved | provider_duration_ms=%d", providerDuration.Milliseconds())
 
 	// 3. Prepare Skill Context
 	skillCtx := &skills.SkillContext{
@@ -94,86 +123,205 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		Badger:     u.badger,
 	}
 
-	// 4. Route and Execute via Orchestrator
-	orchestratorStart := time.Now()
-	result, err := u.orchestrator.RouteAndExecute(skillCtx)
-	orchestratorDuration := time.Since(orchestratorStart)
-	totalOrchestratorDuration := orchestratorDuration
-	fallbackDuration := time.Duration(0)
+	// 4. NEW PIPELINE: Guard -> Fast Intent -> Single Decision
 
-	if err != nil && fallbackClient != nil {
-		utils.LogWarn("Chat: Primary LLM failed, falling back to local model: %v | orchestrator_duration_ms=%d", err, orchestratorDuration.Milliseconds())
-		skillCtx.LLM = fallbackClient
-		fallbackStart := time.Now()
-		result, err = u.orchestrator.RouteAndExecute(skillCtx)
-		fallbackDuration := time.Since(fallbackStart)
-		totalOrchestratorDuration = orchestratorDuration + fallbackDuration
-		if err == nil {
-			utils.LogInfo("Chat: Fallback orchestrator succeeded | fallback_duration_ms=%d | total_orchestrator_duration_ms=%d", fallbackDuration.Milliseconds(), totalOrchestratorDuration.Milliseconds())
+	// 4a. Guard (rule-based, no LLM)
+	guardStart := time.Now()
+	guardResult := u.guard.CheckPrompt(skillCtx)
+	guardDuration := time.Since(guardStart)
+
+	if guardResult != orchestrator.GuardClean {
+		// Handle blocked/dialog/irrelevant
+		pipelinePath = "blocked"
+		response := u.getGuardResponse(guardResult, language)
+		isBlocked := guardResult == orchestrator.GuardPureSpam || guardResult == orchestrator.GuardIrrelevant
+
+		u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, response, isBlocked)
+		totalDuration := time.Since(ucStart)
+
+		utils.LogInfo("ChatUseCase: Guard blocked request | pipeline_path=%s | guard_duration_ms=%d | total_duration_ms=%d", pipelinePath, guardDuration.Milliseconds(), totalDuration.Milliseconds())
+
+		return &dtos.RAGChatResponseDTO{
+			Response:       response,
+			IsBlocked:      isBlocked,
+			HTTPStatusCode: 200,
+		}, nil
+	}
+
+	// 4b. Fast Intent Router
+	fastIntentStart := time.Now()
+	fastIntentResult := u.fastIntentRouter.Classify(prompt)
+	fastIntentDuration := time.Since(fastIntentStart)
+
+	// Handle fast-routed intents
+	if fastIntentResult.Intent != orchestrator.FastIntentNone {
+		switch fastIntentResult.Intent {
+		case orchestrator.FastIntentIdentity:
+			pipelinePath = "fast_identity"
+			response := u.getIdentityResponse(language)
+			u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, response, false)
+			totalDuration := time.Since(ucStart)
+			utils.LogInfo("ChatUseCase: Fast identity route | pipeline_path=%s | fast_intent_duration_ms=%d | total_duration_ms=%d", pipelinePath, fastIntentDuration.Milliseconds(), totalDuration.Milliseconds())
+			return &dtos.RAGChatResponseDTO{
+				Response:       response,
+				IsControl:      false,
+				IsBlocked:      false,
+				HTTPStatusCode: 200,
+			}, nil
+
+		case orchestrator.FastIntentDiscovery:
+			pipelinePath = "fast_discovery"
+			response := u.getDiscoveryResponse(skillCtx, language)
+			u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, response, false)
+			totalDuration := time.Since(ucStart)
+			utils.LogInfo("ChatUseCase: Fast discovery route | pipeline_path=%s | fast_intent_duration_ms=%d | total_duration_ms=%d", pipelinePath, fastIntentDuration.Milliseconds(), totalDuration.Milliseconds())
+			return &dtos.RAGChatResponseDTO{
+				Response:       response,
+				IsControl:      true,
+				IsBlocked:      false,
+				HTTPStatusCode: 200,
+			}, nil
+
+		case orchestrator.FastIntentControl:
+			pipelinePath = "fast_control"
+			// Execute control directly
+			controlResult, err := u.executeFastControl(skillCtx, fastIntentResult)
+			controlDuration := time.Since(fastIntentStart)
+			if err != nil {
+				utils.LogWarn("ChatUseCase: Fast control execution failed: %v, falling back to decision engine", err)
+				// Fall through to decision engine
+			} else {
+				u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, controlResult.Message, false)
+				totalDuration := time.Since(ucStart)
+				utils.LogInfo("ChatUseCase: Fast control executed | pipeline_path=%s | control_duration_ms=%d | total_duration_ms=%d", pipelinePath, controlDuration.Milliseconds(), totalDuration.Milliseconds())
+				return &dtos.RAGChatResponseDTO{
+					Response:       controlResult.Message,
+					IsControl:      controlResult.IsControl,
+					IsBlocked:      false,
+					HTTPStatusCode: controlResult.HTTPStatusCode,
+				}, nil
+			}
 		}
 	}
 
-	// If orchestrator still fails, fallback to ServiceIssue skill for graceful error handling
-	serviceIssueDuration := time.Duration(0)
+	// 4c. Single Decision Engine (for non-fast-routed requests)
+	pipelinePath = "single_decision_chat"
+	decisionStart := time.Now()
+	totalDecisionDuration := time.Duration(0)
+	
+	utils.LogDebug("ChatUseCase: DecisionEngine.Decide starting | llm_provider=%T", llmClient)
+	u.decisionEngine.SetLLM(llmClient)
+	decision, err := u.decisionEngine.Decide(skillCtx)
+	totalDecisionDuration = time.Since(decisionStart)
+	
+	utils.LogDebug("ChatUseCase: DecisionEngine.Decide completed | duration_ms=%d | err=%v", totalDecisionDuration.Milliseconds(), err)
+
 	if err != nil {
-		utils.LogWarn("Chat: Orchestrator failed after fallback, using ServiceIssue skill for graceful response: %v | total_orchestrator_duration_ms=%d", err, totalOrchestratorDuration.Milliseconds())
-		serviceIssueStart := time.Now()
-		serviceIssueSkill, hasServiceIssue := u.orchestrator.GetSkillRegistry().Get("ServiceIssue")
-		if hasServiceIssue {
-			serviceIssueCtx := &skills.SkillContext{
-				Ctx:        ctx,
-				UID:        uid,
-				TerminalID: terminalID,
-				Prompt:     "Service unavailable",
-				Language:   language,
-				History:    history,
-				LLM:        fallbackClient,
-				Config:     u.config,
-				Vector:     u.vector,
-				Badger:     u.badger,
-			}
-			serviceIssueResult, serviceIssueExecErr := serviceIssueSkill.Execute(serviceIssueCtx)
-			if serviceIssueExecErr == nil {
-				result = serviceIssueResult
-				serviceIssueDuration = time.Since(serviceIssueStart)
-				utils.LogInfo("Chat: ServiceIssue skill executed | service_issue_duration_ms=%d", serviceIssueDuration.Milliseconds())
+		// Decision engine failed, try fallback provider
+		if fallbackClient != nil {
+			utils.LogWarn("ChatUseCase: Decision engine failed | primary_duration_ms=%d | error=%v, trying fallback provider", totalDecisionDuration.Milliseconds(), err)
+			fallbackStart := time.Now()
+			u.decisionEngine.SetLLM(fallbackClient)
+			decision, err = u.decisionEngine.Decide(skillCtx)
+			fallbackDuration := time.Since(fallbackStart)
+			totalDecisionDuration += fallbackDuration
+			
+			if err == nil {
+				pipelinePath = "single_decision_chat_fallback"
+				utils.LogInfo("ChatUseCase: DecisionEngine.Decide succeeded with fallback | fallback_duration_ms=%d | total_decision_ms=%d", fallbackDuration.Milliseconds(), totalDecisionDuration.Milliseconds())
 			} else {
-				// Last resort: return a simple service-issue response
-				result = &skills.SkillResult{
-					Message:   "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya.",
-					IsBlocked: false,
-				}
+				utils.LogWarn("ChatUseCase: DecisionEngine.Decide failed with fallback | fallback_duration_ms=%d | error=%v", fallbackDuration.Milliseconds(), err)
+			}
+		}
+	}
+
+	if err != nil {
+		// Still failed, use service issue fallback
+		pipelinePath = "service_issue"
+		response := u.getServiceIssueResponse(language)
+		u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, response, false)
+		totalDuration := time.Since(ucStart)
+		utils.LogError("ChatUseCase: Decision engine failed completely | pipeline_path=%s | total_duration_ms=%d", pipelinePath, totalDuration.Milliseconds())
+		return &dtos.RAGChatResponseDTO{
+			Response:       response,
+			IsControl:      false,
+			IsBlocked:      false,
+			HTTPStatusCode: 200,
+		}, nil
+	}
+	decisionDuration := totalDecisionDuration
+
+	// Handle decision intent
+	var result *skills.SkillResult
+	switch decision.Intent {
+	case "blocked":
+		pipelinePath = "blocked_decision"
+		result = &skills.SkillResult{
+			Message:   u.getGuardResponse(orchestrator.GuardPureSpam, language),
+			IsBlocked: true,
+		}
+
+	case "identity":
+		pipelinePath = "single_decision_identity"
+		result = &skills.SkillResult{
+			Message:   decision.Response,
+			IsBlocked: false,
+		}
+
+	case "control":
+		pipelinePath = "single_decision_control"
+		// Execute control based on decision hints
+		controlStart := time.Now()
+		controlResult, err := u.executeDecisionControl(skillCtx, decision)
+		controlDuration := time.Since(controlStart)
+		
+		if err != nil {
+			utils.LogWarn("ChatUseCase: Decision control execution failed | duration_ms=%d | error=%v", controlDuration.Milliseconds(), err)
+			result = &skills.SkillResult{
+				Message:   "Maaf, saya tidak dapat memproses perintah kontrol tersebut.",
+				IsControl: true,
 			}
 		} else {
-			// ServiceIssue skill not available, return simple response
-			result = &skills.SkillResult{
-				Message:   "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya.",
-				IsBlocked: false,
-			}
+			utils.LogDebug("ChatUseCase: Decision control executed | duration_ms=%d | device_id=%v", controlDuration.Milliseconds(), result.Data)
+			result = controlResult
+		}
+
+	case "chat":
+		fallthrough
+	default:
+		pipelinePath = "single_decision_chat"
+		result = &skills.SkillResult{
+			Message:   decision.Response,
+			IsBlocked: false,
 		}
 	}
 
-	// 4. Update History (skip if blocked)
+	// 5. Save History (skip if blocked)
 	historySaveStart := time.Now()
 	if u.badger != nil && !result.IsBlocked {
 		history = append(history, "User: "+prompt, "Assistant: "+result.Message)
 		if len(history) > 20 {
 			history = history[len(history)-20:]
 		}
+		marshalStart := time.Now()
 		data, _ := json.Marshal(history)
+		marshalDuration := time.Since(marshalStart)
+		
+		setStart := time.Now()
 		_ = u.badger.Set(historyKey, data)
+		setDuration := time.Since(setStart)
+		
+		utils.LogDebug("ChatUseCase: History saved | key=%s | marshal_duration_ms=%d | set_duration_ms=%d | history_size=%d", historyKey, marshalDuration.Milliseconds(), setDuration.Milliseconds(), len(history))
 	}
 	historySaveDuration := time.Since(historySaveStart)
-	if u.badger != nil && !result.IsBlocked {
-		utils.LogDebug("ChatUseCase: History saved | history_save_duration_ms=%d", historySaveDuration.Milliseconds())
-	}
 
 	totalDuration := time.Since(ucStart)
-	utils.LogInfo("ChatUseCase: Chat completed for terminal %s | history_duration_ms=%d | provider_duration_ms=%d | orchestrator_duration_ms=%d | fallback_duration_ms=%d | service_issue_duration_ms=%d | history_save_duration_ms=%d | total_duration_ms=%d", terminalID, historyDuration.Milliseconds(), providerDuration.Milliseconds(), totalOrchestratorDuration.Milliseconds(), fallbackDuration.Milliseconds(), serviceIssueDuration.Milliseconds(), historySaveDuration.Milliseconds(), totalDuration.Milliseconds())
+	utils.LogInfo("ChatUseCase: Chat completed | pipeline_path=%s | history_duration_ms=%d | provider_duration_ms=%d | guard_duration_ms=%d | fast_intent_duration_ms=%d | decision_duration_ms=%d | control_duration_ms=%d | history_save_duration_ms=%d | total_duration_ms=%d", 
+		pipelinePath, historyDuration.Milliseconds(), providerDuration.Milliseconds(), guardDuration.Milliseconds(), fastIntentDuration.Milliseconds(), decisionDuration.Milliseconds(), controlDuration.Milliseconds(), historySaveDuration.Milliseconds(), totalDuration.Milliseconds())
 
-	// 5. Handle Redirect for Control skill
+	// 6. Handle Redirect for Control
 	var redirect *dtos.RedirectDTO
-	if result.IsControl && result.Data != nil {
+	if result.IsControl && decision != nil && decision.Intent == "control" {
 		redirect = &dtos.RedirectDTO{
 			Endpoint: "/api/rag/control",
 			Method:   "POST",
@@ -191,4 +339,325 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		Redirect:       redirect,
 		HTTPStatusCode: result.HTTPStatusCode,
 	}, nil
+}
+
+// getGuardResponse returns the appropriate response for guard results.
+func (u *ChatUseCaseImpl) getGuardResponse(result orchestrator.GuardResult, language string) string {
+	switch result {
+	case orchestrator.GuardPureSpam:
+		return "" // No response for pure spam
+	case orchestrator.GuardDialogWithPromo:
+		return u.guard.IdentityResponse(language)
+	case orchestrator.GuardIrrelevant:
+		if strings.EqualFold(language, "en") {
+			return "I'm Sensio, your smart home assistant. I can help you control devices, summarize meetings, and answer questions about your smart home. How can I help you today?"
+		}
+		return "Hai! Saya Sensio, asisten rumah pintar kamu. Saya bisa bantu kontrol perangkat, merangkum rapat, dan menjawab pertanyaan seputar smart home kamu. Ada yang bisa saya bantu?"
+	default:
+		return ""
+	}
+}
+
+// getIdentityResponse returns the identity response.
+func (u *ChatUseCaseImpl) getIdentityResponse(language string) string {
+	if strings.EqualFold(language, "en") {
+		return "Hi! I'm Sensio, your smart home assistant. I can help you control devices, summarize meetings, and answer questions about your smart home. How can I help you today?"
+	}
+	return "Hai! Saya Sensio, asisten rumah pintar kamu. Saya bisa bantu kontrol perangkat, merangkum rapat, dan menjawab pertanyaan seputar smart home kamu. Ada yang bisa saya bantu?"
+}
+
+// getDiscoveryResponse returns the device discovery response.
+func (u *ChatUseCaseImpl) getDiscoveryResponse(ctx *skills.SkillContext, language string) string {
+	// Try to get actual devices from vector store - user-scoped like control path
+	if u.vector != nil && ctx != nil && ctx.UID != "" {
+		// Use same key pattern as control path: tuya:devices:uid:{uid}
+		deviceKey := fmt.Sprintf("tuya:devices:uid:%s", ctx.UID)
+		deviceJSON, found := u.vector.Get(deviceKey)
+		if found && deviceJSON != "" {
+			// Unmarshal into assistant-safe snapshot DTO
+			var snapshot tuyaDtos.AssistantSafeDevicesSnapshotDTO
+			if err := json.Unmarshal([]byte(deviceJSON), &snapshot); err == nil && len(snapshot.Devices) > 0 {
+				// Build response from actual parsed devices
+				deviceTypes := make(map[string]int) // category -> count
+				deviceNames := make([]string, 0, len(snapshot.Devices))
+				
+				for _, dev := range snapshot.Devices {
+					// Normalize category
+					normalizedCat := u.normalizeDeviceCategory(dev.Category, dev.ProductName)
+					deviceTypes[normalizedCat]++
+					if dev.Name != "" {
+						deviceNames = append(deviceNames, dev.Name)
+					}
+				}
+
+				if len(deviceTypes) > 0 {
+					var categories []string
+					for cat, count := range deviceTypes {
+						categories = append(categories, fmt.Sprintf("%s (%d)", cat, count))
+					}
+
+					// If <= 8 devices, list names; otherwise summarize by category
+					if len(snapshot.Devices) <= 8 {
+						if strings.EqualFold(language, "en") {
+							return fmt.Sprintf("I found %d devices in your smart home: %s. Which device would you like to control?", len(snapshot.Devices), strings.Join(deviceNames, ", "))
+						}
+						return fmt.Sprintf("Saya menemukan %d perangkat di smart home Anda: %s. Perangkat apa yang ingin Anda kontrol?", len(snapshot.Devices), strings.Join(deviceNames, ", "))
+					} else {
+						if strings.EqualFold(language, "en") {
+							return fmt.Sprintf("I found %d devices in your smart home including: %s. Which device would you like to control?", len(snapshot.Devices), strings.Join(categories, ", "))
+						}
+						return fmt.Sprintf("Saya menemukan %d perangkat di smart home Anda termasuk: %s. Perangkat apa yang ingin Anda kontrol?", len(snapshot.Devices), strings.Join(categories, ", "))
+					}
+				}
+			} else {
+				utils.LogWarn("getDiscoveryResponse: failed to unmarshal device snapshot for user %s: %v", ctx.UID, err)
+			}
+		}
+		utils.LogDebug("getDiscoveryResponse: No devices found for user %s", ctx.UID)
+	}
+
+	// Fallback to generic response
+	if strings.EqualFold(language, "en") {
+		return "I can help you control various smart home devices including lights, air conditioners, fans, TVs, and speakers. Which device would you like to control?"
+	}
+	return "Saya bisa membantu mengontrol berbagai perangkat smart home seperti lampu, AC, kipas angin, TV, dan speaker. Perangkat apa yang ingin Anda kontrol?"
+}
+
+// normalizeDeviceCategory maps Tuya category codes to assistant-friendly labels.
+func (u *ChatUseCaseImpl) normalizeDeviceCategory(category, productName string) string {
+	cat := strings.ToLower(strings.TrimSpace(category))
+	
+	// AC categories
+	if cat == "wnykq" || cat == "ac" || cat == "cl" || strings.Contains(cat, "air conditioner") {
+		return "AC"
+	}
+	
+	// Light categories
+	if cat == "dj" || cat == "kg" || cat == "ty" || cat == "xdd" || cat == "fwd" || strings.Contains(cat, "light") || strings.Contains(cat, "lamp") {
+		return "Lampu"
+	}
+	
+	// Switch/outlet categories
+	if cat == "dlq" || cat == "pc" || cat == "cz" || strings.Contains(cat, "switch") || strings.Contains(cat, "outlet") {
+		return "Switch"
+	}
+	
+	// TV categories
+	if cat == "infrared_tv" || cat == "tv" || strings.Contains(cat, "television") {
+		return "TV"
+	}
+	
+	// Fan categories
+	if cat == "fs" || cat == "fskg" || strings.Contains(cat, "fan") {
+		return "Kipas"
+	}
+	
+	// Sensor categories
+	if cat == "wsdcg" || strings.Contains(cat, "sensor") {
+		return "Sensor"
+	}
+	
+	// Panel/terminal
+	if cat == "dgnzk" || strings.Contains(cat, "panel") || strings.Contains(cat, "terminal") {
+		return "Panel"
+	}
+	
+	// Speaker
+	if strings.Contains(cat, "speaker") {
+		return "Speaker"
+	}
+	
+	// Fallback to product name or category
+	if productName != "" {
+		return productName
+	}
+	if category != "" {
+		return category
+	}
+	return "Device"
+}
+
+// getServiceIssueResponse returns a service issue fallback response.
+func (u *ChatUseCaseImpl) getServiceIssueResponse(language string) string {
+	if strings.EqualFold(language, "en") {
+		return "Sorry, the AI service is temporarily unavailable. Please try again in a moment."
+	}
+	return "Maaf, layanan AI sedang gangguan. Silakan coba lagi sebentar."
+}
+
+// saveHistoryIfNotBlocked saves history if not blocked.
+func (u *ChatUseCaseImpl) saveHistoryIfNotBlocked(badger *infrastructure.BadgerService, historyKey string, history []string, prompt, response string, isBlocked bool) time.Duration {
+	if badger == nil || isBlocked {
+		return 0
+	}
+	historyStart := time.Now()
+	history = append(history, "User: "+prompt, "Assistant: "+response)
+	if len(history) > 20 {
+		history = history[len(history)-20:]
+	}
+	data, _ := json.Marshal(history)
+	_ = badger.Set(historyKey, data)
+	return time.Since(historyStart)
+}
+
+// executeFastControl executes a fast-routed control command.
+func (u *ChatUseCaseImpl) executeFastControl(ctx *skills.SkillContext, intent orchestrator.FastIntentResult) (*skills.SkillResult, error) {
+	// Build control prompt from fast intent
+	controlPrompt := fmt.Sprintf("%s %s", intent.ActionType, intent.DeviceName)
+	if intent.Value != "" {
+		controlPrompt = fmt.Sprintf("%s %s to %s", intent.ActionType, intent.DeviceName, intent.Value)
+	}
+
+	// Call actual control use case for device execution
+	if u.controlUseCase != nil {
+		controlResult, err := u.controlUseCase.ProcessControl(ctx.Ctx, ctx.UID, ctx.TerminalID, controlPrompt)
+		if err == nil {
+			// Return actual execution result with preserved status code
+			return &skills.SkillResult{
+				Message:        controlResult.Message,
+				IsControl:      true,
+				IsBlocked:      false,
+				HTTPStatusCode: controlResult.HTTPStatusCode, // Preserve actual status code
+			}, nil
+		}
+		utils.LogWarn("executeFastControl: Control execution failed: %v", err)
+		
+		status, message := u.mapControlRuntimeError(err, languageFromSkillContext(ctx))
+		return &skills.SkillResult{
+			Message:        message,
+			IsControl:      true,
+			IsBlocked:      false,
+			HTTPStatusCode: status,
+		}, nil
+	}
+
+	// Control use case not configured - this is a system error
+	utils.LogWarn("executeFastControl: Control use case not configured")
+	return &skills.SkillResult{
+		Message:        u.getControlUnavailableResponse(languageFromSkillContext(ctx)),
+		IsControl:      true,
+		IsBlocked:      false,
+		HTTPStatusCode: 503,
+	}, nil
+}
+
+// executeDecisionControl executes control based on decision engine hints.
+func (u *ChatUseCaseImpl) executeDecisionControl(ctx *skills.SkillContext, decision *orchestrator.AssistantDecision) (*skills.SkillResult, error) {
+	// Reconstruct deterministic control prompt
+	controlPrompt, err := u.buildControlPromptFromDecision(decision)
+	if err != nil {
+		utils.LogWarn("executeDecisionControl: Prompt reconstruction failed: %v", err)
+		return &skills.SkillResult{
+			Message:        "Maaf, saya tidak dapat memproses perintah kontrol tersebut.",
+			IsControl:      true,
+			IsBlocked:      false,
+			HTTPStatusCode: 400,
+		}, nil
+	}
+
+	// Call actual control use case for device execution
+	if u.controlUseCase != nil && controlPrompt != "" {
+		controlResult, err := u.controlUseCase.ProcessControl(ctx.Ctx, ctx.UID, ctx.TerminalID, controlPrompt)
+		if err == nil {
+			// Return actual execution result with preserved status code
+			return &skills.SkillResult{
+				Message:        controlResult.Message,
+				IsControl:      true,
+				IsBlocked:      false,
+				HTTPStatusCode: controlResult.HTTPStatusCode, // Preserve actual status code
+			}, nil
+		}
+		utils.LogWarn("executeDecisionControl: Control execution failed: %v", err)
+		
+		status, message := u.mapControlRuntimeError(err, languageFromSkillContext(ctx))
+		return &skills.SkillResult{
+			Message:        message,
+			IsControl:      true,
+			IsBlocked:      false,
+			HTTPStatusCode: status,
+		}, nil
+	}
+
+	// No control prompt available - this is a decision engine error
+	utils.LogWarn("executeDecisionControl: No control prompt available from decision")
+	return &skills.SkillResult{
+		Message:        "Maaf, saya tidak dapat memproses perintah kontrol tersebut.",
+		IsControl:      true,
+		IsBlocked:      false,
+		HTTPStatusCode: 400,
+	}, nil
+}
+
+// buildControlPromptFromDecision reconstructs a deterministic control prompt from structured decision.
+func (u *ChatUseCaseImpl) buildControlPromptFromDecision(decision *orchestrator.AssistantDecision) (string, error) {
+	// 1. Use explicit control_prompt if present (high confidence override)
+	if decision.ControlPrompt != "" {
+		return decision.ControlPrompt, nil
+	}
+
+	// 2. Fallback to structured reconstruction if operation and devices are present
+	if decision.Operation != "" && len(decision.DeviceHints) > 0 {
+		device := decision.DeviceHints[0]
+		
+		// Map values deterministically based on operation type
+		var value string
+		if decision.ValueHints != nil {
+			switch decision.Operation {
+			case "brightness":
+				value = decision.ValueHints["brightness"]
+			case "temperature":
+				value = decision.ValueHints["temperature"]
+			case "fan_speed":
+				value = decision.ValueHints["fan_speed"]
+			}
+		}
+
+		if value != "" {
+			return fmt.Sprintf("%s %s %s", decision.Operation, device, value), nil
+		}
+		return fmt.Sprintf("%s %s", decision.Operation, device), nil
+	}
+
+	return "", fmt.Errorf("insufficient decision data for prompt reconstruction")
+}
+
+// mapControlRuntimeError maps ProcessControl runtime errors to appropriate HTTP status and message.
+func (u *ChatUseCaseImpl) mapControlRuntimeError(err error, language string) (status int, message string) {
+	errStr := strings.ToLower(err.Error())
+	
+	// Default to Indonesian
+	isEn := strings.EqualFold(language, "en")
+
+	// 1. Service/Provider Unavailable (503)
+	if strings.Contains(errStr, "auth") || 
+	   strings.Contains(errStr, "token") || 
+	   strings.Contains(errStr, "provider") || 
+	   strings.Contains(errStr, "unavailable") || 
+	   strings.Contains(errStr, "timeout") {
+		if isEn {
+			return 503, "Sorry, the control system is temporarily unavailable. Please try again in a moment."
+		}
+		return 503, "Maaf, sistem kontrol sedang tidak tersedia. Silakan coba lagi sebentar."
+	}
+
+	// 2. Fallback for other unexpected internal errors (500)
+	if isEn {
+		return 500, "Sorry, an internal error occurred while processing your control request."
+	}
+	return 500, "Maaf, terjadi gangguan internal saat memproses perintah kontrol Anda."
+}
+
+// getControlUnavailableResponse returns a generic unavailable message.
+func (u *ChatUseCaseImpl) getControlUnavailableResponse(language string) string {
+	if strings.EqualFold(language, "en") {
+		return "Maaf, sistem kontrol tidak tersedia."
+	}
+	return "Maaf, sistem kontrol tidak tersedia."
+}
+
+func languageFromSkillContext(ctx *skills.SkillContext) string {
+	if ctx == nil {
+		return "id"
+	}
+	return ctx.Language
 }

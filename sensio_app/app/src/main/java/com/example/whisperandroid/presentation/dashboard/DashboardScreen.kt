@@ -261,6 +261,13 @@ fun DashboardScreen(
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
+    // Handle redirect to register when terminal not found
+    androidx.compose.runtime.LaunchedEffect(uiState.shouldRedirectToRegister) {
+        if (uiState.shouldRedirectToRegister) {
+            onNavigateToRegister()
+        }
+    }
+
     androidx.compose.runtime.LaunchedEffect(uiState.isBackgroundModeEnabled) {
         if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled) {
             val currentMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
@@ -318,6 +325,40 @@ fun DashboardScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
+                    }
+                }
+            } else if (uiState.error != null) {
+                // Show error state (e.g., Terminal not found)
+                uiState.error?.let { errorMessage ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = errorMessage,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Redirecting to registration...",
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             } else if (bootstrapState.isBootstrapped && uiState.isTuyaSyncReady) {

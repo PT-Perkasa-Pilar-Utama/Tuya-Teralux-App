@@ -34,20 +34,20 @@ func (s *IRACsensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO
 	success, err := executor.SendIRACCommand(token, device.ID, device.RemoteID, params)
 	if err != nil {
 		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Failed to execute command: %v", err),
+			Message:        fmt.Sprintf("Gagal menjalankan perintah: %v", err),
 			HTTPStatusCode: 500,
 		}, nil
 	}
 
 	if !success {
 		return &dtos.ControlResultDTO{
-			Message:        "Command failed",
+			Message:        "Perintah gagal",
 			HTTPStatusCode: 400,
 		}, nil
 	}
 
 	return &dtos.ControlResultDTO{
-		Message:  fmt.Sprintf("Successfully %s %s.", actionMsg, device.Name),
+		Message:  fmt.Sprintf("Berhasil %s %s.", actionMsg, device.Name),
 		DeviceID: device.ID,
 	}, nil
 }
@@ -59,7 +59,7 @@ func (s *IRACsensor) prepareACParams(isOff bool, promptLower string, history []s
 
 	if isOff {
 		params["power"] = 0
-		return params, "turned off", nil
+		return params, "mematikan", nil
 	}
 
 	params["power"] = 1
@@ -153,7 +153,7 @@ func (s *IRACsensor) prepareACParams(isOff bool, promptLower string, history []s
 	// Add mode to params
 	if modeFound {
 		params["mode"] = mode
-		actions = append(actions, fmt.Sprintf("set mode to %s", modeNames[mode]))
+		actions = append(actions, fmt.Sprintf("mengatur mode ke %s", modeNames[mode]))
 	}
 
 	// Modes: 0=Cool, 1=Heat, 2=Auto, 3=Fan/Wind, 4=Dry/Humidity
@@ -168,22 +168,22 @@ func (s *IRACsensor) prepareACParams(isOff bool, promptLower string, history []s
 		if windFound {
 			params["wind"] = wind
 			windNames := map[int]string{0: "Auto", 1: "Low", 2: "Medium", 3: "High"}
-			actions = append(actions, fmt.Sprintf("set fan speed to %s", windNames[wind]))
+			actions = append(actions, fmt.Sprintf("mengatur kecepatan angin ke %s", windNames[wind]))
 		}
 	default: // Cool (0) or Heat (1)
 		if tempFound {
 			params["temp"] = temp
-			actions = append(actions, fmt.Sprintf("set temperature to %d°C", temp))
+			actions = append(actions, fmt.Sprintf("mengatur suhu ke %d°C", temp))
 		}
 		if windFound {
 			params["wind"] = wind
 			windNames := map[int]string{0: "Auto", 1: "Low", 2: "Medium", 3: "High"}
-			actions = append(actions, fmt.Sprintf("set fan speed to %s", windNames[wind]))
+			actions = append(actions, fmt.Sprintf("mengatur kecepatan angin ke %s", windNames[wind]))
 		}
 	}
 
 	if len(actions) == 0 {
-		return params, "turned on", nil
+		return params, "menyalakan", nil
 	}
 
 	return params, strings.Join(actions, ", "), nil

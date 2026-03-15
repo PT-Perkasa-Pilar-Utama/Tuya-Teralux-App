@@ -57,13 +57,18 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 	}
 
 	utils.LogDebug("SendIRACCommand: Fetching device details for RemoteID=%s", remoteID)
+	deviceApiStart := time.Now()
 	deviceResp, err := uc.service.FetchDeviceByID(deviceFullURL, deviceHeaders)
+	deviceApiDuration := time.Since(deviceApiStart)
 	if err == nil && deviceResp.Success {
+		utils.LogDebug("SendIRACCommand: Device fetch completed | remoteID=%s | duration_ms=%d | gatewayID=%s", remoteID, deviceApiDuration.Milliseconds(), deviceResp.Result.GatewayID)
 		if deviceResp.Result.GatewayID != "" {
 			utils.LogDebug("SendIRACCommand: Found GatewayID=%s. Using it as InfraredID.", deviceResp.Result.GatewayID)
 			gatewayID = deviceResp.Result.GatewayID
 			infraredID = gatewayID
 		}
+	} else if err != nil {
+		utils.LogWarn("SendIRACCommand: Device fetch failed | remoteID=%s | duration_ms=%d | error=%v", remoteID, deviceApiDuration.Milliseconds(), err)
 	}
 
 	// 2. Prepare IR Command
@@ -124,14 +129,16 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 		irHeaders["client_id"], irHeaders["t"], irHeaders["sign_method"], irHeaders["access_token"][:10])
 	utils.LogDebug("SendIRACCommand: Body: %s", string(irJsonBody))
 
+	irApiStart := time.Now()
 	resp, err := uc.service.SendIRCommand(irFullURL, irHeaders, irJsonBody)
+	irApiDuration := time.Since(irApiStart)
 	if err != nil {
-		utils.LogError("SendIRACCommand: Network error calling Tuya: %v", err)
+		utils.LogError("SendIRACCommand: Network error calling Tuya | duration_ms=%d | error=%v", irApiDuration.Milliseconds(), err)
 		return false, err
 	}
 
-	utils.LogDebug("SendIRACCommand: Tuya response received: success=%v, code=%d, msg=%s, result=%v",
-		resp.Success, resp.Code, resp.Msg, resp.Result)
+	utils.LogDebug("SendIRACCommand: Tuya response received | duration_ms=%d | success=%v | code=%d | msg=%s",
+		irApiDuration.Milliseconds(), resp.Success, resp.Code, resp.Msg)
 
 	if !resp.Success {
 		return false, fmt.Errorf("Gateway IR API failed: %s (code: %d)", resp.Msg, resp.Code)
@@ -139,6 +146,7 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 
 	// Save state after successful command
 	if uc.deviceStateUC != nil {
+		stateStart := time.Now()
 		stateCommands := make([]dtos.DeviceStateCommandDTO, 0, len(params))
 		for k, v := range params {
 			stateCommands = append(stateCommands, dtos.DeviceStateCommandDTO{
@@ -147,7 +155,9 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 			})
 		}
 		if err := uc.deviceStateUC.SaveDeviceState(remoteID, stateCommands); err != nil {
-			utils.LogWarn("SendIRACCommand: Failed to save device state for %s: %v", remoteID, err)
+			utils.LogWarn("SendIRACCommand: Failed to save device state | remoteID=%s | duration_ms=%d | error=%v", remoteID, time.Since(stateStart).Milliseconds(), err)
+		} else {
+			utils.LogDebug("SendIRACCommand: Device state saved | remoteID=%s | duration_ms=%d", remoteID, time.Since(stateStart).Milliseconds())
 		}
 	}
 

@@ -62,7 +62,7 @@ class BackgroundAssistantCoordinator(
         const val GREETING_DURATION_MS = 1000L
         const val LISTENING_TICK_MS = 100L
         const val LISTENING_TIMEOUT_MS = 5000L
-        const val PROCESSING_TIMEOUT_MS = 12000L
+        const val PROCESSING_TIMEOUT_MS = 3000L // Reduced from 12s to 3s for faster HTTP fallback
         // Note: RESULT and ERROR no longer auto-dismiss; user dismisses manually via outside tap
     }
 
@@ -279,12 +279,11 @@ class BackgroundAssistantCoordinator(
 
     private fun handleMqttMessage(topic: String, message: String, currentRequestId: String) {
         try {
-            val json = JsonParser.parseString(message).asJsonObject
-            val responseRequestId = parseRequestId(json)
-
             if (topic.endsWith("chat")) {
                 // Sync sync user prompt
                 timingLogger?.markStep("mqtt_sync_received", mapOf("topic" to "chat"))
+                val json = JsonParser.parseString(message).asJsonObject
+                val responseRequestId = parseRequestId(json)
                 val prompt = if (json.has("prompt")) json.get("prompt").asString else message
                 if (responseRequestId == currentRequestId) {
                     _uiState.value = _uiState.value.copy(recognizedText = prompt.trim().removeSurrounding("\""))
@@ -293,41 +292,36 @@ class BackgroundAssistantCoordinator(
             }
 
             // chat/answer handling
+            val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
+            if (parsedResult == null) {
+                timingLogger?.markStep("response_dropped", mapOf("reason" to "parse_failed"))
+                return
+            }
+
+            // Need to manually check RID because parser doesn't extract it (generic)
+            val json = JsonParser.parseString(message).asJsonObject
+            val responseRequestId = parseRequestId(json)
+
             if (responseRequestId == null || responseRequestId != currentRequestId) {
                 timingLogger?.markStep("response_dropped", mapOf("reason" to "stale_or_foreign_rid", "expected_rid" to (currentRequestId ?: "null"), "got_rid" to (responseRequestId ?: "null")))
                 AppLog.d(TAG, "Ignored response for foreign/stale RID: $responseRequestId (Current: $currentRequestId)")
                 return
             }
 
-            val source = parseSource(json)
-            if (source == "MQTT_SYNC_DROP" || source == "MQTT_DUP_DROP") {
-                timingLogger?.markStep("response_dropped", mapOf("reason" to "ack_only_source", "source" to (source ?: "null")))
-                AppLog.d(TAG, "Ignored ack-only source: $source")
+            if (parsedResult.isDupDrop) {
+                timingLogger?.markStep("response_dropped", mapOf("reason" to "ack_only_source", "source" to (parsedResult.source ?: "null")))
+                AppLog.d(TAG, "Ignored ack-only source: ${parsedResult.source}")
                 return
             }
 
-            timingLogger?.markStep("mqtt_answer_received", mapOf("source" to (source ?: "unknown")))
+            timingLogger?.markStep("mqtt_answer_received", mapOf("source" to (parsedResult.source ?: "mqtt")))
 
-            val isBlocked = parseIsBlocked(json)
-            val responseText = parseResponseText(json, message)
-
-            val isValidationError = json.has("message") && json.get("message").asString == "Validation Error"
-
-            val cleanMessage = when {
-                isValidationError -> "Maaf, suara tidak terdengar jelas."
-                responseText != null && responseText.isNotBlank() -> parseMarkdownToText(responseText).trim().removeSurrounding("\"")
-                isBlocked -> "Halo! Saya Sensio, ada yang bisa saya bantu?"
-                else -> null
-            }
-
+            val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
             if (cleanMessage != null) {
-                timingLogger?.markStep("final_answer_ready")
-                timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "success"))
                 showResult(currentRequestId, cleanMessage)
             }
         } catch (e: Exception) {
             timingLogger?.markStep("mqtt_parse_error", mapOf("error" to (e.message ?: "unknown")))
-            timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "parse_error"))
             AppLog.e(TAG, "Error parsing MQTT response", e)
         }
     }
@@ -358,7 +352,7 @@ class BackgroundAssistantCoordinator(
      * Shows a friendly service-issue message instead of an error state.
      * Used for recoverable transport/network/server failures.
      */
-    private fun showServiceIssue(requestId: String, source: String) {
+    private fun showServiceIssue(requestId: String, source: String, overrideMessage: String? = null) {
         if (activeRequestId != requestId) return
         timeoutJob?.cancel()
         fallbackJob?.cancel()
@@ -367,7 +361,7 @@ class BackgroundAssistantCoordinator(
         transitionTo(BackgroundAssistantUiState.State.Result, "showServiceIssue ($source)")
 
         // Friendly service-issue message (matches backend ServiceIssue skill)
-        val serviceIssueMessage = when (selectedLanguage) {
+        val serviceIssueMessage = overrideMessage ?: when (selectedLanguage) {
             "en" -> "Sorry, the AI service or network is having trouble right now. Please try again shortly."
             else -> "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya."
         }
@@ -495,20 +489,32 @@ class BackgroundAssistantCoordinator(
                         when (chatResult) {
                             is Resource.Success -> {
                                 val data = chatResult.data
-                                if (data != null && data.response != null) {
-                                    timingLogger?.markStep("http_chat_success")
-                                    timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "http_fallback_success"))
-                                    showResult(requestId, parseMarkdownToText(data.response!!))
+                                if (data != null) {
+                                    val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
+                                    if (parsedResult.isDupDrop) {
+                                        timingLogger?.markStep("http_chat_dup_drop")
+                                        AppLog.d(TAG, "Fallback: Silent completion for HTTP_DUP_DROP (keeping result visible)")
+                                        // Don't dismiss - MQTT already showed the result, just complete silently
+                                        return@collect
+                                    } else {
+                                        timingLogger?.markStep("http_chat_success")
+                                        val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
+                                        showResult(requestId, cleanMessage ?: "")
+                                    }
                                 } else {
                                     timingLogger?.markStep("http_chat_failed", mapOf("reason" to "invalid_response"))
-                                    timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "http_fallback_failed", "reason" to "invalid_response"))
                                     failSession(requestId, "Gagal memproses (Invalid chat response)")
                                 }
                             }
                             is Resource.Error -> {
-                                timingLogger?.markStep("http_chat_error")
-                                timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "http_fallback_error"))
-                                showServiceIssue(requestId, "http_chat_error")
+                                timingLogger?.markStep("http_chat_error", mapOf("error" to (chatResult.message ?: "unknown")))
+                                // Preserve backend error message
+                                val errorMsg = chatResult.message
+                                if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
+                                    showServiceIssue(requestId, "http_chat_error_msg", errorMsg)
+                                } else {
+                                    showServiceIssue(requestId, "http_chat_error")
+                                }
                             }
                             is Resource.Loading -> {}
                         }
@@ -629,21 +635,14 @@ class BackgroundAssistantCoordinator(
         }
 
         if (!isConnected) {
-            val deviceId = DeviceUtils.getDeviceId(application)
-            val pwdResult = NetworkModule.repository.fetchMqttPassword(deviceId)
-
-            if (pwdResult.isSuccess) {
-                val password = pwdResult.getOrNull()
-                if (password != null) {
-                    mqttHelper.connect(password)
-                    try {
-                        withTimeout(3000L) {
-                            mqttHelper.connectionStatus.first { it == MqttHelper.MqttConnectionStatus.CONNECTED }
-                        }
-                    } catch (e: Exception) {
-                        AppLog.e(TAG, "Failed to reconnect MQTT within timeout")
-                    }
+            // connect() now fetches credentials internally, password is never stored
+            mqttHelper.connect()
+            try {
+                withTimeout(3000L) {
+                    mqttHelper.connectionStatus.first { it == MqttHelper.MqttConnectionStatus.CONNECTED }
                 }
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Failed to reconnect MQTT within timeout")
             }
         }
     }

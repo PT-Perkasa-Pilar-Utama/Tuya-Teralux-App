@@ -118,7 +118,7 @@ var smartHomeKeywords = []string{
 }
 
 // CheckPrompt analyzes a prompt and returns a GuardResult.
-// Uses a fast keyword path first, then falls back to LLM for ALL unmatched prompts.
+// Purely rule-based: no LLM calls.
 func (g *GuardOrchestrator) CheckPrompt(ctx *skills.SkillContext) GuardResult {
 	prompt := strings.TrimSpace(ctx.Prompt)
 	if prompt == "" {
@@ -183,39 +183,17 @@ func (g *GuardOrchestrator) CheckPrompt(ctx *skills.SkillContext) GuardResult {
 		return GuardIrrelevant
 	}
 
-	// --- Layer 3: LLM Classification (ALL remaining unmatched prompts) ---
-	// If the prompt clearly has smart home keywords → skip LLM, it's clean
+	// --- Layer 3: Rule-based only, no LLM fallback ---
+	// If the prompt has smart home keywords → it's clean
 	for _, kw := range smartHomeKeywords {
 		if strings.Contains(promptLower, kw) {
 			return GuardClean
 		}
 	}
 
-	// For everything else → ask the LLM to classify
-	if g.guardSkill != nil {
-		utils.LogDebug("Guard: No fast-match, using LLM for: '%s'", prompt)
-		result, err := g.guardSkill.Execute(ctx)
-		if err != nil {
-			utils.LogWarn("Guard: LLM classification failed, defaulting to CLEAN: %v", err)
-			return GuardClean
-		}
-
-		classification := strings.TrimSpace(strings.ToUpper(result.Message))
-		switch classification {
-		case "SPAM":
-			utils.LogInfo("Guard: LLM classified as SPAM: '%s'", prompt)
-			return GuardPureSpam
-		case "IRRELEVANT":
-			utils.LogInfo("Guard: LLM classified as IRRELEVANT: '%s'", prompt)
-			return GuardIrrelevant
-		case "DIALOG":
-			utils.LogInfo("Guard: LLM classified as DIALOG: '%s'", prompt)
-			return GuardDialogWithPromo
-		default:
-			return GuardClean
-		}
-	}
-
+	// For everything else without smart home keywords → treat as clean
+	// This avoids false positives from overly aggressive blocking
+	// The assistant can still respond with identity/general help if needed
 	return GuardClean
 }
 

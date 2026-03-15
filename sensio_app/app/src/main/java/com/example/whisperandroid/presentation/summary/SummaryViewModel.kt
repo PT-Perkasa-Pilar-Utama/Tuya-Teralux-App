@@ -52,16 +52,8 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
             ) {
                 return@launch
             }
-            val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(
-                getApplication()
-            )
-            val pwdResult =
-                com.example.whisperandroid.data.di.NetworkModule.repository.fetchMqttPassword(
-                    username
-                )
-            if (pwdResult.isSuccess) {
-                mqttHelper.connect(pwdResult.getOrNull()!!)
-            }
+            // connect() now fetches credentials internally, password is never stored
+            mqttHelper.connect()
         }
     }
 

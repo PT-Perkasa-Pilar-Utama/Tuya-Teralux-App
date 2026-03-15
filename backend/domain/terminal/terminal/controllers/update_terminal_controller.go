@@ -67,9 +67,10 @@ func (c *UpdateTerminalController) UpdateTerminal(ctx *gin.Context) {
 
 		// Check for specific error types/messages
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "record not found" || err.Error() == "Terminal hub does not exist" {
+		errMsg := err.Error()
+		if errMsg == "Terminal not found" || errMsg == "record not found" || errMsg == "Terminal hub does not exist" {
 			statusCode = http.StatusNotFound
-		} else if strings.Contains(err.Error(), "Mac Address already in use") {
+		} else if strings.Contains(errMsg, "Mac Address already in use") {
 			statusCode = http.StatusConflict
 		}
 
