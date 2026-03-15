@@ -73,7 +73,7 @@ func NewTerminalModule(
 	getTerminalByIDUseCase := terminal_usecases.NewGetTerminalByIDUseCase(terminalRepository, deviceRepository)
 	getTerminalByMACUseCase := terminal_usecases.NewGetTerminalByMACUseCase(terminalRepository, mqttAuthClient)
 	updateTerminalUseCase := terminal_usecases.NewUpdateTerminalUseCase(terminalRepository)
-	deleteTerminalUseCase := terminal_usecases.NewDeleteTerminalUseCase(terminalRepository)
+	deleteTerminalUseCase := terminal_usecases.NewDeleteTerminalUseCase(terminalRepository, mqttAuthClient)
 
 	// Device Use Cases
 	createDeviceUseCase := device_usecases.NewCreateDeviceUseCase(deviceRepository, deviceStatusRepository, tuyaAuthUC, tuyaGetDeviceUC, terminalRepository)

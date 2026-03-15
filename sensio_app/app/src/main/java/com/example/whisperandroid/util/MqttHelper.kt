@@ -110,7 +110,11 @@ class MqttHelper(
         subscribe("users/$username/$env/chat")
     }
 
-    fun connect(password: String) {
+    /**
+     * Connect to MQTT broker by fetching credentials from backend first.
+     * Password is never stored - only used for this connection attempt.
+     */
+    suspend fun connect() {
         val isClientConnected = try { mqttAndroidClient.isConnected } catch (e: Exception) { false }
 
         if (isClientConnected && _connectionStatus.value == MqttConnectionStatus.CONNECTED) {
@@ -142,12 +146,34 @@ class MqttHelper(
 
         val username = getUsername()
 
+        // Fetch credentials from backend (password is never stored)
+        val password = fetchMqttCredentials(username)
+            ?: run {
+                Log.e(tag, "Failed to fetch MQTT credentials for $username")
+                _connectionStatus.value = MqttConnectionStatus.FAILED
+                return
+            }
+
         val mqttConnectOptions = MqttConnectOptions()
         mqttConnectOptions.isAutomaticReconnect = true
         mqttConnectOptions.isCleanSession = false
         mqttConnectOptions.keepAliveInterval = 30
+        mqttConnectOptions.connectionTimeout = 5 // 5 seconds connection timeout
         mqttConnectOptions.userName = username
         mqttConnectOptions.password = password.toCharArray()
+
+        // Enable TLS for MQTTS connections (ssl:// or tcps://)
+        // Note: Paho Android only supports ssl:// and tcps:// schemes
+        if (serverUri.startsWith("ssl://") || serverUri.startsWith("tcps://")) {
+            try {
+                val sslContext = javax.net.ssl.SSLContext.getInstance("TLSv1.2")
+                sslContext.init(null, null, java.security.SecureRandom())
+                mqttConnectOptions.socketFactory = sslContext.socketFactory
+                Log.d(tag, "TLS 1.2 enabled for MQTTS connection: $serverUri")
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to initialize TLS: ${e.message}")
+            }
+        }
 
         _connectionStatus.value = MqttConnectionStatus.CONNECTING
         try {
@@ -188,6 +214,29 @@ class MqttHelper(
             )
         } catch (ex: MqttException) {
             ex.printStackTrace()
+        }
+    }
+
+    /**
+     * Fetch MQTT credentials from backend.
+     * Password is returned only for this connection attempt and is never stored.
+     */
+    private suspend fun fetchMqttCredentials(username: String): String? {
+        return try {
+            val token = tokenManager.getAccessToken()
+                ?: run {
+                    Log.e(tag, "No access token available for fetching MQTT credentials")
+                    return null
+                }
+
+            kotlinx.coroutines.withTimeout(10000L) {
+                val repository = com.example.whisperandroid.data.di.NetworkModule.repository
+                val result = repository.fetchMqttPassword(username)
+                result.getOrNull()
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Error fetching MQTT credentials: ${e.message}")
+            null
         }
     }
 

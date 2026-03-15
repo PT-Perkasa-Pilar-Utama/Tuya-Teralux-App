@@ -190,6 +190,22 @@ class RagRepositoryImpl(
                 } else {
                     emit(Resource.Error(response.message))
                 }
+            } catch (e: retrofit2.HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                val errorMessage = if (errorBody != null) {
+                    try {
+                        val errorDto = com.google.gson.Gson().fromJson(
+                            errorBody,
+                            com.example.whisperandroid.data.remote.dto.SpeechResponseDto::class.java
+                        )
+                        errorDto.message
+                    } catch (ex: Exception) {
+                        "Chat request failed: ${e.message()}"
+                    }
+                } else {
+                    "Chat request failed: ${e.message()}"
+                }
+                emit(Resource.Error(errorMessage))
             } catch (e: Exception) {
                 emit(Resource.Error("Chat request failed: ${e.message}"))
             }

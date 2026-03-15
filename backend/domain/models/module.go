@@ -138,13 +138,15 @@ func InitModule(
 	refineUC := ragUsecases.NewRefineUseCase(ragLlmClient, llamaService, cfg, refineSkill, providerResolver)
 	translateUC := ragUsecases.NewTranslateUseCase(ragLlmClient, llamaService, cfg, ragCache, ragStore, mqttSvc, translateSkill, providerResolver)
 	guardOrch := ragOrchestrator.NewGuardOrchestrator(guardSkill)
+	fastIntentRouter := ragOrchestrator.NewFastIntentRouter()
+	decisionEngine := ragOrchestrator.NewAssistantDecisionEngine(ragLlmClient)
 	router := ragOrchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewBigExternalService()
 	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, llamaService, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill, providerResolver)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
 	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)
-	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, llamaService, cfg, badger, vectorSvc, router, providerResolver)
+	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, llamaService, cfg, badger, vectorSvc, guardOrch, fastIntentRouter, decisionEngine, providerResolver, controlUC, router)
 
 	chatController := ragControllers.NewRAGChatController(chatUC, mqttSvc, terminalRepo)
 	if err := chatController.StartMqttSubscription(); err != nil {

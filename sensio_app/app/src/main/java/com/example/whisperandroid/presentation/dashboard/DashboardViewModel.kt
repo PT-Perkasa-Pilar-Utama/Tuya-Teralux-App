@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.domain.repository.TerminalRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,8 @@ data class DashboardUiState(
     val isTuyaSyncReady: Boolean = false,
     val aiProvider: String? = null,
     val isSavingAiProvider: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val shouldRedirectToRegister: Boolean = false
 )
 
 class DashboardViewModel(
@@ -89,7 +91,8 @@ class DashboardViewModel(
             if (terminalId.isNullOrEmpty()) {
                 _uiState.value = _uiState.value.copy(
                     isSavingAiProvider = false,
-                    error = "Terminal ID not found"
+                    error = "Terminal ID not found",
+                    shouldRedirectToRegister = true
                 )
                 return@launch
             }
@@ -101,9 +104,16 @@ class DashboardViewModel(
                     aiProvider = provider
                 )
             }.onFailure { e ->
+                val errorMsg = e.message ?: "Failed to update AI provider"
+                // Check if error is 404 - Terminal not found
+                val isNotFound = errorMsg.contains("404") || 
+                                 errorMsg.contains("not found", ignoreCase = true) ||
+                                 errorMsg.contains("Terminal not found", ignoreCase = true)
+                
                 _uiState.value = _uiState.value.copy(
                     isSavingAiProvider = false,
-                    error = e.message ?: "Failed to update AI provider"
+                    error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg,
+                    shouldRedirectToRegister = isNotFound
                 )
             }
         }

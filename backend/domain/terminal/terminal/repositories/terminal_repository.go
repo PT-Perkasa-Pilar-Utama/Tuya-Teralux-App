@@ -6,6 +6,7 @@ import (
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/terminal/entities"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -88,75 +89,105 @@ func (r *TerminalRepository) GetAllPaginated(offset, limit int, roomID *string) 
 
 // GetByID retrieves a single terminal record by ID with caching
 func (r *TerminalRepository) GetByID(id string) (*entities.Terminal, error) {
+	start := time.Now()
+	
 	// Try to get from cache first
+	cacheStart := time.Now()
 	cacheKey := fmt.Sprintf("terminal:%s", id)
 	cachedData, err := r.cache.Get(cacheKey)
+	cacheDuration := time.Since(cacheStart)
+	
 	if err == nil && cachedData != nil {
 		var terminal entities.Terminal
 		if err := json.Unmarshal(cachedData, &terminal); err == nil {
-			utils.LogDebug("TerminalRepository: Cache HIT for terminal ID %s", id)
+			utils.LogDebug("TerminalRepository: Cache HIT for terminal ID %s | cache_duration_ms=%d | total_duration_ms=%d", id, cacheDuration.Milliseconds(), time.Since(start).Milliseconds())
 			return &terminal, nil
 		}
-		utils.LogWarn("TerminalRepository: Cache corrupted for terminal ID %s", id)
+		utils.LogWarn("TerminalRepository: Cache corrupted for terminal ID %s | unmarshal_error=%v", id, err)
 	}
 
 	// Cache miss - fetch from database
-	utils.LogDebug("TerminalRepository: Cache MISS for terminal ID %s", id)
+	utils.LogDebug("TerminalRepository: Cache MISS for terminal ID %s | cache_duration_ms=%d", id, cacheDuration.Milliseconds())
+	
 	if r.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
+	
+	dbStart := time.Now()
 	var terminal entities.Terminal
 	err = r.db.Where("id = ?", id).First(&terminal).Error
+	dbDuration := time.Since(dbStart)
+	
 	if err != nil {
+		utils.LogDebug("TerminalRepository: Database query failed for terminal ID %s | db_duration_ms=%d | error=%v", id, dbDuration.Milliseconds(), err)
 		return nil, err
 	}
+	utils.LogDebug("TerminalRepository: Database query completed for terminal ID %s | db_duration_ms=%d | rows=1", id, dbDuration.Milliseconds())
 
 	// Save to cache
 	if jsonData, err := json.Marshal(terminal); err == nil {
+		cacheSetStart := time.Now()
 		if err := r.cache.Set(cacheKey, jsonData); err != nil {
-			utils.LogWarn("TerminalRepository: Failed to cache terminal ID %s: %v", id, err)
+			utils.LogWarn("TerminalRepository: Failed to cache terminal ID %s | cache_set_duration_ms=%d | error=%v", id, time.Since(cacheSetStart).Milliseconds(), err)
 		} else {
-			utils.LogDebug("TerminalRepository: Cached terminal ID %s", id)
+			utils.LogDebug("TerminalRepository: Cached terminal ID %s | cache_set_duration_ms=%d", id, time.Since(cacheSetStart).Milliseconds())
 		}
 	}
 
+	totalDuration := time.Since(start)
+	utils.LogDebug("TerminalRepository: GetByID completed for terminal ID %s | total_duration_ms=%d", id, totalDuration.Milliseconds())
 	return &terminal, nil
 }
 
 // GetByMacAddress retrieves a single terminal record by MAC address with caching
 func (r *TerminalRepository) GetByMacAddress(macAddress string) (*entities.Terminal, error) {
+	start := time.Now()
+	
 	// Try to get from cache first
+	cacheStart := time.Now()
 	cacheKey := fmt.Sprintf("terminal:mac:%s", macAddress)
 	cachedData, err := r.cache.Get(cacheKey)
+	cacheDuration := time.Since(cacheStart)
+	
 	if err == nil && cachedData != nil {
 		var terminal entities.Terminal
 		if err := json.Unmarshal(cachedData, &terminal); err == nil {
-			utils.LogDebug("TerminalRepository: Cache HIT for MAC %s", macAddress)
+			utils.LogDebug("TerminalRepository: Cache HIT for MAC %s | cache_duration_ms=%d | total_duration_ms=%d", macAddress, cacheDuration.Milliseconds(), time.Since(start).Milliseconds())
 			return &terminal, nil
 		}
-		utils.LogWarn("TerminalRepository: Cache corrupted for MAC %s", macAddress)
+		utils.LogWarn("TerminalRepository: Cache corrupted for MAC %s | unmarshal_error=%v", macAddress, err)
 	}
 
 	// Cache miss - fetch from database
-	utils.LogDebug("TerminalRepository: Cache MISS for MAC %s", macAddress)
+	utils.LogDebug("TerminalRepository: Cache MISS for MAC %s | cache_duration_ms=%d", macAddress, cacheDuration.Milliseconds())
+	
 	if r.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
+	
+	dbStart := time.Now()
 	var terminal entities.Terminal
 	err = r.db.Where("mac_address = ?", macAddress).First(&terminal).Error
+	dbDuration := time.Since(dbStart)
+	
 	if err != nil {
+		utils.LogDebug("TerminalRepository: Database query failed for MAC %s | db_duration_ms=%d | error=%v", macAddress, dbDuration.Milliseconds(), err)
 		return nil, err
 	}
+	utils.LogDebug("TerminalRepository: Database query completed for MAC %s | db_duration_ms=%d | rows=1", macAddress, dbDuration.Milliseconds())
 
 	// Save to cache
 	if jsonData, err := json.Marshal(terminal); err == nil {
+		cacheSetStart := time.Now()
 		if err := r.cache.Set(cacheKey, jsonData); err != nil {
-			utils.LogWarn("TerminalRepository: Failed to cache terminal MAC %s: %v", macAddress, err)
+			utils.LogWarn("TerminalRepository: Failed to cache terminal MAC %s | cache_set_duration_ms=%d | error=%v", macAddress, time.Since(cacheSetStart).Milliseconds(), err)
 		} else {
-			utils.LogDebug("TerminalRepository: Cached terminal MAC %s", macAddress)
+			utils.LogDebug("TerminalRepository: Cached terminal MAC %s | cache_set_duration_ms=%d", macAddress, time.Since(cacheSetStart).Milliseconds())
 		}
 	}
 
+	totalDuration := time.Since(start)
+	utils.LogDebug("TerminalRepository: GetByMacAddress completed for MAC %s | total_duration_ms=%d", macAddress, totalDuration.Milliseconds())
 	return &terminal, nil
 }
 

@@ -66,7 +66,6 @@ type Config struct {
 	MqttBroker            string
 	MqttUsername          string
 	MqttPassword          string
-	MqttPassEncryptionKey string
 	EmqxAuthBaseURL       string
 	EmqxAuthApiKey        string
 
@@ -205,7 +204,6 @@ func LoadConfig() {
 		MqttBroker:            os.Getenv("MQTT_BROKER"),
 		MqttUsername:          os.Getenv("MQTT_USERNAME"),
 		MqttPassword:          os.Getenv("MQTT_PASSWORD"),
-		MqttPassEncryptionKey: os.Getenv("MQTT_PASS_ENCRYPTION_KEY"),
 		EmqxAuthBaseURL:       os.Getenv("EMQX_AUTH_BASE_URL"),
 		EmqxAuthApiKey:        os.Getenv("EMQX_AUTH_API_KEY"),
 

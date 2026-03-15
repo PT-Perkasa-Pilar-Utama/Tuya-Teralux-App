@@ -57,9 +57,9 @@ func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceD
 			}
 		}
 		if isOn {
-			actionMsg = "turned on all switches"
+			actionMsg = "menyalakan semua switch"
 		} else {
-			actionMsg = "turned off all switches"
+			actionMsg = "mematikan semua switch"
 		}
 	} else {
 		// Extract which switch number from prompt
@@ -99,7 +99,7 @@ func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceD
 
 		if switchCode == "" {
 			return &dtos.ControlResultDTO{
-				Message:        fmt.Sprintf("Device %s does not have a switchable control.", device.Name),
+				Message:        fmt.Sprintf("Device %s tidak memiliki kontrol switch.", device.Name),
 				HTTPStatusCode: 400,
 			}, nil
 		}
@@ -110,9 +110,9 @@ func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceD
 		})
 
 		if isOn {
-			actionMsg = "turned on"
+			actionMsg = "menyalakan"
 		} else {
-			actionMsg = "turned off"
+			actionMsg = "mematikan"
 		}
 
 		// Add switch number to message if multiple switches
@@ -124,20 +124,20 @@ func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceD
 	success, err := executor.SendSwitchCommand(token, device.ID, commands)
 	if err != nil {
 		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Failed to execute command: %v", err),
+			Message:        fmt.Sprintf("Gagal menjalankan perintah: %v", err),
 			HTTPStatusCode: 500,
 		}, nil
 	}
 
 	if !success {
 		return &dtos.ControlResultDTO{
-			Message:        "Command failed",
+			Message:        "Perintah gagal",
 			HTTPStatusCode: 400,
 		}, nil
 	}
 
 	return &dtos.ControlResultDTO{
-		Message:  fmt.Sprintf("Successfully %s on %s.", actionMsg, device.Name),
+		Message:  fmt.Sprintf("Berhasil %s di %s.", actionMsg, device.Name),
 		DeviceID: device.ID,
 	}, nil
 }

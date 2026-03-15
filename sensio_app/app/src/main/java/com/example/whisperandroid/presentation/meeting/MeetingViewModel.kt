@@ -62,10 +62,8 @@ class MeetingViewModel(
             ) {
                 return@launch
             }
-            val pwdResult = NetworkModule.repository.fetchMqttPassword(deviceId)
-            if (pwdResult.isSuccess) {
-                mqttHelper.connect(pwdResult.getOrNull()!!)
-            }
+            // connect() now fetches credentials internally, password is never stored
+            mqttHelper.connect()
         }
     }
 
