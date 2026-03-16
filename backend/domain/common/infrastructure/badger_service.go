@@ -80,6 +80,39 @@ func (s *BadgerService) SetWithTTL(key string, value []byte, ttl time.Duration) 
 	return nil
 }
 
+// SetIfAbsentWithTTL stores a key-value pair only if the key does not already exist.
+// Returns true if the key was set, false if it already existed.
+func (s *BadgerService) SetIfAbsentWithTTL(key string, value []byte, ttl time.Duration) (bool, error) {
+	if s == nil || s.db == nil {
+		return false, nil
+	}
+	var set bool
+	err := s.db.Update(func(txn *badger.Txn) error {
+		_, err := txn.Get([]byte(key))
+		if err == nil {
+			// Key exists
+			set = false
+			return nil
+		}
+		if err != badger.ErrKeyNotFound {
+			return err
+		}
+
+		// Key does not exist, set it
+		entry := badger.NewEntry([]byte(key), value).WithTTL(ttl)
+		if err := txn.SetEntry(entry); err != nil {
+			return err
+		}
+		set = true
+		return nil
+	})
+	if err != nil {
+		utils.LogError("BadgerService: SetIfAbsentWithTTL failed | key=%s | error=%v", key, err)
+		return false, err
+	}
+	return set, nil
+}
+
 // Get retrieves a value associated with the given key.
 // It handles the transaction view automatically.
 //

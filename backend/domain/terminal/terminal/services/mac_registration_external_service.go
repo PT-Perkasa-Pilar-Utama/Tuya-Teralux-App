@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-// TerminalExternalService handles communication with third-party Terminal services
-type TerminalExternalService struct {
+// MacRegistrationExternalService handles communication with third-party Terminal services
+type MacRegistrationExternalService struct {
 	client *http.Client
 }
 
-// NewTerminalExternalService creates a new instance of TerminalExternalService
-func NewTerminalExternalService() *TerminalExternalService {
-	return &TerminalExternalService{
+// NewMacRegistrationExternalService creates a new instance of MacRegistrationExternalService
+func NewMacRegistrationExternalService() *MacRegistrationExternalService {
+	return &MacRegistrationExternalService{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -24,7 +24,7 @@ func NewTerminalExternalService() *TerminalExternalService {
 }
 
 // ProcInsertMacAddress calls the external API to register the MAC address
-func (s *TerminalExternalService) ProcInsertMacAddress(roomID int, macAddress string, deviceTypeID int) error {
+func (s *MacRegistrationExternalService) ProcInsertMacAddress(roomID int, macAddress string, deviceTypeID int) error {
 	url := "https://aplikasi-big.com/IOTAN5JavaDasboard/rest/ProcInsertMacAddress"
 
 	payload := map[string]interface{}{
@@ -38,11 +38,11 @@ func (s *TerminalExternalService) ProcInsertMacAddress(roomID int, macAddress st
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	utils.LogDebug("TerminalExternalService: Calling API %s for MAC %s with payload %s", url, macAddress, string(jsonData))
+	utils.LogDebug("MacRegistrationExternalService: Calling API %s for MAC %s with payload %s", url, macAddress, string(jsonData))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		utils.LogError("TerminalExternalService: Failed to create request for MAC %s: %v", macAddress, err)
+		utils.LogError("MacRegistrationExternalService: Failed to create request for MAC %s: %v", macAddress, err)
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -50,14 +50,14 @@ func (s *TerminalExternalService) ProcInsertMacAddress(roomID int, macAddress st
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		utils.LogError("TerminalExternalService: API request failed for MAC %s: %v", macAddress, err)
+		utils.LogError("MacRegistrationExternalService: API request failed for MAC %s: %v", macAddress, err)
 		return fmt.Errorf("external API request failed: %w", err)
 	}
 	defer func() {
 		_ = resp.Body.Close()
 	}()
 
-	utils.LogDebug("TerminalExternalService: API returned status %d for MAC %s", resp.StatusCode, macAddress)
+	utils.LogDebug("MacRegistrationExternalService: API returned status %d for MAC %s", resp.StatusCode, macAddress)
 
 	if resp.StatusCode != http.StatusOK {
 		var errResp struct {
@@ -67,11 +67,11 @@ func (s *TerminalExternalService) ProcInsertMacAddress(roomID int, macAddress st
 			} `json:"error"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && errResp.Error.Message != "" {
-			utils.LogError("TerminalExternalService: API returned error message: %s for MAC %s", errResp.Error.Message, macAddress)
+			utils.LogError("MacRegistrationExternalService: API returned error message: %s for MAC %s", errResp.Error.Message, macAddress)
 			return utils.NewAPIError(resp.StatusCode, errResp.Error.Message)
 		}
 
-		utils.LogError("TerminalExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
+		utils.LogError("MacRegistrationExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
 		return fmt.Errorf("external API returned non-200 status: %d", resp.StatusCode)
 	}
 
@@ -79,7 +79,7 @@ func (s *TerminalExternalService) ProcInsertMacAddress(roomID int, macAddress st
 		Pattern string `json:"Pattern"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&successResp); err == nil && successResp.Pattern != "" {
-		utils.LogDebug("TerminalExternalService: API success pattern: %s for MAC %s", successResp.Pattern, macAddress)
+		utils.LogDebug("MacRegistrationExternalService: API success pattern: %s for MAC %s", successResp.Pattern, macAddress)
 	}
 
 	return nil

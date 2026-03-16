@@ -8,9 +8,6 @@ WARNING='\033[0;33m'
 ERROR='\033[0;31m'
 NC='\033[0m'
 
-# Setup library path for llama shared libraries
-export LD_LIBRARY_PATH=/app/lib/llama:${LD_LIBRARY_PATH:-}
-
 echo -e "${INFO}[INFO] Starting Sensio Backend (10/10 Production Grade)...${NC}"
 
 # 1. Environment & Path Setup
@@ -32,103 +29,9 @@ LLAMA_CLI="${LLAMA_CLI:-/app/bin/llama-cli}"
 
 mkdir -p "$MODEL_DIR"
 
-# 2. Chromium Auto-Installation
-# Function to check if Chromium exists at any known path
-find_chromium() {
-    local paths=(
-        "/usr/bin/chromium"
-        "/usr/bin/chromium-browser"
-        "/usr/bin/google-chrome"
-        "/usr/bin/google-chrome-stable"
-        "/data/data/com.termux/files/usr/bin/chromium"
-        "/data/data/com.termux/files/usr/bin/chromium-browser"
-    )
-    for path in "${paths[@]}"; do
-        if [ -f "$path" ] && [ -x "$path" ]; then
-            echo "$path"
-            return 0
-        fi
-    done
-    return 1
-}
-
-# Function to auto-install Chromium
-install_chromium() {
-    echo -e "${WARNING}[WARNING] Chromium not found. Attempting auto-installation...${NC}"
-    
-    # Detect package manager and OS
-    if command -v apt-get &>/dev/null; then
-        echo -e "${INFO}[INFO] Using apt-get for installation...${NC}"
-        if apt-get update -qq && apt-get install -y -qq --no-install-recommends \
-            chromium \
-            fonts-liberation \
-            libnss3 \
-            libatk-bridge2.0-0 \
-            libcups2 \
-            libdrm2 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxrandr2 \
-            libgbm1 \
-            libasound2 \
-            libpangocairo-1.0-0 \
-            2>/dev/null; then
-            echo -e "${SUCCESS}[SUCCESS] Chromium installed via apt-get.${NC}"
-            return 0
-        fi
-    fi
-    
-    if command -v pkg &>/dev/null; then
-        # Termux Android
-        echo -e "${INFO}[INFO] Detected Termux. Using pkg for installation...${NC}"
-        if pkg install -y chromium 2>/dev/null; then
-            echo -e "${SUCCESS}[SUCCESS] Chromium installed via pkg (Termux).${NC}"
-            return 0
-        fi
-    fi
-    
-    if command -v apt &>/dev/null; then
-        echo -e "${INFO}[INFO] Using apt for installation...${NC}"
-        if apt update -qq && apt install -y -qq --no-install-recommends chromium 2>/dev/null; then
-            echo -e "${SUCCESS}[SUCCESS] Chromium installed via apt.${NC}"
-            return 0
-        fi
-    fi
-    
-    echo -e "${ERROR}[ERROR] Failed to install Chromium. No supported package manager found or installation failed.${NC}"
-    echo -e "${WARNING}[WARNING] PDF generation will be disabled. The app will continue but summary stage may fail.${NC}"
-    return 1
-}
-
-# Check and auto-install Chromium if needed
-CHROMIUM_PATH=""
-if chromium_path=$(find_chromium); then
-    CHROMIUM_PATH="$chromium_path"
-    echo -e "${SUCCESS}[SUCCESS] Chromium found at: ${CHROMIUM_PATH}${NC}"
-else
-    echo -e "${WARNING}[WARNING] Chromium not found in standard paths.${NC}"
-    if install_chromium; then
-        # Try to find it again after installation
-        if chromium_path=$(find_chromium); then
-            CHROMIUM_PATH="$chromium_path"
-            echo -e "${SUCCESS}[SUCCESS] Chromium installed and found at: ${CHROMIUM_PATH}${NC}"
-        else
-            echo -e "${ERROR}[ERROR] Chromium installation succeeded but binary not found in expected paths.${NC}"
-            CHROMIUM_PATH="/usr/bin/chromium"  # Default fallback
-        fi
-    else
-        echo -e "${WARNING}[WARNING] Continuing without Chromium. PDF generation will be disabled.${NC}"
-        CHROMIUM_PATH=""
-    fi
-fi
-
-# Export Chromium path for the application
-export CHROMIUM_PATH="${CHROMIUM_PATH:-/usr/bin/chromium}"
-echo -e "${INFO}[INFO] CHROMIUM_PATH set to: ${CHROMIUM_PATH}${NC}"
-
-# 2. Binary Verification (excluding Chromium - handled separately)
+# 2. Binary Verification
 echo -e "${INFO}[INFO] Verifying binaries...${NC}"
-for bin in "$WHISPER_CLI" "$LLAMA_CLI" "/app/app" "/usr/local/bin/migrate" "/usr/bin/ffmpeg" "/usr/bin/ffprobe"; do
+for bin in "$WHISPER_CLI" "$LLAMA_CLI" "/app/app" "/usr/local/bin/migrate" "/usr/bin/chromium" "/usr/bin/ffmpeg" "/usr/bin/ffprobe"; do
     if [ ! -f "$bin" ]; then
         echo -e "${ERROR}[ERROR] Required binary missing: ${bin}${NC}"
         exit 1
@@ -283,16 +186,12 @@ if [ "${AUTO_MIGRATE:-true}" = "true" ] && [ "${DB_TYPE:-mysql}" = "mysql" ]; th
 fi
 
 # 5. Browser Prewarm
-if [ -n "$CHROMIUM_PATH" ] && [ -f "$CHROMIUM_PATH" ]; then
-    echo -e "${INFO}[INFO] Prewarming Chromium at ${CHROMIUM_PATH}...${NC}"
-    if "$CHROMIUM_PATH" --headless=new --no-sandbox --disable-dev-shm-usage --dump-dom about:blank >/dev/null 2>&1; then
-        echo -e "${SUCCESS}[SUCCESS] Chromium prewarmed.${NC}"
-    else
-        echo -e "${ERROR}[ERROR] Chromium prewarm failed. PDF generation may not work.${NC}"
-        # Don't exit - allow app to continue without PDF generation
-    fi
+echo -e "${INFO}[INFO] Prewarming Chromium...${NC}"
+if /usr/bin/chromium --headless=new --no-sandbox --disable-dev-shm-usage --dump-dom about:blank >/dev/null 2>&1; then
+    echo -e "${SUCCESS}[SUCCESS] Chromium prewarmed.${NC}"
 else
-    echo -e "${WARNING}[WARNING] Chromium not available. Skipping prewarm. PDF generation will be disabled.${NC}"
+    echo -e "${ERROR}[ERROR] Chromium prewarm failed. PDF generation may not work.${NC}"
+    exit 1
 fi
 
 # 6. Final Permissions Audit

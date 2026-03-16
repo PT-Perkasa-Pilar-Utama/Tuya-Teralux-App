@@ -15,19 +15,19 @@ type CommonModule struct {
 	HealthController      *controllers.HealthController
 	CacheController       *controllers.CacheController
 	DocsController        *controllers.DocsController
-	MqttService           *infrastructure.MqttService
-	BigExternalController *controllers.BigExternalController
+	MqttService                  *infrastructure.MqttService
+	DeviceInfoExternalController *controllers.DeviceInfoExternalController
 }
 
 // NewCommonModule initializes the common domain components
 func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService) *CommonModule {
-	bigSvc := services.NewBigExternalService()
+	bigSvc := services.NewDeviceInfoExternalService()
 	return &CommonModule{
 		HealthController:      controllers.NewHealthController(),
 		CacheController:       controllers.NewCacheController(badger, vector),
-		DocsController:        controllers.NewDocsController(),
-		MqttService:           mqttSvc,
-		BigExternalController: controllers.NewBigExternalController(bigSvc),
+		DocsController:               controllers.NewDocsController(),
+		MqttService:                  mqttSvc,
+		DeviceInfoExternalController: controllers.NewDeviceInfoExternalController(bigSvc),
 	}
 }
 
@@ -42,5 +42,5 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)
-	routes.SetupBigExternalRoutes(protected, m.BigExternalController)
+	routes.SetupDeviceInfoExternalRoutes(protected, m.DeviceInfoExternalController)
 }

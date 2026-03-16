@@ -11,6 +11,7 @@ import (
 type BadgerStore interface {
 	Set(key string, value []byte) error
 	SetWithTTL(key string, value []byte, ttl time.Duration) error
+	SetIfAbsentWithTTL(key string, value []byte, ttl time.Duration) (bool, error)
 	SetPreserveTTL(key string, value []byte) error
 	GetWithTTL(key string) ([]byte, time.Duration, error)
 	Delete(key string) error
@@ -60,6 +61,17 @@ func (c *BadgerTaskCache) SetWithTTL(taskID string, status any, ttl time.Duratio
 	return c.badger.Set(c.key(taskID), data)
 }
 
+func (c *BadgerTaskCache) SetIfAbsentWithTTL(taskID string, status any, ttl time.Duration) (bool, error) {
+	if c == nil || c.badger == nil {
+		return false, nil
+	}
+	data, err := json.Marshal(status)
+	if err != nil {
+		return false, err
+	}
+	return c.badger.SetIfAbsentWithTTL(c.key(taskID), data, ttl)
+}
+
 func (c *BadgerTaskCache) SetPreserveTTL(taskID string, status any) error {
 	if c == nil || c.badger == nil {
 		return nil
@@ -86,4 +98,11 @@ func (c *BadgerTaskCache) GetWithTTL(taskID string, out any) (time.Duration, boo
 		return 0, false, err
 	}
 	return ttl, true, nil
+}
+
+func (c *BadgerTaskCache) Delete(taskID string) error {
+	if c == nil || c.badger == nil {
+		return nil
+	}
+	return c.badger.Delete(c.key(taskID))
 }

@@ -42,6 +42,15 @@ func (m *MockBadgerService) SetWithTTL(key string, value []byte, ttl time.Durati
 	return nil
 }
 
+func (m *MockBadgerService) SetIfAbsentWithTTL(key string, value []byte, ttl time.Duration) (bool, error) {
+	if _, exists := m.data[key]; exists {
+		return false, nil
+	}
+	m.data[key] = value
+	m.ttls[key] = ttl
+	return true, nil
+}
+
 func (m *MockBadgerService) SetPreserveTTL(key string, value []byte) error {
 	if m.SetPreserveTTLFunc != nil {
 		return m.SetPreserveTTLFunc(key, value)

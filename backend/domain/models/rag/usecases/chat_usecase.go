@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/infrastructure"
@@ -72,6 +73,32 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 	}
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("prompt is empty")
+	}
+
+	// 0. Global Action Deduplication (Semantic Intent)
+	if u.badger != nil {
+		dedupStart := time.Now()
+		// Normalize prompt: trim, lowercase, remove extra spaces
+		normalizedPrompt := strings.ToLower(strings.Join(strings.Fields(prompt), " "))
+
+		// Bucket by 3 seconds window
+		timeBucket := time.Now().Unix() / 3
+		// Include terminalID to scope per-device
+		dedupInput := fmt.Sprintf("%s:%s:%s:%d", uid, terminalID, normalizedPrompt, timeBucket)
+		dedupHash := sha256.Sum256([]byte(dedupInput))
+		dedupKey := fmt.Sprintf("chat:dedup:%x", dedupHash)
+
+		isNew, err := u.badger.SetIfAbsentWithTTL(dedupKey, []byte("1"), 3*time.Second)
+		if err != nil {
+			utils.LogError("ChatUseCase: Deduplication check failed | error=%v", err)
+		} else if !isNew {
+			utils.LogInfo("ChatUseCase: Dropping duplicate prompt | dedup_key=%s | duration_ms=%d", dedupKey, time.Since(dedupStart).Milliseconds())
+			return &dtos.RAGChatResponseDTO{
+				Response:       "Mengerti, saya sedang memproses permintaan Anda.",
+				IsBlocked:      false,
+				HTTPStatusCode: 200,
+			}, nil
+		}
 	}
 
 	// 1. Get History

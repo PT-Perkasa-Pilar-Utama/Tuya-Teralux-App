@@ -131,9 +131,15 @@ func (uc *deviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceState
 	// Convert to DTO
 	var commandDTOs = make([]dtos.DeviceStateCommandDTO, 0, len(state.LastCommands))
 	for _, cmd := range state.LastCommands {
+		// Fix JSON numeric type inconsistency (float64 -> int)
+		val := cmd.Value
+		if f, ok := val.(float64); ok && f == float64(int(f)) {
+			val = int(f)
+		}
+		
 		commandDTOs = append(commandDTOs, dtos.DeviceStateCommandDTO{
 			Code:  cmd.Code,
-			Value: cmd.Value,
+			Value: val,
 		})
 	}
 

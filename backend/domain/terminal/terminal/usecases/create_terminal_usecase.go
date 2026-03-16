@@ -15,22 +15,22 @@ import (
 	"github.com/google/uuid"
 )
 
-// ITerminalExternalService defines the interface for third-party terminal operations
-type ITerminalExternalService interface {
+// IMacRegistrationExternalService defines the interface for third-party terminal operations
+type IMacRegistrationExternalService interface {
 	ProcInsertMacAddress(roomID int, macAddress string, deviceTypeID int) error
 }
 
 // CreateTerminalUseCase handles the business logic for creating a new terminal
 type CreateTerminalUseCase struct {
 	repository      repositories.ITerminalRepository
-	externalService ITerminalExternalService
+	externalService IMacRegistrationExternalService
 	mqttClient      *services.MqttAuthClient
 }
 
 // NewCreateTerminalUseCase creates a new instance of CreateTerminalUseCase
 func NewCreateTerminalUseCase(
 	repository repositories.ITerminalRepository,
-	externalService ITerminalExternalService,
+	externalService IMacRegistrationExternalService,
 	mqttClient *services.MqttAuthClient,
 ) *CreateTerminalUseCase {
 	return &CreateTerminalUseCase{

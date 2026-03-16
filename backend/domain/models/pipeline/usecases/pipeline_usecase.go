@@ -120,6 +120,38 @@ func (u *pipelineUseCase) ExecutePipelineWithSession(ctx context.Context, inputP
 			}
 			utils.LogInfo("Pipeline: Existing task %s found for IdempotencyKey %s (session: %s) but it is in 'failed' state or could not be loaded. Starting new task.", existingTaskID, idempotencyKey, sessionID)
 		}
+
+		// 2. Atomic Idempotency Check & Set
+		// We use a temporary lock key to ensure only one task is created for this hash
+		lockKey := "lock:" + idempotencyHash
+		isNew, err := u.cache.SetIfAbsentWithTTL(lockKey, []byte("1"), 30*time.Second)
+		if err != nil {
+			utils.LogError("Pipeline: Failed to acquire idempotency lock | hash=%s | error=%v", idempotencyHash, err)
+		} else if !isNew {
+			// Lock exists, meaning another request is currently creating the task or it was just created
+			// Wait briefly and check if the actual task ID has been set
+			for i := 0; i < 5; i++ {
+				time.Sleep(200 * time.Millisecond)
+				var currentTaskID string
+				_, exists, _ := u.cache.GetWithTTL(idempotencyHash, &currentTaskID)
+				if exists && currentTaskID != "" && currentTaskID != existingTaskID {
+					currentStatus, _ := u.store.Get(currentTaskID)
+					if currentStatus == nil {
+						var cachedStatus pipelineDtos.PipelineStatusDTO
+						if _, cachedExists, _ := u.cache.GetWithTTL(currentTaskID, &cachedStatus); cachedExists {
+							currentStatus = &cachedStatus
+						}
+					}
+					if currentStatus != nil && currentStatus.OverallStatus != "failed" {
+						utils.LogInfo("Pipeline: Duplicate request detected via lock | hash=%s | taskID=%s", idempotencyHash, currentTaskID)
+						return currentTaskID, nil
+					}
+				}
+			}
+			utils.LogWarn("Pipeline: Lock acquired by another process but task was not created or failed. Proceeding with caution.")
+		}
+		// Ensure we release the lock if we created it but later decided not to proceed or finished
+		defer u.cache.Delete(lockKey)
 	}
 
 	taskID := uuid.New().String()
