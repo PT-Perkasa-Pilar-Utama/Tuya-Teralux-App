@@ -5,7 +5,7 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.di.NetworkModule
-import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
+import com.example.whisperandroid.domain.repository.TerminalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,15 +15,20 @@ data class DashboardUiState(
     val isBackgroundModeEnabled: Boolean = false,
     val isOverlayPermissionGranted: Boolean = false,
     val isTuyaSyncReady: Boolean = false,
-    val error: String? = null
+    val aiProvider: String? = null,
+    val isSavingAiProvider: Boolean = false,
+    val error: String? = null,
+    val shouldRedirectToRegister: Boolean = false
 )
 
 class DashboardViewModel(
-    private val authenticateUseCase: AuthenticateUseCase,
+    private val authenticateUseCase: com.example.whisperandroid.domain.usecase.AuthenticateUseCase,
     private val getTuyaDevicesUseCase:
         com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase,
     private val backgroundAssistantModeStore:
         com.example.whisperandroid.data.local.BackgroundAssistantModeStore,
+    private val terminalRepository: TerminalRepository,
+    private val tokenManager: com.example.whisperandroid.data.local.TokenManager,
     private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
@@ -36,6 +41,7 @@ class DashboardViewModel(
     init {
         observeBackgroundMode()
         observeTuyaSyncReady()
+        loadCurrentAiProvider()
     }
 
     private fun observeTuyaSyncReady() {
@@ -52,6 +58,61 @@ class DashboardViewModel(
         viewModelScope.launch {
             backgroundAssistantModeStore.isEnabled.collect { enabled ->
                 _uiState.value = _uiState.value.copy(isBackgroundModeEnabled = enabled)
+            }
+        }
+    }
+
+    fun loadCurrentAiProvider() {
+        viewModelScope.launch {
+            // Get MAC address from token manager (source of truth for terminal lookup)
+            val macAddress = tokenManager.getMacAddress()
+            if (macAddress.isNullOrEmpty()) {
+                return@launch
+            }
+
+            val result = terminalRepository.getTerminalByMac(macAddress)
+            result.onSuccess { registration ->
+                _uiState.value = _uiState.value.copy(
+                    aiProvider = registration?.aiProvider
+                )
+            }
+        }
+    }
+
+    fun updateAiProvider(provider: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isSavingAiProvider = true,
+                error = null
+            )
+
+            val terminalId = tokenManager.getTerminalId()
+            if (terminalId.isNullOrEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    isSavingAiProvider = false,
+                    error = "Terminal ID not found",
+                    shouldRedirectToRegister = true
+                )
+                return@launch
+            }
+
+            val result = terminalRepository.updateTerminal(terminalId, provider)
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isSavingAiProvider = false,
+                    aiProvider = provider
+                )
+            }.onFailure { e ->
+                val errorMsg = e.message ?: "Failed to update AI provider"
+                // Check if error is 404 - Terminal not found
+                val isNotFound = errorMsg.contains("404") || errorMsg.contains("not found", ignoreCase = true) ||
+                    errorMsg.contains("Terminal not found", ignoreCase = true)
+
+                _uiState.value = _uiState.value.copy(
+                    isSavingAiProvider = false,
+                    error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg,
+                    shouldRedirectToRegister = isNotFound
+                )
             }
         }
     }

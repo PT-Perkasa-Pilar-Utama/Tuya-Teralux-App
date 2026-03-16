@@ -13,7 +13,8 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 
 class PipelineRepositoryImpl(
-    private val api: PipelineApi
+    private val api: PipelineApi,
+    private val apiKey: String
 ) : PipelineRepository {
     override suspend fun executePipeline(
         audioFile: File,
@@ -50,7 +51,8 @@ class PipelineRepositoryImpl(
                 participants = participants,
                 macAddress = macAddress,
                 token = "Bearer $token",
-                idempotencyKey = idempotencyKey
+                idempotencyKey = idempotencyKey,
+                apiKey = apiKey
             )
 
             val taskId = response.data?.taskId
@@ -71,7 +73,7 @@ class PipelineRepositoryImpl(
     ): Flow<Resource<PipelineStatusDto>> = flow {
         emit(Resource.Loading())
         try {
-            val response = api.getPipelineStatus(taskId, "Bearer $token")
+            val response = api.getPipelineStatus(taskId, "Bearer $token", apiKey)
             val statusData = response.data
             if (response.status && statusData != null) {
                 emit(Resource.Success(statusData))
@@ -118,7 +120,8 @@ class PipelineRepositoryImpl(
                     macAddress = macAddress,
                     idempotencyKey = idempotencyKey
                 ),
-                "Bearer $token"
+                "Bearer $token",
+                apiKey
             )
             val taskId = response.data?.taskId
             if (response.status && taskId != null) {

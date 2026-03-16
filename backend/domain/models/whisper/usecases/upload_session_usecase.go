@@ -9,6 +9,7 @@ import (
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/whisper/dtos"
+	whisperutils "sensio/domain/models/whisper/utils"
 	"sort"
 	"sync"
 	"time"
@@ -85,12 +86,12 @@ func (u *uploadSessionUseCase) CreateSession(req dtos.CreateUploadSessionRequest
 
 	chunkSize := req.ChunkSizeBytes
 	if chunkSize <= 0 {
-		chunkSize = u.cfg.ChunkUploadDefaultChunkMB * 1024 * 1024
+		chunkSize = int(u.cfg.ChunkUploadDefaultChunkBytes)
 	}
 
-	// Clamp chunk size
-	minChunk := u.cfg.ChunkUploadMinChunkMB * 1024 * 1024
-	maxChunk := u.cfg.ChunkUploadMaxChunkMB * 1024 * 1024
+	// Clamp chunk size using byte-based config
+	minChunk := int(u.cfg.ChunkUploadMinChunkBytes)
+	maxChunk := int(u.cfg.ChunkUploadMaxChunkBytes)
 	if chunkSize < minChunk {
 		chunkSize = minChunk
 	}
@@ -174,18 +175,51 @@ func (u *uploadSessionUseCase) UploadChunk(sessionID string, chunkIndex int, own
 	}
 	defer out.Close()
 
+	// Log upload start with metadata for observability
+	utils.LogInfo("UploadChunk: starting chunk %d for session %s (expected size: %d bytes)", chunkIndex, sessionID, func() int64 {
+		if chunkIndex == meta.TotalChunks-1 {
+			return meta.TotalSizeBytes - (int64(chunkIndex) * int64(meta.ChunkSizeBytes))
+		}
+		return int64(meta.ChunkSizeBytes)
+	}())
+
 	n, err := io.Copy(out, reader)
 	if err != nil {
+		// Check if this is a retryable upload interruption
+		if whisperutils.IsRetryableUploadError(err) {
+			utils.LogError("UploadChunk: retryable interruption while writing chunk %d for session %s (received %d bytes before failure): %v", chunkIndex, sessionID, n, err)
+			// Remove partially written chunk file
+			_ = os.Remove(chunkPath)
+			return nil, fmt.Errorf("upload interrupted: %w", err)
+		}
+
+		utils.LogError("UploadChunk: non-retryable failure writing chunk %d for session %s (received %d bytes): %v", chunkIndex, sessionID, n, err)
 		return nil, fmt.Errorf("failed to write chunk: %v", err)
 	}
 
-	// Fase 3: Byte size validation
+	utils.LogDebug("UploadChunk: successfully wrote chunk %d for session %s (%d bytes)", chunkIndex, sessionID, n)
+
+	// Fase 3: Byte size validation - EXACT SIZE MATCH REQUIRED
 	expectedSize := int64(meta.ChunkSizeBytes)
 	if chunkIndex == meta.TotalChunks-1 {
 		expectedSize = meta.TotalSizeBytes - (int64(chunkIndex) * int64(meta.ChunkSizeBytes))
 	}
-	if n > expectedSize {
-		return nil, fmt.Errorf("chunk size exceeds expected size (got %d, expected max %d)", n, expectedSize)
+
+	// Enforce exact size match for all chunks (including last chunk)
+	if n != expectedSize {
+		// Delete the incorrectly-sized chunk file
+		_ = os.Remove(chunkPath)
+
+		// Log detailed information for observability
+		utils.LogError("UploadChunk: chunk size mismatch for session %s chunk %d (expected %d bytes, got %d bytes, difference: %d bytes)",
+			sessionID, chunkIndex, expectedSize, n, expectedSize-n)
+		
+		// Return 408 for short chunks (likely interrupted upload)
+		if n < expectedSize {
+			return nil, fmt.Errorf("upload interrupted: chunk %d incomplete (expected %d bytes, got %d bytes)", chunkIndex, expectedSize, n)
+		}
+		// Return 409 for oversized chunks (should not happen with proper client)
+		return nil, fmt.Errorf("chunk size mismatch: chunk %d exceeds expected size (expected %d bytes, got %d bytes)", chunkIndex, expectedSize, n)
 	}
 
 	// Update metadata with actual received bytes
@@ -223,6 +257,16 @@ func (u *uploadSessionUseCase) GetSessionStatus(sessionID string, ownerUID strin
 		return nil, fmt.Errorf("unauthorized session access")
 	}
 
+	// Run session integrity validation to detect corrupt legacy sessions
+	if err := u.validateSessionIntegrity(meta); err != nil {
+		utils.LogError("GetSessionStatus: session %s integrity validation failed: %v", sessionID, err)
+		// Invalidate the corrupt session
+		if invalidateErr := u.invalidateCorruptSession(meta); invalidateErr != nil {
+			utils.LogError("GetSessionStatus: failed to invalidate corrupt session %s: %v", sessionID, invalidateErr)
+		}
+		return nil, fmt.Errorf("upload session invalidated due to incomplete chunk data: %v", err)
+	}
+
 	missing := u.calculateMissingRanges(meta)
 
 	return &dtos.UploadSessionResponseDTO{
@@ -251,6 +295,16 @@ func (u *uploadSessionUseCase) FinalizeSession(sessionID string, ownerUID string
 		return nil, fmt.Errorf("unauthorized session access")
 	}
 
+	// Run session integrity validation before finalization
+	if err := u.validateSessionIntegrity(meta); err != nil {
+		utils.LogError("FinalizeSession: session %s integrity validation failed: %v", sessionID, err)
+		// Invalidate the corrupt session
+		if invalidateErr := u.invalidateCorruptSession(meta); invalidateErr != nil {
+			utils.LogError("FinalizeSession: failed to invalidate corrupt session %s: %v", sessionID, invalidateErr)
+		}
+		return nil, fmt.Errorf("upload session invalidated due to incomplete chunk data: %v", err)
+	}
+
 	// Fase 3: Transition to ready if all chunks ok
 	if meta.State != "ready" && len(meta.ReceivedChunks) < meta.TotalChunks {
 		return nil, fmt.Errorf("session not ready: %d/%d chunks received", len(meta.ReceivedChunks), meta.TotalChunks)
@@ -270,17 +324,33 @@ func (u *uploadSessionUseCase) FinalizeSession(sessionID string, ownerUID string
 	}
 	defer out.Close()
 
+	// Track bytes copied for merged file validation
+	var totalCopied int64
+
 	for i := 0; i < meta.TotalChunks; i++ {
 		chunkPath := filepath.Join(u.uploadDir, sessionID, fmt.Sprintf("chunk_%d", i))
 		chunkFile, err := os.Open(chunkPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open chunk %d: %v", i, err)
 		}
-		_, err = io.Copy(out, chunkFile)
+		copied, err := io.Copy(out, chunkFile)
 		chunkFile.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to merge chunk %d: %v", i, err)
 		}
+		totalCopied += copied
+	}
+
+	// Validate merged file size equals expected total size
+	if totalCopied != meta.TotalSizeBytes {
+		utils.LogError("FinalizeSession: merged file size mismatch for session %s (expected %d bytes, got %d bytes)", 
+			sessionID, meta.TotalSizeBytes, totalCopied)
+		// Invalidate the session and remove merged file
+		_ = os.Remove(mergedPath)
+		if invalidateErr := u.invalidateCorruptSession(meta); invalidateErr != nil {
+			utils.LogError("FinalizeSession: failed to invalidate corrupt session %s: %v", sessionID, invalidateErr)
+		}
+		return nil, fmt.Errorf("upload session invalidated: merged file size mismatch (expected %d, got %d)", meta.TotalSizeBytes, totalCopied)
 	}
 
 	meta.State = "consumed"
@@ -302,6 +372,98 @@ func (u *uploadSessionUseCase) calculateReceivedBytes(meta *sessionMetadata) int
 		total += size
 	}
 	return total
+}
+
+// validateSessionIntegrity validates the integrity of an upload session
+// Returns error if session is corrupt and should be invalidated
+func (u *uploadSessionUseCase) validateSessionIntegrity(meta *sessionMetadata) error {
+	sessionDir := filepath.Join(u.uploadDir, meta.ID)
+	
+	// Validate each recorded chunk index has a corresponding file with correct size
+	for chunkIndex, storedSize := range meta.ReceivedChunks {
+		chunkPath := filepath.Join(sessionDir, fmt.Sprintf("chunk_%d", chunkIndex))
+		
+		// Check if chunk file exists
+		fileInfo, err := os.Stat(chunkPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				utils.LogError("validateSessionIntegrity: chunk %d file missing for session %s", chunkIndex, meta.ID)
+				return fmt.Errorf("chunk %d file missing", chunkIndex)
+			}
+			return fmt.Errorf("chunk %d file stat error: %v", chunkIndex, err)
+		}
+		
+		actualSize := fileInfo.Size()
+		
+		// Validate file size matches stored metadata
+		if actualSize != storedSize {
+			utils.LogError("validateSessionIntegrity: chunk %d size mismatch for session %s (stored: %d, actual: %d)", 
+				chunkIndex, meta.ID, storedSize, actualSize)
+			return fmt.Errorf("chunk %d size mismatch (stored: %d, actual: %d)", chunkIndex, storedSize, actualSize)
+		}
+		
+		// Validate chunk size matches expected size for this index
+		expectedSize := int64(meta.ChunkSizeBytes)
+		if chunkIndex == meta.TotalChunks-1 {
+			expectedSize = meta.TotalSizeBytes - (int64(chunkIndex) * int64(meta.ChunkSizeBytes))
+		}
+		
+		if actualSize != expectedSize {
+			utils.LogError("validateSessionIntegrity: chunk %d has wrong size for session %s (expected: %d, actual: %d)", 
+				chunkIndex, meta.ID, expectedSize, actualSize)
+			return fmt.Errorf("chunk %d has wrong size (expected: %d, actual: %d)", chunkIndex, expectedSize, actualSize)
+		}
+	}
+	
+	// Validate total received bytes
+	totalReceived := u.calculateReceivedBytes(meta)
+	
+	// If all chunks are present, total must match exactly
+	if len(meta.ReceivedChunks) == meta.TotalChunks {
+		if totalReceived != meta.TotalSizeBytes {
+			utils.LogError("validateSessionIntegrity: total bytes mismatch for session %s (expected: %d, got: %d)", 
+				meta.ID, meta.TotalSizeBytes, totalReceived)
+			return fmt.Errorf("total bytes mismatch (expected: %d, got: %d)", meta.TotalSizeBytes, totalReceived)
+		}
+	} else {
+		// Partial upload: total must not exceed expected
+		expectedPartial := int64(0)
+		for i := 0; i < meta.TotalChunks; i++ {
+			if _, ok := meta.ReceivedChunks[i]; ok {
+				expectedSize := int64(meta.ChunkSizeBytes)
+				if i == meta.TotalChunks-1 {
+					expectedSize = meta.TotalSizeBytes - (int64(i) * int64(meta.ChunkSizeBytes))
+				}
+				expectedPartial += expectedSize
+			}
+		}
+		
+		if totalReceived != expectedPartial {
+			utils.LogError("validateSessionIntegrity: partial upload bytes mismatch for session %s (expected: %d, got: %d)", 
+				meta.ID, expectedPartial, totalReceived)
+			return fmt.Errorf("partial upload bytes mismatch (expected: %d, got: %d)", expectedPartial, totalReceived)
+		}
+	}
+	
+	return nil
+}
+
+// invalidateCorruptSession marks a session as corrupt and cleans up its resources
+func (u *uploadSessionUseCase) invalidateCorruptSession(meta *sessionMetadata) error {
+	// Set session state to aborted
+	meta.State = "aborted"
+	
+	// Remove chunk directory
+	sessionDir := filepath.Join(u.uploadDir, meta.ID)
+	_ = os.RemoveAll(sessionDir)
+	
+	// Delete metadata from cache
+	key := fmt.Sprintf("cache:upload:session:%s", meta.ID)
+	_ = u.cache.Delete(key)
+	
+	utils.LogError("invalidateCorruptSession: invalidated session %s due to corruption", meta.ID)
+	
+	return nil
 }
 
 func (u *uploadSessionUseCase) CleanupExpiredSessions(now time.Time) (int, error) {

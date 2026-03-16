@@ -62,20 +62,25 @@ func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStat
 // return error An error if fetching the device list fails.
 // @throws error If the API returns a failure (e.g., invalid token).
 func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error) {
+	ucStart := time.Now()
+	
 	// Get config
 	config := utils.GetConfig()
 
 	// Build cache key (namespaced to avoid collisions)
 	cacheKey := fmt.Sprintf("cache:tuya:devices:uid:%s:cat:%s:page:%d:limit:%d", uid, category, page, limit)
 	if uc.cache != nil {
+		cacheStart := time.Now()
 		if cached, err := uc.cache.Get(cacheKey); err == nil && cached != nil {
 			var cachedResp dtos.TuyaDevicesResponseDTO
 			if err := json.Unmarshal(cached, &cachedResp); err == nil {
-				utils.LogDebug("GetAllDevices: returning cached devices for key=%s", cacheKey)
+				utils.LogDebug("GetAllDevices: returning cached devices for key=%s | cache_duration_ms=%d", cacheKey, time.Since(cacheStart).Milliseconds())
 
 				// Ensure Vector DB is still populated even on cache hit
 				// This handles cases where Badger cache exists but Vector DB was cleared or not initialized
-				go uc.populateVectorDB(uid, &cachedResp)
+				// Only update assistant aggregate for full snapshots
+				isFull := isFullSnapshotRequest(category, page, limit)
+				go uc.populateVectorDB(uid, &cachedResp, isFull)
 
 				return &cachedResp, nil
 			}
@@ -122,43 +127,16 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		return nil, fmt.Errorf("Gateway API failed to list devices: %s (code: %d)", devicesResponse.Msg, devicesResponse.Code)
 	}
 
-	// DEBUG: Log device attributes and SPECIFICATIONS to find correct command values
-	for _, dev := range devicesResponse.Result {
-		utils.LogDebug("DEVICE DEBUG: ID=%s, Name=%s, Category=%s", dev.ID, dev.Name, dev.Category)
-		for _, st := range dev.Status {
-			utils.LogDebug("   STATUS: Code=%s, Value=%v (Type: %T)", st.Code, st.Value, st.Value)
+	// DEBUG: Log device attributes only (removed spec logging for performance)
+	// Specs are fetched on-demand when controlling devices, not during list
+	if len(devicesResponse.Result) <= 5 {
+		// Only log detailed status for small device sets (< 5 devices)
+		for _, dev := range devicesResponse.Result {
+			utils.LogDebug("DEVICE: ID=%s, Name=%s, Category=%s, Online=%v", dev.ID, dev.Name, dev.Category, dev.Online)
 		}
-
-		// Fetch and Log Specifications
-		specTimestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
-		specUrlPath := fmt.Sprintf("/v1.0/iot-03/devices/%s/specification", dev.ID)
-		specFullURL := config.TuyaBaseURL + specUrlPath
-
-		specEmptyContent := ""
-		hSpec := sha256.New()
-		hSpec.Write([]byte(specEmptyContent))
-		specContentHash := hex.EncodeToString(hSpec.Sum(nil))
-
-		specStringToSign := tuya_utils.GenerateTuyaStringToSign("GET", specContentHash, "", specUrlPath)
-		specSignature := tuya_utils.GenerateTuyaSignature(config.TuyaClientID, config.TuyaClientSecret, accessToken, specTimestamp, specStringToSign)
-
-		specHeaders := map[string]string{
-			"client_id":    config.TuyaClientID,
-			"sign":         specSignature,
-			"t":            specTimestamp,
-			"sign_method":  signMethod,
-			"access_token": accessToken,
-		}
-
-		specResp, errSpec := uc.service.FetchDeviceSpecification(specFullURL, specHeaders)
-		if errSpec == nil && specResp.Success {
-			utils.LogDebug("   SPECIFICATION for ID=%s:", dev.ID)
-			for _, fn := range specResp.Result.Functions {
-				utils.LogDebug("      FUNCTION: Code=%s, Type=%s, Values=%s", fn.Code, fn.Type, fn.Values)
-			}
-		} else {
-			utils.LogError("   FAILED to fetch spec for ID=%s: %v", dev.ID, errSpec)
-		}
+	} else {
+		// For larger sets, just log count
+		utils.LogDebug("DEVICES: Fetched %d devices for user %s", len(devicesResponse.Result), uid)
 	}
 
 	// Transform entities to DTOs
@@ -194,13 +172,17 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 			"access_token": accessToken,
 		}
 
+		batchStatusStart := time.Now()
 		batchStatusResponse, err := uc.service.FetchBatchDeviceStatus(statusFullURL, statusHeaders)
+		batchStatusDuration := time.Since(batchStatusStart)
+		
 		if err == nil && batchStatusResponse.Success {
 			for _, s := range batchStatusResponse.Result {
 				statusMap[s.ID] = s.IsOnline
 			}
+			utils.LogDebug("GetAllDevices: Batch status fetch completed | devices=%d | duration_ms=%d", len(deviceIDs), batchStatusDuration.Milliseconds())
 		} else {
-			utils.LogWarn("WARN: Failed to fetch batch status: %v", err)
+			utils.LogWarn("GetAllDevices: Failed to fetch batch status: %v | duration_ms=%d", err, batchStatusDuration.Milliseconds())
 		}
 	}
 
@@ -419,38 +401,55 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 
 	// Cache the response for faster retrieval and to make it available for LLMs
 	if uc.cache != nil {
+		cacheSetStart := time.Now()
 		if b, err := json.Marshal(resp); err == nil {
 			if err := uc.cache.Set(cacheKey, b); err != nil {
 				utils.LogWarn("GetAllDevices: failed to set cache for key %s: %v", cacheKey, err)
 			} else {
-				utils.LogDebug("GetAllDevices: cached response under key %s", cacheKey)
+				utils.LogDebug("GetAllDevices: cached response under key %s | cache_set_duration_ms=%d", cacheKey, time.Since(cacheSetStart).Milliseconds())
 			}
 		}
 	}
 
 	// Upsert to Vector DB so LLMs can find device DTOs and learn format
+	// Only update assistant aggregate for full (non-paginated, non-filtered) requests
 	if uc.vectorSvc != nil {
-		go uc.populateVectorDB(uid, resp)
+		isFull := isFullSnapshotRequest(category, page, limit)
+		go uc.populateVectorDB(uid, resp, isFull)
 	}
+
+	totalDuration := time.Since(ucStart)
+	utils.LogInfo("GetAllDevices: completed | uid=%s | devices=%d | total_duration_ms=%d", uid, len(deviceDTOs), totalDuration.Milliseconds())
 
 	return resp, nil
 }
 
 // populateVectorDB handles the background task of updating the vector store with device information.
-func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.TuyaDevicesResponseDTO) {
+// Only updates the assistant aggregate key for full (non-paginated, non-filtered) requests.
+func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.TuyaDevicesResponseDTO, isFullSnapshot bool) {
 	if uc.vectorSvc == nil {
 		return
 	}
 
-	// Upsert aggregate document
-	if aggB, err := json.Marshal(resp); err == nil {
-		aggID := fmt.Sprintf("tuya:devices:uid:%s", uid)
-		if err := uc.vectorSvc.Upsert(aggID, string(aggB), nil); err != nil {
-			utils.LogError("populateVectorDB: failed to upsert aggregate doc: %v", err)
+	// Only update assistant aggregate key for full snapshots
+	if isFullSnapshot {
+		// Upsert assistant-safe aggregate document
+		snapshot := uc.buildAssistantSafeSnapshot(resp)
+		if aggB, err := json.Marshal(snapshot); err == nil {
+			aggID := fmt.Sprintf("tuya:devices:uid:%s", uid)
+			if err := uc.vectorSvc.Upsert(aggID, string(aggB), nil); err != nil {
+				utils.LogError("populateVectorDB: failed to upsert assistant aggregate doc: %v", err)
+			} else {
+				utils.LogInfo("populateVectorDB: updated assistant aggregate with %d devices for user %s | vector_snapshot_scope=full | assistant_safe_device_count=%d", snapshot.TotalDevices, uid, snapshot.TotalDevices)
+			}
+		} else {
+			utils.LogError("populateVectorDB: failed to marshal assistant snapshot: %v", err)
 		}
+	} else {
+		utils.LogDebug("populateVectorDB: skipped assistant aggregate update (partial request) | vector_snapshot_scope=partial_skipped")
 	}
 
-	// Upsert per-device docs
+	// Upsert per-device docs (always, for search functionality)
 	for _, d := range resp.Devices {
 		// Construct Search-Optimized String
 		// Format: "Device: [Name] | Category: [Human-Readable Category] | Room: [RoomID] | Product: [ProductName] | Hub: [HubName] | ID: [ID]"
@@ -478,4 +477,37 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 		}
 	}
 	utils.LogDebug("populateVectorDB: successfully updated %d documents with enriched context for user %s", len(resp.Devices)+1, uid)
+}
+
+// buildAssistantSafeSnapshot creates a sanitized snapshot of devices for assistant/vector storage.
+// Excludes sensitive fields: local_key, ip, gateway_id, icon, create_time, update_time
+func (uc *tuyaGetAllDevicesUseCase) buildAssistantSafeSnapshot(resp *dtos.TuyaDevicesResponseDTO) *dtos.AssistantSafeDevicesSnapshotDTO {
+	snapshot := &dtos.AssistantSafeDevicesSnapshotDTO{
+		Devices:      make([]dtos.AssistantSafeDeviceDTO, 0, len(resp.Devices)),
+		TotalDevices: resp.TotalDevices,
+		UpdatedAt:    time.Now().UnixMilli(),
+		Source:       "tuya_api_full_snapshot",
+	}
+
+	for _, dev := range resp.Devices {
+		safeDev := dtos.AssistantSafeDeviceDTO{
+			ID:             dev.ID,
+			RemoteID:       dev.RemoteID,
+			Name:           dev.Name,
+			Category:       dev.Category,
+			RemoteCategory: dev.RemoteCategory,
+			ProductName:    dev.ProductName,
+			Online:         dev.Online,
+			Status:         dev.Status,
+		}
+		snapshot.Devices = append(snapshot.Devices, safeDev)
+	}
+
+	return snapshot
+}
+
+// isFullSnapshotRequest checks if the request parameters represent a full unfiltered device list.
+// Only full snapshots should update the assistant aggregate vector key.
+func isFullSnapshotRequest(category string, page, limit int) bool {
+	return category == "" && page == 0 && limit == 0
 }

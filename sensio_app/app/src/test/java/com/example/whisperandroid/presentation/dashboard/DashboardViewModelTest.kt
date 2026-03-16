@@ -2,8 +2,10 @@ package com.example.whisperandroid.presentation.dashboard
 
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.data.local.BackgroundAssistantModeStore
+import com.example.whisperandroid.data.local.TokenManager
 import com.example.whisperandroid.data.remote.dto.TuyaDeviceDto
 import com.example.whisperandroid.data.remote.dto.TuyaDevicesResponseDto
+import com.example.whisperandroid.domain.repository.TerminalRepository
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
 import com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
 import io.mockk.coEvery
@@ -66,12 +68,14 @@ class DashboardViewModelTest {
                 total = 1
             )
         )
-        val readyFlow = MutableStateFlow(false)
         io.mockk.every { modeStore.isEnabled } returns modeFlow
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>(relaxed = true)
+        val tuyaSyncReadyFlow = MutableStateFlow(false)
 
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore, readyFlow)
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
         vm.fetchDevices(force = true)
-        readyFlow.value = true // Simulate the change we expect
+        tuyaSyncReadyFlow.value = true // Simulate the change we expect
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -113,8 +117,10 @@ class DashboardViewModelTest {
             Result.failure(Exception("sync failed"))
         )
 
-        val readyFlow = MutableStateFlow(true)
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore, readyFlow)
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>(relaxed = true)
+        val tuyaSyncReadyFlow = MutableStateFlow(true)
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
         vm.fetchDevices(force = true)
         advanceUntilIdle()
         vm.fetchDevices(force = true)

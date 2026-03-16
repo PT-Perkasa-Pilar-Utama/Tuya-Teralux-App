@@ -187,6 +187,10 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 
 // Whisper Implementation
 
+// OpenAIDirectUploadLimitBytes is the maximum file size for direct OpenAI Whisper uploads.
+// OpenAI Whisper has a strict 25MB limit for direct uploads.
+const OpenAIDirectUploadLimitBytes = 25 * 1024 * 1024
+
 func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.config.OpenAIApiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY is not configured")
@@ -194,8 +198,8 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 
 	// OpenAI Whisper has a 25MB strict limit for direct uploads.
 	fileInfo, err := os.Stat(audioPath)
-	if err == nil && fileInfo.Size() > 25*1024*1024 {
-		return nil, fmt.Errorf("file too large for direct OpenAI upload (%d bytes, max 25MB); segmentation should have been used", fileInfo.Size())
+	if err == nil && fileInfo.Size() > OpenAIDirectUploadLimitBytes {
+		return nil, fmt.Errorf("file size (%d bytes) exceeds OpenAI direct upload limit (%d bytes); use segmented transcription path", fileInfo.Size(), OpenAIDirectUploadLimitBytes)
 	}
 
 	url := "https://api.openai.com/v1/audio/transcriptions"

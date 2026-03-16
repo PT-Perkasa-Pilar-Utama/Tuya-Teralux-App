@@ -254,6 +254,15 @@ func run() error {
 	if port == "" {
 		port = "8080"
 	}
+	
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      router,
+		ReadTimeout:  1 * time.Hour, // Long timeout for slow uploads
+		WriteTimeout: 1 * time.Hour, // Long timeout for slow responses
+		IdleTimeout:  5 * time.Minute,
+	}
+
 	utils.LogInfo("Server starting on :%s", port)
-	return router.Run(":" + port)
+	return server.ListenAndServe()
 }

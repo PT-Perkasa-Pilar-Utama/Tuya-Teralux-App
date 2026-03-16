@@ -1658,7 +1658,7 @@
                     "04. Models"
                 ],
                 "summary": "[Models] [RAG] AI Assistant Chat",
-                "description": "Classifies user prompt into Chat or Control and returns appropriate response or redirection.",
+                "description": "Classifies user prompt into Chat or Control and returns appropriate response or redirection. Infrastructure failures (network, timeout, backend processing) return a graceful service-issue response, not an error.",
                 "requestBody": {
                     "description": "Chat Request",
                     "required": true,
@@ -1672,23 +1672,25 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/dtos.StandardResponse"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/dtos.StandardResponse"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/dtos.RAGChatResponseDTO"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/dtos.StandardResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2714,7 +2716,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "data": {
-                                                    "$ref": "#/components/schemas/dtos.TerminalResponseDTO"
+                                                    "$ref": "#/components/schemas/dtos.TerminalSingleResponseDTO"
                                                 }
                                             }
                                         }
@@ -2793,7 +2795,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "data": {
-                                                    "$ref": "#/components/schemas/dtos.TerminalResponseDTO"
+                                                    "$ref": "#/components/schemas/dtos.TerminalSingleResponseDTO"
                                                 }
                                             }
                                         }
@@ -4738,6 +4740,35 @@
                     "terminal_id"
                 ]
             },
+            "dtos.RAGChatResponseDTO": {
+                "type": "object",
+                "properties": {
+                    "instance_id": {
+                        "type": "string",
+                        "description": "Server start time"
+                    },
+                    "is_blocked": {
+                        "type": "boolean"
+                    },
+                    "is_control": {
+                        "type": "boolean"
+                    },
+                    "redirect": {
+                        "$ref": "#/components/schemas/dtos.RedirectDTO"
+                    },
+                    "request_id": {
+                        "type": "string",
+                        "description": "Tracking ID"
+                    },
+                    "response": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "e.g., \"MQTT\", \"HTTP\""
+                    }
+                }
+            },
             "dtos.RAGControlRequestDTO": {
                 "type": "object",
                 "properties": {
@@ -4925,6 +4956,18 @@
                     "text"
                 ]
             },
+            "dtos.RedirectDTO": {
+                "type": "object",
+                "properties": {
+                    "body": {},
+                    "endpoint": {
+                        "type": "string"
+                    },
+                    "method": {
+                        "type": "string"
+                    }
+                }
+            },
             "dtos.SceneItemDTO": {
                 "type": "object",
                 "properties": {
@@ -5035,6 +5078,9 @@
             "dtos.TerminalResponseDTO": {
                 "type": "object",
                 "properties": {
+                    "ai_provider": {
+                        "type": "string"
+                    },
                     "created_at": {
                         "type": "string"
                     },
@@ -5083,6 +5129,14 @@
                 "properties": {
                     "terminal": {
                         "$ref": "#/components/schemas/dtos.TerminalScenesDTO"
+                    }
+                }
+            },
+            "dtos.TerminalSingleResponseDTO": {
+                "type": "object",
+                "properties": {
+                    "terminal": {
+                        "$ref": "#/components/schemas/dtos.TerminalResponseDTO"
                     }
                 }
             },
@@ -5303,6 +5357,9 @@
             "dtos.UpdateTerminalRequestDTO": {
                 "type": "object",
                 "properties": {
+                    "ai_provider": {
+                        "type": "string"
+                    },
                     "device_type_id": {
                         "type": "string"
                     },

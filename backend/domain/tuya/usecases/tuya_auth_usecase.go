@@ -25,6 +25,7 @@ type tuyaAuthUseCase struct {
 	tokenCache      string
 	tokenExpiry     time.Time
 	tokenCacheMutex sync.RWMutex
+	refreshMutex    sync.Mutex // Prevents concurrent token refresh
 }
 
 // NewTuyaAuthUseCase creates a new instance of TuyaAuthUseCase.
@@ -129,6 +130,7 @@ func (uc *tuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
 
 // GetTuyaAccessToken returns a valid Tuya access token, using cache or fetching a new one if needed.
 func (uc *tuyaAuthUseCase) GetTuyaAccessToken() (string, error) {
+	// Fast path: check if token is still valid (read lock)
 	uc.tokenCacheMutex.RLock()
 	if uc.tokenCache != "" && time.Now().Before(uc.tokenExpiry) {
 		token := uc.tokenCache
@@ -137,7 +139,20 @@ func (uc *tuyaAuthUseCase) GetTuyaAccessToken() (string, error) {
 	}
 	uc.tokenCacheMutex.RUnlock()
 
-	// Need to fetch new token
+	// Slow path: need to refresh token (write lock with mutex to prevent duplicate requests)
+	uc.refreshMutex.Lock()
+	defer uc.refreshMutex.Unlock()
+
+	// Double-check after acquiring lock (another goroutine might have refreshed)
+	uc.tokenCacheMutex.RLock()
+	if uc.tokenCache != "" && time.Now().Before(uc.tokenExpiry) {
+		token := uc.tokenCache
+		uc.tokenCacheMutex.RUnlock()
+		return token, nil
+	}
+	uc.tokenCacheMutex.RUnlock()
+
+	// Fetch new token
 	utils.LogDebug("GetTuyaAccessToken: cache miss or expired, fetching new token")
 	_, err := uc.Authenticate()
 	if err != nil {

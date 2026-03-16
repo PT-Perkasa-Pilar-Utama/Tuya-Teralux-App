@@ -142,6 +142,10 @@ func (s *GeminiService) CallModel(ctx context.Context, prompt string, model stri
 
 // Whisper Implementation
 
+// GeminiDirectUploadLimitBytes is the maximum file size for direct Gemini Whisper uploads.
+// Gemini has approximately a 20MB limit for inline base64 data.
+const GeminiDirectUploadLimitBytes = 20 * 1024 * 1024
+
 func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.apiKey == "" {
 		return nil, fmt.Errorf("GEMINI_API_KEY is not configured")
@@ -149,8 +153,8 @@ func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, langua
 
 	// Check file size for inline limit (Gemini typically < 20MB for inline base64)
 	fileInfo, err := os.Stat(audioPath)
-	if err == nil && fileInfo.Size() > 20*1024*1024 {
-		return nil, fmt.Errorf("file size (%d bytes) exceeds Gemini inline limit (20MB); use segmented transcription path", fileInfo.Size())
+	if err == nil && fileInfo.Size() > GeminiDirectUploadLimitBytes {
+		return nil, fmt.Errorf("file size (%d bytes) exceeds Gemini direct upload limit (%d bytes); use segmented transcription path", fileInfo.Size(), GeminiDirectUploadLimitBytes)
 	}
 
 	// Read audio file

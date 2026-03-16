@@ -76,10 +76,10 @@ func (c *MqttAuthClient) CreateMQTTUser(username, password string) (alreadyExist
 	return false, nil
 }
 
-// GetMQTTCredentials calls GET /mqtt/credentials/{username} in the Rust Auth Service
+// GetMQTTCredentials calls GET /mqtt/users/{username} in the Rust Auth Service
 // Returns: decrypted credentials, error
 func (c *MqttAuthClient) GetMQTTCredentials(username string) (*MQTTCredentials, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/mqtt/credentials/%s", c.baseURL, username), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/mqtt/users/%s", c.baseURL, username), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build mqtt credentials request: %w", err)
 	}
@@ -106,4 +106,30 @@ func (c *MqttAuthClient) GetMQTTCredentials(username string) (*MQTTCredentials, 
 	}
 
 	return result.Data, nil
+}
+
+// DeleteMQTTUser calls DELETE /mqtt/{username} in the Rust Auth Service
+func (c *MqttAuthClient) DeleteMQTTUser(username string) error {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/mqtt/%s", c.baseURL, username), nil)
+	if err != nil {
+		return fmt.Errorf("failed to build mqtt delete request: %w", err)
+	}
+	req.Header.Set("x-api-key", c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("mqtt delete request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil // Already deleted or doesn't exist
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("mqtt delete failed (status %d): %s", resp.StatusCode, string(b))
+	}
+
+	return nil
 }

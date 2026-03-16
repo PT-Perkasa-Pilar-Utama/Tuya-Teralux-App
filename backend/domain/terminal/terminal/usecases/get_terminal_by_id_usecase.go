@@ -44,6 +44,7 @@ func (uc *GetTerminalByIDUseCase) GetTerminalByID(id string) (*dtos.TerminalSing
 			RoomID:       item.RoomID,
 			Name:         item.Name,
 			DeviceTypeID: item.DeviceTypeID,
+			AiProvider:   item.AiProvider,
 			CreatedAt:    item.CreatedAt,
 			UpdatedAt:    item.UpdatedAt,
 		},

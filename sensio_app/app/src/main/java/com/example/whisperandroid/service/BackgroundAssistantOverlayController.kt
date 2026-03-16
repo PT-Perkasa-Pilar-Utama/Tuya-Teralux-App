@@ -43,7 +43,8 @@ class BackgroundAssistantOverlayController(
                 flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
                     WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
 
                 width = WindowManager.LayoutParams.MATCH_PARENT
                 height = WindowManager.LayoutParams.MATCH_PARENT
@@ -53,7 +54,13 @@ class BackgroundAssistantOverlayController(
             val composeView = ComposeView(context).apply {
                 setContent {
                     SensioTheme {
-                        BackgroundAssistantModalHost(coordinator = coordinator)
+                        BackgroundAssistantModalHost(
+                            coordinator = coordinator,
+                            onDismiss = {
+                                AppLog.d(TAG, "Outside tap detected, dismissing overlay")
+                                coordinator.dismissAndRearm()
+                            }
+                        )
                     }
                 }
             }

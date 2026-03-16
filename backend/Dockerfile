@@ -76,7 +76,15 @@ RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
     fi && \
     test -x "$BIN_TARGET" && \
     strip --strip-unneeded "$BIN_TARGET" && \
-    cp "$BIN_TARGET" /usr/local/bin/llama-cli
+    cp "$BIN_TARGET" /usr/local/bin/llama-cli && \
+    echo "🔨 Copying llama shared libraries..." && \
+    mkdir -p /usr/local/lib/llama && \
+    (cp /llama.cpp/build/bin/libllama.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
+    (cp /llama.cpp/build/src/libllama.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
+    (cp /llama.cpp/build/ggml/src/libggml.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
+    (cp /llama.cpp/build/ggml/src/libggml-base.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
+    (cp /llama.cpp/build/ggml/src/libggml-cpu.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
+    ls -la /usr/local/lib/llama/ || true
 
 
 ############################################
@@ -148,9 +156,10 @@ COPY --from=app-builder /app/app /app/app
 COPY --from=app-builder /usr/local/bin/migrate /usr/local/bin/migrate
 COPY --from=ai-builder /usr/local/bin/whisper-cli /app/bin/whisper-cli
 COPY --from=ai-builder /usr/local/bin/llama-cli /app/bin/llama-cli
+COPY --from=ai-builder /usr/local/lib/llama /app/lib/llama
 
 # Copy assets
-COPY --from=app-builder /app/domain/terminal/migrations /app/migrations
+COPY --from=app-builder /app/migrations /app/migrations
 COPY --from=app-builder /app/domain/models/rag/skills/definitions /app/domain/models/rag/skills/definitions
 COPY --from=app-builder /app/assets /app/assets
 COPY --from=app-builder /app/docs /app/docs
@@ -167,6 +176,7 @@ ENV AUTO_MIGRATE=$AUTO_MIGRATE
 ENV MODEL_AUTO_DOWNLOAD=true
 ENV WHISPER_CLI=/app/bin/whisper-cli
 ENV LLAMA_CLI=/app/bin/llama-cli
+ENV LD_LIBRARY_PATH=/app/lib/llama:${LD_LIBRARY_PATH:-}
 
 VOLUME ["/app/models"]
 

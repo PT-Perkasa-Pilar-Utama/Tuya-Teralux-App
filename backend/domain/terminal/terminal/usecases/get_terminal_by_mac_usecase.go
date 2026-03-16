@@ -76,6 +76,7 @@ func (uc *GetTerminalByMACUseCase) GetTerminalByMAC(macAddress string) (*dtos.Te
 			RoomID:       terminal.RoomID,
 			Name:         terminal.Name,
 			DeviceTypeID: terminal.DeviceTypeID,
+			AiProvider:   terminal.AiProvider,
 			MQTTUsername: mqttUsername,
 			MQTTPassword: mqttPassword,
 			CreatedAt:    terminal.CreatedAt,
