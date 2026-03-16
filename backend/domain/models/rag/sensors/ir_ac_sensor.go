@@ -117,7 +117,7 @@ func (s *IRACsensor) prepareACParams(isOff bool, promptLower string, history []s
 
 	// Override inherited or prompt mode if user explicitly provides temperature in the prompt
 	// but the mode (e.g. from history or explicitly in prompt) does not support manual temperature.
-	_, tempInPrompt := s.parseTemperature(promptLower)
+	tempInPrompt := tempFound
 
 	if tempInPrompt && modeFound {
 		if mode == 2 || mode == 3 || mode == 4 { // Auto, Wind, Humidity

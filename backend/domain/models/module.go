@@ -157,7 +157,7 @@ func InitModule(
 	decisionEngine := ragOrchestrator.NewAssistantDecisionEngine(ragLlmClient)
 	router := ragOrchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
-	bigExternalService := commonServices.NewBigExternalService()
+	bigExternalService := commonServices.NewDeviceInfoExternalService()
 	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, llamaService, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill, providerResolver)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
 	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, llamaService, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)

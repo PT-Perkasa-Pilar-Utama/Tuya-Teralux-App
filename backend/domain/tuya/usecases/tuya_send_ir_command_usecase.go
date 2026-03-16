@@ -125,8 +125,8 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 
 	utils.LogDebug("SendIRACCommand: Sending IR command")
 	utils.LogDebug("SendIRACCommand: URL: %s", irFullURL)
-	utils.LogDebug("SendIRACCommand: Headers: client_id=%s, t=%s, sign_method=%s, access_token=%s...",
-		irHeaders["client_id"], irHeaders["t"], irHeaders["sign_method"], irHeaders["access_token"][:10])
+	utils.LogDebug("SendIRACCommand: Headers: client_id=[REDACTED], t=%s, sign_method=%s, access_token=[REDACTED]",
+		irHeaders["t"], irHeaders["sign_method"])
 	utils.LogDebug("SendIRACCommand: Body: %s", string(irJsonBody))
 
 	irApiStart := time.Now()

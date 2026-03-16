@@ -6,11 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupBigExternalRoutes registers endpoints for fetching Big API data.
+// SetupDeviceInfoExternalRoutes registers endpoints for fetching Big API data.
 //
 // param rg The router group to attach the routes to.
 // param controller The controller handling Big API operations.
-func SetupBigExternalRoutes(rg *gin.RouterGroup, controller *controllers.BigExternalController) {
+func SetupDeviceInfoExternalRoutes(rg *gin.RouterGroup, controller *controllers.DeviceInfoExternalController) {
 	bigGroup := rg.Group("/api/big")
 	{
 		// GET /api/big/device/:mac_address

@@ -76,8 +76,8 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 	// Call service
 	utils.LogDebug("SendCommand: Sending Switch command")
 	utils.LogDebug("SendCommand: DeviceID=%s, URL=%s", deviceID, fullURL)
-	utils.LogDebug("SendCommand: Headers: client_id=%s, t=%s, sign_method=%s, access_token=%s...",
-		headers["client_id"], headers["t"], headers["sign_method"], headers["access_token"][:10])
+	utils.LogDebug("SendCommand: Headers: client_id=[REDACTED], t=%s, sign_method=%s, access_token=[REDACTED]",
+		headers["t"], headers["sign_method"])
 	utils.LogDebug("SendCommand: Body: %s", string(jsonBody))
 
 	resp, err := uc.service.SendCommand(fullURL, headers, entityCommands)

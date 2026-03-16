@@ -13,7 +13,6 @@ import (
 	"sensio/domain/models/rag/usecases"
 	terminalRepos "sensio/domain/terminal/terminal/repositories"
 	"strings"
-	"sync"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -28,10 +27,7 @@ type RAGChatController struct {
 	chatUC         usecases.ChatUseCase
 	mqttSvc        *infrastructure.MqttService
 	terminalRepo   terminalRepos.ITerminalRepository
-	lastPrompt     map[string]string    // terminalID -> lastPrompt (deduplication)
-	lastPromptTime map[string]time.Time // terminalID -> lastTime
-	instanceID     string               // server start time identifier
-	mu             sync.Mutex
+	instanceID     string // server start time identifier
 }
 
 func isLikelyTuyaUID(uid string) bool {
@@ -96,12 +92,10 @@ func (c *RAGChatController) resolveMQTTUID(mac, reqUID string) string {
 
 func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService, terminalRepo terminalRepos.ITerminalRepository) *RAGChatController {
 	return &RAGChatController{
-		chatUC:         chatUC,
-		mqttSvc:        mqttSvc,
-		terminalRepo:   terminalRepo,
-		lastPrompt:     make(map[string]string),
-		lastPromptTime: make(map[string]time.Time),
-		instanceID:     time.Now().Format("2006-01-02 15:04:05"),
+		chatUC:       chatUC,
+		mqttSvc:      mqttSvc,
+		terminalRepo: terminalRepo,
+		instanceID:   time.Now().Format("2006-01-02 15:04:05"),
 	}
 }
 
@@ -212,44 +206,6 @@ func (c *RAGChatController) StartMqttSubscription() error {
 				}
 				return
 			}
-
-			// 3. Exact Deduplication (prevent processing the SAME prompt 3x)
-			dedupStart := time.Now()
-			c.mu.Lock()
-			terminalKey := req.TerminalID
-			if terminalKey == "" {
-				terminalKey = mac
-			}
-			last := c.lastPrompt[terminalKey]
-			lastTime := c.lastPromptTime[terminalKey]
-			now := time.Now()
-
-			// If prompt is exactly same as last one and happened < 3 seconds ago, drop it.
-			if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
-				c.mu.Unlock()
-				dedupDuration := time.Since(dedupStart)
-				utils.LogInfo("[%s] RAGChat MQTT: Dropping duplicate prompt for %s: '%s' | dedup_duration_ms=%d", correlationID, terminalKey, req.Prompt, dedupDuration.Milliseconds())
-				if mac != "" {
-					respTopic := fmt.Sprintf("users/%s/%s/chat/answer", mac, utils.GetConfig().ApplicationEnvironment)
-					respData, _ := json.Marshal(commonDtos.StandardResponse{
-						Status:  true,
-						Message: "Chat request received (duplicate dropped)",
-						Data: dtos.RAGChatResponseDTO{
-							RequestID: requestID,
-							Source:    "MQTT_DUP_DROP",
-						},
-					})
-					_ = c.mqttSvc.Publish(respTopic, 0, false, respData)
-				}
-				return
-			}
-
-			// Update cache
-			c.lastPrompt[terminalKey] = req.Prompt
-			c.lastPromptTime[terminalKey] = now
-			c.mu.Unlock()
-			dedupDuration := time.Since(dedupStart)
-			utils.LogDebug("[%s] RAGChat MQTT: Deduplication check passed | dedup_duration_ms=%d", correlationID, dedupDuration.Milliseconds())
 
 			// Process chat
 			uidResolveStart := time.Now()
@@ -363,37 +319,6 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 		requestID = uuid.New().String()
 	}
 
-	// Apply deduplication to HTTP path as well
-	dedupStart := time.Now()
-	c.mu.Lock()
-	terminalKey := req.TerminalID
-	last := c.lastPrompt[terminalKey]
-	lastTime := c.lastPromptTime[terminalKey]
-	now := time.Now()
-
-	if last == req.Prompt && now.Sub(lastTime) < 3*time.Second {
-		c.mu.Unlock()
-		dedupDuration := time.Since(dedupStart)
-		utils.LogInfo("RAGChat HTTP: Dropping duplicate prompt for %s (from HTTP): '%s' | dedup_duration_ms=%d", terminalKey, req.Prompt, dedupDuration.Milliseconds())
-		// Return previous success but don't re-process
-		ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
-			Status:  true,
-			Message: "Chat request received (duplicate dropped)",
-			Data: dtos.RAGChatResponseDTO{
-				RequestID: requestID,
-				Source:    "HTTP_DUP_DROP",
-			},
-		})
-		return
-	}
-
-	// Update cache
-	c.lastPrompt[terminalKey] = req.Prompt
-	c.lastPromptTime[terminalKey] = now
-	c.mu.Unlock()
-	dedupDuration := time.Since(dedupStart)
-	utils.LogDebug("RAGChat HTTP: Deduplication passed | dedup_duration_ms=%d", dedupDuration.Milliseconds())
-
 	utils.LogInfo("[%s] RAGChat HTTP [Handler: Chat]: Starting chat process for UID: %s, Terminal: %s, Prompt: '%s'", requestID, uidStr, req.TerminalID, req.Prompt)
 
 	chatStart := time.Now()
@@ -450,6 +375,6 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	}
 
 	totalDuration := time.Since(handlerStart)
-	utils.LogInfo("[%s] RAGChat HTTP: Request completed | bind_duration_ms=%d | dedup_duration_ms=%d | chat_duration_ms=%d | total_duration_ms=%d", requestID, bindDuration.Milliseconds(), dedupDuration.Milliseconds(), chatDuration.Milliseconds(), totalDuration.Milliseconds())
+	utils.LogInfo("[%s] RAGChat HTTP: Request completed | bind_duration_ms=%d | chat_duration_ms=%d | total_duration_ms=%d", requestID, bindDuration.Milliseconds(), chatDuration.Milliseconds(), totalDuration.Milliseconds())
 	ctx.JSON(http.StatusOK, resp)
 }

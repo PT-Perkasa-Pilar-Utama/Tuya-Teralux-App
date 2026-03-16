@@ -34,7 +34,7 @@ type summaryUseCase struct {
 	cache         *tasks.BadgerTaskCache
 	store         *tasks.StatusStore[dtos.RAGStatusDTO]
 	renderer      services.SummaryPDFRenderer
-	bigExternal   *commonServices.BigExternalService
+	bigExternal   *commonServices.DeviceInfoExternalService
 	mqttSvc       mqttPublisher
 	llmTimeout    time.Duration
 	renderTimeout time.Duration
@@ -50,7 +50,7 @@ func NewSummaryUseCase(
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
 	renderer services.SummaryPDFRenderer,
-	bigExternal *commonServices.BigExternalService,
+	bigExternal *commonServices.DeviceInfoExternalService,
 	mqttSvc mqttPublisher,
 	skill skills.Skill,
 	chunkSkill skills.Skill,
@@ -87,6 +87,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		targetLangName = "English"
 	}
 
+	var room string
 	// Fetch booking info via BigExternal if MAC provided
 	if macAddress != "" {
 		macAddress = strings.ToUpper(strings.TrimSpace(macAddress))
@@ -99,9 +100,20 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 						date = fmt.Sprintf("%v", info["SDTGetRoomTeraluxtimeendDate"])
 					}
 				}
-				if location == "" {
-					location = fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+
+				roomRaw := fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
+				if roomRaw != "<nil>" && roomRaw != "" {
+					room = roomRaw
 				}
+
+				// Always override location with building name from device info when macAddress is provided
+				building := fmt.Sprintf("%v", info["SDTGetRoomTeraluxBuildingsName"])
+				if building != "" && building != "<nil>" {
+					location = building
+				} else {
+					location = room
+				}
+
 				if participants == "" {
 					participants = fmt.Sprintf("%v", info["SDTGetRoomTeraluxCustomerName"])
 				}
@@ -214,6 +226,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 			Style:        style,
 			Date:         date,
 			Location:     location,
+			Room:         room,
 			Participants: participants,
 			CustomerName: "Internal User",
 			CompanyName:  "Sensio",

@@ -20,7 +20,7 @@ type MailSendByMacUseCase interface {
 
 type mailSendByMacUseCase struct {
 	mailService        *services.MailService
-	bigExternalService *commonServices.BigExternalService
+	bigExternalService *commonServices.DeviceInfoExternalService
 	store              *tasks.StatusStore[dtos.MailStatusDTO]
 	cache              *tasks.BadgerTaskCache
 }
@@ -28,7 +28,7 @@ type mailSendByMacUseCase struct {
 // NewMailSendByMacUseCase initializes a new mailSendByMacUseCase.
 func NewMailSendByMacUseCase(
 	mailService *services.MailService,
-	bigExternalService *commonServices.BigExternalService,
+	bigExternalService *commonServices.DeviceInfoExternalService,
 	store *tasks.StatusStore[dtos.MailStatusDTO],
 	cache *tasks.BadgerTaskCache,
 ) MailSendByMacUseCase {
@@ -190,7 +190,13 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 		}(),
 		"booking_time_start": timeStart,
 		"booking_time_stop":  timeStop,
-		"booking_place":      info["SDTGetRoomTeraluxRoomName"],
+		"booking_place": func() interface{} {
+			building := info["SDTGetRoomTeraluxBuildingsName"]
+			if building == nil || building == "" || building == "<nil>" {
+				return info["SDTGetRoomTeraluxRoomName"]
+			}
+			return building
+		}(),
 		"booking_room":       info["SDTGetRoomTeraluxRoomName"],
 		"agenda_context": func() interface{} {
 			// 1. Try external API

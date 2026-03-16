@@ -28,7 +28,7 @@ func InitDB() (*gorm.DB, error) {
 		Logger: logger.New(
 			log.New(log.Writer(), log.Prefix(), log.Flags()),
 			logger.Config{
-				SlowThreshold:             10 * time.Millisecond, // Log SQL queries slower than 10ms
+				SlowThreshold:             100 * time.Millisecond, // Log SQL queries slower than 100ms
 				Colorful:                  true,
 				IgnoreRecordNotFoundError: false,
 				LogLevel:                  logger.Info,

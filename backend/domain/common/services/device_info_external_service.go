@@ -10,14 +10,14 @@ import (
 	"time"
 )
 
-// BigExternalService handles communication with third-party Big services
-type BigExternalService struct {
+// DeviceInfoExternalService handles communication with third-party Big services
+type DeviceInfoExternalService struct {
 	client *http.Client
 }
 
-// NewBigExternalService creates a new instance of BigExternalService
-func NewBigExternalService() *BigExternalService {
-	return &BigExternalService{
+// NewDeviceInfoExternalService creates a new instance of DeviceInfoExternalService
+func NewDeviceInfoExternalService() *DeviceInfoExternalService {
+	return &DeviceInfoExternalService{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -25,9 +25,9 @@ func NewBigExternalService() *BigExternalService {
 }
 
 // GetDeviceInfoByMac fetches device and booking info by MAC address
-func (s *BigExternalService) GetDeviceInfoByMac(macAddress string) (map[string]interface{}, error) {
+func (s *DeviceInfoExternalService) GetDeviceInfoByMac(macAddress string) (map[string]interface{}, error) {
 	// API endpoint
-	url := "https://aplikasi-big.com/IOTAN5JavaDasboard/rest/ProcGetDeviceByMacAddressCurrentpied"
+	url := "https://aplikasi-big.com/IOTANSJavaDasboard/rest/ProcGetDeviceByMacAddressCurrentpied"
 
 	// Payload structure
 	payload := map[string]interface{}{
@@ -43,7 +43,7 @@ func (s *BigExternalService) GetDeviceInfoByMac(macAddress string) (map[string]i
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	utils.LogDebug("BigExternalService: Calling API %s for MAC %s", url, macAddress)
+	utils.LogDebug("DeviceInfoExternalService: Calling API %s for MAC %s", url, macAddress)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *BigExternalService) GetDeviceInfoByMac(macAddress string) (map[string]i
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		utils.LogError("BigExternalService: API request failed for MAC %s: %v", macAddress, err)
+		utils.LogError("DeviceInfoExternalService: API request failed for MAC %s: %v", macAddress, err)
 		return nil, fmt.Errorf("external API request failed: %w", err)
 	}
 	defer func() {
@@ -64,17 +64,17 @@ func (s *BigExternalService) GetDeviceInfoByMac(macAddress string) (map[string]i
 	// Read and log the raw response body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		utils.LogError("BigExternalService: Failed to read response body for MAC %s: %v", macAddress, err)
+		utils.LogError("DeviceInfoExternalService: Failed to read response body for MAC %s: %v", macAddress, err)
 		return nil, fmt.Errorf("failed to read external API response body: %w", err)
 	}
 
-	utils.LogDebug("BigExternalService: Raw API Response for MAC %s: %s", macAddress, string(bodyBytes))
+	utils.LogDebug("DeviceInfoExternalService: Raw API Response for MAC %s: %s", macAddress, string(bodyBytes))
 
 	// Restore the response body for further processing
 	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if resp.StatusCode != http.StatusOK {
-		utils.LogError("BigExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
+		utils.LogError("DeviceInfoExternalService: API returned non-200 status %d for MAC %s", resp.StatusCode, macAddress)
 		return nil, fmt.Errorf("external API returned non-200 status: %d", resp.StatusCode)
 	}
 

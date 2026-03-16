@@ -57,7 +57,7 @@ func NewTerminalModule(
 	tuyaDeviceControlUC device_status_usecases.TuyaDeviceControlExecutor,
 ) *TerminalModule {
 	// Services
-	terminalExternalService := terminal_services.NewTerminalExternalService()
+	terminalExternalService := terminal_services.NewMacRegistrationExternalService()
 
 	// MQTT Auth Service client (points to EMQX Auth Service / Rust)
 	cfg := utils.GetConfig()

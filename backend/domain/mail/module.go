@@ -24,7 +24,7 @@ type MailModule struct {
 
 func NewMailModule(cfg *utils.Config, badgerSvc *infrastructure.BadgerService) *MailModule {
 	service := services.NewMailService(cfg)
-	externalService := commonServices.NewBigExternalService()
+	externalService := commonServices.NewDeviceInfoExternalService()
 
 	// Task tracking
 	store := tasks.NewStatusStore[dtos.MailStatusDTO]()

@@ -9,12 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type BigExternalController struct {
-	bigSvc *services.BigExternalService
+type DeviceInfoExternalController struct {
+	bigSvc *services.DeviceInfoExternalService
 }
 
-func NewBigExternalController(bigSvc *services.BigExternalService) *BigExternalController {
-	return &BigExternalController{bigSvc: bigSvc}
+func NewDeviceInfoExternalController(bigSvc *services.DeviceInfoExternalService) *DeviceInfoExternalController {
+	return &DeviceInfoExternalController{bigSvc: bigSvc}
 }
 
 // GetDeviceInfo fetches device and booking information from Big API
@@ -29,7 +29,7 @@ func NewBigExternalController(bigSvc *services.BigExternalService) *BigExternalC
 // @Failure 404 {object} dtos.StandardResponse
 // @Failure 500 {object} dtos.StandardResponse
 // @Router /api/big/device/{mac_address} [get]
-func (c *BigExternalController) GetDeviceInfo(ctx *gin.Context) {
+func (c *DeviceInfoExternalController) GetDeviceInfo(ctx *gin.Context) {
 	macAddress := ctx.Param("mac_address")
 	if macAddress == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{

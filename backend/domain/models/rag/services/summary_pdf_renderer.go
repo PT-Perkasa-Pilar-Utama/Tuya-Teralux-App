@@ -28,6 +28,7 @@ type SummaryPDFMeta struct {
 	Style        string
 	Date         string
 	Location     string
+	Room         string
 	Participants string
 	CustomerName string
 	CompanyName  string
@@ -50,6 +51,7 @@ type templateData struct {
 	LblMeetingInfo     string
 	LblDate            string
 	LblLocation        string
+	LblRoom            string
 	LblParticipants    string
 	LblFooterRights    string
 	LblFooterGenerated string
@@ -93,6 +95,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 		data.LblMeetingInfo = "Meeting Information"
 		data.LblDate = "Date"
 		data.LblLocation = "Location"
+		data.LblRoom = "Room"
 		data.LblParticipants = "Participants"
 		data.LblFooterRights = "All rights reserved."
 		data.LblFooterGenerated = "This document was automatically generated and summarized by an artificial intelligence system."
@@ -100,6 +103,7 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 		data.LblMeetingInfo = "Informasi Pertemuan"
 		data.LblDate = "Tanggal"
 		data.LblLocation = "Lokasi"
+		data.LblRoom = "Ruangan"
 		data.LblParticipants = "Peserta"
 		data.LblFooterRights = "Seluruh hak cipta dilindungi undang-undang."
 		data.LblFooterGenerated = "Dokumen ini dibuat secara otomatis oleh sistem kecerdasan buatan dan telah dirangkum untuk kemudahan analisis."
