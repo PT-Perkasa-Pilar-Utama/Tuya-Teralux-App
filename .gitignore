@@ -34,5 +34,6 @@
 .vscode/
 *.log
 *.apk
+bin/
 
 screenshoots/

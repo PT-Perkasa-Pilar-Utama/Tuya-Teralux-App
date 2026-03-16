@@ -297,6 +297,26 @@ definitions:
     - prompt
     - terminal_id
     type: object
+  dtos.RAGChatResponseDTO:
+    properties:
+      instance_id:
+        description: Server start time
+        type: string
+      is_blocked:
+        type: boolean
+      is_control:
+        type: boolean
+      redirect:
+        $ref: '#/definitions/dtos.RedirectDTO'
+      request_id:
+        description: Tracking ID
+        type: string
+      response:
+        type: string
+      source:
+        description: e.g., "MQTT", "HTTP"
+        type: string
+    type: object
   dtos.RAGControlRequestDTO:
     properties:
       prompt:
@@ -427,6 +447,14 @@ definitions:
     required:
     - text
     type: object
+  dtos.RedirectDTO:
+    properties:
+      body: {}
+      endpoint:
+        type: string
+      method:
+        type: string
+    type: object
   dtos.SceneItemDTO:
     properties:
       actions:
@@ -504,6 +532,8 @@ definitions:
     type: object
   dtos.TerminalResponseDTO:
     properties:
+      ai_provider:
+        type: string
       created_at:
         type: string
       device_type_id:
@@ -536,6 +566,11 @@ definitions:
     properties:
       terminal:
         $ref: '#/definitions/dtos.TerminalScenesDTO'
+    type: object
+  dtos.TerminalSingleResponseDTO:
+    properties:
+      terminal:
+        $ref: '#/definitions/dtos.TerminalResponseDTO'
     type: object
   dtos.TranscriptionTaskResponseDTO:
     properties:
@@ -681,6 +716,8 @@ definitions:
     type: object
   dtos.UpdateTerminalRequestDTO:
     properties:
+      ai_provider:
+        type: string
       device_type_id:
         type: string
       mac_address:
@@ -1668,7 +1705,8 @@ paths:
       consumes:
       - application/json
       description: Classifies user prompt into Chat or Control and returns appropriate
-        response or redirection.
+        response or redirection. Infrastructure failures (network, timeout, backend
+        processing) return a graceful service-issue response, not an error.
       parameters:
       - description: Chat Request
         in: body
@@ -1682,13 +1720,14 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.RAGChatResponseDTO'
+              type: object
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
           schema:
             $ref: '#/definitions/dtos.StandardResponse'
       security:
@@ -2233,7 +2272,7 @@ paths:
             - $ref: '#/definitions/dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.TerminalResponseDTO'
+                  $ref: '#/definitions/dtos.TerminalSingleResponseDTO'
               type: object
         "400":
           description: Bad Request
@@ -2463,7 +2502,7 @@ paths:
             - $ref: '#/definitions/dtos.StandardResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dtos.TerminalResponseDTO'
+                  $ref: '#/definitions/dtos.TerminalSingleResponseDTO'
               type: object
         "400":
           description: Bad Request

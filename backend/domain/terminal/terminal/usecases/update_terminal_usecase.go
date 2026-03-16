@@ -3,6 +3,7 @@ package usecases
 import (
 	"errors"
 	"regexp"
+	"sensio/domain/common/providers"
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/terminal/dtos"
 	"sensio/domain/terminal/terminal/repositories"
@@ -67,6 +68,30 @@ func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTermi
 	}
 	if req.DeviceTypeID != nil {
 		item.DeviceTypeID = *req.DeviceTypeID
+	}
+
+	if req.AiProvider != nil {
+		// Validate ai_provider if provided
+		if *req.AiProvider == "" {
+			// Empty string means clear the preference, set to nil
+			item.AiProvider = nil
+		} else {
+			normalizedProvider := providers.NormalizeProvider(*req.AiProvider)
+			// Check for legacy 'local' value and treat it as invalid for new updates
+			if providers.IsFallbackOnlyProvider(normalizedProvider) {
+				details = append(details, utils.ValidationErrorDetail{
+					Field:   "ai_provider",
+					Message: "Invalid ai_provider. Supported values: gemini, openai, groq, orion",
+				})
+			} else if !providers.IsValidProvider(normalizedProvider) {
+				details = append(details, utils.ValidationErrorDetail{
+					Field:   "ai_provider",
+					Message: "Invalid ai_provider. Supported values: gemini, openai, groq, orion",
+				})
+			} else {
+				item.AiProvider = &normalizedProvider
+			}
+		}
 	}
 
 	if len(details) > 0 {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sensio/domain/common/providers"
+	"sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	ragUsecases "sensio/domain/models/rag/usecases"
@@ -26,6 +28,7 @@ type WhisperClient interface {
 type TranscriptionMetadata struct {
 	UID            string
 	TerminalID     string
+	MacAddress     string // Used for terminal-specific provider resolution
 	RequestID      string
 	Source         string // "mqtt", "rest", etc.
 	Trigger        string // e.g., "/api/whisper/transcribe"
@@ -34,20 +37,33 @@ type TranscriptionMetadata struct {
 	IdempotencyKey string // Client-provided idempotency key
 }
 
+type TranscribeOptions struct {
+	Language                string
+	Diarize                 bool
+	Refine                  bool
+	IsPipeline              bool
+	ProgressCallback        func(int)
+	TerminalContext         []string
+	DisableFallback         bool
+	ForceSegmentSec         int
+	ForceSegmentConcurrency int
+}
+
 type TranscribeUseCase interface {
 	TranscribeAudio(ctx context.Context, inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error)
-	TranscribeAudioSync(ctx context.Context, inputPath string, language string, diarize bool, refine bool, progressCallback func(int)) (*whisperdtos.AsyncTranscriptionResultDTO, error)
+	TranscribeAudioSync(ctx context.Context, inputPath string, opts TranscribeOptions) (*whisperdtos.AsyncTranscriptionResultDTO, error)
 	CheckIdempotency(idempotencyKey string, audioHash string, language string, terminalID string) (string, bool)
 }
 
 type transcribeUseCase struct {
-	whisperClient  WhisperClient
-	fallbackClient WhisperClient
-	refineUC       ragUsecases.RefineUseCase
-	store          *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
-	cache          *tasks.BadgerTaskCache
-	config         *utils.Config
-	mqttSvc        mqttPublisher
+	whisperClient    WhisperClient
+	fallbackClient   WhisperClient
+	refineUC         ragUsecases.RefineUseCase
+	store            *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
+	cache            *tasks.BadgerTaskCache
+	config           *utils.Config
+	mqttSvc          mqttPublisher
+	providerResolver providers.ProviderResolver
 }
 
 func NewTranscribeUseCase(
@@ -58,15 +74,17 @@ func NewTranscribeUseCase(
 	cache *tasks.BadgerTaskCache,
 	config *utils.Config,
 	mqttSvc mqttPublisher,
+	providerResolver providers.ProviderResolver,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
-		whisperClient:  whisperClient,
-		fallbackClient: fallbackClient,
-		refineUC:       refineUC,
-		store:          store,
-		cache:          cache,
-		config:         config,
-		mqttSvc:        mqttSvc,
+		whisperClient:    whisperClient,
+		fallbackClient:   fallbackClient,
+		refineUC:         refineUC,
+		store:            store,
+		cache:            cache,
+		config:           config,
+		mqttSvc:          mqttSvc,
+		providerResolver: providerResolver,
 	}
 }
 
@@ -186,9 +204,38 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 	return taskID, nil
 }
 
-func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, reqLanguage string, diarize bool, refine bool, progressCallback func(int)) (*whisperdtos.AsyncTranscriptionResultDTO, error) {
+func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, opts TranscribeOptions) (*whisperdtos.AsyncTranscriptionResultDTO, error) {
 	var rawTranscription string
 	var detectedLang string
+
+	// Resolve provider from terminal context (MAC address) if available
+	whisperClient := uc.whisperClient
+	fallbackClient := uc.fallbackClient
+	resolvedProvider := "unknown"
+
+	// Use terminal context for provider resolution if provided
+	if uc.providerResolver != nil && len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
+		macAddress := opts.TerminalContext[0]
+		resolved, err := uc.providerResolver.ResolveByMacAddress(macAddress)
+		if err != nil {
+			utils.LogWarn("TranscribeUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
+		} else {
+			whisperClient = resolved.WhisperClient
+			fallbackClient = resolved.FallbackWhisper
+			resolvedProvider = resolved.ProviderName
+			utils.LogInfo("TranscribeUseCase: Using terminal-specific provider '%s' for MAC %s", resolvedProvider, macAddress)
+		}
+	}
+
+	// CRITICAL: If provider is still "unknown", resolve the default provider to get accurate size limits.
+	// This ensures provider-aware segmentation uses the correct limit even without terminal context.
+	if resolvedProvider == "unknown" && uc.providerResolver != nil {
+		defaultResolved := uc.providerResolver.ResolveDefault()
+		if defaultResolved != nil && defaultResolved.ProviderName != "" {
+			resolvedProvider = defaultResolved.ProviderName
+			utils.LogDebug("TranscribeUseCase: Using default provider '%s' for size limit calculation", resolvedProvider)
+		}
+	}
 
 	// 1. Audio Normalization (WAV PCM 16k Mono)
 	processingPath, audioCleanup, err := utils.NormalizeToWavPCM16k(inputPath)
@@ -198,11 +245,25 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	defer audioCleanup()
 
 	fileInfo, err := os.Stat(processingPath)
-	useSegment := err == nil && fileInfo.Size() > 20*1024*1024 && uc.config.AudioSegmentEnabled
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat normalized audio: %w", err)
+	}
+
+	normalizedSize := fileInfo.Size()
+
+	// 2. Provider-aware segmentation decision
+	// Segmentation is MANDATORY for oversized files regardless of AUDIO_SEGMENT_ENABLED flag.
+	// The flag only controls segmentation for medium-sized files.
+	useSegment := uc.shouldSegmentByProvider(normalizedSize, resolvedProvider)
+	segmentationIsRequired := normalizedSize > uc.getProviderDirectLimit(resolvedProvider)
 
 	if useSegment {
 		segmentSec := uc.config.AudioSegmentSec
-		if segmentSec < 60 {
+		if opts.ForceSegmentSec > 0 {
+			segmentSec = opts.ForceSegmentSec
+		} else if opts.IsPipeline && resolvedProvider == "orion" {
+			segmentSec = 180
+		} else if segmentSec < 60 {
 			segmentSec = 60
 		}
 		overlapSec := uc.config.AudioSegmentOverlapSec
@@ -210,8 +271,15 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		utils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
 		segments, splitErr := utils.SplitAudioSegments(processingPath, segmentSec, overlapSec)
 		if splitErr != nil {
-			utils.LogError("TranscribeSync: Failed to split audio, falling back to full file: %v", splitErr)
-			useSegment = false // Fallback to full file
+			// CRITICAL: If segmentation is mandatory (file exceeds provider limit), DO NOT fallback to full file.
+			// This would send an oversized file to the provider and cause failure.
+			if segmentationIsRequired {
+				utils.LogError("TranscribeSync: Failed to split audio and segmentation is mandatory (size=%d bytes, provider=%s, limit=%d bytes). Aborting transcription.", normalizedSize, resolvedProvider, uc.getProviderDirectLimit(resolvedProvider))
+				return nil, fmt.Errorf("failed to split oversized audio for segmented transcription: %w; cannot fallback to full-file as it exceeds provider limit", splitErr)
+			}
+			// Segmentation was optional (flag-based), safe to fallback
+			utils.LogWarn("TranscribeSync: Failed to split audio, falling back to full file (segmentation was optional): %v", splitErr)
+			useSegment = false
 		} else {
 			defer utils.CleanupSegments(segments)
 
@@ -223,7 +291,13 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 			}
 
 			results := make([]segResult, len(segments))
-			sem := make(chan struct{}, utils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency))
+			concurrency := utils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency)
+			if opts.ForceSegmentConcurrency > 0 {
+				concurrency = opts.ForceSegmentConcurrency
+			} else if opts.IsPipeline && resolvedProvider == "orion" {
+				concurrency = 1
+			}
+			sem := make(chan struct{}, concurrency)
 			var wg sync.WaitGroup
 
 			var completed int
@@ -251,10 +325,14 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 
 					// Retry logic (max 2 attempts)
 					for attempt := 1; attempt <= 2; attempt++ {
-						res, transErr = uc.whisperClient.Transcribe(ctx, path, reqLanguage, diarize)
-						if transErr != nil && uc.fallbackClient != nil {
-							utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client failed, falling back to local: %v", idx, attempt, transErr)
-							res, transErr = uc.fallbackClient.Transcribe(ctx, path, reqLanguage, diarize)
+						res, transErr = whisperClient.Transcribe(ctx, path, opts.Language, opts.Diarize)
+						if transErr != nil && fallbackClient != nil && !opts.DisableFallback {
+							if opts.IsPipeline && resolvedProvider == "orion" {
+								utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client (Orion) failed in pipeline mode, skipping local fallback: %v", idx, attempt, transErr)
+							} else {
+								utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client failed, falling back to local: %v", idx, attempt, transErr)
+								res, transErr = fallbackClient.Transcribe(ctx, path, opts.Language, opts.Diarize)
+							}
 						}
 						if transErr == nil {
 							break
@@ -274,11 +352,11 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 					}
 
 					completed++
-					if progressCallback != nil {
+					if opts.ProgressCallback != nil {
 						progress := int((float64(completed) / float64(len(segments))) * 100)
 						if progress > lastProgress {
 							lastProgress = progress
-							go progressCallback(progress)
+							go opts.ProgressCallback(progress)
 						}
 					}
 				}(i, seg.Path)
@@ -306,10 +384,14 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	}
 
 	if !useSegment {
-		result, err := uc.whisperClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
-		if err != nil && uc.fallbackClient != nil {
-			utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
-			result, err = uc.fallbackClient.Transcribe(ctx, processingPath, reqLanguage, diarize)
+		result, err := whisperClient.Transcribe(ctx, processingPath, opts.Language, opts.Diarize)
+		if err != nil && fallbackClient != nil && !opts.DisableFallback {
+			if opts.IsPipeline && resolvedProvider == "orion" {
+				utils.LogWarn("TranscribeSync: Primary client (Orion) failed in pipeline mode, skipping local fallback: %v", err)
+			} else {
+				utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
+				result, err = fallbackClient.Transcribe(ctx, processingPath, opts.Language, opts.Diarize)
+			}
 		}
 
 		if err != nil {
@@ -317,19 +399,24 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		}
 		rawTranscription = result.Transcription
 		detectedLang = result.DetectedLanguage
-		if progressCallback != nil {
-			go progressCallback(100)
+		if opts.ProgressCallback != nil {
+			go opts.ProgressCallback(100)
 		}
 	}
 
 	// Refine (Grammar/Spelling) - only if explicitly requested
 	refined := rawTranscription
-	if refine {
+	if opts.Refine {
 		refineLang := detectedLang
-		if reqLanguage != "" {
-			refineLang = reqLanguage
+		if opts.Language != "" {
+			refineLang = opts.Language
 		}
-		refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
+		// Pass terminalContext for terminal-specific provider resolution
+		if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
+			refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang, opts.TerminalContext[0])
+		} else {
+			refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
+		}
 	}
 
 	return &whisperdtos.AsyncTranscriptionResultDTO{
@@ -358,7 +445,21 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 		// If we add Refine to metadata in the future, we should use it here.
 	}
 
-	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, reqLanguage, diarize, refine, nil)
+	// Pass terminal MAC for terminal-specific provider resolution in refine
+	var refineContext string
+	if metadata != nil && metadata.MacAddress != "" {
+		refineContext = metadata.MacAddress
+	}
+
+	opts := TranscribeOptions{
+		Language:        reqLanguage,
+		Diarize:         diarize,
+		Refine:          refine,
+		IsPipeline:      false,
+		TerminalContext: []string{refineContext},
+	}
+
+	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, opts)
 	if err != nil {
 		utils.LogError("Transcribe Task %s: Failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil, err)
@@ -470,6 +571,58 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 
 	uc.store.Set(taskID, status)
 	_ = uc.cache.SetWithTTL(taskID, status, ttl)
+}
+
+// shouldSegmentByProvider determines if segmented transcription should be used based on:
+// 1. Normalized file size
+// 2. Resolved provider's direct upload limit
+// 3. Provider-aware safety policy (mandatory for oversized files)
+//
+// Segmentation is MANDATORY when file size exceeds the provider's limit,
+// regardless of the AUDIO_SEGMENT_ENABLED flag.
+func (uc *transcribeUseCase) shouldSegmentByProvider(normalizedSize int64, provider string) bool {
+	// Get provider-specific direct upload limit
+	providerLimit := uc.getProviderDirectLimit(provider)
+
+	// Log provider-aware size policy decision
+	utils.LogInfo("TranscribeUseCase: Provider-aware size check | provider=%s | normalized_size=%d bytes | provider_limit=%d bytes", provider, normalizedSize, providerLimit)
+
+	// Mandatory segmentation for oversized files
+	if normalizedSize > providerLimit {
+		utils.LogInfo("TranscribeUseCase: FORCING segmented transcription | provider=%s | size=%d bytes exceeds limit=%d bytes", provider, normalizedSize, providerLimit)
+		return true
+	}
+
+	// For files within provider limit, respect the AUDIO_SEGMENT_ENABLED flag
+	// for additional tuning (e.g., segment medium-sized files for better accuracy)
+	const segmentThreshold = 20 * 1024 * 1024 // 20MB default threshold
+	if normalizedSize > segmentThreshold && uc.config.AudioSegmentEnabled {
+		utils.LogInfo("TranscribeUseCase: Using segmented transcription per AUDIO_SEGMENT_ENABLED flag | size=%d bytes", normalizedSize)
+		return true
+	}
+
+	return false
+}
+
+// getProviderDirectLimit returns the direct upload limit in bytes for a given provider
+func (uc *transcribeUseCase) getProviderDirectLimit(provider string) int64 {
+	switch provider {
+	case "gemini":
+		return services.GeminiDirectUploadLimitBytes
+	case "openai":
+		return services.OpenAIDirectUploadLimitBytes
+	case "groq":
+		return services.GroqDirectUploadLimitBytes
+	case "orion":
+		return services.OrionDirectUploadLimitBytes
+	default:
+		// For local or unknown providers, use conservative 20MB default.
+		// This is safer than allowing potentially oversized uploads.
+		if provider != "" && provider != "local" {
+			utils.LogWarn("TranscribeUseCase: Unknown provider '%s' for size limit check, using conservative 20MB default", provider)
+		}
+		return 20 * 1024 * 1024
+	}
 }
 
 // mergeWithDedup handles the joining of two transcript segments by checking for shared word overlaps

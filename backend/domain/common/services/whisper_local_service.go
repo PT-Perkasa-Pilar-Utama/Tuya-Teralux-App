@@ -22,6 +22,63 @@ func NewWhisperLocalService(cfg *utils.Config) *WhisperLocalService {
 	}
 }
 
+// HealthCheck validates that whisper-cli is available, can resolve libwhisper.so.1,
+// and the configured model exists. This should be called at startup to ensure
+// local fallback is healthy.
+func (s *WhisperLocalService) HealthCheck() bool {
+	// Find whisper-cli: try local bin first, then PATH
+	bin := "./bin/whisper-cli"
+	binFound := false
+	binPath := ""
+
+	if _, err := os.Stat(bin); err == nil {
+		binFound = true
+		binPath = bin
+	} else {
+		if path, err := exec.LookPath("whisper-cli"); err == nil {
+			binFound = true
+			binPath = path
+		}
+	}
+
+	if !binFound {
+		utils.LogError("WhisperLocal HealthCheck: whisper-cli not found in ./bin or PATH")
+		return false
+	}
+
+	// CRITICAL: Actually execute the binary to verify libwhisper.so.1 resolution.
+	// Running with --help is lightweight and will fail if shared libraries are missing.
+	cmd := exec.Command(binPath, "--help")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		outputStr := string(output)
+		// Check for library loading errors
+		if strings.Contains(outputStr, "libwhisper.so.1") ||
+			strings.Contains(outputStr, "shared library") ||
+			strings.Contains(outputStr, "cannot open shared object") ||
+			strings.Contains(outputStr, "error while loading shared libraries") {
+			utils.LogError("WhisperLocal HealthCheck: whisper-cli failed to load libwhisper.so.1 | error=%v | output=%s", err, outputStr)
+			return false
+		}
+		// Other errors may still indicate runtime issues
+		utils.LogError("WhisperLocal HealthCheck: whisper-cli --help failed | error=%v | output=%s", err, outputStr)
+		return false
+	}
+
+	// Validate that the configured model file exists
+	if s.modelPath == "" {
+		utils.LogError("WhisperLocal HealthCheck: no model path configured")
+		return false
+	}
+
+	if _, err := os.Stat(s.modelPath); os.IsNotExist(err) {
+		utils.LogError("WhisperLocal HealthCheck: model file not found at %s: %v", s.modelPath, err)
+		return false
+	}
+
+	return true
+}
+
 // Transcribe implements the usecases.WhisperClient interface
 func (s *WhisperLocalService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	text, err := s.transcribeFull(ctx, audioPath, s.modelPath, language)
@@ -79,16 +136,18 @@ func (s *WhisperLocalService) transcribeViaCLI(ctx context.Context, wavPath stri
 
 	cmd := exec.CommandContext(ctx, bin, args...)
 	out, err := cmd.CombinedOutput()
+	outputStr := strings.TrimSpace(string(out))
 
-	if err != nil && !full {
-		return "", fmt.Errorf("whisper-cli failed: %w - output: %s", err, string(out))
+	// Always return an error when whisper-cli exits non-zero, regardless of full mode.
+	// Never use stderr/stdout as transcript when process exit failed.
+	if err != nil {
+		return "", fmt.Errorf("whisper-cli failed with exit error: %w - output: %s", err, outputStr)
 	}
 
 	// Read produced .txt file
 	b, err := os.ReadFile(txtPath)
 	if err != nil {
-		// Fallback to stdout if file not found
-		outputStr := strings.TrimSpace(string(out))
+		// Fallback to stdout if file not found (only when exit was successful)
 		if outputStr == "" {
 			return "", fmt.Errorf("no output file and empty stdout: %w", err)
 		}
@@ -97,9 +156,9 @@ func (s *WhisperLocalService) transcribeViaCLI(ctx context.Context, wavPath stri
 	}
 
 	// Tidy up the text file content
-	outputStr := strings.TrimSpace(string(b))
+	text := strings.TrimSpace(string(b))
 	if full {
-		lines := strings.Split(outputStr, "\n")
+		lines := strings.Split(text, "\n")
 		var result []string
 		for _, l := range lines {
 			line := strings.TrimSpace(l)
@@ -110,5 +169,5 @@ func (s *WhisperLocalService) transcribeViaCLI(ctx context.Context, wavPath stri
 		return strings.Join(result, " "), nil
 	}
 
-	return outputStr, nil
+	return text, nil
 }

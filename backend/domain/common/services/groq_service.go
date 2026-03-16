@@ -129,9 +129,20 @@ func (s *GroqService) CallModel(ctx context.Context, prompt string, model string
 
 // Whisper Implementation
 
+// GroqDirectUploadLimitBytes is the maximum file size for direct Groq Whisper uploads.
+// Groq does not document a specific limit, so we use 25MB as a safe default
+// to match OpenAI's limit and avoid remote 413 errors.
+const GroqDirectUploadLimitBytes = 25 * 1024 * 1024
+
 func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
 	if s.config.GroqApiKey == "" {
 		return nil, fmt.Errorf("GROQ_API_KEY is not configured")
+	}
+
+	// Preflight size check to avoid sending oversized files to Groq
+	fileInfo, err := os.Stat(audioPath)
+	if err == nil && fileInfo.Size() > GroqDirectUploadLimitBytes {
+		return nil, fmt.Errorf("file size (%d bytes) exceeds Groq direct upload limit (%d bytes); use segmented transcription path", fileInfo.Size(), GroqDirectUploadLimitBytes)
 	}
 
 	url := "https://api.groq.com/openai/v1/audio/transcriptions"

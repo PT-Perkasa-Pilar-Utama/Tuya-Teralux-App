@@ -61,7 +61,7 @@ func (s *PowerMonitorSensor) ExecuteControl(token string, device *tuyaDtos.TuyaD
 
 	if switchCode == "" {
 		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Device %s does not have a switchable control.", device.Name),
+			Message:        fmt.Sprintf("Device %s tidak memiliki kontrol switch.", device.Name),
 			HTTPStatusCode: 400,
 		}, nil
 	}
@@ -72,28 +72,28 @@ func (s *PowerMonitorSensor) ExecuteControl(token string, device *tuyaDtos.TuyaD
 	})
 
 	if isOn {
-		actionMsg = "turned on"
+		actionMsg = "menyalakan"
 	} else {
-		actionMsg = "turned off"
+		actionMsg = "mematikan"
 	}
 
 	success, err := executor.SendSwitchCommand(token, device.ID, commands)
 	if err != nil {
 		return &dtos.ControlResultDTO{
-			Message:        fmt.Sprintf("Failed to execute command: %v", err),
+			Message:        fmt.Sprintf("Gagal menjalankan perintah: %v", err),
 			HTTPStatusCode: 500,
 		}, nil
 	}
 
 	if !success {
 		return &dtos.ControlResultDTO{
-			Message:        "Command failed",
+			Message:        "Perintah gagal",
 			HTTPStatusCode: 400,
 		}, nil
 	}
 
 	return &dtos.ControlResultDTO{
-		Message:  fmt.Sprintf("Successfully %s %s.", actionMsg, device.Name),
+		Message:  fmt.Sprintf("Berhasil %s %s.", actionMsg, device.Name),
 		DeviceID: device.ID,
 	}, nil
 }

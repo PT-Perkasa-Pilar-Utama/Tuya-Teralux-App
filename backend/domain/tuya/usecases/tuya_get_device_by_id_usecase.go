@@ -84,7 +84,10 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 	}
 
 	// Call service to fetch device
+	apiStart := time.Now()
 	deviceResponse, err := uc.service.FetchDeviceByID(fullURL, headers)
+	apiDuration := time.Since(apiStart)
+	utils.LogDebug("GetDeviceByID: Tuya API call completed | target=%s | duration_ms=%d | success=%v | code=%d", targetID, apiDuration.Milliseconds(), deviceResponse.Success, deviceResponse.Code)
 	if err != nil {
 		return nil, err
 	}
@@ -123,9 +126,11 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 			"access_token": accessToken,
 		}
 
+		irApiStart := time.Now()
 		irResp, err := uc.service.FetchIRACStatus(irFullURL, irHeaders)
+		irApiDuration := time.Since(irApiStart)
 		if err == nil && irResp.Success {
-			utils.LogDebug("GetDeviceByID: Successfully fetched real IR status for %s", targetID)
+			utils.LogDebug("GetDeviceByID: Successfully fetched real IR status for %s | duration_ms=%d", targetID, irApiDuration.Milliseconds())
 			statusDTOs = make([]dtos.TuyaDeviceStatusDTO, 0, len(irResp.Result))
 			for code, val := range irResp.Result {
 				// Convert string values to appropriate types if needed (Tuya returns strings for IR status)
@@ -148,9 +153,11 @@ func (uc *TuyaGetDeviceByIDUseCase) GetDeviceByID(accessToken, deviceID, remoteI
 
 			// Fallback to saved state
 			if uc.deviceStateUC != nil {
+				stateStart := time.Now()
 				savedState, err := uc.deviceStateUC.GetDeviceState(targetID)
+				stateDuration := time.Since(stateStart)
 				if err == nil && savedState != nil && len(savedState.LastCommands) > 0 {
-					utils.LogDebug("GetDeviceByID: Falling back to saved state for %s", targetID)
+					utils.LogDebug("GetDeviceByID: Falling back to saved state for %s | duration_ms=%d", targetID, stateDuration.Milliseconds())
 					statusDTOs = make([]dtos.TuyaDeviceStatusDTO, len(savedState.LastCommands))
 					for i, cmd := range savedState.LastCommands {
 						statusDTOs[i] = dtos.TuyaDeviceStatusDTO(cmd)

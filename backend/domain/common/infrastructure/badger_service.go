@@ -66,14 +66,17 @@ func (s *BadgerService) SetWithTTL(key string, value []byte, ttl time.Duration) 
 	if s == nil || s.db == nil {
 		return nil
 	}
+	start := time.Now()
 	err := s.db.Update(func(txn *badger.Txn) error {
 		entry := badger.NewEntry([]byte(key), value).WithTTL(ttl)
 		return txn.SetEntry(entry)
 	})
+	duration := time.Since(start)
 	if err != nil {
-		utils.LogError("BadgerService: failed to set key %s with TTL %v: %v", key, ttl, err)
+		utils.LogError("BadgerService: Set failed | key=%s | ttl=%v | duration_ms=%d | error=%v", key, ttl, duration.Milliseconds(), err)
 		return err
 	}
+	utils.LogDebug("BadgerService: Set completed | key=%s | ttl=%v | duration_ms=%d", key, ttl, duration.Milliseconds())
 	return nil
 }
 
@@ -95,6 +98,7 @@ func (s *BadgerService) GetWithTTL(key string) ([]byte, time.Duration, error) {
 	if s == nil || s.db == nil {
 		return nil, 0, nil
 	}
+	start := time.Now()
 	var valCopy []byte
 	var ttlRemaining time.Duration
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -114,15 +118,18 @@ func (s *BadgerService) GetWithTTL(key string) ([]byte, time.Duration, error) {
 		valCopy, err = item.ValueCopy(nil)
 		return err
 	})
+	duration := time.Since(start)
 
 	if err != nil {
 		if err == badger.ErrKeyNotFound {
+			utils.LogDebug("Cache Miss for '%s' | duration_ms=%d", key, duration.Milliseconds())
 			return nil, 0, nil // Return nil if not found, distinct from error
 		}
-		utils.LogError("BadgerService: failed to get key %s: %v", key, err)
+		utils.LogError("BadgerService: Get failed | key=%s | duration_ms=%d | error=%v", key, duration.Milliseconds(), err)
 		return nil, 0, err
 	}
 
+	utils.LogDebug("BadgerService: Get completed | key=%s | duration_ms=%d | value_size=%d", key, duration.Milliseconds(), len(valCopy))
 	return valCopy, ttlRemaining, nil
 }
 
@@ -135,13 +142,16 @@ func (s *BadgerService) Delete(key string) error {
 	if s == nil || s.db == nil {
 		return nil
 	}
+	start := time.Now()
 	err := s.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete([]byte(key))
 	})
+	duration := time.Since(start)
 	if err != nil {
-		utils.LogError("BadgerService: failed to delete key %s: %v", key, err)
+		utils.LogError("BadgerService: Delete failed | key=%s | duration_ms=%d | error=%v", key, duration.Milliseconds(), err)
 		return err
 	}
+	utils.LogDebug("BadgerService: Delete completed | key=%s | duration_ms=%d", key, duration.Milliseconds())
 	return nil
 }
 
@@ -168,15 +178,17 @@ func (s *BadgerService) SetPersistent(key string, value []byte) error {
 	if s == nil || s.db == nil {
 		return nil
 	}
+	start := time.Now()
 	err := s.db.Update(func(txn *badger.Txn) error {
 		// No TTL - data persists indefinitely
 		return txn.Set([]byte(key), value)
 	})
+	duration := time.Since(start)
 	if err != nil {
-		utils.LogError("BadgerService: failed to set persistent key %s: %v", key, err)
+		utils.LogError("BadgerService: SetPersistent failed | key=%s | duration_ms=%d | error=%v", key, duration.Milliseconds(), err)
 		return err
 	}
-	utils.LogDebug("BadgerService: Set persistent key '%s' (no TTL)", key)
+	utils.LogDebug("BadgerService: SetPersistent completed | key=%s | duration_ms=%d | value_size=%d", key, duration.Milliseconds(), len(value))
 	return nil
 }
 

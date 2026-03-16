@@ -7,7 +7,9 @@ help:
 	@echo "Sensio App Backend - Available Commands:"
 	@echo ""
 	@echo "  --- LOCAL DEV ---"
-	@echo "  make dev              - Run development server with hot reload (Air)"
+	@echo "  make dev              - Run MySQL and Backend (Go + Air)"
+	@echo "  make dev-full         - Run full stack (MySQL + Backend + RAG)"
+	@echo "  make dev-mysql        - Start only MySQL for development"
 	@echo "  make test             - Run all unit tests"
 	@echo "  make lint             - Run go vet, golangci-lint, and go build check"
 	@echo "  make lint-strict      - Run all linters (vet, golangci-lint, build check)"
@@ -37,8 +39,12 @@ help:
 	@echo "  make adb-reverse      - Expose backend port (8081) to Android device via ADB"
 	@echo ""
 
-# Start MySQL for development
+# Start only MySQL for development
 start-mysql-dev:
+	docker compose -f docker-compose.dev.yml up -d --wait mysql
+
+# Start ALL services in dev-compose (Milvus, etcd, minio, mysql)
+start-full-dev:
 	docker compose -f docker-compose.dev.yml up -d --wait
 
 # Stop all running containers (App, Compose, Dev DB) without deleting volumes
@@ -48,15 +54,29 @@ stop: stop-docker stop-compose stop-mysql-dev
 stop-mysql-dev:
 	docker compose -f docker-compose.dev.yml down
 
-# Run development server with hot reload (requires air)
+# Start only MySQL for development
+dev-mysql: start-mysql-dev
+	@echo "🟢 MySQL started"
+
+# Run MySQL and Backend only (Go + Air)
 dev: kill
+	@trap 'echo "🛑 Stopping services..."; \
+	  [ -n "$$AIR_PID" ] && kill $$AIR_PID 2>/dev/null || true; \
+	  make stop-mysql-dev' EXIT INT TERM; \
+	set -e; \
+	make start-mysql-dev; \
+	echo "🟢 MySQL started"; \
+	make dev-backend
+
+# Run full development stack with hot reload (Full Docker Stack + Backend + RAG)
+dev-full: kill
 	@trap 'echo "🛑 Stopping all services..."; \
 	  [ -n "$$AIR_PID" ] && kill $$AIR_PID 2>/dev/null || true; \
 	  [ -n "$$LOGS_PID" ] && kill $$LOGS_PID 2>/dev/null || true; \
 	  make stop-mysql-dev' EXIT INT TERM; \
 	set -e; \
-	make start-mysql-dev; \
-	echo "🟢 MySQL started"; \
+	make start-full-dev; \
+	echo "🟢 Full Docker stack (Milvus + MySQL) started"; \
 	echo "📂 Following Docker logs..."; \
 	docker compose -f docker-compose.dev.yml & LOGS_PID=$$!; \
 	make dev-server
@@ -65,9 +85,20 @@ dev: kill
 dev-compose: start-mysql-dev
 	@echo "✅ Docker Compose services started in background."
 
-# Start only the backend server and RAG service
-dev-server: kill-server
+# Start only the backend Go server with Air
+dev-backend: kill-server
 	@echo "🚀 Starting development server with hot reload..."; \
+	if [ ! -f bin/whisper-cli ] || [ ! -f bin/llama-cli ] || [ ! -f bin/llama-server ]; then \
+		echo "🛠️ Some AI binaries missing. Running setup..."; \
+		make setup-dev; \
+	fi; \
+	mkdir -p .air; \
+	echo "🚀 Starting backend with Air (Port 8081)..."; \
+	($(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air))
+
+# Start the backend and RAG service (used by dev-full)
+dev-server: kill-server
+	@echo "🚀 Starting development stack (Backend + RAG)..."; \
 	if [ ! -f bin/whisper-cli ] || [ ! -f bin/llama-cli ] || [ ! -f bin/llama-server ]; then \
 		echo "🛠️ Some AI binaries missing. Running setup..."; \
 		make setup-dev; \
@@ -335,7 +366,7 @@ test:
 # Run go vet excluding tmp
 vet:
 	@echo "🔍 Running go vet..."
-	@go vet . ./domain/... ../scripts/backend/...
+	@go vet . ./domain/...
 
 # Run go vet and go build check
 lint:
@@ -344,11 +375,11 @@ lint:
 # Run go vet, golangci-lint, and go build check
 lint-strict:
 	@echo "🔍 Running go vet..."
-	@go vet . ./domain/... ../scripts/backend/...
+	@go vet . ./domain/...
 	@echo "✨ Running golangci-lint..."
 	@golangci-lint run
 	@echo "🔨 Running go build check..."
-	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/... ../scripts/backend/...
+	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/...
 
 # Run complete deploy-remote pipeline: lint, build, and fetch binary from remote host
 deploy-remote:
@@ -415,19 +446,19 @@ $(MIGRATE_BIN):
 # Run all pending migrations
 migrate-up: $(MIGRATE_BIN)
 	@echo "⬆️  Running migrations..."
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" up
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" up
 	@echo "✅ Migrations completed"
 
 # Rollback last migration
 migrate-down: $(MIGRATE_BIN)
 	@echo "⬇️  Rolling back last migration..."
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" down 1
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" down 1
 	@echo "✅ Rollback completed"
 
 # Show current migration version
 migrate-version: $(MIGRATE_BIN)
 	@echo "📊 Current migration version:"
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" version
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" version
 
 # Force database to a specific version (use: make migrate-force VERSION=3)
 migrate-force: $(MIGRATE_BIN)
@@ -436,5 +467,5 @@ migrate-force: $(MIGRATE_BIN)
 		exit 1; \
 	fi
 	@echo "⚠️  Forcing database to version $(VERSION)..."
-	@$(MIGRATE_BIN) -path domain/terminal/migrations -database "$(DB_URL)" force $(VERSION)
+	@$(MIGRATE_BIN) -path migrations -database "$(DB_URL)" force $(VERSION)
 	@echo "✅ Database forced to version $(VERSION)"

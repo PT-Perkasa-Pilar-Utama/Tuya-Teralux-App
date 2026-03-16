@@ -13,4 +13,9 @@ interface TerminalRepository {
     suspend fun getTerminalByMac(macAddress: String): Result<TerminalRegistration?>
 
     suspend fun fetchMqttPassword(username: String): Result<String>
+
+    suspend fun updateTerminal(
+        terminalId: String,
+        aiProvider: String?
+    ): Result<Unit>
 }

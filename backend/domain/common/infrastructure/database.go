@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sensio/domain/common/utils"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -24,7 +25,15 @@ func InitDB() (*gorm.DB, error) {
 	log.Printf("📡 Initializing database using MySQL at %s:%s", cfg.DBHost, cfg.DBPort)
 
 	db, err := gorm.Open(dialector, &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.New(
+			log.New(log.Writer(), log.Prefix(), log.Flags()),
+			logger.Config{
+				SlowThreshold:             10 * time.Millisecond, // Log SQL queries slower than 10ms
+				Colorful:                  true,
+				IgnoreRecordNotFoundError: false,
+				LogLevel:                  logger.Info,
+			},
+		),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)

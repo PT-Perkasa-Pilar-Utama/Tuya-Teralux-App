@@ -3,6 +3,7 @@ package com.example.whisperandroid.data.repository
 import com.example.whisperandroid.common.util.getErrorMessage
 import com.example.whisperandroid.data.remote.api.TerminalApi
 import com.example.whisperandroid.data.remote.dto.TerminalRequestDto
+import com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto
 import com.example.whisperandroid.domain.model.TerminalRegistration
 import com.example.whisperandroid.domain.repository.TerminalRepository
 
@@ -29,6 +30,7 @@ class TerminalRepositoryImpl(
             if (response.status && response.data?.terminalId != null) {
                 val tId = response.data.terminalId
                 tokenManager.saveTerminalId(tId)
+                tokenManager.saveMacAddress(macAddress)
 
                 Result.success(
                     TerminalRegistration(
@@ -36,6 +38,7 @@ class TerminalRepositoryImpl(
                         name = name,
                         roomId = roomId,
                         macAddress = macAddress,
+                        deviceTypeId = deviceTypeId,
                         mqttUsername = response.data.mqttUsername,
                         mqttPassword = response.data.mqttPassword
                     )
@@ -57,9 +60,11 @@ class TerminalRepositoryImpl(
                 // Success - Found
                 val terminalItem = response.data.terminal
                 val tId = terminalItem?.id ?: response.data.id ?: ""
+                val actualMac = terminalItem?.macAddress ?: response.data.macAddress ?: macAddress
                 if (tId.isNotEmpty()) {
                     tokenManager.saveTerminalId(tId)
                 }
+                tokenManager.saveMacAddress(actualMac)
 
                 // Save MQTT credentials if present
                 val mUsername = terminalItem?.mqttUsername ?: response.data.mqttUsername
@@ -72,6 +77,8 @@ class TerminalRepositoryImpl(
                         roomId = terminalItem?.roomId ?: response.data.roomId ?: "",
                         macAddress = terminalItem?.macAddress ?: response.data.macAddress
                             ?: macAddress,
+                        deviceTypeId = terminalItem?.deviceTypeId,
+                        aiProvider = terminalItem?.aiProvider,
                         mqttUsername = mUsername,
                         mqttPassword = mPassword
                     )
@@ -103,6 +110,26 @@ class TerminalRepositoryImpl(
             )
             if (response.status && response.data != null) {
                 Result.success(response.data.password)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: retrofit2.HttpException) {
+            Result.failure(Exception(e.getErrorMessage()))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+
+    override suspend fun updateTerminal(terminalId: String, aiProvider: String?): Result<Unit> =
+        try {
+            val request = UpdateTerminalRequestDto(aiProvider = aiProvider)
+            val response = api.updateTerminal(
+                "Bearer ${tokenManager.getAccessToken()}",
+                terminalId,
+                request
+            )
+
+            if (response.status) {
+                Result.success(Unit)
             } else {
                 Result.failure(Exception(response.message))
             }

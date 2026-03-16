@@ -7,8 +7,12 @@ sdk.dir=/path/to/android-sdk
 # Backend API base URL (must end with slash)
 api.base_url=
 
-# MQTT broker URL
-mqtt.broker_url=
+# MQTT broker URL (use ssl:// for MQTTS on port 8883)
+# Examples:
+#   - MQTTS (secure): ssl://broker.example.com:8883
+#   - MQTT (plain): tcp://broker.example.com:1883
+#   - WSS (websocket secure): wss://broker.example.com:8084/mqtt
+mqtt.broker_url=ssl://your-broker-url:8883
 
 # Application environment used in MQTT topic suffix
 mqtt.application_environment=
