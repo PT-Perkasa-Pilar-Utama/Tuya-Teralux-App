@@ -57,7 +57,7 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 	opts.SetAutoReconnect(true)
 	opts.SetCleanSession(true) // Use clean session for fresh connection
 	opts.SetConnectTimeout(30 * time.Second) // Longer timeout for TLS handshake
-	opts.SetKeepAlive(60 * time.Second) // MQTT keepalive
+	opts.SetKeepAlive(30 * time.Second) // MQTT keepalive (lowered to prevent proxy idle timeouts)
 	opts.SetOrderMatters(false) // Allow parallel publishes
 	opts.SetMaxReconnectInterval(5 * time.Second)
 

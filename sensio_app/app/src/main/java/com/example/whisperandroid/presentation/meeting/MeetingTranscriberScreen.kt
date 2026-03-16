@@ -39,6 +39,7 @@ import com.example.whisperandroid.presentation.components.LanguagePillToggle
 import com.example.whisperandroid.presentation.components.MqttStatusBadge
 import com.example.whisperandroid.presentation.components.SensioFeatureLayout
 import com.example.whisperandroid.presentation.components.UiState
+import com.example.whisperandroid.presentation.meeting.components.MeetingCancelledContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingControlPill
 import com.example.whisperandroid.presentation.meeting.components.MeetingErrorContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingFilePickerSheet
@@ -94,7 +95,7 @@ fun MeetingTranscriberScreen(
         }
     }
 
-    // Auto-send summary when success
+    // Auto-send summary when success (but not for Cancelled state)
     LaunchedEffect(uiState) {
         if (uiState is MeetingProcessState.Success && !hasAutoSent) {
             val deviceId = DeviceUtils.getDeviceId(context)
@@ -267,7 +268,8 @@ fun MeetingTranscriberScreen(
                 onMicClick = {
                     val canRecord = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||
-                        uiState is MeetingProcessState.Error
+                        uiState is MeetingProcessState.Error ||
+                        uiState is MeetingProcessState.Cancelled
                     if (!isRecording && canRecord) {
                         if (!hasPermission) {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -285,7 +287,8 @@ fun MeetingTranscriberScreen(
                 onUploadClick = {
                     val canUpload = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||
-                        uiState is MeetingProcessState.Error
+                        uiState is MeetingProcessState.Error ||
+                        uiState is MeetingProcessState.Cancelled
                     if (canUpload) {
                         showFilePickerSheet = true
                     }
@@ -312,7 +315,8 @@ fun MeetingTranscriberScreen(
                         audioFile?.let { file -> audioRecorder.finalizeWav(file) }
                     }
                     isRecording = false
-                    viewModel.resetState()
+                    // Cancel any ongoing processing
+                    viewModel.cancelProcessing(context)
                 },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
@@ -367,6 +371,7 @@ fun MeetingTranscriberScreen(
                     is MeetingProcessState.Error -> MeetingErrorContent(
                         uiState as MeetingProcessState.Error
                     )
+                    is MeetingProcessState.Cancelled -> MeetingCancelledContent()
                     else -> MeetingLoadingContent(uiState, glowAlpha)
                 }
             }

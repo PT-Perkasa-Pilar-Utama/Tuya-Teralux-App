@@ -9,7 +9,6 @@ import com.example.whisperandroid.presentation.meeting.AudioRecorder
 import com.example.whisperandroid.util.AppLog
 import com.example.whisperandroid.util.DeviceUtils
 import com.example.whisperandroid.util.MqttHelper
-import com.example.whisperandroid.util.parseMarkdownToText
 import com.google.gson.JsonParser
 import java.io.File
 import java.util.UUID

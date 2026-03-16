@@ -262,7 +262,8 @@ func (c *PipelineController) ExecuteJobByUpload(ctx *gin.Context) {
 		MacAddress:     req.MacAddress,
 	}
 
-	taskID, err := c.pipelineUC.ExecutePipeline(ctx.Request.Context(), finalInputPath, pipelineReq, req.IdempotencyKey)
+	// For by-upload requests, pass session ID to prevent idempotency collisions across different upload sessions
+	taskID, err := c.pipelineUC.ExecutePipelineWithSession(ctx.Request.Context(), finalInputPath, pipelineReq, req.IdempotencyKey, req.SessionID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,

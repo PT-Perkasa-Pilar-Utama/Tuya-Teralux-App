@@ -65,9 +65,7 @@ object AssistantResponseParser {
             if (it.has("source") && !it.get("source").isJsonNull) it.get("source").asString else null
         }
 
-        val isValidationError = json.has("message") && 
-            !json.get("message").isJsonNull && 
-            json.get("message").asString == "Validation Error"
+        val isValidationError = json.has("message") && !json.get("message").isJsonNull && json.get("message").asString == "Validation Error"
 
         return ParsedAssistantChatResult(
             responseText = responseText,

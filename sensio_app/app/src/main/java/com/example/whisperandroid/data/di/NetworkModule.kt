@@ -29,6 +29,8 @@ object NetworkModule {
     val BASE_URL = com.example.whisperandroid.BuildConfig.BASE_URL
     private val BASE_HOSTNAME = com.example.whisperandroid.BuildConfig.BASE_HOSTNAME
     private val API_KEY = com.example.whisperandroid.BuildConfig.SENSIO_API_KEY
+
+    // Shared client for general API calls
     private val client by lazy {
         val logging =
             HttpLoggingInterceptor().apply {
@@ -36,9 +38,27 @@ object NetworkModule {
             }
         OkHttpClient.Builder()
             .addInterceptor(logging)
-            .connectTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
-            .readTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
-            .writeTimeout(10, java.util.concurrent.TimeUnit.MINUTES)
+            .connectTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+    }
+
+    // Dedicated upload client with bounded wall-clock timeout
+    // Timeouts are configured to handle slow uplink conditions:
+    // - 8MB chunk at 100 KB/s = ~80 seconds, so we use 5 minutes as safe buffer
+    // - callTimeout is set to 6 minutes to allow for retry overhead
+    private val uploadClient by lazy {
+        val logging =
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BASIC
+            }
+        OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
+            .writeTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
+            .callTimeout(6, java.util.concurrent.TimeUnit.MINUTES)
             .build()
     }
 
@@ -47,6 +67,16 @@ object NetworkModule {
             .Builder()
             .baseUrl(BASE_URL)
             .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    // Dedicated Retrofit for upload APIs with bounded timeout client
+    private val uploadRetrofit by lazy {
+        Retrofit
+            .Builder()
+            .baseUrl(BASE_URL)
+            .client(uploadClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
@@ -94,6 +124,11 @@ object NetworkModule {
         retrofit.create(com.example.whisperandroid.data.remote.api.WhisperApi::class.java)
     }
 
+    // Dedicated WhisperApi for upload operations with bounded timeout
+    private val uploadWhisperApi: com.example.whisperandroid.data.remote.api.WhisperApi by lazy {
+        uploadRetrofit.create(com.example.whisperandroid.data.remote.api.WhisperApi::class.java)
+    }
+
     val repository: TerminalRepository by lazy {
         // Ensure init() is called before accessing this
         TerminalRepositoryImpl(api, API_KEY, tokenManager)
@@ -135,7 +170,7 @@ object NetworkModule {
     }
 
     val uploadRepository: UploadRepository by lazy {
-        UploadRepositoryImpl(whisperApi, API_KEY)
+        UploadRepositoryImpl(uploadWhisperApi, API_KEY)
     }
 
     val registerUseCase: RegisterTerminalUseCase by lazy {

@@ -24,6 +24,7 @@ type mqttPublisher interface {
 
 type PipelineUseCase interface {
 	ExecutePipeline(ctx context.Context, inputPath string, req pipelineDtos.PipelineRequestDTO, idempotencyKey string) (string, error)
+	ExecutePipelineWithSession(ctx context.Context, inputPath string, req pipelineDtos.PipelineRequestDTO, idempotencyKey string, sessionID string) (string, error)
 	CheckIdempotency(idempotencyKey string, audioHash string, req pipelineDtos.PipelineRequestDTO) (string, bool)
 }
 
@@ -79,11 +80,23 @@ func (u *pipelineUseCase) CheckIdempotency(idempotencyKey string, audioHash stri
 }
 
 func (u *pipelineUseCase) ExecutePipeline(ctx context.Context, inputPath string, req pipelineDtos.PipelineRequestDTO, idempotencyKey string) (string, error) {
+	return u.ExecutePipelineWithSession(ctx, inputPath, req, idempotencyKey, "")
+}
+
+// ExecutePipelineWithSession executes a pipeline with optional session ID for by-upload requests.
+// When sessionID is provided, it is included in the idempotency hash to prevent cross-session collisions.
+func (u *pipelineUseCase) ExecutePipelineWithSession(ctx context.Context, inputPath string, req pipelineDtos.PipelineRequestDTO, idempotencyKey string, sessionID string) (string, error) {
 	// 1. Idempotency Check
 	var idempotencyHash string
 	if idempotencyKey != "" {
 		audioHash, _ := utils.HashFile(inputPath)
-		hashInput := fmt.Sprintf("%s_%s_%s_%s_%s", idempotencyKey, req.Language, req.TargetLanguage, req.MacAddress, audioHash)
+		// For by-upload requests, include session ID in hash to prevent cross-session collisions
+		var hashInput string
+		if sessionID != "" {
+			hashInput = fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", idempotencyKey, req.Language, req.TargetLanguage, req.MacAddress, audioHash, sessionID)
+		} else {
+			hashInput = fmt.Sprintf("%s_%s_%s_%s_%s", idempotencyKey, req.Language, req.TargetLanguage, req.MacAddress, audioHash)
+		}
 		idempotencyHash = "idemp_pipeline_" + utils.HashString(hashInput)
 
 		var existingTaskID string
@@ -102,10 +115,10 @@ func (u *pipelineUseCase) ExecutePipeline(ctx context.Context, inputPath string,
 			}
 
 			if existingStatus != nil && existingStatus.OverallStatus != "failed" {
-				utils.LogInfo("Pipeline: Duplicate request detected for IdempotencyKey %s. Returning existing TaskID %s", idempotencyKey, existingTaskID)
+				utils.LogInfo("Pipeline: Duplicate request detected for IdempotencyKey %s (session: %s). Returning existing TaskID %s", idempotencyKey, sessionID, existingTaskID)
 				return existingTaskID, nil
 			}
-			utils.LogInfo("Pipeline: Existing task %s found for IdempotencyKey %s but it is in 'failed' state or could not be loaded. Starting new task.", existingTaskID, idempotencyKey)
+			utils.LogInfo("Pipeline: Existing task %s found for IdempotencyKey %s (session: %s) but it is in 'failed' state or could not be loaded. Starting new task.", existingTaskID, idempotencyKey, sessionID)
 		}
 	}
 
@@ -179,9 +192,19 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 		refine = false
 	}
 
-	transResult, err := u.transcribeUC.TranscribeAudioSync(ctx, inputPath, req.Language, req.Diarize, refine, func(progress int) {
-		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "transcription", "processing", progress, nil)
-	}, req.MacAddress)
+	transOpts := speechUsecases.TranscribeOptions{
+		Language:         req.Language,
+		Diarize:          req.Diarize,
+		Refine:           refine,
+		IsPipeline:       true,
+		DisableFallback:  true, // MEETING SUMMARY REQUIREMENT: No local fallback for pipeline path
+		ProgressCallback: func(progress int) {
+			u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "transcription", "processing", progress, nil)
+		},
+		TerminalContext: []string{req.MacAddress},
+	}
+
+	transResult, err := u.transcribeUC.TranscribeAudioSync(ctx, inputPath, transOpts)
 	if err != nil {
 		u.failStage(taskID, req.MacAddress, "transcription", err)
 		return

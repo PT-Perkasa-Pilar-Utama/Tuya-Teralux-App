@@ -51,7 +51,6 @@ type templateData struct {
 	LblDate            string
 	LblLocation        string
 	LblParticipants    string
-	LblContext         string
 	LblFooterRights    string
 	LblFooterGenerated string
 }
@@ -95,7 +94,6 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 		data.LblDate = "Date"
 		data.LblLocation = "Location"
 		data.LblParticipants = "Participants"
-		data.LblContext = "Agenda Context"
 		data.LblFooterRights = "All rights reserved."
 		data.LblFooterGenerated = "This document was automatically generated and summarized by an artificial intelligence system."
 	} else {
@@ -103,7 +101,6 @@ func (r *HTMLSummaryPDFRenderer) Render(summary string, pdfPath string, meta Sum
 		data.LblDate = "Tanggal"
 		data.LblLocation = "Lokasi"
 		data.LblParticipants = "Peserta"
-		data.LblContext = "Konteks Agenda"
 		data.LblFooterRights = "Seluruh hak cipta dilindungi undang-undang."
 		data.LblFooterGenerated = "Dokumen ini dibuat secara otomatis oleh sistem kecerdasan buatan dan telah dirangkum untuk kemudahan analisis."
 	}
@@ -134,14 +131,37 @@ func generatePDFFromHTML(htmlContent string, outputPath string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 
-	// Use explicit system chromium to avoid auto-download and ensure stability
-	path := "/usr/bin/chromium"
-	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("system chromium not found at %s: PDF generation requires deterministic runtime: %w", path, err)
+	// Find Chromium binary: check environment variable first, then try multiple paths
+	chromiumPath := os.Getenv("CHROMIUM_PATH")
+	if chromiumPath == "" {
+		// Default paths to check (in order of priority)
+		defaultPaths := []string{
+			"/usr/bin/chromium",
+			"/usr/bin/chromium-browser",
+			"/usr/bin/google-chrome",
+			"/usr/bin/google-chrome-stable",
+			"/data/data/com.termux/files/usr/bin/chromium",
+			"/data/data/com.termux/files/usr/bin/chromium-browser",
+		}
+		for _, path := range defaultPaths {
+			if _, err := os.Stat(path); err == nil {
+				chromiumPath = path
+				break
+			}
+		}
+	}
+
+	if chromiumPath == "" {
+		return fmt.Errorf("chromium not found: PDF generation requires a Chromium-based browser. Install chromium or set CHROMIUM_PATH environment variable")
+	}
+
+	// Verify the binary exists and is executable
+	if _, err := os.Stat(chromiumPath); err != nil {
+		return fmt.Errorf("chromium not found at %s: %w", chromiumPath, err)
 	}
 
 	l := launcher.New().
-		Bin(path).
+		Bin(chromiumPath).
 		Set("no-sandbox").
 		Set("disable-dev-shm-usage").
 		Headless(true)

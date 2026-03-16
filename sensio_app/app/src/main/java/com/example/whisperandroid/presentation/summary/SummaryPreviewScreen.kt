@@ -47,6 +47,7 @@ import com.example.whisperandroid.presentation.components.FeatureBackground
 import com.example.whisperandroid.presentation.components.FeatureHeader
 import com.example.whisperandroid.presentation.components.MqttStatusBadge
 import com.example.whisperandroid.presentation.components.UiState
+import com.example.whisperandroid.util.normalizeMeetingSummaryMarkdown
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -206,13 +207,7 @@ fun SummaryPreviewScreen(
                 // Summary Content
                 if (currentSummary.isNotEmpty()) {
                     MarkdownText(
-                        markdown =
-                        currentSummary
-                            .replace(Regex("^-+\\s*$", RegexOption.MULTILINE), "")
-                            .replace(Regex("^.*–.*$", RegexOption.MULTILINE), "")
-                            .replace("\n\n\n", "\n\n")
-                            .replace(Regex("\n{3,}"), "\n\n")
-                            .trim(),
+                        markdown = normalizeMeetingSummaryMarkdown(currentSummary),
                         style =
                         MaterialTheme.typography.bodyLarge.copy(
                             color = Color.DarkGray,

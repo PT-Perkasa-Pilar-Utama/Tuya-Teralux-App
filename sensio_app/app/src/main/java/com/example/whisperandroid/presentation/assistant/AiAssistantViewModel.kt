@@ -10,7 +10,6 @@ import com.example.whisperandroid.presentation.components.MessageRole
 import com.example.whisperandroid.presentation.components.TranscriptionMessage
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
 import com.example.whisperandroid.util.MqttHelper
-import com.example.whisperandroid.util.parseMarkdownToText
 import java.io.File
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -466,12 +465,12 @@ class AiAssistantViewModel(
                 activeTimingLogger = AssistantTimingLogger(flow = "manual_chat_text", requestId = requestId)
                 activeTimingLogger?.markStep("send_chat_invoked")
                 activeTimingLogger?.markStep("request_id_assigned")
-                
+
                 val publishStartMs = System.currentTimeMillis()
                 activeTimingLogger?.markStep("mqtt_publish_started")
                 val result = mqttHelper.publishChat(text, selectedLanguage, requestId)
                 val publishDurationMs = System.currentTimeMillis() - publishStartMs
-                
+
                 if (result.isSuccess) {
                     activeTimingLogger?.markStep("mqtt_publish_success", mapOf("publish_duration_ms" to publishDurationMs.toString()))
                     activeTimingLogger?.logDelta("mqtt_publish_started", "mqtt_publish_success", mapOf("metric" to "publish_duration"))
@@ -538,7 +537,7 @@ class AiAssistantViewModel(
                     val bytes = file.readBytes()
                     val result = mqttHelper.publishAudio(bytes, selectedLanguage, requestId)
                     val publishDurationMs = System.currentTimeMillis() - publishStartMs
-                    
+
                     if (result.isSuccess) {
                         activeTimingLogger?.markStep("mqtt_publish_success", mapOf("publish_duration_ms" to publishDurationMs.toString()))
                         activeTimingLogger?.logDelta("mqtt_publish_started", "mqtt_publish_success", mapOf("metric" to "publish_duration"))
@@ -714,7 +713,7 @@ class AiAssistantViewModel(
         viewModelScope.launch {
             val pollStartMs = System.currentTimeMillis()
             activeTimingLogger?.markStep("http_poll_started", mapOf("task_id" to taskId))
-            
+
             var isCompleted = false
             var attempts = 0
             while (!isCompleted && attempts < 10) {

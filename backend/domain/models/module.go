@@ -72,6 +72,21 @@ func InitModule(
 	// Initialize all provider services upfront for provider resolution
 	geminiService, openaiService, groqService, orionService, llamaService, whisperService := providers.GetProviderServices(cfg)
 
+	// Log provider direct upload limits at startup for observability
+	utils.LogInfo("Startup: Provider direct upload limits | Gemini: %d MB | OpenAI: %d MB | Groq: %d MB | Orion: %d MB",
+		commonServices.GeminiDirectUploadLimitBytes/1024/1024,
+		commonServices.OpenAIDirectUploadLimitBytes/1024/1024,
+		commonServices.GroqDirectUploadLimitBytes/1024/1024,
+		commonServices.OrionDirectUploadLimitBytes/1024/1024,
+	)
+
+	// Validate local whisper fallback health at startup
+	if whisperService.HealthCheck() {
+		utils.LogInfo("Startup: Local whisper fallback is healthy | model=%s", cfg.WhisperLocalModel)
+	} else {
+		utils.LogWarn("Startup: Local whisper fallback is NOT healthy - transcription will fail if remote providers fail | model=%s", cfg.WhisperLocalModel)
+	}
+
 	// Create provider resolver for terminal-specific provider selection
 	// Wrap terminalRepo to match the interface expected by ProviderResolver
 	providerResolverRepo := &providerResolverTerminalRepoWrapper{terminalRepo}

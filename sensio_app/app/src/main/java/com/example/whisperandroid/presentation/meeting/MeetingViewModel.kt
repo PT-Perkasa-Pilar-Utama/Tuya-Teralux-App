@@ -187,8 +187,38 @@ class MeetingViewModel(
         _emailState.value = UiState.Idle
     }
 
+    fun cancelProcessing(context: Context) {
+        // Reset email state for clean UI
+        _emailState.value = UiState.Idle
+
+        // Only send cancel intent if there's an active processing job
+        // This avoids Android O+ foreground service contract violations
+        if (MeetingForegroundService.isProcessingActive()) {
+            val cancelIntent = Intent(context, MeetingForegroundService::class.java).apply {
+                action = MeetingForegroundService.ACTION_CANCEL
+            }
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(cancelIntent)
+            } else {
+                context.startService(cancelIntent)
+            }
+            // Don't set UI state here - let the service publish Cancelled when job actually stops
+        } else {
+            // No active processing job, clear local state and any persisted session state
+            // Get the audio path from MeetingProcessManager to clear session state
+            val audioPath = MeetingProcessManager.getCurrentAudioPath()
+            if (audioPath != null) {
+                processMeetingUseCase.clearSessionState(audioPath)
+            }
+            // MeetingProcessManager.cancel() will publish Cancelled state
+            MeetingProcessManager.cancel()
+        }
+    }
+
     fun resetState() {
         _uiState.value = MeetingProcessState.Idle
         _emailState.value = UiState.Idle
+        MeetingProcessManager.reset()
     }
 }
