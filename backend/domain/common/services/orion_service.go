@@ -147,6 +147,11 @@ func (s *OrionService) CallModel(ctx context.Context, prompt string, model strin
 
 // Whisper Implementation (Orion)
 
+// OrionDirectUploadLimitBytes is the maximum file size for direct Orion Whisper uploads.
+// Orion's backend limit is not explicitly documented, so we use 20MB as a conservative
+// safe default to match Gemini's inline limit and avoid remote timeouts/rejections.
+const OrionDirectUploadLimitBytes = 20 * 1024 * 1024
+
 type OrionWhisperResponse struct {
 	Text string `json:"text"`
 }
@@ -191,6 +196,12 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 	outsystemsURL := s.config.OrionWhisperBaseURL
 	if outsystemsURL == "" {
 		return nil, fmt.Errorf("ORION_WHISPER_BASE_URL not configured")
+	}
+
+	// Preflight size check to avoid sending oversized files to Orion
+	fileInfo, err := os.Stat(audioPath)
+	if err == nil && fileInfo.Size() > OrionDirectUploadLimitBytes {
+		return nil, fmt.Errorf("file size (%d bytes) exceeds Orion direct upload limit (%d bytes); use segmented transcription path", fileInfo.Size(), OrionDirectUploadLimitBytes)
 	}
 
 	pr, pw := io.Pipe()

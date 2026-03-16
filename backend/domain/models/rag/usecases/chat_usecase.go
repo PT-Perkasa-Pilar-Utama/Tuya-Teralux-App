@@ -282,8 +282,8 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 				IsControl: true,
 			}
 		} else {
-			utils.LogDebug("ChatUseCase: Decision control executed | duration_ms=%d | device_id=%v", controlDuration.Milliseconds(), result.Data)
 			result = controlResult
+			utils.LogDebug("ChatUseCase: Decision control executed | duration_ms=%d | device_id=%v", controlDuration.Milliseconds(), result.Data)
 		}
 
 	case "chat":

@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.domain.repository.TerminalRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -106,10 +105,9 @@ class DashboardViewModel(
             }.onFailure { e ->
                 val errorMsg = e.message ?: "Failed to update AI provider"
                 // Check if error is 404 - Terminal not found
-                val isNotFound = errorMsg.contains("404") || 
-                                 errorMsg.contains("not found", ignoreCase = true) ||
-                                 errorMsg.contains("Terminal not found", ignoreCase = true)
-                
+                val isNotFound = errorMsg.contains("404") || errorMsg.contains("not found", ignoreCase = true) ||
+                    errorMsg.contains("Terminal not found", ignoreCase = true)
+
                 _uiState.value = _uiState.value.copy(
                     isSavingAiProvider = false,
                     error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg,

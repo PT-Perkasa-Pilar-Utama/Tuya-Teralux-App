@@ -99,6 +99,11 @@ type Config struct {
 	PipelineAsyncTimeout       string
 	TaskStatusTTL              string
 
+	// Byte-based chunk upload config (new, takes precedence over MB-based)
+	ChunkUploadDefaultChunkBytes int64
+	ChunkUploadMinChunkBytes     int64
+	ChunkUploadMaxChunkBytes     int64
+
 	// Audio Segmentation & Pipeline Config
 	AudioSegmentEnabled        bool
 	AudioSegmentSec            int
@@ -235,13 +240,31 @@ func LoadConfig() {
 		PipelineAsyncTimeout:       getEnvDuration("PIPELINE_ASYNC_TIMEOUT"),
 		TaskStatusTTL:              getEnvDuration("TASK_STATUS_TTL"),
 
+		// Byte-based chunk upload config (new, takes precedence over MB-based)
+		// Resolution order: 1) byte-based env var, 2) legacy MB env var, 3) hardcoded default
+		ChunkUploadDefaultChunkBytes: getByteConfigWithMBFallback(
+			"CHUNK_UPLOAD_DEFAULT_CHUNK_BYTES",
+			"CHUNK_UPLOAD_DEFAULT_CHUNK_MB",
+			1*1024*1024, // default: 1 MB
+		),
+		ChunkUploadMinChunkBytes: getByteConfigWithMBFallback(
+			"CHUNK_UPLOAD_MIN_CHUNK_BYTES",
+			"CHUNK_UPLOAD_MIN_CHUNK_MB",
+			256*1024, // default: 256 KB (lowered from 1 MB)
+		),
+		ChunkUploadMaxChunkBytes: getByteConfigWithMBFallback(
+			"CHUNK_UPLOAD_MAX_CHUNK_BYTES",
+			"CHUNK_UPLOAD_MAX_CHUNK_MB",
+			32*1024*1024, // default: 32 MB
+		),
+
 		// Audio Segmentation & Pipeline
 		AudioSegmentEnabled:        os.Getenv("AUDIO_SEGMENT_ENABLED") == "true",
 		AudioSegmentSec:            getEnvAsInt("AUDIO_SEGMENT_SEC", 600),
 		AudioSegmentOverlapSec:     getEnvAsInt("AUDIO_SEGMENT_OVERLAP_SEC", 2),
 		AudioSegmentMaxConcurrency: getEnvAsInt("AUDIO_SEGMENT_MAX_CONCURRENCY", 2),
 		TaskEventPublishEnabled:    os.Getenv("TASK_EVENT_PUBLISH_ENABLED") == "true",
-		OrionTranscribeTimeout:     getEnvAsDefault("ORION_TRANSCRIBE_TIMEOUT", "120s"),
+		OrionTranscribeTimeout:     getEnvAsDefault("ORION_TRANSCRIBE_TIMEOUT", "360s"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables
@@ -295,6 +318,27 @@ func getEnvAsInt(key string, defaultVal int) int {
 		}
 	}
 	return defaultVal
+}
+
+// getByteConfigWithMBFallback reads byte-based config with MB fallback.
+// Resolution order: 1) byte-based env var, 2) legacy MB env var, 3) hardcoded default.
+func getByteConfigWithMBFallback(byteKey string, mbKey string, defaultBytes int64) int64 {
+	// 1. Try byte-based env var first
+	if valueStr := os.Getenv(byteKey); valueStr != "" {
+		if value, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
+			return value
+		}
+	}
+
+	// 2. Try legacy MB env var
+	if valueStr := os.Getenv(mbKey); valueStr != "" {
+		if mb, err := strconv.Atoi(valueStr); err == nil {
+			return int64(mb) * 1024 * 1024
+		}
+	}
+
+	// 3. Return hardcoded default
+	return defaultBytes
 }
 
 // getEnvAsDefault reads an environment variable and returns its value or a default string.

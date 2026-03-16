@@ -206,6 +206,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
 	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
+	pdfUrl := ""
 	if u.renderer != nil {
 		meta := services.SummaryPDFMeta{
 			Language:     targetLangName,
@@ -218,11 +219,14 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 			CompanyName:  "Sensio",
 		}
 		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
-			return nil, fmt.Errorf("pdf generation failed: %w", err)
+			// Log warning but don't fail the entire operation
+			// PDF generation is optional for platforms without Chromium support
+			fmt.Printf("[WARNING] PDF generation skipped: %v\n", err)
+			pdfUrl = "" // No PDF available
+		} else {
+			pdfUrl = fmt.Sprintf("/uploads/reports/%s", pdfFilename)
 		}
 	}
-
-	pdfUrl := fmt.Sprintf("/uploads/reports/%s", pdfFilename)
 
 	// Cache inferred agenda
 	if macAddress != "" && inferredAgenda != "" {

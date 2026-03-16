@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
+import com.example.whisperandroid.util.normalizeMeetingSummaryMarkdown
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
@@ -100,13 +101,7 @@ fun MeetingSuccessContent(state: MeetingProcessState.Success) {
         )
 
         MarkdownText(
-            markdown =
-            state.summary
-                .replace(Regex("^-+\\s*$", RegexOption.MULTILINE), "")
-                .replace(Regex("^.*–.*$", RegexOption.MULTILINE), "")
-                .replace("\n\n\n", "\n\n")
-                .replace(Regex("\n{3,}"), "\n\n")
-                .trim(),
+            markdown = normalizeMeetingSummaryMarkdown(state.summary),
             style =
             MaterialTheme.typography.bodyLarge.copy(
                 color = Color.DarkGray,
@@ -121,12 +116,50 @@ fun MeetingSuccessContent(state: MeetingProcessState.Success) {
 
 @Composable
 fun MeetingErrorContent(state: MeetingProcessState.Error) {
-    Text(
-        text = "Error: ${state.message}",
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.error,
-        textAlign = TextAlign.Center
-    )
+    val uiModel = mapMeetingErrorToUiModel(state.message)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = uiModel.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = uiModel.body,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun MeetingCancelledContent() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Process Cancelled",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "You cancelled the processing.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 @Composable
