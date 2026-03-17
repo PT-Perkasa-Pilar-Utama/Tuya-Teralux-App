@@ -29,8 +29,8 @@ func NewTuyaSensorController(useCase *usecases.TuyaSensorUseCase) *TuyaSensorCon
 // @Produce      json
 // @Param        id   path      string                 true  "Device ID"
 // @Success      200  {object}  dtos.StandardResponse{data=dtos.SensorDataDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/tuya/devices/{id}/sensor [get]
 func (c *TuyaSensorController) GetSensorData(ctx *gin.Context) {

@@ -32,8 +32,9 @@ func NewGetTerminalByIDController(useCase *usecases.GetTerminalByIDUseCase) *Get
 // @Produce      json
 // @Param        id  path  string  true  "Terminal ID"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalSingleResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/terminal/{id} [get]
 // @Security     BearerAuth
 func (c *GetTerminalByIDController) GetTerminalByID(ctx *gin.Context) {

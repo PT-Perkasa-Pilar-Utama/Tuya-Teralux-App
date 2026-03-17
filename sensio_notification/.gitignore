@@ -1,7 +1,0 @@
-.gradle/
-build/
-composeApp/build/
-.kotlin/
-local.properties
-*.log
-.DS_Store

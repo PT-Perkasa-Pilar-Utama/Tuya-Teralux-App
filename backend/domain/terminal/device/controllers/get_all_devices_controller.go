@@ -24,7 +24,6 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 		useCase: useCase,
 	}
 }
-
 // GetAllDevices handles GET /api/devices endpoint
 // @Summary      Get all devices
 // @Description  Retrieve a list of all registered devices with optional filtering
@@ -32,10 +31,12 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 // @Accept       json
 // @Produce      json
 // @Param        terminal_id  query    string  false  "Filter by terminal ID"
-// @Success      200  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Param        name         query    string  false  "Filter by device name"
+// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceListResponseDTO}
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices [get]
 // @Security     BearerAuth
+
 func (c *GetAllDevicesController) GetAllDevices(ctx *gin.Context) {
 	var filter terminal_dtos.DeviceFilterDTO
 	if err := ctx.ShouldBindQuery(&filter); err != nil {

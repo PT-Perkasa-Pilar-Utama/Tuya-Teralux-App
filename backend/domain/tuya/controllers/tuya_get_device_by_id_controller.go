@@ -31,8 +31,8 @@ func NewTuyaGetDeviceByIDController(useCase *usecases.TuyaGetDeviceByIDUseCase) 
 // @Param        id         path      string  true   "Device ID"
 // @Param        remote_id  query     string  false  "Optional Remote sub-device ID"
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaDeviceResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/tuya/devices/{id} [get]
 func (c *TuyaGetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {

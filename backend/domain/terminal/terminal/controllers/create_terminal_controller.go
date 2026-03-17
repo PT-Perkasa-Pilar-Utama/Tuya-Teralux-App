@@ -29,9 +29,9 @@ func NewCreateTerminalController(useCase *usecases.CreateTerminalUseCase) *Creat
 // @Accept       json
 // @Produce      json
 // @Param        request  body      terminal_dtos.CreateTerminalRequestDTO  true  "Terminal registration data"
-// @Success      201  {object}  dtos.StandardResponse
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      422  {object}  dtos.StandardResponse
+// @Success      201  {object}  dtos.StandardResponse{data=terminal_dtos.CreateTerminalResponseDTO}
+// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/terminal [post]
 // @Security     BearerAuth
 func (c *CreateTerminalController) CreateTerminal(ctx *gin.Context) {

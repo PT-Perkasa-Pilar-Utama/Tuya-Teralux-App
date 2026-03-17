@@ -90,6 +90,15 @@ definitions:
     - name
     - room_id
     type: object
+  dtos.CreateTerminalResponseDTO:
+    properties:
+      mqtt_password:
+        type: string
+      mqtt_username:
+        type: string
+      terminal_id:
+        type: string
+    type: object
   dtos.DeviceListResponseDTO:
     properties:
       devices:
@@ -170,6 +179,16 @@ definitions:
       value:
         type: string
     type: object
+  dtos.ErrorResponse:
+    properties:
+      data: {}
+      message:
+        example: An error occurred
+        type: string
+      status:
+        example: false
+        type: boolean
+    type: object
   dtos.MQTTCredentialsResponseDTO:
     properties:
       password:
@@ -232,6 +251,40 @@ definitions:
         type: string
       task_status:
         example: pending
+        type: string
+    type: object
+  dtos.NotificationPublishRequest:
+    properties:
+      datetime_end:
+        example: "2026-03-17T14:00:00+07:00"
+        type: string
+      interval_time:
+        example: 15
+        minimum: 0
+        type: integer
+      room_id:
+        example: "123"
+        type: string
+    required:
+    - datetime_end
+    - room_id
+    type: object
+  dtos.NotificationPublishResponse:
+    properties:
+      publish_at:
+        example: "2026-03-17T13:45:00+07:00"
+        type: string
+      published_count:
+        example: 2
+        type: integer
+      published_topics:
+        example:
+        - '["users/AA:BB:CC:DD:EE:FF/notification"]'
+        items:
+          type: string
+        type: array
+      room_id:
+        example: "123"
         type: string
     type: object
   dtos.PipelineResponseDTO:
@@ -455,6 +508,11 @@ definitions:
       method:
         type: string
     type: object
+  dtos.SceneIDResponseDTO:
+    properties:
+      scene_id:
+        type: string
+    type: object
   dtos.SceneItemDTO:
     properties:
       actions:
@@ -512,11 +570,7 @@ definitions:
   dtos.StandardResponse:
     properties:
       data: {}
-      details:
-        description: |-
-          Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.
-          For all other status codes, including 500, this field is nil/omitted.
-          @Schema(oneOf=[[]ValidationErrorDetailDTO, string, object])
+      details: {}
       message:
         example: Success
         type: string
@@ -529,6 +583,19 @@ definitions:
       task_id:
         example: task-123
         type: string
+    type: object
+  dtos.TerminalListResponseDTO:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      terminal:
+        items:
+          $ref: '#/definitions/dtos.TerminalResponseDTO'
+        type: array
+      total:
+        type: integer
     type: object
   dtos.TerminalResponseDTO:
     properties:
@@ -687,22 +754,6 @@ definitions:
     - code
     - remote_id
     type: object
-  dtos.UpdateDeviceRequestDTO:
-    properties:
-      name:
-        type: string
-    type: object
-  dtos.UpdateDeviceStatusRequestDTO:
-    properties:
-      code:
-        type: string
-      remote_id:
-        description: Optional, for IR devices
-        type: string
-      value: {}
-    required:
-    - code
-    type: object
   dtos.UpdateSceneRequestDTO:
     properties:
       actions:
@@ -713,19 +764,6 @@ definitions:
         type: string
     required:
     - name
-    type: object
-  dtos.UpdateTerminalRequestDTO:
-    properties:
-      ai_provider:
-        type: string
-      device_type_id:
-        type: string
-      mac_address:
-        type: string
-      name:
-        type: string
-      room_id:
-        type: string
     type: object
   dtos.V1PipelineStatusResponseDTO:
     properties:
@@ -749,6 +787,29 @@ definitions:
       translated:
         example: Halo dunia
         type: string
+    type: object
+  dtos.ValidationErrorDetailDTO:
+    properties:
+      field:
+        example: username
+        type: string
+      message:
+        example: is required
+        type: string
+    type: object
+  dtos.ValidationErrorResponse:
+    properties:
+      data: {}
+      details:
+        items:
+          $ref: '#/definitions/dtos.ValidationErrorDetailDTO'
+        type: array
+      message:
+        example: Validation Error
+        type: string
+      status:
+        example: false
+        type: boolean
     type: object
   recordings_dtos.GetAllRecordingsResponseDto:
     properties:
@@ -774,6 +835,63 @@ definitions:
       id:
         type: string
       original_name:
+        type: string
+    type: object
+  sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest:
+    properties:
+      chunk_size_bytes:
+        type: integer
+      file_name:
+        type: string
+      mime_type:
+        type: string
+      total_size_bytes:
+        type: integer
+    required:
+    - file_name
+    - total_size_bytes
+    type: object
+  sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO:
+    properties:
+      is_duplicate:
+        type: boolean
+      received_bytes:
+        type: integer
+      received_chunks:
+        type: integer
+      state:
+        type: string
+    type: object
+  sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO:
+    properties:
+      chunk_size_bytes:
+        type: integer
+      expires_at:
+        type: integer
+      missing_ranges:
+        description: e.g. ["0-2", "5"]
+        items:
+          type: string
+        type: array
+      received_bytes:
+        type: integer
+      session_id:
+        type: string
+      state:
+        description: uploading, ready, consumed, aborted, expired
+        type: string
+      total_chunks:
+        type: integer
+      total_size_bytes:
+        type: integer
+    type: object
+  services.RAGRequest:
+    properties:
+      language:
+        type: string
+      mac_address:
+        type: string
+      text:
         type: string
     type: object
 info:
@@ -818,15 +936,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       summary: Fetch device and booking info by MAC address
       tags:
       - 08. Common
@@ -845,38 +963,13 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Flush all cache
       tags:
       - 08. Common
   /api/devices:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of all registered devices with optional filtering
-      parameters:
-      - description: Filter by terminal ID
-        in: query
-        name: terminal_id
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get all devices
-      tags:
-      - 02. Terminal
     post:
       consumes:
       - application/json
@@ -894,55 +987,26 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceResponseDTO'
+              type: object
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new device
       tags:
       - 02. Terminal
   /api/devices/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a device by ID
-      parameters:
-      - description: Device ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete a device
-      tags:
-      - 02. Terminal
     get:
       consumes:
       - application/json
@@ -968,95 +1032,14 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get device by ID
-      tags:
-      - 02. Terminal
-    put:
-      consumes:
-      - application/json
-      description: Update device information by ID
-      parameters:
-      - description: Device ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated device data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.UpdateDeviceRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Update a device
-      tags:
-      - 02. Terminal
-  /api/devices/{id}/status:
-    put:
-      consumes:
-      - application/json
-      description: Update a specific device status (e.g., power, temperature)
-      parameters:
-      - description: Device ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated status data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.UpdateDeviceStatusRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Update device status
       tags:
       - 02. Terminal
   /api/devices/{id}/statuses:
@@ -1093,55 +1076,18 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get device statuses by device ID
-      tags:
-      - 02. Terminal
-  /api/devices/{id}/statuses/{code}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a specific device status by status code
-      parameters:
-      - description: Device ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Status code
-        in: path
-        name: code
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.DeviceStatusResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Get device status by code
       tags:
       - 02. Terminal
   /api/devices/statuses:
@@ -1164,11 +1110,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.DeviceStatusListResponseDTO'
+              type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get all device statuses
@@ -1208,15 +1159,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get devices by terminal ID
@@ -1266,11 +1217,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Send an email using a template
@@ -1309,15 +1260,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Send an email by Terminal MAC Address
@@ -1347,11 +1298,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get email task status
@@ -1385,15 +1336,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to Gemini model
@@ -1426,15 +1377,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to Groq model
@@ -1468,15 +1419,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to local Llama.cpp model
@@ -1510,15 +1461,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to OpenAI model
@@ -1551,15 +1502,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Raw prompt query to Orion model
@@ -1665,7 +1616,7 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get unified pipeline job status
@@ -1694,7 +1645,7 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get RAG task status
@@ -1729,7 +1680,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
       security:
       - BearerAuth: []
       summary: AI Assistant Chat
@@ -1753,15 +1704,20 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: AI Assistant Control
@@ -1801,11 +1757,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Generate meeting minutes summary
@@ -1845,11 +1801,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Translate text to specified language
@@ -1899,7 +1855,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "413":
           description: Request Entity Too Large
           schema:
@@ -1911,7 +1867,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Unified)
@@ -1942,11 +1898,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get transcription status (Consolidated)
@@ -1978,20 +1934,60 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get MQTT credentials
       tags:
       - 02. Terminal
+  /api/notification/publish:
+    post:
+      consumes:
+      - application/json
+      description: Computes publish_at = datetime_end - interval_time and immediately
+        publishes it to all terminals in the room via MQTT.
+      parameters:
+      - description: Notification details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.NotificationPublishRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.NotificationPublishResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      summary: Publish a notification to all terminals in a room
+      tags:
+      - 08. Common
   /api/recordings:
     get:
       description: Get a paginated list of all recordings.
@@ -2019,11 +2015,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: List all recordings
@@ -2058,15 +2054,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Save a new recording
@@ -2091,11 +2087,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a recording
@@ -2124,15 +2120,15 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get recording by ID
@@ -2174,17 +2170,34 @@ paths:
         in: query
         name: name
         type: string
+      - description: Filter by room ID
+        in: query
+        name: room_id
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TerminalListResponseDTO'
+              type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get all terminals
@@ -2207,15 +2220,20 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.CreateTerminalResponseDTO'
+              type: object
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new terminal
@@ -2242,11 +2260,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Delete a terminal
@@ -2277,54 +2295,18 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get terminal by ID
-      tags:
-      - 02. Terminal
-    put:
-      consumes:
-      - application/json
-      description: Update terminal information by ID
-      parameters:
-      - description: Terminal ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated terminal data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dtos.UpdateTerminalRequestDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "422":
-          description: Unprocessable Entity
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-      security:
-      - BearerAuth: []
-      summary: Update a terminal
       tags:
       - 02. Terminal
   /api/terminal/{id}/scenes:
@@ -2376,17 +2358,22 @@ paths:
       - application/json
       responses:
         "201":
-          description: Scene created
+          description: Created
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.SceneIDResponseDTO'
+              type: object
         "400":
-          description: Invalid request
+          description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Create a new scene
@@ -2443,13 +2430,26 @@ paths:
       - application/json
       responses:
         "200":
-          description: Scene updated
+          description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.SceneIDResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
-          description: Scene not found
+          description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Update an existing scene
@@ -2507,15 +2507,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get terminal by MAC address
@@ -2541,7 +2541,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - ApiKeyAuth: []
       summary: Authenticate with Tuya
@@ -2587,7 +2587,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get All Devices
@@ -2623,11 +2623,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Device by ID
@@ -2657,15 +2657,22 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: boolean
+                  type: object
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Send IR AC Command
@@ -2695,15 +2702,22 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: boolean
+                  type: object
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Send Switch Command
@@ -2736,11 +2750,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get Sensor Data
@@ -2796,11 +2810,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Execute AI pipeline job
@@ -2830,14 +2844,345 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get pipeline status
+      tags:
+      - 05. Models-v1
+  /api/v1/models/rag/chat:
+    post:
+      consumes:
+      - application/json
+      description: Chat using the legacy Python RAG service
+      parameters:
+      - description: Chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Chat with model (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/rag/control:
+    post:
+      consumes:
+      - application/json
+      description: Control devices using the legacy Python RAG service
+      parameters:
+      - description: Control request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Device control (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/rag/status/{task_id}:
+    get:
+      description: Get the status of a RAG task by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get RAG status (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/rag/summary:
+    post:
+      consumes:
+      - application/json
+      description: Summarize text using the legacy Python RAG service
+      parameters:
+      - description: Summary request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Summarize text (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/rag/translate:
+    post:
+      consumes:
+      - application/json
+      description: Translate text using the legacy Python RAG service
+      parameters:
+      - description: Translation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Translate text (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/whisper/status/{transcribe_id}:
+    get:
+      description: Get the status of a transcription task by ID
+      parameters:
+      - description: Transcription Task ID
+        in: path
+        name: transcribe_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transcription status (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/whisper/transcribe:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Transcribe an audio file by providing its local path
+      parameters:
+      - description: Local path to audio file
+        in: formData
+        name: audio_path
+        required: true
+        type: string
+      - description: Audio language
+        in: formData
+        name: language
+        type: string
+      - description: Enable speaker diarization
+        in: formData
+        name: diarize
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/whisper/uploads/sessions:
+    post:
+      consumes:
+      - application/json
+      description: Initialize a new chunked upload session for a large audio file
+      parameters:
+      - description: Upload session configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create upload session (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/whisper/uploads/sessions/{id}:
+    get:
+      description: Get the current status and progress of an upload session
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get upload session status (v1)
+      tags:
+      - 05. Models-v1
+  /api/v1/models/whisper/uploads/sessions/{id}/chunks/{index}:
+    put:
+      consumes:
+      - application/octet-stream
+      description: Upload a single chunk of an audio file for a session
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Chunk index
+        in: path
+        name: index
+        required: true
+        type: integer
+      - description: Binary chunk data
+        in: body
+        name: chunk
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload chunk (v1)
       tags:
       - 05. Models-v1
   /api/whisper/models/gemini:
@@ -2870,7 +3215,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "413":
           description: Request Entity Too Large
           schema:
@@ -2882,7 +3227,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Gemini)
@@ -2918,7 +3263,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "413":
           description: Request Entity Too Large
           schema:
@@ -2930,7 +3275,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Groq)
@@ -2966,7 +3311,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "413":
           description: Request Entity Too Large
           schema:
@@ -2978,7 +3323,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (OpenAI)
@@ -3014,7 +3359,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "413":
           description: Request Entity Too Large
           schema:
@@ -3026,7 +3371,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Orion)
@@ -3063,7 +3408,7 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
         "413":
           description: Request Entity Too Large
           schema:
@@ -3075,7 +3420,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dtos.StandardResponse'
+            $ref: '#/definitions/dtos.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Transcribe audio file (Whisper.cpp)

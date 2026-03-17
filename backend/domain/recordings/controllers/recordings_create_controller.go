@@ -31,9 +31,9 @@ func NewRecordingsCreateController(useCase usecases.SaveRecordingUseCase) *Recor
 // @Param file formData file true "Audio file"
 // @Param mac_address formData string false "Device MAC Address"
 // @Success 201 {object} commonDtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
-// @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 401 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      401  {object}  commonDtos.ErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/recordings [post]
 func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 	file, err := ctx.FormFile("file")

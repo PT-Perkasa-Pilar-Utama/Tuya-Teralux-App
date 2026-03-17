@@ -25,9 +25,9 @@ func NewDeviceInfoExternalController(bigSvc *services.DeviceInfoExternalService)
 // @Produce json
 // @Param mac_address path string true "MAC Address"
 // @Success 200 {object} dtos.StandardResponse{data=map[string]interface{}}
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 404 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router /api/big/device/{mac_address} [get]
 func (c *DeviceInfoExternalController) GetDeviceInfo(ctx *gin.Context) {
 	macAddress := ctx.Param("mac_address")

@@ -29,8 +29,8 @@ func NewDeleteTerminalController(useCase *usecases.DeleteTerminalUseCase) *Delet
 // @Produce      json
 // @Param        id  path  string  true  "Terminal ID"
 // @Success      200  {object}  dtos.StandardResponse
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
 // @Router       /api/terminal/{id} [delete]
 // @Security     BearerAuth
 func (c *DeleteTerminalController) DeleteTerminal(ctx *gin.Context) {

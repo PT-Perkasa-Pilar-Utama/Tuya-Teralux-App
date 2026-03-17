@@ -18,6 +18,7 @@ type ITerminalRepository interface {
 	GetAllPaginated(offset, limit int, roomID *string) ([]entities.Terminal, int64, error)
 	GetByID(id string) (*entities.Terminal, error)
 	GetByMacAddress(macAddress string) (*entities.Terminal, error)
+	GetByRoomID(roomID string) ([]entities.Terminal, error)
 	Update(terminal *entities.Terminal) error
 	Delete(id string) error
 	InvalidateCache(id string) error
@@ -189,6 +190,16 @@ func (r *TerminalRepository) GetByMacAddress(macAddress string) (*entities.Termi
 	totalDuration := time.Since(start)
 	utils.LogDebug("TerminalRepository: GetByMacAddress completed for MAC %s | total_duration_ms=%d", macAddress, totalDuration.Milliseconds())
 	return &terminal, nil
+}
+
+// GetByRoomID retrieves all active (non-deleted) terminal records for a specific room ID
+func (r *TerminalRepository) GetByRoomID(roomID string) ([]entities.Terminal, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	var terminalList []entities.Terminal
+	err := r.db.Where("room_id = ?", roomID).Find(&terminalList).Error
+	return terminalList, err
 }
 
 // Update updates an existing terminal record and invalidates cache

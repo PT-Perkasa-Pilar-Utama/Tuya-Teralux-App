@@ -25,19 +25,21 @@ func NewGetDeviceStatusByCodeController(useCase *usecases.GetDeviceStatusByCodeU
 	}
 }
 
-// GetDeviceStatusByCode handles GET /api/devices/:id/statuses/:code endpoint
+// GetDeviceStatusByCode handles GET /api/devices/:id/status/:code endpoint
 // @Summary      Get device status by code
-// @Description  Retrieve a specific device status by status code
+// @Description  Retrieve a specific status record for a device by its code
 // @Tags         02. Terminal
 // @Accept       json
 // @Produce      json
-// @Param        id    path  string  true  "Device ID"
-// @Param        code  path  string  true  "Status code"
+// @Param        id    path      string  true  "Device ID"
+// @Param        code  path      string  true  "Status code"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceStatusResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
-// @Router       /api/devices/{id}/statuses/{code} [get]
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
+// @Router       /api/devices/{id}/status/{code} [get]
 // @Security     BearerAuth
+
 func (c *GetDeviceStatusByCodeController) GetDeviceStatusByCode(ctx *gin.Context) {
 	deviceID := ctx.Param("id")
 	code := ctx.Param("code")

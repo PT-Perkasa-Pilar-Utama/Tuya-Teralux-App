@@ -28,8 +28,8 @@ func NewMailStatusController(statusUC tasks.GenericStatusUseCase[mail_dtos.MailS
 // @Produce json
 // @Param task_id path string true "Task ID"
 // @Success 200 {object} dtos.StandardResponse{data=mail_dtos.MailStatusDTO}
-// @Failure 404 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router /api/mail/status/{task_id} [get]
 func (c *MailStatusController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("task_id")

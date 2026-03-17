@@ -31,7 +31,7 @@ var _ = tuya_dtos.TuyaAuthResponseDTO{}
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaAuthResponseDTO}
-// @Failure      500  {object}  dtos.StandardResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security     ApiKeyAuth
 // @Router       /api/tuya/auth [get]
 func (c *TuyaAuthController) Authenticate(ctx *gin.Context) {

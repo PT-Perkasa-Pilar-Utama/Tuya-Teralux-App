@@ -33,9 +33,9 @@ func NewGetTerminalByMACController(useCase *usecases.GetTerminalByMACUseCase) *G
 // @Produce      json
 // @Param        mac  path  string  true  "Terminal MAC Address"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalSingleResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/terminal/mac/{mac} [get]
 // @Security     BearerAuth
 func (c *GetTerminalByMACController) GetTerminalByMAC(ctx *gin.Context) {

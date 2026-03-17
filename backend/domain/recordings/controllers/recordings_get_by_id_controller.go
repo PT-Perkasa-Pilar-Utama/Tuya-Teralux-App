@@ -31,9 +31,9 @@ func NewRecordingsGetByIDController(useCase usecases.GetRecordingByIDUseCase) *R
 // @Produce json
 // @Param id path string true "Recording ID"
 // @Success 200 {object} commonDtos.StandardResponse{data=recordings_dtos.RecordingResponseDto}
-// @Failure 401 {object} commonDtos.StandardResponse
-// @Failure 404 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Failure      401  {object}  commonDtos.ErrorResponse
+// @Failure      404  {object}  commonDtos.ErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/recordings/{id} [get]
 func (c *RecordingsGetByIDController) GetRecordingByID(ctx *gin.Context) {
 	id := ctx.Param("id")

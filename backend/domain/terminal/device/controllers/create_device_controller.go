@@ -21,18 +21,16 @@ func NewCreateDeviceController(useCase *usecases.CreateDeviceUseCase) *CreateDev
 		useCase: useCase,
 	}
 }
-
 // CreateDevice handles POST /api/devices endpoint
 // @Summary      Create a new device
 // @Description  Register a new device under a terminal
 // @Tags         02. Terminal
 // @Accept       json
 // @Produce      json
-// @Param        request  body    terminal_dtos.CreateDeviceRequestDTO  true  "Device registration data"
-// @Success      201  {object}  dtos.StandardResponse
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      422  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Param        request  body      terminal_dtos.CreateDeviceRequestDTO  true  "Device registration data"
+// @Success      201  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceResponseDTO}
+// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices [post]
 // @Security     BearerAuth
 func (c *CreateDeviceController) CreateDevice(ctx *gin.Context) {

@@ -182,7 +182,7 @@ func (c *PipelineController) ExecuteJob(ctx *gin.Context) {
 // @Produce json
 // @Param task_id path string true "Task ID"
 // @Success 200 {object} commonDtos.StandardResponse{data=pipelineDtos.PipelineStatusDTO}
-// @Failure 404 {object} commonDtos.StandardResponse
+// @Failure      404  {object}  commonDtos.ErrorResponse
 // @Router /api/models/pipeline/status/{task_id} [get]
 func (c *PipelineController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("task_id")

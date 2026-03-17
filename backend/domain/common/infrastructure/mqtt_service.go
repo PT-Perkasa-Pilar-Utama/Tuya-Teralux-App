@@ -13,6 +13,16 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+// IMqttService defines the interface for MQTT operations
+type IMqttService interface {
+	Connect() error
+	Subscribe(topic string, qos byte, handler mqtt.MessageHandler) error
+	Unsubscribe(topic string) error
+	Publish(topic string, qos byte, retained bool, payload interface{}) error
+	IsConnected() bool
+	Close()
+}
+
 // MqttService manages the MQTT client connection
 type MqttService struct {
 	client mqtt.Client

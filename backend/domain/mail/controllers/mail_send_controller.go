@@ -33,8 +33,8 @@ func NewMailSendController(useCase usecases.MailSendUseCase) *MailSendController
 // @Param        request body      mail_dtos.MailSendRequestDTO true "Mail Request"
 // @Security BearerAuth
 // @Success 202 {object} dtos.StandardResponse{data=mail_dtos.MailTaskResponseDTO}
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router /api/mail/send [post]
 func (c *MailSendController) SendMail(ctx *gin.Context) {
 	var req mail_dtos.MailSendRequestDTO
