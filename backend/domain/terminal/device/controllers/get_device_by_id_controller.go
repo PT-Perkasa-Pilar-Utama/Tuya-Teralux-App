@@ -33,8 +33,8 @@ func NewGetDeviceByIDController(useCase *usecases.GetDeviceByIDUseCase) *GetDevi
 // @Produce      json
 // @Param        id  path  string  true  "Device ID"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
 // @Router       /api/devices/{id} [get]
 // @Security     BearerAuth
 func (c *GetDeviceByIDController) GetDeviceByID(ctx *gin.Context) {

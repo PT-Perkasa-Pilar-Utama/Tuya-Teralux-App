@@ -25,18 +25,20 @@ func NewUpdateTerminalController(useCase *usecases.UpdateTerminalUseCase) *Updat
 
 // UpdateTerminal handles PUT /api/terminal/:id endpoint
 // @Summary      Update a terminal
-// @Description  Update terminal information by ID
+// @Description  Update an existing terminal record's metadata by ID
 // @Tags         02. Terminal
 // @Accept       json
 // @Produce      json
-// @Param        id       path    string                              true  "Terminal ID"
-// @Param        request  body    terminal_dtos.UpdateTerminalRequestDTO  true  "Updated terminal data"
-// @Success      200  {object}  dtos.StandardResponse
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      422  {object}  dtos.StandardResponse
+// @Param        id       path      string  true  "Terminal ID"
+// @Param        request  body      terminal_dtos.UpdateTerminalRequestDTO  true  "Updated terminal data"
+// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalResponseDTO}
+// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      409  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/terminal/{id} [put]
 // @Security     BearerAuth
+
 func (c *UpdateTerminalController) UpdateTerminal(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var req terminal_dtos.UpdateTerminalRequestDTO

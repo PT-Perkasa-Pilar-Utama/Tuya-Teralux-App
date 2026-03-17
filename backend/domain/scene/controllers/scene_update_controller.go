@@ -30,8 +30,10 @@ func NewSceneUpdateController(useCase *usecases.UpdateSceneUseCase) *SceneUpdate
 // @Param id path string true "Terminal UUID"
 // @Param scene_id path string true "Scene UUID"
 // @Param scene body scene_dtos.UpdateSceneRequestDTO true "Updated scene configuration"
-// @Success 200 {object} dtos.StandardResponse "Scene updated"
-// @Failure 404 {object} dtos.StandardResponse "Scene not found"
+// @Success 200 {object} dtos.StandardResponse{data=scene_dtos.SceneIDResponseDTO}
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security BearerAuth
 // @Router /api/terminal/{id}/scenes/{scene_id} [put]
 func (c *SceneUpdateController) UpdateScene(ctx *gin.Context) {

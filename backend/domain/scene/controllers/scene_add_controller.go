@@ -29,9 +29,9 @@ func NewSceneAddController(useCase *usecases.AddSceneUseCase) *SceneAddControlle
 // @Produce json
 // @Param id path string true "Terminal UUID"
 // @Param scene body scene_dtos.CreateSceneRequestDTO true "Scene configuration"
-// @Success 201 {object} dtos.StandardResponse "Scene created"
-// @Failure 400 {object} dtos.StandardResponse "Invalid request"
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Success 201 {object} dtos.StandardResponse{data=scene_dtos.SceneIDResponseDTO}
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security BearerAuth
 // @Router /api/terminal/{id}/scenes [post]
 func (c *SceneAddController) AddScene(ctx *gin.Context) {

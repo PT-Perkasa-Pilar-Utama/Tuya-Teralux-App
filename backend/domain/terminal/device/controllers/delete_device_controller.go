@@ -23,16 +23,18 @@ func NewDeleteDeviceController(useCase *usecases.DeleteDeviceUseCase) *DeleteDev
 
 // DeleteDevice handles DELETE /api/devices/:id endpoint
 // @Summary      Delete a device
-// @Description  Delete a device by ID
+// @Description  Permanently remove a device by ID
 // @Tags         02. Terminal
 // @Accept       json
 // @Produce      json
-// @Param        id  path  string  true  "Device ID"
+// @Param        id   path      string  true  "Device ID"
 // @Success      200  {object}  dtos.StandardResponse
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
+// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices/{id} [delete]
 // @Security     BearerAuth
+
 func (c *DeleteDeviceController) DeleteDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

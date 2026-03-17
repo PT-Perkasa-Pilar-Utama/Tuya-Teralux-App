@@ -30,9 +30,9 @@ func NewTuyaSendIRCommandController(useCase usecases.TuyaSendIRCommandUseCase) *
 // @Produce      json
 // @Param        id    path      string                    true  "Infrared Device ID (Hub/Remote)"
 // @Param        body  body      tuya_dtos.TuyaIRACCommandDTO  true  "IR Command Payload"
-// @Success      200   {object}  dtos.StandardResponse
-// @Failure      400   {object}  dtos.StandardResponse
-// @Failure      500   {object}  dtos.StandardResponse
+// @Success      200   {object}  dtos.StandardResponse{data=map[string]bool}
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/tuya/devices/{id}/commands/ir [post]
 func (ctrl *TuyaSendIRCommandController) SendIRACCommand(c *gin.Context) {

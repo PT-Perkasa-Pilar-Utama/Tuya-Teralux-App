@@ -24,18 +24,19 @@ func NewUpdateDeviceController(useCase *usecases.UpdateDeviceUseCase) *UpdateDev
 
 // UpdateDevice handles PUT /api/devices/:id endpoint
 // @Summary      Update a device
-// @Description  Update device information by ID
+// @Description  Update an existing device's details by ID
 // @Tags         02. Terminal
 // @Accept       json
 // @Produce      json
-// @Param        id       path    string                              true  "Device ID"
-// @Param        request  body    terminal_dtos.UpdateDeviceRequestDTO  true  "Updated device data"
-// @Success      200  {object}  dtos.StandardResponse
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      422  {object}  dtos.StandardResponse
+// @Param        id       path      string  true  "Device ID"
+// @Param        request  body      terminal_dtos.UpdateDeviceRequestDTO  true  "Updated device data"
+// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceResponseDTO}
+// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices/{id} [put]
 // @Security     BearerAuth
+
 func (c *UpdateDeviceController) UpdateDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

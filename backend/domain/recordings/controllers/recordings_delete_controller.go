@@ -31,8 +31,8 @@ func NewRecordingsDeleteController(useCase usecases.DeleteRecordingUseCase) *Rec
 // @Produce json
 // @Param id path string true "Recording ID"
 // @Success 200 {object} commonDtos.StandardResponse
-// @Failure 401 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Failure      401  {object}  commonDtos.ErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/recordings/{id} [delete]
 func (c *RecordingsDeleteController) DeleteRecording(ctx *gin.Context) {
 	id := ctx.Param("id")

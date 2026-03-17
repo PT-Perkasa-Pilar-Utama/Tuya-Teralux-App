@@ -31,9 +31,9 @@ func NewRAGModelsGroqController(usecase usecases.QueryGroqModelUseCase) RAGModel
 // @Security BearerAuth
 // @Param request body dtos.RAGRawPromptRequestDTO true "Prompt Request"
 // @Success 200 {object} commonDtos.StandardResponse{data=dtos.RAGRawPromptResponseDTO}
-// @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 401 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      401  {object}  commonDtos.ErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/models/groq [post]
 func (c *ragModelsGroqController) Query(ctx *gin.Context) {
 	var req dtos.RAGRawPromptRequestDTO

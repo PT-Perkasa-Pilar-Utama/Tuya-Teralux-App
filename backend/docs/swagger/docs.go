@@ -69,19 +69,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -115,53 +115,13 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
             }
         },
         "/api/devices": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of all registered devices with optional filtering",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Terminal"
-                ],
-                "summary": "Get all devices",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by terminal ID",
-                        "name": "terminal_id",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -194,25 +154,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -254,13 +220,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceStatusListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -327,19 +305,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -394,186 +372,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update device information by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Terminal"
-                ],
-                "summary": "Update a device",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated device data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.UpdateDeviceRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a device by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Terminal"
-                ],
-                "summary": "Delete a device",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/devices/{id}/status": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update a specific device status (e.g., power, temperature)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Terminal"
-                ],
-                "summary": "Update device status",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated status data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.UpdateDeviceStatusRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -640,81 +445,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/devices/{id}/statuses/{code}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a specific device status by status code",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Terminal"
-                ],
-                "summary": "Get device status by code",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Status code",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -797,13 +540,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -867,19 +610,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -931,13 +674,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -994,19 +737,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1063,19 +806,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1132,19 +875,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1201,19 +944,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1270,19 +1013,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1455,7 +1198,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1512,7 +1255,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     }
                 }
@@ -1551,19 +1294,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1629,13 +1384,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1701,13 +1456,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1758,7 +1513,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1837,7 +1592,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "413": {
@@ -1855,7 +1610,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1907,13 +1662,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -1968,19 +1723,83 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/notification/publish": {
+            "post": {
+                "description": "Computes publish_at = datetime_end - interval_time and immediately publishes it to all terminals in the room via MQTT.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "08. Common"
+                ],
+                "summary": "Publish a notification to all terminals in a room",
+                "parameters": [
+                    {
+                        "description": "Notification details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.NotificationPublishRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.NotificationPublishResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2037,13 +1856,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2102,19 +1921,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2166,19 +1985,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2216,13 +2035,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2298,19 +2117,49 @@ const docTemplate = `{
                         "description": "Filter by terminal name",
                         "name": "name",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by room ID",
+                        "name": "room_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TerminalListResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2347,19 +2196,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.CreateTerminalResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2414,19 +2275,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2481,75 +2342,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update terminal information by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "02. Terminal"
-                ],
-                "summary": "Update a terminal",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Terminal ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated terminal data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.UpdateTerminalRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2590,13 +2395,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2687,21 +2492,33 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Scene created",
+                        "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.SceneIDResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2752,15 +2569,39 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Scene updated",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.SceneIDResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Scene not found",
+                        "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2886,7 +2727,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -2958,7 +2799,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3019,13 +2860,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3071,19 +2912,34 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "boolean"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3129,19 +2985,34 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "boolean"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3196,13 +3067,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3293,13 +3164,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3351,13 +3222,550 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/rag/chat": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Chat using the legacy Python RAG service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Chat with model (v1)",
+                "parameters": [
+                    {
+                        "description": "Chat request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.RAGRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
                             "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/rag/control": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Control devices using the legacy Python RAG service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Device control (v1)",
+                "parameters": [
+                    {
+                        "description": "Control request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.RAGRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/rag/status/{task_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the status of a RAG task by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Get RAG status (v1)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/rag/summary": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Summarize text using the legacy Python RAG service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Summarize text (v1)",
+                "parameters": [
+                    {
+                        "description": "Summary request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.RAGRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/rag/translate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Translate text using the legacy Python RAG service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Translate text (v1)",
+                "parameters": [
+                    {
+                        "description": "Translation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.RAGRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/whisper/status/{transcribe_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the status of a transcription task by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Get transcription status (v1)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transcription Task ID",
+                        "name": "transcribe_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/whisper/transcribe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transcribe an audio file by providing its local path",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Transcribe audio (v1)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Local path to audio file",
+                        "name": "audio_path",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Audio language",
+                        "name": "language",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Enable speaker diarization",
+                        "name": "diarize",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/whisper/uploads/sessions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Initialize a new chunked upload session for a large audio file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Create upload session (v1)",
+                "parameters": [
+                    {
+                        "description": "Upload session configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/whisper/uploads/sessions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the current status and progress of an upload session",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Get upload session status (v1)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/whisper/uploads/sessions/{id}/chunks/{index}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upload a single chunk of an audio file for a session",
+                "consumes": [
+                    "application/octet-stream"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "05. Models-v1"
+                ],
+                "summary": "Upload chunk (v1)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Chunk index",
+                        "name": "index",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Binary chunk data",
+                        "name": "chunk",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3418,7 +3826,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "413": {
@@ -3436,7 +3844,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3497,7 +3905,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "413": {
@@ -3515,7 +3923,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3576,7 +3984,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "413": {
@@ -3594,7 +4002,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3655,7 +4063,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "413": {
@@ -3673,7 +4081,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3734,7 +4142,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
                         }
                     },
                     "413": {
@@ -3752,7 +4160,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
+                            "$ref": "#/definitions/dtos.ErrorResponse"
                         }
                     }
                 }
@@ -3891,6 +4299,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.CreateTerminalResponseDTO": {
+            "type": "object",
+            "properties": {
+                "mqtt_password": {
+                    "type": "string"
+                },
+                "mqtt_username": {
+                    "type": "string"
+                },
+                "terminal_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.DeviceListResponseDTO": {
             "type": "object",
             "properties": {
@@ -4013,6 +4435,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "An error occurred"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
         "dtos.MQTTCredentialsResponseDTO": {
             "type": "object",
             "properties": {
@@ -4102,6 +4538,54 @@ const docTemplate = `{
                 "task_status": {
                     "type": "string",
                     "example": "pending"
+                }
+            }
+        },
+        "dtos.NotificationPublishRequest": {
+            "type": "object",
+            "required": [
+                "datetime_end",
+                "room_id"
+            ],
+            "properties": {
+                "datetime_end": {
+                    "type": "string",
+                    "example": "2026-03-17T14:00:00+07:00"
+                },
+                "interval_time": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 15
+                },
+                "room_id": {
+                    "type": "string",
+                    "example": "123"
+                }
+            }
+        },
+        "dtos.NotificationPublishResponse": {
+            "type": "object",
+            "properties": {
+                "publish_at": {
+                    "type": "string",
+                    "example": "2026-03-17T13:45:00+07:00"
+                },
+                "published_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "published_topics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"users/AA:BB:CC:DD:EE:FF/notification\"]"
+                    ]
+                },
+                "room_id": {
+                    "type": "string",
+                    "example": "123"
                 }
             }
         },
@@ -4424,6 +4908,14 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.SceneIDResponseDTO": {
+            "type": "object",
+            "properties": {
+                "scene_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.SceneItemDTO": {
             "type": "object",
             "properties": {
@@ -4509,9 +5001,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {},
-                "details": {
-                    "description": "Details is only populated for 400 (Bad Request) and 422 (Unprocessable Entity) errors.\nFor all other status codes, including 500, this field is nil/omitted.\n@Schema(oneOf=[[]ValidationErrorDetailDTO, string, object])"
-                },
+                "details": {},
                 "message": {
                     "type": "string",
                     "example": "Success"
@@ -4528,6 +5018,26 @@ const docTemplate = `{
                 "task_id": {
                     "type": "string",
                     "example": "task-123"
+                }
+            }
+        },
+        "dtos.TerminalListResponseDTO": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "terminal": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TerminalResponseDTO"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -4769,30 +5279,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.UpdateDeviceRequestDTO": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "dtos.UpdateDeviceStatusRequestDTO": {
-            "type": "object",
-            "required": [
-                "code"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "remote_id": {
-                    "description": "Optional, for IR devices",
-                    "type": "string"
-                },
-                "value": {}
-            }
-        },
         "dtos.UpdateSceneRequestDTO": {
             "type": "object",
             "required": [
@@ -4806,26 +5292,6 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "dtos.UpdateTerminalRequestDTO": {
-            "type": "object",
-            "properties": {
-                "ai_provider": {
-                    "type": "string"
-                },
-                "device_type_id": {
-                    "type": "string"
-                },
-                "mac_address": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "room_id": {
                     "type": "string"
                 }
             }
@@ -4859,6 +5325,39 @@ const docTemplate = `{
                 "translated": {
                     "type": "string",
                     "example": "Halo dunia"
+                }
+            }
+        },
+        "dtos.ValidationErrorDetailDTO": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string",
+                    "example": "username"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "is required"
+                }
+            }
+        },
+        "dtos.ValidationErrorResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ValidationErrorDetailDTO"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Validation Error"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": false
                 }
             }
         },
@@ -4898,6 +5397,92 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "original_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest": {
+            "type": "object",
+            "required": [
+                "file_name",
+                "total_size_bytes"
+            ],
+            "properties": {
+                "chunk_size_bytes": {
+                    "type": "integer"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "total_size_bytes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO": {
+            "type": "object",
+            "properties": {
+                "is_duplicate": {
+                    "type": "boolean"
+                },
+                "received_bytes": {
+                    "type": "integer"
+                },
+                "received_chunks": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO": {
+            "type": "object",
+            "properties": {
+                "chunk_size_bytes": {
+                    "type": "integer"
+                },
+                "expires_at": {
+                    "type": "integer"
+                },
+                "missing_ranges": {
+                    "description": "e.g. [\"0-2\", \"5\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "received_bytes": {
+                    "type": "integer"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "state": {
+                    "description": "uploading, ready, consumed, aborted, expired",
+                    "type": "string"
+                },
+                "total_chunks": {
+                    "type": "integer"
+                },
+                "total_size_bytes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "services.RAGRequest": {
+            "type": "object",
+            "properties": {
+                "language": {
+                    "type": "string"
+                },
+                "mac_address": {
+                    "type": "string"
+                },
+                "text": {
                     "type": "string"
                 }
             }

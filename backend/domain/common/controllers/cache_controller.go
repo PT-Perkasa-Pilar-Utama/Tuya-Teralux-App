@@ -31,7 +31,7 @@ func NewCacheController(cache *infrastructure.BadgerService, vector *infrastruct
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router /api/cache/flush [delete]
 func (ctrl *CacheController) FlushCache(c *gin.Context) {
 	if ctrl.cache == nil {

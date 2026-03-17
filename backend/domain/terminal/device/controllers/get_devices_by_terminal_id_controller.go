@@ -36,9 +36,9 @@ func NewGetDevicesByTerminalIDController(useCase *usecases.GetDevicesByTerminalI
 // @Param        page         query   int     false  "Page number"
 // @Param        limit        query   int     false  "Items per page"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceListResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices/terminal/{terminal_id} [get]
 // @Security     BearerAuth
 func (c *GetDevicesByTerminalIDController) GetDevicesByTerminalID(ctx *gin.Context) {

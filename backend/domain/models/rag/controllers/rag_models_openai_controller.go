@@ -31,9 +31,9 @@ func NewRAGModelsOpenAIController(usecase usecases.QueryOpenAIModelUseCase) RAGM
 // @Security BearerAuth
 // @Param request body dtos.RAGRawPromptRequestDTO true "Prompt Request"
 // @Success 200 {object} commonDtos.StandardResponse{data=dtos.RAGRawPromptResponseDTO}
-// @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 401 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      401  {object}  commonDtos.ErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/models/openai [post]
 func (c *ragModelsOpenAIController) Query(ctx *gin.Context) {
 	var req dtos.RAGRawPromptRequestDTO

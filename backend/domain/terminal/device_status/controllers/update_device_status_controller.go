@@ -25,18 +25,20 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 
 // UpdateDeviceStatus handles PUT /api/devices/:id/status endpoint
 // @Summary      Update device status
-// @Description  Update a specific device status (e.g., power, temperature)
+// @Description  Update the status value for a specific device by ID
 // @Tags         02. Terminal
 // @Accept       json
 // @Produce      json
-// @Param        id       path    string                                   true  "Device ID"
-// @Param        request  body    terminal_dtos.UpdateDeviceStatusRequestDTO  true  "Updated status data"
-// @Success      200  {object}  dtos.StandardResponse
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
-// @Failure      422  {object}  dtos.StandardResponse
+// @Param        id       path      string  true  "Device ID"
+// @Param        request  body      terminal_dtos.UpdateDeviceStatusRequestDTO  true  "Updated status data"
+// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceStatusResponseDTO}
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices/{id}/status [put]
 // @Security     BearerAuth
+
 func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

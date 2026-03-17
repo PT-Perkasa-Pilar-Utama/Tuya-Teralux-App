@@ -35,9 +35,9 @@ func NewMailSendByMacController(useCase usecases.MailSendByMacUseCase) *MailSend
 // @Param request body mail_dtos.SendMailByMacRequestDTO true "Mail Request"
 // @Security BearerAuth
 // @Success 202 {object} dtos.StandardResponse{data=mail_dtos.MailTaskResponseDTO} "Email task submitted successfully"
-// @Failure 400 {object} dtos.StandardResponse
-// @Failure 404 {object} dtos.StandardResponse
-// @Failure 500 {object} dtos.StandardResponse "Internal Server Error"
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router /api/mail/send/mac/{mac_address} [post]
 func (c *MailSendByMacController) SendMailByMac(ctx *gin.Context) {
 	macAddress := ctx.Param("mac_address")

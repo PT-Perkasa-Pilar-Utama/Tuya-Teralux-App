@@ -42,8 +42,8 @@ func NewPipelineController(pipelineUC *usecases.PipelineUseCase) *PipelineContro
 // @Param refine formData string false "Enable refinement (true/false)"
 // @Param participants formData string false "Comma-separated participant names"
 // @Success 202 {object} commonDtos.StandardResponse{data=commonDtos.TaskIDResponseDTO}
-// @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Security BearerAuth
 // @Router /api/v1/models/pipeline/job [post]
 func (c *PipelineController) ExecuteJob(ctx *gin.Context) {
@@ -143,8 +143,8 @@ func (c *PipelineController) ExecuteJobByUpload(ctx *gin.Context) {
 // @Produce json
 // @Param task_id path string true "Task ID"
 // @Success 200 {object} commonDtos.StandardResponse{data=pipelineDtos.V1PipelineStatusResponseDTO}
-// @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 404 {object} commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      404  {object}  commonDtos.ErrorResponse
 // @Security BearerAuth
 // @Router /api/v1/models/pipeline/status/{task_id} [get]
 func (c *PipelineController) GetStatus(ctx *gin.Context) {

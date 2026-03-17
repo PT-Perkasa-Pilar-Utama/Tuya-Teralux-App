@@ -18,6 +18,18 @@ func NewRAGController(ragSvc *services.PythonRAGService) *RAGController {
 	}
 }
 
+// Translate handles POST /api/v1/models/rag/translate
+// @Summary      Translate text (v1)
+// @Description  Translate text using the legacy Python RAG service
+// @Tags         05. Models-v1
+// @Accept       json
+// @Produce      json
+// @Param        request  body      services.RAGRequest  true  "Translation request"
+// @Success      200  {object}  commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
+// @Router       /api/v1/models/rag/translate [post]
+// @Security     BearerAuth
 func (c *RAGController) Translate(ctx *gin.Context) {
 	var req services.RAGRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -34,6 +46,18 @@ func (c *RAGController) Translate(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
+// Summary handles POST /api/v1/models/rag/summary
+// @Summary      Summarize text (v1)
+// @Description  Summarize text using the legacy Python RAG service
+// @Tags         05. Models-v1
+// @Accept       json
+// @Produce      json
+// @Param        request  body      services.RAGRequest  true  "Summary request"
+// @Success      200  {object}  commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
+// @Router       /api/v1/models/rag/summary [post]
+// @Security     BearerAuth
 func (c *RAGController) Summary(ctx *gin.Context) {
 	var req services.RAGRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -50,6 +74,18 @@ func (c *RAGController) Summary(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
+// Chat handles POST /api/v1/models/rag/chat
+// @Summary      Chat with model (v1)
+// @Description  Chat using the legacy Python RAG service
+// @Tags         05. Models-v1
+// @Accept       json
+// @Produce      json
+// @Param        request  body      services.RAGRequest  true  "Chat request"
+// @Success      200  {object}  commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
+// @Router       /api/v1/models/rag/chat [post]
+// @Security     BearerAuth
 func (c *RAGController) Chat(ctx *gin.Context) {
 	var req services.RAGRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -66,6 +102,18 @@ func (c *RAGController) Chat(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
+// Control handles POST /api/v1/models/rag/control
+// @Summary      Device control (v1)
+// @Description  Control devices using the legacy Python RAG service
+// @Tags         05. Models-v1
+// @Accept       json
+// @Produce      json
+// @Param        request  body      services.RAGRequest  true  "Control request"
+// @Success      200  {object}  commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
+// @Router       /api/v1/models/rag/control [post]
+// @Security     BearerAuth
 func (c *RAGController) Control(ctx *gin.Context) {
 	var req services.RAGRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -82,6 +130,16 @@ func (c *RAGController) Control(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
+// GetStatus handles GET /api/v1/models/rag/status/:task_id
+// @Summary      Get RAG status (v1)
+// @Description  Get the status of a RAG task by ID
+// @Tags         05. Models-v1
+// @Produce      json
+// @Param        task_id  path      string  true  "Task ID"
+// @Success      200  {object}  commonDtos.StandardResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
+// @Router       /api/v1/models/rag/status/{task_id} [get]
+// @Security     BearerAuth
 func (c *RAGController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("task_id")
 	resp, err := c.ragSvc.GetStatus(taskID)

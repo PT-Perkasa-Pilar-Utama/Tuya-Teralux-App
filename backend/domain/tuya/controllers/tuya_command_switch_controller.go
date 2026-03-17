@@ -30,9 +30,9 @@ func NewTuyaCommandSwitchController(useCase usecases.TuyaCommandSwitchUseCase) *
 // @Produce      json
 // @Param        id    path      string                 true  "Device ID"
 // @Param        body  body      tuya_dtos.TuyaCommandDTO  true  "Command Payload"
-// @Success      200   {object}  dtos.StandardResponse
-// @Failure      400   {object}  dtos.StandardResponse
-// @Failure      500   {object}  dtos.StandardResponse
+// @Success      200   {object}  dtos.StandardResponse{data=map[string]bool}
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/tuya/devices/{id}/commands/switch [post]
 func (ctrl *TuyaCommandSwitchController) SendSwitchCommand(c *gin.Context) {

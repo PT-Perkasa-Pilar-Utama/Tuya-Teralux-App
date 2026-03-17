@@ -33,8 +33,11 @@ func NewGetAllTerminalController(useCase *usecases.GetAllTerminalUseCase) *GetAl
 // @Produce      json
 // @Param        mac_address  query    string  false  "Filter by MAC address"
 // @Param        name         query    string  false  "Filter by terminal name"
-// @Success      200  {object}  dtos.StandardResponse
-// @Failure      500  {object}  dtos.StandardResponse
+// @Param        room_id      query    string  false  "Filter by room ID"
+// @Param        page         query    int     false  "Page number"
+// @Param        limit        query    int     false  "Items per page"
+// @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalListResponseDTO}
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/terminal [get]
 // @Security     BearerAuth
 func (c *GetAllTerminalController) GetAllTerminal(ctx *gin.Context) {

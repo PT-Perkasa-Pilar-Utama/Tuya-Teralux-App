@@ -287,7 +287,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 // @Produce json
 // @Param request body dtos.RAGChatRequestDTO true "Chat Request"
 // @Success 200 {object} commonDtos.StandardResponse{data=dtos.RAGChatResponseDTO}
-// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Router /api/models/rag/chat [post]
 func (c *RAGChatController) Chat(ctx *gin.Context) {
 	handlerStart := time.Now()

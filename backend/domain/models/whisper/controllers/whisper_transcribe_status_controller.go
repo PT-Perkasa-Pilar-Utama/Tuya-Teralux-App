@@ -28,8 +28,8 @@ func NewWhisperTranscribeStatusController(statusUC tasks.GenericStatusUseCase[dt
 // @Produce json
 // @Param transcribe_id path string true "Task ID"
 // @Success 200 {object} commonDtos.StandardResponse{data=dtos.AsyncTranscriptionStatusDTO}
-// @Failure 404 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Failure      404  {object}  commonDtos.ErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/models/whisper/transcribe/{transcribe_id} [get]
 func (c *WhisperTranscribeStatusController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("transcribe_id")

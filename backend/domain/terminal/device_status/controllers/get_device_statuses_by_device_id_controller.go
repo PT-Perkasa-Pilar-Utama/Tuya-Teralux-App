@@ -36,8 +36,9 @@ func NewGetDeviceStatusesByDeviceIDController(useCase *usecases.GetDeviceStatuse
 // @Param        page   query   int     false  "Page number"
 // @Param        limit  query   int     false  "Items per page"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceStatusListResponseDTO}
-// @Failure      400  {object}  dtos.StandardResponse
-// @Failure      404  {object}  dtos.StandardResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      404  {object}  dtos.ErrorResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices/{id}/statuses [get]
 // @Security     BearerAuth
 func (c *GetDeviceStatusesByDeviceIDController) GetDeviceStatusesByDeviceID(ctx *gin.Context) {

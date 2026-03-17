@@ -36,7 +36,7 @@ func NewTuyaGetAllDevicesController(useCase usecases.TuyaGetAllDevicesUseCase) *
 // @Param        per_page  query  int     false  "Items per page (alias for limit)"
 // @Param        category  query  string  false  "Filter by category"
 // @Success      200  {object}  dtos.StandardResponse{data=tuya_dtos.TuyaDevicesResponseDTO}
-// @Failure      500  {object}  dtos.StandardResponse
+// @Failure      500  {object}  dtos.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/tuya/devices [get]
 func (c *TuyaGetAllDevicesController) GetAllDevices(ctx *gin.Context) {

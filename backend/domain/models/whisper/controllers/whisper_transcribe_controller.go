@@ -248,10 +248,10 @@ func (c *WhisperTranscribeController) publishMqttResponse(mac string, resp commo
 // @Param diarize formData boolean false "Identify speakers in transcription"
 // @Param Idempotency-Key header string false "Idempotency key to deduplicate requests"
 // @Success 202 {object} commonDtos.StandardResponse{data=dtos.TranscriptionTaskResponseDTO}
-// @Failure 400 {object} commonDtos.StandardResponse
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure 413 {object} commonDtos.StandardResponse
 // @Failure 415 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/models/whisper/transcribe [post]
 func (c *WhisperTranscribeController) Transcribe(ctx *gin.Context) {
 	macAddress := ctx.PostForm("mac_address")

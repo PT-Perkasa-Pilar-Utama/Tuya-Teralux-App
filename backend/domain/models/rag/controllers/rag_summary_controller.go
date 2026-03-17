@@ -32,8 +32,8 @@ func NewRAGSummaryController(summaryUC usecases.SummaryUseCase) *RAGSummaryContr
 // @Param request body dtos.RAGSummaryRequestDTO true "Summary request"
 // @Param Idempotency-Key header string false "Idempotency key to deduplicate requests"
 // @Success 202 {object} commonDtos.StandardResponse{data=map[string]string}
-// @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/models/rag/summary [post]
 func (c *RAGSummaryController) Summary(ctx *gin.Context) {
 	var req dtos.RAGSummaryRequestDTO

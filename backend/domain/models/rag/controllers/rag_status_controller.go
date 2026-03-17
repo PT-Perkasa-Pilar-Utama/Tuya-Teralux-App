@@ -27,7 +27,7 @@ func NewRAGStatusController(statusUC tasks.GenericStatusUseCase[dtos.RAGStatusDT
 // @Produce json
 // @Param task_id path string true "Task ID"
 // @Success 200 {object} commonDtos.StandardResponse{data=dtos.RAGStatusDTO}
-// @Failure 404 {object} commonDtos.StandardResponse
+// @Failure      404  {object}  commonDtos.ErrorResponse
 // @Router /api/models/rag/{task_id} [get]
 func (c *RAGStatusController) GetStatus(ctx *gin.Context) {
 	id := ctx.Param("task_id")

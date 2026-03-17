@@ -28,9 +28,9 @@ func NewRAGControlController(controlUC usecases.ControlUseCase) *RAGControlContr
 // @Accept json
 // @Produce json
 // @Param request body dtos.RAGControlRequestDTO true "Control Request"
-// @Success 200 {object} commonDtos.StandardResponse
-// @Failure 400 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Success 200 {object} commonDtos.StandardResponse{data=string}
+// @Failure      400  {object}  commonDtos.ValidationErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/models/rag/control [post]
 func (c *RAGControlController) Control(ctx *gin.Context) {
 	var req dtos.RAGControlRequestDTO

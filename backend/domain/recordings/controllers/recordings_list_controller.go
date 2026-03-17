@@ -34,8 +34,8 @@ func NewRecordingsListController(useCase usecases.GetAllRecordingsUseCase) *Reco
 // @Param page query int false "Page number (default 1)"
 // @Param limit query int false "Items per page (default 10)"
 // @Success 200 {object} commonDtos.StandardResponse{data=recordings_dtos.GetAllRecordingsResponseDto}
-// @Failure 401 {object} commonDtos.StandardResponse
-// @Failure 500 {object} commonDtos.StandardResponse "Internal Server Error"
+// @Failure      401  {object}  commonDtos.ErrorResponse
+// @Failure      500  {object}  commonDtos.ErrorResponse
 // @Router /api/recordings [get]
 func (c *RecordingsListController) ListRecordings(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
