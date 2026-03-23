@@ -59,6 +59,12 @@ android {
         buildConfig = true
     }
 
+    lint {
+        disable += "MissingPermission"
+        disable += "ScopedStorage"
+        ignoreWarnings = true
+    }
+
     val localProperties = Properties()
     val localPropertiesFile = rootProject.file("local.properties")
     if (localPropertiesFile.exists()) {

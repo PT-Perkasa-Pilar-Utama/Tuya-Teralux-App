@@ -158,7 +158,7 @@ generate-openapi:
 	@echo "🔄 Converting Swagger 2.0 to OpenAPI 3.1..."
 	@bash ../scripts/backend/generate_openapi.sh
 	@echo "🔧 Fixing missing requestBody schemas in openapi.json..."
-	@python3 scripts/fix_openapi.py docs/swagger/swagger.json docs/openapi/openapi.json
+	@python3 scripts/fix_openapi.py docs/openapi/openapi.json docs/openapi/openapi.json
 	@echo "✅ OpenAPI conversion completed"
 
 # Validate OpenAPI specification

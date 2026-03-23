@@ -15,6 +15,15 @@ type UpdateDeviceController struct {
 	useCase *usecases.UpdateDeviceUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = terminal_dtos.UpdateDeviceRequestDTO{}
+
+// _swaggoForceDetectDTOs is a dummy function to force Swaggo to detect DTOs
+// @Description This function is only for Swaggo documentation generation
+func _swaggoForceDetectDTOs() terminal_dtos.UpdateDeviceRequestDTO {
+	return terminal_dtos.UpdateDeviceRequestDTO{}
+}
+
 // NewUpdateDeviceController creates a new UpdateDeviceController instance
 func NewUpdateDeviceController(useCase *usecases.UpdateDeviceUseCase) *UpdateDeviceController {
 	return &UpdateDeviceController{
@@ -31,12 +40,11 @@ func NewUpdateDeviceController(useCase *usecases.UpdateDeviceUseCase) *UpdateDev
 // @Param        id       path      string  true  "Device ID"
 // @Param        request  body      terminal_dtos.UpdateDeviceRequestDTO  true  "Updated device data"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceResponseDTO}
-// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      422  {object}  dtos.ValidationErrorResponse{data=terminal_dtos.UpdateDeviceRequestDTO}
 // @Failure      404  {object}  dtos.ErrorResponse
 // @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices/{id} [put]
 // @Security     BearerAuth
-
 func (c *UpdateDeviceController) UpdateDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

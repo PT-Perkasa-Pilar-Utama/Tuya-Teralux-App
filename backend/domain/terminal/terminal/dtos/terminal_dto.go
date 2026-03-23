@@ -19,11 +19,11 @@ type CreateTerminalResponseDTO struct {
 
 // UpdateTerminalRequestDTO represents the request body for updating a terminal
 type UpdateTerminalRequestDTO struct {
-	RoomID       *string `json:"room_id,omitempty"`
-	MacAddress   *string `json:"mac_address,omitempty"`
-	Name         *string `json:"name,omitempty"`
-	DeviceTypeID *string `json:"device_type_id,omitempty"`
-	AiProvider   *string `json:"ai_provider,omitempty"`
+	RoomID       *string `json:"room_id,omitempty" example:"room-456"`
+	MacAddress   *string `json:"mac_address,omitempty" example:"AA:BB:CC:DD:EE:FF"`
+	Name         *string `json:"name,omitempty" example:"Updated Hub Name"`
+	DeviceTypeID *string `json:"device_type_id,omitempty" example:"hub-type-002"`
+	AiProvider   *string `json:"ai_provider,omitempty" example:"openai"`
 }
 
 // TerminalFilterDTO represents filter options for listing terminal

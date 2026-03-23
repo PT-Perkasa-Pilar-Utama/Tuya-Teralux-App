@@ -18,6 +18,9 @@ type ragModelsOpenAIController struct {
 	usecase usecases.QueryOpenAIModelUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = dtos.RAGRawPromptRequestDTO{}
+
 func NewRAGModelsOpenAIController(usecase usecases.QueryOpenAIModelUseCase) RAGModelsOpenAIController {
 	return &ragModelsOpenAIController{usecase: usecase}
 }

@@ -16,6 +16,9 @@ type UpdateDeviceStatusController struct {
 	useCase *usecases.UpdateDeviceStatusUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = terminal_dtos.UpdateDeviceStatusRequestDTO{}
+
 // NewUpdateDeviceStatusController creates a new UpdateDeviceStatusController instance
 func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase) *UpdateDeviceStatusController {
 	return &UpdateDeviceStatusController{
@@ -32,13 +35,12 @@ func NewUpdateDeviceStatusController(useCase *usecases.UpdateDeviceStatusUseCase
 // @Param        id       path      string  true  "Device ID"
 // @Param        request  body      terminal_dtos.UpdateDeviceStatusRequestDTO  true  "Updated status data"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.DeviceStatusResponseDTO}
-// @Failure      400  {object}  dtos.ValidationErrorResponse
+// @Failure      400  {object}  dtos.ValidationErrorResponse{data=terminal_dtos.UpdateDeviceStatusRequestDTO}
 // @Failure      422  {object}  dtos.ValidationErrorResponse
 // @Failure      404  {object}  dtos.ErrorResponse
 // @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/devices/{id}/status [put]
 // @Security     BearerAuth
-
 func (c *UpdateDeviceStatusController) UpdateDeviceStatus(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {

@@ -42,29 +42,46 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ############################################
 FROM native-builder AS ai-builder
 
+ARG TARGETARCH
 # Stable pinned versions
 ARG WHISPER_TAG=v1.7.4
 ARG LLAMA_TAG=b4765
 
 # ---- Build whisper.cpp ----
 COPY services/whisper.cpp /whisper.cpp
-RUN echo "🔨 Building whisper.cpp for $TARGETARCH..." && \
+RUN set -e; \
+    echo "🔨 Building whisper.cpp for ${TARGETARCH:-unknown}..." && \
+    if [ ! -f /whisper.cpp/CMakeLists.txt ]; then \
+        echo "❌ Error: /whisper.cpp/CMakeLists.txt not found. Submodule might not be initialized."; \
+        ls -la /whisper.cpp; \
+        exit 1; \
+    fi; \
+    mkdir -p /whisper.cpp/build && \
     cmake -S /whisper.cpp -B /whisper.cpp/build -DGGML_NATIVE=OFF && \
-    cmake --build /whisper.cpp/build --config Release -t main && \
+    cmake --build /whisper.cpp/build --config Release -t main -j$(nproc) && \
     strip --strip-unneeded /whisper.cpp/build/bin/main && \
-    cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli
+    cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli && \
+    echo "✅ whisper-cli built successfully."
 
 # ---- Build llama.cpp ----
 COPY services/llama.cpp /llama.cpp
-RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
+RUN set -e; \
+    echo "🔨 Configuring llama.cpp for ${TARGETARCH:-unknown}..." && \
+    if [ ! -f /llama.cpp/CMakeLists.txt ]; then \
+        echo "❌ Error: /llama.cpp/CMakeLists.txt not found. Submodule might not be initialized."; \
+        ls -la /llama.cpp; \
+        exit 1; \
+    fi; \
+    mkdir -p /llama.cpp/build && \
     cmake -S /llama.cpp -B /llama.cpp/build \
         -DGGML_NATIVE=OFF \
+        -DLLAMA_BUILD_COMMON=ON \
+        -DLLAMA_BUILD_TOOLS=ON \
         -DLLAMA_BUILD_EXAMPLES=ON \
-        -DLLAMA_BUILD_SERVER=OFF || \
-    ( echo "❌ CMake configuration failed"; exit 1 ) && \
+        -DLLAMA_BUILD_SERVER=ON && \
     echo "🔨 Building llama.cpp..." && \
-    ( cmake --build /llama.cpp/build --config Release -t llama-cli || \
-      cmake --build /llama.cpp/build --config Release -t main || \
+    ( cmake --build /llama.cpp/build --config Release -t llama-cli -j$(nproc) || \
+      cmake --build /llama.cpp/build --config Release -t main -j$(nproc) || \
       { echo "❌ Build failed. Diagnostics:"; \
         cmake --build /llama.cpp/build --target help | grep -E "llama-cli|main|server" || true; \
         ls -la /llama.cpp/build/bin || true; \
@@ -74,6 +91,7 @@ RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
     else \
         BIN_TARGET=/llama.cpp/build/bin/main; \
     fi && \
+    echo "Found binary at: $BIN_TARGET" && \
     test -x "$BIN_TARGET" && \
     strip --strip-unneeded "$BIN_TARGET" && \
     cp "$BIN_TARGET" /usr/local/bin/llama-cli && \
@@ -84,7 +102,8 @@ RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
     (cp /llama.cpp/build/ggml/src/libggml.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
     (cp /llama.cpp/build/ggml/src/libggml-base.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
     (cp /llama.cpp/build/ggml/src/libggml-cpu.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
-    ls -la /usr/local/lib/llama/ || true
+    echo "✅ llama-cli built successfully." && \
+    ls -la /usr/local/lib/llama/
 
 
 ############################################
@@ -92,8 +111,11 @@ RUN echo "🔨 Configuring llama.cpp for $TARGETARCH..." && \
 ############################################
 FROM native-builder AS app-builder
 
+ARG TARGETARCH
+
 # Install migrate
-RUN echo "📥 Downloading migrate for $TARGETARCH..." && \
+RUN set -e; \
+    echo "📥 Downloading migrate for ${TARGETARCH:-unknown}..." && \
     curl -fsSL https://github.com/golang-migrate/migrate/releases/download/v4.18.1/migrate.linux-${TARGETARCH}.tar.gz \
     | tar -xz && \
     mv migrate /usr/local/bin/migrate && \

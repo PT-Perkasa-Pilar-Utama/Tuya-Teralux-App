@@ -18,6 +18,9 @@ type ragModelsGroqController struct {
 	usecase usecases.QueryGroqModelUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = dtos.RAGRawPromptRequestDTO{}
+
 func NewRAGModelsGroqController(usecase usecases.QueryGroqModelUseCase) RAGModelsGroqController {
 	return &ragModelsGroqController{usecase: usecase}
 }

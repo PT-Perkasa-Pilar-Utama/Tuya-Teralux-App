@@ -3180,7 +3180,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/dtos.CreateSceneRequestDTO"
+                                "$ref": "#/components/schemas/dtos.CreateTerminalRequestDTO"
                             }
                         }
                     }
@@ -3656,7 +3656,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/dtos.TuyaIRACCommandDTO"
+                                "$ref": "#/components/schemas/dtos.TuyaCommandDTO"
                             }
                         }
                     }
@@ -4284,7 +4284,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/dtos.RAGRequestDTO"
+                                "$ref": "#/components/schemas/services.RAGRequest"
                             }
                         }
                     }
