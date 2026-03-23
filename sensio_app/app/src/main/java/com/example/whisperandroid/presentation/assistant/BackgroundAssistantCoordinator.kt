@@ -47,6 +47,7 @@ class BackgroundAssistantCoordinator(
     private var timeoutJob: Job? = null
     private var mqttCollectorJob: Job? = null
     private var fallbackJob: Job? = null
+    private var autoDismissJob: Job? = null
     private var greetingPlayer: MediaPlayer? = null
 
     // Timing logger instance for current session
@@ -62,7 +63,8 @@ class BackgroundAssistantCoordinator(
         const val LISTENING_TICK_MS = 100L
         const val LISTENING_TIMEOUT_MS = 5000L
         const val PROCESSING_TIMEOUT_MS = 3000L // Reduced from 12s to 3s for faster HTTP fallback
-        // Note: RESULT and ERROR no longer auto-dismiss; user dismisses manually via outside tap
+        const val TERMINAL_AUTO_DISMISS_MS = 60_000L
+        // Note: RESULT and ERROR auto-dismiss after 60 seconds; user can still dismiss manually via outside tap
     }
 
     // Timing helper for structured latency logs
@@ -333,7 +335,7 @@ class BackgroundAssistantCoordinator(
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "success"))
         transitionTo(BackgroundAssistantUiState.State.Result, "showResult")
         _uiState.value = _uiState.value.copy(assistantText = text)
-        // No auto-dismiss: user dismisses manually via outside tap
+        scheduleAutoDismiss(requestId)
     }
 
     private fun failSession(requestId: String, error: String) {
@@ -344,7 +346,7 @@ class BackgroundAssistantCoordinator(
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "failed", "error" to error))
         transitionTo(BackgroundAssistantUiState.State.Error, "failSession")
         _uiState.value = _uiState.value.copy(errorText = error)
-        // No auto-dismiss: user dismisses manually via outside tap
+        scheduleAutoDismiss(requestId)
     }
 
     /**
@@ -366,7 +368,7 @@ class BackgroundAssistantCoordinator(
         }
 
         _uiState.value = _uiState.value.copy(assistantText = serviceIssueMessage)
-        // No auto-dismiss: user dismisses manually via outside tap
+        scheduleAutoDismiss(requestId)
     }
 
     private fun startProcessingTimeout(requestId: String) {
@@ -595,12 +597,28 @@ class BackgroundAssistantCoordinator(
         _uiState.value = _uiState.value.copy(state = newState)
     }
 
+    private fun scheduleAutoDismiss(requestId: String) {
+        autoDismissJob?.cancel()
+        autoDismissJob = scope?.launch {
+            delay(TERMINAL_AUTO_DISMISS_MS)
+            if (activeRequestId == requestId) {
+                val currentState = _uiState.value.state
+                if (currentState == BackgroundAssistantUiState.State.Result ||
+                    currentState == BackgroundAssistantUiState.State.Error
+                ) {
+                    dismissAndRearm()
+                }
+            }
+        }
+    }
+
     private fun cancelPerSessionJobs() {
         activeSessionJob?.cancel()
         listeningJob?.cancel()
         timeoutJob?.cancel()
         mqttCollectorJob?.cancel()
         fallbackJob?.cancel()
+        autoDismissJob?.cancel()
         audioRecorder.stop()
 
         greetingPlayer?.let {

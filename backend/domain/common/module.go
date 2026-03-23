@@ -1,7 +1,6 @@
 package common
 
 import (
-	"net/http"
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/routes"
@@ -43,9 +42,13 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	// Markdown Docs
 	router.GET("/docs/*path", m.DocsController.ServeDocs)
 
-	// OpenAPI 3.1 Routes (Primary docs endpoint)
-	// Serve Swagger UI at /openapi
-	router.StaticFS("/openapi", http.Dir("./docs/openapi"))
+	// OpenAPI 3.1 Routes (Primary docs endpoint - Scalar UI)
+	// Serve index.html for /openapi/ root - MUST be before StaticFS
+	router.GET("/openapi/", func(c *gin.Context) {
+		c.File("./docs/openapi/index.html")
+	})
+	// Serve static files (openapi.json, openapi.yaml) at /openapi/*filepath
+	router.Static("/openapi", "./docs/openapi")
 
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)

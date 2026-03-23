@@ -18,6 +18,9 @@ type ragModelsGeminiController struct {
 	usecase usecases.QueryGeminiModelUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = dtos.RAGRawPromptRequestDTO{}
+
 func NewRAGModelsGeminiController(usecase usecases.QueryGeminiModelUseCase) RAGModelsGeminiController {
 	return &ragModelsGeminiController{usecase: usecase}
 }

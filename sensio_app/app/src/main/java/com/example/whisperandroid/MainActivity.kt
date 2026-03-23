@@ -37,6 +37,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         appContext = applicationContext
 
+        // Ensure NetworkModule is initialized
+        NetworkModule.ensureInitialized(this)
+
         if (com.example.whisperandroid.util.DeviceUtils.isTerminal()) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else if (com.example.whisperandroid.util.DeviceUtils.isPhone(this)) {

@@ -104,10 +104,41 @@ class MqttHelper(
     private fun subscribeToAllTopics() {
         val username = getUsername()
         val env = BuildConfig.APPLICATION_ENVIRONMENT
-        subscribe("users/$username/$env/chat/answer")
-        subscribe("users/$username/$env/whisper/answer")
-        subscribe("users/$username/$env/task")
-        subscribe("users/$username/$env/chat")
+        subscribeInternal("users/$username/$env/chat/answer")
+        subscribeInternal("users/$username/$env/whisper/answer")
+        subscribeInternal("users/$username/$env/task")
+        subscribeInternal("users/$username/$env/chat")
+    }
+
+    /**
+     * Public subscribe method for external components (e.g., reminder coordinator).
+     */
+    fun subscribe(topic: String) {
+        subscribeInternal(topic)
+    }
+
+    private fun subscribeInternal(topic: String) {
+        try {
+            mqttAndroidClient.subscribe(
+                topic,
+                0,
+                null,
+                object : IMqttActionListener {
+                    override fun onSuccess(asyncActionToken: IMqttToken) {
+                        Log.d(tag, "Subscribed to $topic")
+                    }
+
+                    override fun onFailure(
+                        asyncActionToken: IMqttToken,
+                        exception: Throwable
+                    ) {
+                        Log.e(tag, "Failed to subscribe to $topic")
+                    }
+                }
+            )
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
     }
 
     /**
@@ -237,30 +268,6 @@ class MqttHelper(
         } catch (e: Exception) {
             Log.e(tag, "Error fetching MQTT credentials: ${e.message}")
             null
-        }
-    }
-
-    private fun subscribe(topic: String) {
-        try {
-            mqttAndroidClient.subscribe(
-                topic,
-                0,
-                null,
-                object : IMqttActionListener {
-                    override fun onSuccess(asyncActionToken: IMqttToken) {
-                        Log.d(tag, "Subscribed to $topic")
-                    }
-
-                    override fun onFailure(
-                        asyncActionToken: IMqttToken,
-                        exception: Throwable
-                    ) {
-                        Log.e(tag, "Failed to subscribe to $topic")
-                    }
-                }
-            )
-        } catch (e: MqttException) {
-            e.printStackTrace()
         }
     }
 

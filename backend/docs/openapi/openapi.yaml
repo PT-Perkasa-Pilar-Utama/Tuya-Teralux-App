@@ -161,6 +161,121 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
+        put:
+            tags:
+                - 02. Terminal
+            summary: Update a device
+            description: Update an existing device's details by ID
+            parameters:
+                - name: id
+                  in: path
+                  description: Device ID
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                description: Updated device data
+                required: true
+                content:
+                    application/json: {}
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.StandardResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.DeviceResponseDTO'
+                "404":
+                    description: Not Found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.ValidationErrorResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.UpdateDeviceRequestDTO'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
+    /api/devices/{id}/status:
+        put:
+            tags:
+                - 02. Terminal
+            summary: Update device status
+            description: Update the status value for a specific device by ID
+            parameters:
+                - name: id
+                  in: path
+                  description: Device ID
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                description: Updated status data
+                required: true
+                content:
+                    application/json: {}
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.StandardResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.DeviceStatusResponseDTO'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.ValidationErrorResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.UpdateDeviceStatusRequestDTO'
+                "404":
+                    description: Not Found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ValidationErrorResponse'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
     /api/devices/{id}/statuses:
         get:
             tags:
@@ -1497,6 +1612,66 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
+        put:
+            tags:
+                - 02. Terminal
+            summary: Update a terminal
+            description: Update an existing terminal record's metadata by ID
+            parameters:
+                - name: id
+                  in: path
+                  description: Terminal ID
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                description: Updated terminal data
+                required: true
+                content:
+                    application/json: {}
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.StandardResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.TerminalResponseDTO'
+                "404":
+                    description: Not Found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "409":
+                    description: Conflict
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.ValidationErrorResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.UpdateTerminalRequestDTO'
                 "500":
                     description: Internal Server Error
                     content:
@@ -3174,10 +3349,13 @@ components:
             properties:
                 language:
                     type: string
+                    example: id
                 mac_address:
                     type: string
+                    example: AA:BB:CC:DD:EE:FF
                 text:
                     type: string
+                    example: Ini adalah transkrip panjang dari rapat teknis...
             required:
                 - text
         dtos.RAGStatusDTO:
@@ -3433,13 +3611,6 @@ components:
                     type: string
         dtos.TuyaCommandDTO:
             type: object
-            properties:
-                code:
-                    type: string
-                value: {}
-            required:
-                - code
-                - value
         dtos.TuyaDeviceDTO:
             type: object
             properties:
@@ -3516,13 +3687,24 @@ components:
             properties:
                 code:
                     type: string
+                    example: temp
                 remote_id:
                     type: string
+                    example: ir-remote-001
                 value:
                     type: integer
+                    example: 24
             required:
                 - code
                 - remote_id
+        dtos.UpdateDeviceRequestDTO:
+            type: object
+            properties:
+                name:
+                    type: string
+                    example: Updated Device Name
+        dtos.UpdateDeviceStatusRequestDTO:
+            type: object
         dtos.UpdateSceneRequestDTO:
             type: object
             properties:
@@ -3532,8 +3714,27 @@ components:
                         $ref: '#/components/schemas/dtos.ActionDTO'
                 name:
                     type: string
+                    example: Evening Mode
             required:
                 - name
+        dtos.UpdateTerminalRequestDTO:
+            type: object
+            properties:
+                ai_provider:
+                    type: string
+                    example: openai
+                device_type_id:
+                    type: string
+                    example: hub-type-002
+                mac_address:
+                    type: string
+                    example: AA:BB:CC:DD:EE:FF
+                name:
+                    type: string
+                    example: Updated Hub Name
+                room_id:
+                    type: string
+                    example: room-456
         dtos.V1PipelineStatusResponseDTO:
             type: object
             properties:

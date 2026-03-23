@@ -84,11 +84,16 @@ object NetworkModule {
     lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
     lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
     lateinit var backgroundAssistantModeStore: com.example.whisperandroid.data.local.BackgroundAssistantModeStore
-    val backgroundAssistantCoordinator: com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator by lazy {
-        com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator(
-            appContext as android.app.Application
-        )
-    }
+
+    // Meeting reminder components
+    lateinit var meetingReminderStore: com.example.whisperandroid.data.local.reminder.MeetingReminderStore
+    lateinit var meetingReminderScheduler: com.example.whisperandroid.service.reminder.MeetingReminderScheduler
+    lateinit var meetingReminderNotifier: com.example.whisperandroid.service.reminder.MeetingReminderNotifier
+    lateinit var overlayArbiter: com.example.whisperandroid.service.reminder.OverlayArbiter
+    lateinit var meetingReminderOverlayController: com.example.whisperandroid.service.reminder.MeetingReminderOverlayController
+    lateinit var meetingReminderRuntimeCoordinator: com.example.whisperandroid.service.reminder.MeetingReminderRuntimeCoordinator
+    lateinit var backgroundAssistantCoordinator: com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator
+
     lateinit var appContext: android.content.Context
 
     private val _isTuyaSyncReady = MutableStateFlow(false)
@@ -106,6 +111,27 @@ object NetworkModule {
                 .TokenManager(appContext)
         mqttHelper = com.example.whisperandroid.util.MqttHelper(appContext)
         backgroundAssistantModeStore = com.example.whisperandroid.data.local.BackgroundAssistantModeStore(appContext)
+
+        // Initialize meeting reminder components
+        meetingReminderStore = com.example.whisperandroid.data.local.reminder.MeetingReminderStore(appContext)
+        meetingReminderScheduler = com.example.whisperandroid.service.reminder.MeetingReminderScheduler(appContext)
+        meetingReminderNotifier = com.example.whisperandroid.service.reminder.MeetingReminderNotifier(appContext)
+        overlayArbiter = com.example.whisperandroid.service.reminder.OverlayArbiter(appContext)
+        meetingReminderOverlayController = com.example.whisperandroid.service.reminder.MeetingReminderOverlayController(
+            context = appContext,
+            arbiter = overlayArbiter
+        )
+        meetingReminderRuntimeCoordinator = com.example.whisperandroid.service.reminder.MeetingReminderRuntimeCoordinator(
+            context = appContext,
+            store = meetingReminderStore,
+            scheduler = meetingReminderScheduler,
+            notifier = meetingReminderNotifier,
+            overlayController = meetingReminderOverlayController,
+            arbiter = overlayArbiter
+        )
+        backgroundAssistantCoordinator = com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator(
+            appContext as android.app.Application
+        )
     }
 
     fun ensureInitialized(context: android.content.Context) {

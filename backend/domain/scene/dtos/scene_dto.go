@@ -17,7 +17,7 @@ type CreateSceneRequestDTO struct {
 
 // UpdateSceneRequestDTO for PUT /api/terminal/:id/scenes/:scene_id
 type UpdateSceneRequestDTO struct {
-	Name    string      `json:"name" binding:"required"`
+	Name    string      `json:"name" binding:"required" example:"Evening Mode"`
 	Actions []ActionDTO `json:"actions"`
 }
 

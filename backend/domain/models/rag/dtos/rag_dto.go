@@ -1,9 +1,9 @@
 package dtos
 
 type RAGRequestDTO struct {
-	Text       string `json:"text" binding:"required"`
-	Language   string `json:"language,omitempty"`
-	MacAddress string `json:"mac_address,omitempty"`
+	Text       string `json:"text" binding:"required" example:"Ini adalah transkrip panjang dari rapat teknis..."`
+	Language   string `json:"language,omitempty" example:"id"`
+	MacAddress string `json:"mac_address,omitempty" example:"AA:BB:CC:DD:EE:FF"`
 }
 
 type RAGSummaryRequestDTO struct {

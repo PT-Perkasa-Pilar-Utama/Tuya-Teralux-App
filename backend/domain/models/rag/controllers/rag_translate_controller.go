@@ -15,6 +15,9 @@ type RAGTranslateController struct {
 	translateUC usecases.TranslateUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = dtos.RAGRequestDTO{}
+
 func NewRAGTranslateController(translateUC usecases.TranslateUseCase) *RAGTranslateController {
 	return &RAGTranslateController{
 		translateUC: translateUC,
