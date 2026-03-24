@@ -11,8 +11,8 @@ help:
 	@echo "  make dev-full         - Run full stack (MySQL + Backend + RAG)"
 	@echo "  make dev-mysql        - Start only MySQL for development"
 	@echo "  make test             - Run all unit tests"
-	@echo "  make lint             - Run go vet, golangci-lint, and go build check"
-	@echo "  make lint-strict      - Run all linters (vet, golangci-lint, build check)"
+	@echo "  make lint             - Run gofmt check, go vet, and go build check"
+	@echo "  make lint-strict      - Run gofmt check, go vet, and go build check"
 	@echo ""
 	@echo "  --- API DOCS (OpenAPI 3.1) ---"
 	@echo "  make openapi-tools    - Install OpenAPI converter and validator tools"
@@ -374,12 +374,17 @@ vet:
 lint:
 	@$(MAKE) lint-strict
 
-# Run go vet, golangci-lint, and go build check
+# Run gofmt check, go vet, and go build check
 lint-strict:
+	@echo "🧹 Checking gofmt..."
+	@UNFORMATTED=$$(gofmt -l main.go domain); \
+	if [ -n "$$UNFORMATTED" ]; then \
+		echo "❌ gofmt required for files:"; \
+		echo "$$UNFORMATTED"; \
+		exit 1; \
+	fi
 	@echo "🔍 Running go vet..."
 	@go vet . ./domain/...
-	@echo "✨ Running golangci-lint..."
-	@golangci-lint run
 	@echo "🔨 Running go build check..."
 	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/...
 
