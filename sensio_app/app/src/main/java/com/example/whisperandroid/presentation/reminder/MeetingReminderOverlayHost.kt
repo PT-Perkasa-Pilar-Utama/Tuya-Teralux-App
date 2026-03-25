@@ -31,6 +31,8 @@ import com.example.whisperandroid.presentation.components.SensioButton
 import com.example.whisperandroid.ui.theme.Cyan600
 import com.example.whisperandroid.ui.theme.Slate400
 import com.example.whisperandroid.ui.theme.Slate50
+import com.example.whisperandroid.ui.theme.Slate500
+import com.example.whisperandroid.ui.theme.Slate700
 import com.example.whisperandroid.ui.theme.Slate900
 
 /**
@@ -46,7 +48,7 @@ fun MeetingReminderOverlayHost(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Slate900.copy(alpha = 0.4f)),
+            .background(Slate500.copy(alpha = 0.3f)),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -56,7 +58,7 @@ fun MeetingReminderOverlayHost(
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Slate900.copy(alpha = 0.95f)
+                containerColor = Slate50
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
@@ -97,7 +99,7 @@ fun MeetingReminderOverlayHost(
                     text = uiModel.title,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Slate50,
+                    color = Slate900,
                     letterSpacing = (-0.5).sp
                 )
 
@@ -108,7 +110,7 @@ fun MeetingReminderOverlayHost(
                     text = uiModel.message,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Normal,
-                    color = Slate400,
+                    color = Slate700,
                     lineHeight = 28.sp,
                     letterSpacing = 0.2.sp
                 )

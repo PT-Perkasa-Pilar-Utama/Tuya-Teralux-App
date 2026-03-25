@@ -20,6 +20,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.whisperandroid.domain.model.reminder.MeetingReminderUiModel
 import com.example.whisperandroid.presentation.reminder.MeetingReminderOverlayHost
+import com.example.whisperandroid.ui.theme.SensioTheme
 
 /**
  * Controller for managing the meeting reminder overlay window.
@@ -55,10 +56,12 @@ class MeetingReminderOverlayController(
         try {
             val composeView = ComposeView(context).apply {
                 setContent {
-                    MeetingReminderOverlayHost(
-                        uiModel = uiModel,
-                        onClose = { hide() }
-                    )
+                    SensioTheme {
+                        MeetingReminderOverlayHost(
+                            uiModel = uiModel,
+                            onClose = { hide() }
+                        )
+                    }
                 }
             }
 
@@ -82,10 +85,10 @@ class MeetingReminderOverlayController(
                 flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+                    WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
                 format = PixelFormat.TRANSLUCENT
-                width = WindowManager.LayoutParams.WRAP_CONTENT
-                height = WindowManager.LayoutParams.WRAP_CONTENT
+                width = WindowManager.LayoutParams.MATCH_PARENT
+                height = WindowManager.LayoutParams.MATCH_PARENT
                 gravity = Gravity.CENTER
             }
 
