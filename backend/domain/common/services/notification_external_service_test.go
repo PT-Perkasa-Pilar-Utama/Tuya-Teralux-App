@@ -5,6 +5,7 @@ import (
 	"sensio/domain/common/utils"
 	terminal_dtos "sensio/domain/terminal/terminal/dtos"
 	"sensio/domain/terminal/terminal/entities"
+	"strconv"
 	"testing"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -120,6 +121,7 @@ func TestPublishNotificationToRoom(t *testing.T) {
 	dateTimeEnd := "2026-03-17T14:00:00+07:00"
 	intervalTime := 15
 	expectedPublishAt := "2026-03-17T13:45:00+07:00"
+	env := utils.GetConfig().ApplicationEnvironment
 
 	t.Run("Success - Multiple Terminals", func(t *testing.T) {
 		mockRepo := new(MockTerminalRepository)
@@ -132,10 +134,10 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		}
 
 		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
-		
-		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt + `"}`)
-		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/notification", byte(0), false, expectedPayload).Return(nil)
-		mockMqtt.On("Publish", "users/11:22:33:44:55:66/notification", byte(0), false, expectedPayload).Return(nil)
+
+		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt + `","remaining_minutes":` + strconv.Itoa(intervalTime) + `}`)
+		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
+		mockMqtt.On("Publish", "users/11:22:33:44:55:66/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
 
 		req := terminal_dtos.NotificationPublishRequest{
 			RoomID:       roomID,
@@ -150,10 +152,10 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		assert.Equal(t, roomID, resp.RoomID)
 		assert.Equal(t, 2, resp.PublishedCount)
 		assert.ElementsMatch(t, []string{
-			"users/AA:BB:CC:DD:EE:FF/notification",
-			"users/11:22:33:44:55:66/notification",
+			"users/AA:BB:CC:DD:EE:FF/" + env + "/notification",
+			"users/11:22:33:44:55:66/" + env + "/notification",
 		}, resp.PublishedTopics)
-		
+
 		mockRepo.AssertExpectations(t)
 		mockMqtt.AssertExpectations(t)
 	})

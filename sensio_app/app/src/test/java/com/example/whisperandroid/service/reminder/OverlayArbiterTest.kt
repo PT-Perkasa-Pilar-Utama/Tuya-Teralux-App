@@ -31,7 +31,6 @@ class OverlayArbiterTest {
     @Test
     fun canShowReminderOverlay_permissionGranted_noActiveOverlay_returnsTrue() {
         every { android.provider.Settings.canDrawOverlays(any()) } returns true
-        arbiter.checkOverlayPermission()
         arbiter.markAssistantOverlayActive(false)
         arbiter.markReminderOverlayActive(false)
 
@@ -43,7 +42,6 @@ class OverlayArbiterTest {
     @Test
     fun canShowReminderOverlay_permissionMissing_returnsFalse() {
         every { android.provider.Settings.canDrawOverlays(any()) } returns false
-        arbiter.checkOverlayPermission()
 
         val result = arbiter.canShowReminderOverlay()
 

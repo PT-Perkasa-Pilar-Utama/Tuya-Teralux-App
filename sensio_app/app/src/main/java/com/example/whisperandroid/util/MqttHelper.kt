@@ -32,6 +32,9 @@ class MqttHelper(
 
     private val tag = "MqttHelper"
 
+    // Track external topics for re-subscription on reconnection
+    private val externalTopics = mutableSetOf<String>()
+
     private val _messages = kotlinx.coroutines.flow.MutableSharedFlow<Pair<String, String>>(
         extraBufferCapacity = 64,
         onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
@@ -108,12 +111,18 @@ class MqttHelper(
         subscribeInternal("users/$username/$env/whisper/answer")
         subscribeInternal("users/$username/$env/task")
         subscribeInternal("users/$username/$env/chat")
+        
+        // Re-subscribe to external topics (e.g., notification topic)
+        externalTopics.forEach { topic ->
+            subscribeInternal(topic)
+        }
     }
 
     /**
      * Public subscribe method for external components (e.g., reminder coordinator).
      */
     fun subscribe(topic: String) {
+        externalTopics.add(topic)
         subscribeInternal(topic)
     }
 

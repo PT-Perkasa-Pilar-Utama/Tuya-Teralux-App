@@ -14,10 +14,11 @@ type NotificationPublishResponse struct {
 	RoomID          string    `json:"room_id" example:"123"`
 	PublishAt       time.Time `json:"publish_at" example:"2026-03-17T13:45:00+07:00"`
 	PublishedCount  int       `json:"published_count" example:"2"`
-	PublishedTopics []string  `json:"published_topics" example:"[\"users/AA:BB:CC:DD:EE:FF/notification\"]"`
+	PublishedTopics []string  `json:"published_topics" example:"[\"users/AA:BB:CC:DD:EE:FF/dev/notification\"]"`
 }
 
 // NotificationMQTTPayload represents the JSON payload sent via MQTT
 type NotificationMQTTPayload struct {
-	PublishAt string `json:"publish_at" example:"2026-03-17T13:45:00+07:00"`
+	PublishAt        string `json:"publish_at" example:"2026-03-17T13:45:00+07:00"`
+	RemainingMinutes int    `json:"remaining_minutes" example:"15"`
 }

@@ -45,17 +45,22 @@ class MeetingReminderNotifier(private val context: Context) {
      * Show a meeting reminder notification.
      *
      * @param uiModel The UI model containing reminder content
+     * @param reminderId Unique reminder ID for notification identification
      */
-    fun showNotification(uiModel: MeetingReminderUiModel) {
-        val notificationId = uiModel.remainingMinutes.hashCode() + NOTIFICATION_ID_OFFSET
+    fun showNotification(uiModel: MeetingReminderUiModel, reminderId: String) {
+        val notificationId = reminderId.hashCode() + NOTIFICATION_ID_OFFSET
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(uiModel.title)
             .setContentText(uiModel.message)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setAutoCancel(true)
+            .setAutoCancel(false)
+            .setOngoing(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setWhen(System.currentTimeMillis())
+            .setShowWhen(true)
             .setContentIntent(createContentIntent())
             .build()
 

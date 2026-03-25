@@ -11,20 +11,7 @@ import android.util.Log
 class OverlayArbiter(private val context: Context) {
     private var isAssistantOverlayActive = false
     private var isReminderOverlayActive = false
-    private var hasOverlayPermission = false
     private val tag = "OverlayArbiter"
-
-    init {
-        checkOverlayPermission()
-    }
-
-    /**
-     * Check and update overlay permission state.
-     */
-    fun checkOverlayPermission() {
-        hasOverlayPermission = android.provider.Settings.canDrawOverlays(context)
-        Log.d(tag, "Overlay permission: $hasOverlayPermission")
-    }
 
     /**
      * Mark whether the assistant overlay is currently active.
@@ -52,6 +39,9 @@ class OverlayArbiter(private val context: Context) {
      * @return true if overlay permission exists and no other overlay is active
      */
     fun canShowReminderOverlay(): Boolean {
+        // Query overlay permission directly to ensure latest OS state
+        val hasOverlayPermission = android.provider.Settings.canDrawOverlays(context)
+        
         if (!hasOverlayPermission) {
             Log.w(tag, "Cannot show reminder overlay: missing permission")
             return false

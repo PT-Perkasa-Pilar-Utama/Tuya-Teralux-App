@@ -57,12 +57,13 @@ class MeetingReminderParserTest {
     }
 
     @Test
-    fun parseNonPositiveRemainingMinutes_returnsNull() {
+    fun parseZeroRemainingMinutes_returnsMessage() {
         val payload = """{"publish_at": "2026-03-17T13:45:00+0700", "remaining_minutes": 0}"""
 
         val result = MeetingReminderParser.parse(payload)
 
-        assertNull(result)
+        assertEquals("2026-03-17T13:45:00+0700", result?.publishAt)
+        assertEquals(0, result?.remainingMinutes)
     }
 
     @Test

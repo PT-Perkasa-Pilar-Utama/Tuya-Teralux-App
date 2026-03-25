@@ -39,16 +39,20 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 
 // RegisterRoutes registers common routes
 func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
-	// Markdown Docs
+	// Markdown Docs - render markdown with custom controller
 	router.GET("/docs/*path", m.DocsController.ServeDocs)
 
-	// OpenAPI 3.1 Routes (Primary docs endpoint - Scalar UI)
-	// Serve index.html for /openapi/ root - MUST be before StaticFS
+	// OpenAPI 3.1 Routes with Scalar UI
+	// Specific routes first, then catch-all
+	router.GET("/openapi.json", func(c *gin.Context) {
+		c.File("./docs/openapi/openapi.json")
+	})
+	router.GET("/openapi.yaml", func(c *gin.Context) {
+		c.File("./docs/openapi/openapi.yaml")
+	})
 	router.GET("/openapi/", func(c *gin.Context) {
 		c.File("./docs/openapi/index.html")
 	})
-	// Serve static files (openapi.json, openapi.yaml) at /openapi/*filepath
-	router.Static("/openapi", "./docs/openapi")
 
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)

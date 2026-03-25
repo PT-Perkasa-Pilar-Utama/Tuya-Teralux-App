@@ -4852,7 +4852,7 @@ const docTemplate = `{
                         "type": "string"
                     },
                     "example": [
-                        "[\"users/AA:BB:CC:DD:EE:FF/notification\"]"
+                        "[\"users/AA:BB:CC:DD:EE:FF/dev/notification\"]"
                     ]
                 },
                 "room_id": {

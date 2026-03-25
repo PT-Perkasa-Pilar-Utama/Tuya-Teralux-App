@@ -279,7 +279,7 @@ definitions:
         type: integer
       published_topics:
         example:
-        - '["users/AA:BB:CC:DD:EE:FF/notification"]'
+        - '["users/AA:BB:CC:DD:EE:FF/dev/notification"]'
         items:
           type: string
         type: array
