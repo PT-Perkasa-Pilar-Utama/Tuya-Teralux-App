@@ -2,13 +2,16 @@ package com.example.whisperandroid.service.reminder
 
 import android.content.Context
 import android.util.Log
+import com.example.whisperandroid.BuildConfig
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.data.local.reminder.MeetingReminderStore
 import com.example.whisperandroid.domain.model.reminder.MeetingReminderEntity
 import com.example.whisperandroid.domain.model.reminder.MeetingReminderMessage
 import com.example.whisperandroid.util.MeetingReminderParser
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -43,17 +46,28 @@ class MeetingReminderRuntimeCoordinator(
 
         isStarted = true
 
-        // Build notification topic (no environment segment to match backend)
+        // Build notification topic with environment segment
         val username = getUsername()
-        notificationTopic = "users/$username/notification"
+        val env = BuildConfig.APPLICATION_ENVIRONMENT
+        notificationTopic = "users/$username/$env/notification"
 
         Log.i(tag, "Starting reminder coordinator, topic: $notificationTopic")
 
         // Restore pending reminders on startup
         restorePendingReminders()
 
-        // Listen to MQTT messages
+        // Listen to MQTT messages and ensure connection before subscribing
         scope.launch {
+            // Wait for MQTT connection with retry logic
+            val connected = waitForMqttConnection()
+            if (!connected) {
+                Log.e(tag, "Failed to establish MQTT connection after retries, proceeding to subscribe so topic is tracked")
+            }
+
+            // Subscribe to the topic
+            mqttHelper.subscribe(notificationTopic!!)
+
+            // Collect messages
             mqttHelper.messages.collectLatest { (topic, payload) ->
                 if (topic == notificationTopic) {
                     Log.d(tag, "Notification message received: $payload")
@@ -61,9 +75,46 @@ class MeetingReminderRuntimeCoordinator(
                 }
             }
         }
+    }
 
-        // Subscribe to the topic
-        mqttHelper.subscribe(notificationTopic!!)
+    /**
+     * Wait for MQTT connection with retry logic and timeout.
+     *
+     * @return true if connected successfully, false if timeout or unrecoverable failure
+     */
+    private suspend fun waitForMqttConnection(timeoutMs: Long = 30_000): Boolean {
+        val startTime = System.currentTimeMillis()
+
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            when (val status = mqttHelper.connectionStatus.value) {
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED -> {
+                    Log.d(tag, "MQTT connection established")
+                    return true
+                }
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.FAILED,
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.NO_INTERNET -> {
+                    Log.w(tag, "Connection status: $status, retrying in 5s...")
+                    delay(5000)
+                    mqttHelper.connect()
+                }
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> {
+                    Log.w(tag, "Connection status: $status, connecting...")
+                    mqttHelper.connect()
+                    delay(1000)
+                }
+                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTING -> {
+                    Log.d(tag, "Connection status: $status, waiting...")
+                    delay(1000)
+                }
+                else -> {
+                    Log.d(tag, "Unknown connection status: $status, waiting...")
+                    delay(1000)
+                }
+            }
+        }
+
+        Log.e(tag, "MQTT connection timeout after ${timeoutMs}ms")
+        return false
     }
 
     /**

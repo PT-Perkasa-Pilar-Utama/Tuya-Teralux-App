@@ -51,7 +51,8 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 
 	// 4. Prepare MQTT payload
 	payload := terminal_dtos.NotificationMQTTPayload{
-		PublishAt: publishAtStr,
+		PublishAt:        publishAtStr,
+		RemainingMinutes: req.IntervalTime,
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -61,9 +62,9 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 	// 5. Fan out to each terminal
 	publishedTopics := make([]string, 0, len(terminals))
 	for _, t := range terminals {
-		topic := fmt.Sprintf("users/%s/notification", t.MacAddress)
-		
-		err := s.mqttSvc.Publish(topic, 0, false, payloadBytes)
+		topic := fmt.Sprintf("users/%s/%s/notification", t.MacAddress, utils.GetConfig().ApplicationEnvironment)
+
+		err := s.mqttSvc.Publish(topic, 1, false, payloadBytes)
 		if err != nil {
 			utils.LogError("NotificationExternalService: Failed to publish to %s: %v", topic, err)
 			// According to the plan, we treat any failure as request failure

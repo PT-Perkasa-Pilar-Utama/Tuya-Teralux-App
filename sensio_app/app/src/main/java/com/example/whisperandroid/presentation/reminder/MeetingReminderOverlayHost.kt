@@ -1,6 +1,8 @@
 package com.example.whisperandroid.presentation.reminder
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,8 +43,11 @@ fun MeetingReminderOverlayHost(
     uiModel: MeetingReminderUiModel,
     onClose: () -> Unit
 ) {
-    Dialog(
-        onDismissRequest = onClose
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Slate900.copy(alpha = 0.4f)),
+        contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier
@@ -51,13 +56,13 @@ fun MeetingReminderOverlayHost(
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Slate900.copy(alpha = 0.92f)
+                containerColor = Slate900.copy(alpha = 0.95f)
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -70,49 +75,49 @@ fun MeetingReminderOverlayHost(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = null,
                         tint = Cyan600,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Small label
                 Text(
-                    text = "Sensio Notification",
+                    text = "SENSIO REMINDER",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Slate400,
-                    letterSpacing = 0.5.sp
+                    fontWeight = FontWeight.SemiBold,
+                    color = Cyan600,
+                    letterSpacing = 1.sp
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Title
                 Text(
                     text = uiModel.title,
-                    fontSize = 22.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Slate50,
                     letterSpacing = (-0.5).sp
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Message
                 Text(
                     text = uiModel.message,
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Normal,
                     color = Slate400,
-                    lineHeight = 24.sp,
+                    lineHeight = 28.sp,
                     letterSpacing = 0.2.sp
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // Close button
                 SensioButton(
-                    text = "Close",
+                    text = "Selesai",
                     onClick = onClose,
                     modifier = Modifier.fillMaxWidth()
                 )

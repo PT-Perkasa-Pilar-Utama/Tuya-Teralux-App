@@ -43,8 +43,8 @@ object MeetingReminderParser {
                 return null
             }
 
-            if (message.remainingMinutes <= 0) {
-                Log.w(tag, "Invalid payload: remaining_minutes must be positive: ${message.remainingMinutes}")
+            if (message.remainingMinutes < 0) {
+                Log.w(tag, "Invalid payload: remaining_minutes must be non-negative: ${message.remainingMinutes}")
                 return null
             }
 
@@ -87,13 +87,17 @@ object MeetingReminderParser {
 
     /**
      * Normalize timezone offset from +07:00 to +0700 for SimpleDateFormat.
+     * Also handles UTC Z suffix (converts Z to +0000).
      */
     private fun normalizeTimezone(isoString: String): String {
+        // Handle UTC Z suffix: convert "2024-03-24T10:00:00Z" to "2024-03-24T10:00:00+0000"
+        val withUtcOffset = isoString.replace(Regex("""Z$"""), "+0000")
+        
         // If already in +0700 format, return as-is
-        if (Regex("""\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}""").matches(isoString)) {
-            return isoString
+        if (Regex("""\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}""").matches(withUtcOffset)) {
+            return withUtcOffset
         }
         // Convert +07:00 to +0700
-        return isoString.replace(Regex("""([+-]\d{2}):(\d{2})$"""), "$1$2")
+        return withUtcOffset.replace(Regex("""([+-]\d{2}):(\d{2})$"""), "$1$2")
     }
 }

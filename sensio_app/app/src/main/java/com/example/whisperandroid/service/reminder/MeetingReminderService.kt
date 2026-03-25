@@ -95,7 +95,7 @@ class MeetingReminderService : Service() {
     private fun createNotification() = NotificationCompat.Builder(this, channelId)
         .setContentTitle("Meeting Reminders Active")
         .setContentText("Listening for meeting reminders...")
-        .setSmallIcon(android.R.drawable.ic_dialog_alert)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setOngoing(true)
         .setContentIntent(

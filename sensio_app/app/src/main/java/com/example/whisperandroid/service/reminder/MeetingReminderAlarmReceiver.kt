@@ -74,7 +74,7 @@ class MeetingReminderAlarmReceiver : BroadcastReceiver() {
 
         // Always post notification first (guaranteed delivery)
         val uiModel = MeetingReminderUiModel.fromEntity(entity)
-        notifier.showNotification(uiModel)
+        notifier.showNotification(uiModel, entity.id)
 
         // Mark as fired in store
         store.markFired(entity.id)

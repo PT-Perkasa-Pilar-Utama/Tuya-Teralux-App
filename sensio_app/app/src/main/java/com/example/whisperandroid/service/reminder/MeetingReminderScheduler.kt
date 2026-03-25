@@ -41,28 +41,62 @@ class MeetingReminderScheduler(private val context: Context) {
         val pendingIntent = createAlarmPendingIntent(entity.id)
 
         try {
-            // Use setExactAndAllowWhileIdle on API 23+, with proper API level checks
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    fireTime,
-                    pendingIntent
-                )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    fireTime,
-                    pendingIntent
-                )
+            // Check exact alarm permission on Android 12+ (SDK 31+)
+            val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                alarmManager.canScheduleExactAlarms()
             } else {
-                @Suppress("DEPRECATION")
-                alarmManager.set(
-                    AlarmManager.RTC_WAKEUP,
-                    fireTime,
-                    pendingIntent
-                )
+                true
+            }
+
+            if (canScheduleExact) {
+                // Use setExactAndAllowWhileIdle on API 23+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        fireTime,
+                        pendingIntent
+                    )
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    alarmManager.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        fireTime,
+                        pendingIntent
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        fireTime,
+                        pendingIntent
+                    )
+                }
+            } else {
+                // Fallback to inexact alarm if exact alarm permission not granted
+                Log.w(tag, "Exact alarms not permitted, using setAndAllowWhileIdle fallback for ${entity.id}")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        fireTime,
+                        pendingIntent
+                    )
+                } else {
+                    alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        fireTime,
+                        pendingIntent
+                    )
+                }
             }
             Log.i(tag, "Scheduled reminder ${entity.id} for ${entity.publishAtEpochMillis}")
+        } catch (e: SecurityException) {
+            Log.e(tag, "SecurityException scheduling ${entity.id}: ${e.message}, falling back to non-exact alarm")
+            // Fallback to non-exact alarm as last resort
+            try {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, fireTime, pendingIntent)
+                Log.i(tag, "Fallback non-exact alarm scheduled for ${entity.id}")
+            } catch (e2: Exception) {
+                Log.e(tag, "Failed to schedule fallback alarm for ${entity.id}: ${e2.message}")
+            }
         } catch (e: Exception) {
             Log.e(tag, "Failed to schedule reminder ${entity.id}: ${e.message}")
         }
@@ -122,11 +156,60 @@ class MeetingReminderScheduler(private val context: Context) {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            System.currentTimeMillis(),
-            pendingIntent
-        )
+        try {
+            val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                alarmManager.canScheduleExactAlarms()
+            } else {
+                true
+            }
+
+            if (canScheduleExact) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis(),
+                        pendingIntent
+                    )
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    alarmManager.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis(),
+                        pendingIntent
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis(),
+                        pendingIntent
+                    )
+                }
+            } else {
+                Log.w(tag, "Exact alarms not permitted for immediate trigger, using setAndAllowWhileIdle fallback for ${entity.id}")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis(),
+                        pendingIntent
+                    )
+                } else {
+                    alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis(),
+                        pendingIntent
+                    )
+                }
+            }
+        } catch (e: SecurityException) {
+            Log.e(tag, "SecurityException calling triggerImmediate for ${entity.id}: ${e.message}, falling back to non-exact alarm")
+            try {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), pendingIntent)
+            } catch (e2: Exception) {
+                Log.e(tag, "Failed to schedule fallback immediate alarm for ${entity.id}: ${e2.message}")
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to schedule immediate reminder ${entity.id}: ${e.message}")
+        }
     }
 
     private fun createAlarmPendingIntent(reminderId: String): PendingIntent {
