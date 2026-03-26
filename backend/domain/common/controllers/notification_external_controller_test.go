@@ -12,8 +12,8 @@ import (
 	"sensio/domain/terminal/terminal/entities"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -24,19 +24,21 @@ type MockTerminalRepository struct {
 }
 
 func (m *MockTerminalRepository) Create(terminal *entities.Terminal) error { return nil }
-func (m *MockTerminalRepository) GetAll() ([]entities.Terminal, error)   { return nil, nil }
+func (m *MockTerminalRepository) GetAll() ([]entities.Terminal, error)     { return nil, nil }
 func (m *MockTerminalRepository) GetAllPaginated(offset, limit int, roomID *string) ([]entities.Terminal, int64, error) {
 	return nil, 0, nil
 }
-func (m *MockTerminalRepository) GetByID(id string) (*entities.Terminal, error)                { return nil, nil }
-func (m *MockTerminalRepository) GetByMacAddress(macAddress string) (*entities.Terminal, error) { return nil, nil }
+func (m *MockTerminalRepository) GetByID(id string) (*entities.Terminal, error) { return nil, nil }
+func (m *MockTerminalRepository) GetByMacAddress(macAddress string) (*entities.Terminal, error) {
+	return nil, nil
+}
 func (m *MockTerminalRepository) GetByRoomID(roomID string) ([]entities.Terminal, error) {
 	args := m.Called(roomID)
 	return args.Get(0).([]entities.Terminal), args.Error(1)
 }
-func (m *MockTerminalRepository) Update(terminal *entities.Terminal) error { return nil }
-func (m *MockTerminalRepository) Delete(id string) error                  { return nil }
-func (m *MockTerminalRepository) InvalidateCache(id string) error         { return nil }
+func (m *MockTerminalRepository) Update(terminal *entities.Terminal) error     { return nil }
+func (m *MockTerminalRepository) Delete(id string) error                       { return nil }
+func (m *MockTerminalRepository) InvalidateCache(id string) error              { return nil }
 func (m *MockTerminalRepository) CreateMQTTUser(user *entities.MQTTUser) error { return nil }
 func (m *MockTerminalRepository) GetMQTTUserByUsername(username string) (*entities.MQTTUser, error) {
 	return nil, nil
@@ -57,7 +59,7 @@ func (m *MockMqttService) Publish(topic string, qos byte, retained bool, payload
 	return args.Error(0)
 }
 func (m *MockMqttService) IsConnected() bool { return true }
-func (m *MockMqttService) Close()             {}
+func (m *MockMqttService) Close()            {}
 
 func TestPublishToRoom(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -120,7 +122,7 @@ func TestPublishToRoom(t *testing.T) {
 		controller.PublishToRoom(c)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		
+
 		var resp dtos.StandardResponse
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.False(t, resp.Status)

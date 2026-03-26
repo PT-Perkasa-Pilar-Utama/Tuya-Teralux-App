@@ -56,9 +56,13 @@ func (b *tuyaDeviceControlBridge) SendSwitchCommand(accessToken, deviceID string
 		}
 
 		success, err := b.sendCommandUC.SendSwitchCommand(accessToken, deviceID, commands)
-		if err != nil || !success {
-			// Clear guard if execution failed so retry is possible
+		if err != nil {
+			// Transport/runtime error (network, API failure) - clear guard immediately to allow retry
+			utils.LogDebug("ControlGuard: Clearing guard due to transport error | deviceID=%s | error=%v", deviceID, err)
 			_ = b.badger.Delete(cacheKey)
+		} else if !success {
+			// Logical failure (Result=false) - let TTL expire naturally to prevent rapid retry storms
+			utils.LogDebug("ControlGuard: Keeping guard for TTL expiration due to logical failure | deviceID=%s", deviceID)
 		}
 		return success, err
 	}
@@ -81,13 +85,15 @@ func (b *tuyaDeviceControlBridge) SendIRACCommand(accessToken, infraredID, remot
 		}
 
 		success, err := b.sendIRCommandUC.SendIRACCommand(accessToken, infraredID, remoteID, params)
-		if err != nil || !success {
-			// Clear guard if execution failed so retry is possible
+		if err != nil {
+			// Transport/runtime error (network, API failure) - clear guard immediately to allow retry
+			utils.LogDebug("ControlGuard: Clearing guard due to transport error | remoteID=%s | error=%v", remoteID, err)
 			_ = b.badger.Delete(cacheKey)
+		} else if !success {
+			// Logical failure (Result=false) - let TTL expire naturally to prevent rapid retry storms
+			utils.LogDebug("ControlGuard: Keeping guard for TTL expiration due to logical failure | remoteID=%s", remoteID)
 		}
 		return success, err
 	}
 	return b.sendIRCommandUC.SendIRACCommand(accessToken, infraredID, remoteID, params)
 }
-
-

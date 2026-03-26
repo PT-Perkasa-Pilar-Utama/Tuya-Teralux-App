@@ -15,7 +15,6 @@ func SetupWhisperRoutes(
 	openaiController *controllers.WhisperModelsOpenAIController,
 	groqController *controllers.WhisperModelsGroqController,
 	orionController *controllers.WhisperModelsOrionController,
-	cppModelController *controllers.WhisperModelsWhisperCppController,
 	uploadSessionController *controllers.UploadSessionController,
 ) {
 	// New standard: /api/models/whisper/*
@@ -39,7 +38,6 @@ func SetupWhisperRoutes(
 		models.POST("/openai", openaiController.Transcribe)
 		models.POST("/groq", groqController.Transcribe)
 		models.POST("/orion", orionController.Transcribe)
-		models.POST("/whisper/cpp", cppModelController.Transcribe)
 	}
 
 }

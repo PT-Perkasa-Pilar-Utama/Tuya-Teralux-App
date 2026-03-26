@@ -898,7 +898,7 @@ private fun FeatureCard(
 private fun AiProviderCard(
     selectedProvider: String?,
     isSaving: Boolean,
-    onProviderSelected: (String?) -> Unit,
+    onProviderSelected: (String) -> Unit,
     layoutSpec: DashboardLayoutSpec
 ) {
     // User-selectable providers only (excludes 'local' which is fallback-only)
@@ -1059,7 +1059,7 @@ private fun AiProviderCard(
             }
 
             // Clear selection option
-            if (selectedProvider != null) {
+            if (!selectedProvider.isNullOrEmpty()) {
                 Text(
                     text = "Reset to system default",
                     style = MaterialTheme.typography.labelSmall,
@@ -1068,7 +1068,7 @@ private fun AiProviderCard(
                         .padding(top = DashboardLayoutTokens.Spacing8)
                         .clickable {
                             if (!isSaving) {
-                                onProviderSelected(null)
+                                onProviderSelected("")
                             }
                         }
                 )

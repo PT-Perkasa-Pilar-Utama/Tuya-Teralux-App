@@ -177,11 +177,11 @@ func TestPublishNotificationToRoom(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
-		
+
 		var apiErr *utils.APIError
 		assert.True(t, errors.As(err, &apiErr))
 		assert.Equal(t, 404, apiErr.StatusCode)
-		
+
 		mockRepo.AssertExpectations(t)
 	})
 
@@ -200,7 +200,7 @@ func TestPublishNotificationToRoom(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
-		
+
 		var apiErr *utils.APIError
 		assert.True(t, errors.As(err, &apiErr))
 		assert.Equal(t, 400, apiErr.StatusCode)

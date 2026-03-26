@@ -123,6 +123,7 @@ func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceD
 
 	success, err := executor.SendSwitchCommand(token, device.ID, commands)
 	if err != nil {
+		// Transport error (network, API failure)
 		return &dtos.ControlResultDTO{
 			Message:        fmt.Sprintf("Gagal menjalankan perintah: %v", err),
 			HTTPStatusCode: 500,
@@ -130,8 +131,9 @@ func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceD
 	}
 
 	if !success {
+		// Logical failure (device execution failed, e.g., device offline)
 		return &dtos.ControlResultDTO{
-			Message:        "Perintah gagal",
+			Message:        "Perintah gagal dijalankan. Perangkat mungkin sedang offline atau menolak perintah.",
 			HTTPStatusCode: 400,
 		}, nil
 	}

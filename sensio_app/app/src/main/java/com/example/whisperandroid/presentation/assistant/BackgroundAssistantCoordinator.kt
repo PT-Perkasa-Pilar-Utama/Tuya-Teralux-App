@@ -42,6 +42,9 @@ class BackgroundAssistantCoordinator(
     private val requestStartedAtMs = mutableMapOf<String, Long>()
     private var selectedLanguage = "id"
 
+    // Fallback gate to prevent overlapping fallback loops for the same request
+    private var fallbackRunningForRequestId: String? = null
+
     private var activeSessionJob: Job? = null
     private var listeningJob: Job? = null
     private var timeoutJob: Job? = null
@@ -309,10 +312,17 @@ class BackgroundAssistantCoordinator(
                 return
             }
 
-            if (parsedResult.isDupDrop) {
-                timingLogger?.markStep("response_dropped", mapOf("reason" to "ack_only_source", "source" to (parsedResult.source ?: "null")))
-                AppLog.d(TAG, "Ignored ack-only source: ${parsedResult.source}")
+            // Only drop non-final in-progress acks. IDEMPOTENCY_CACHED is final and must be processed.
+            if (parsedResult.isDupInProgress) {
+                timingLogger?.markStep("response_dropped", mapOf("reason" to "in_progress_ack", "source" to (parsedResult.source ?: "null")))
+                AppLog.d(TAG, "Ignored in-progress ack from ${parsedResult.source} for RID: $currentRequestId")
                 return
+            }
+
+            // IDEMPOTENCY_CACHED: Process as final response (may have payload)
+            if (parsedResult.isDupCached) {
+                timingLogger?.markStep("mqtt_cached_response_received", mapOf("source" to (parsedResult.source ?: "null")))
+                AppLog.d(TAG, "Processing cached final response from ${parsedResult.source}")
             }
 
             timingLogger?.markStep("mqtt_answer_received", mapOf("source" to (parsedResult.source ?: "mqtt")))
@@ -320,6 +330,10 @@ class BackgroundAssistantCoordinator(
             val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
             if (cleanMessage != null) {
                 showResult(currentRequestId, cleanMessage)
+            } else {
+                val reason = if (parsedResult.isDupCached) "mqtt_cached_no_payload" else "mqtt_empty_payload"
+                timingLogger?.markStep("mqtt_empty_payload", mapOf("reason" to reason))
+                showServiceIssue(currentRequestId, reason)
             }
         } catch (e: Exception) {
             timingLogger?.markStep("mqtt_parse_error", mapOf("error" to (e.message ?: "unknown")))
@@ -335,6 +349,12 @@ class BackgroundAssistantCoordinator(
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "success"))
         transitionTo(BackgroundAssistantUiState.State.Result, "showResult")
         _uiState.value = _uiState.value.copy(assistantText = text)
+
+        // Reset fallback gate on terminal completion
+        if (requestId == fallbackRunningForRequestId) {
+            fallbackRunningForRequestId = null
+        }
+
         scheduleAutoDismiss(requestId)
     }
 
@@ -346,6 +366,12 @@ class BackgroundAssistantCoordinator(
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "failed", "error" to error))
         transitionTo(BackgroundAssistantUiState.State.Error, "failSession")
         _uiState.value = _uiState.value.copy(errorText = error)
+
+        // Reset fallback gate on terminal completion
+        if (requestId == fallbackRunningForRequestId) {
+            fallbackRunningForRequestId = null
+        }
+
         scheduleAutoDismiss(requestId)
     }
 
@@ -360,6 +386,11 @@ class BackgroundAssistantCoordinator(
         timingLogger?.markStep("service_issue_shown", mapOf("source" to source))
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "service_issue", "source" to source))
         transitionTo(BackgroundAssistantUiState.State.Result, "showServiceIssue ($source)")
+
+        // Reset fallback gate on terminal completion
+        if (requestId == fallbackRunningForRequestId) {
+            fallbackRunningForRequestId = null
+        }
 
         // Friendly service-issue message (matches backend ServiceIssue skill)
         val serviceIssueMessage = overrideMessage ?: when (selectedLanguage) {
@@ -384,6 +415,13 @@ class BackgroundAssistantCoordinator(
     }
 
     private fun runHttpFallback(requestId: String) {
+        // Prevent overlapping fallback loops for the same request
+        if (fallbackRunningForRequestId == requestId) {
+            AppLog.w(TAG, "Fallback already running for RID: $requestId")
+            return
+        }
+        fallbackRunningForRequestId = requestId
+
         val file = currentRecordingFile
         if (file == null || !file.exists()) {
             timingLogger?.markStep("http_fallback_failed", mapOf("reason" to "file_not_found"))
@@ -492,11 +530,30 @@ class BackgroundAssistantCoordinator(
                                 val data = chatResult.data
                                 if (data != null) {
                                     val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
-                                    if (parsedResult.isDupDrop) {
-                                        timingLogger?.markStep("http_chat_dup_drop")
-                                        AppLog.d(TAG, "Fallback: Silent completion for HTTP_DUP_DROP (keeping result visible)")
-                                        // Don't dismiss - MQTT already showed the result, just complete silently
+                                    if (parsedResult.isDupCached) {
+                                        timingLogger?.markStep("http_chat_cached_finalized", mapOf("source" to (parsedResult.source ?: "null")))
+                                        AppLog.d(TAG, "Fallback: Processing cached final response")
+                                        val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
+                                        if (cleanMessage != null) {
+                                            showResult(requestId, cleanMessage)
+                                        } else {
+                                            showServiceIssue(requestId, "http_cached_no_payload")
+                                        }
                                         return@collect
+                                    } else if (parsedResult.isDupInProgress) {
+                                        // IDEMPOTENCY_IN_PROGRESS: First request still processing
+                                        // Launch bounded retry loop to re-check HTTP chat status
+                                        timingLogger?.markStep("http_chat_in_progress")
+                                        AppLog.d(TAG, "Fallback: Request in progress, starting bounded retry")
+                                        launchBoundedRetryForInProgress(
+                                            requestId = requestId,
+                                            transcribedText = transcribedText,
+                                            selectedLanguage = selectedLanguage,
+                                            terminalId = terminalId,
+                                            username = username,
+                                            token = token,
+                                            fallbackIdempotencyKey = fallbackIdempotencyKey + "_chat"
+                                        )
                                     } else {
                                         timingLogger?.markStep("http_chat_success")
                                         val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
@@ -535,6 +592,121 @@ class BackgroundAssistantCoordinator(
                 timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "http_poll_timeout", "attempts" to attempts.toString()))
                 showServiceIssue(requestId, "polling_timeout")
             }
+        }
+    }
+
+    /**
+     * Launches a bounded retry loop for HTTP chat when response is IDEMPOTENCY_IN_PROGRESS.
+     * Re-checks chat status with exponential backoff until:
+     * - Final payload received (!isDupInProgress)
+     * - Request no longer active (activeRequestId changed)
+     * - Retry budget exhausted (then fails gracefully with service issue message)
+     */
+    private fun launchBoundedRetryForInProgress(
+        requestId: String,
+        transcribedText: String,
+        selectedLanguage: String,
+        terminalId: String,
+        username: String,
+        token: String,
+        fallbackIdempotencyKey: String
+    ) {
+        fallbackJob?.cancel()
+        fallbackJob = scope?.launch {
+            val maxRetries = 4
+            val baseDelayMs = 1000L
+            var attempt = 0
+            val retryStartMs = System.currentTimeMillis()
+
+            timingLogger?.markStep("http_retry_loop_started", mapOf("max_retries" to maxRetries.toString(), "base_delay_ms" to baseDelayMs.toString()))
+
+            while (attempt < maxRetries) {
+                if (activeRequestId != requestId) {
+                    timingLogger?.markStep("http_retry_loop_abandoned", mapOf("reason" to "request_changed", "attempt" to (attempt + 1).toString()))
+                    AppLog.d(TAG, "Retry loop abandoned: request changed")
+                    return@launch
+                }
+
+                attempt++
+                timingLogger?.markStep("http_retry_attempt", mapOf("attempt" to attempt.toString(), "max" to maxRetries.toString()))
+                AppLog.d(TAG, "Retry attempt $attempt/$maxRetries for RID: $requestId")
+
+                // Re-check chat status
+                val retryChatStartMs = System.currentTimeMillis()
+                NetworkModule.ragRepository.chat(
+                    prompt = transcribedText,
+                    language = selectedLanguage,
+                    terminalId = terminalId,
+                    uid = username,
+                    token = token,
+                    requestId = requestId,
+                    idempotencyKey = fallbackIdempotencyKey
+                ).collect { chatResult ->
+                    if (activeRequestId != requestId) return@collect
+
+                    when (chatResult) {
+                        is Resource.Success -> {
+                            val data = chatResult.data
+                            if (data != null) {
+                                val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
+                                val retryDurationMs = System.currentTimeMillis() - retryChatStartMs
+
+                                if (!parsedResult.isDupInProgress && !parsedResult.isDupCached) {
+                                    // Final response received
+                                    timingLogger?.markStep("http_retry_success", mapOf("attempt" to attempt.toString(), "retry_duration_ms" to retryDurationMs.toString()))
+                                    timingLogger?.markStep("http_chat_success")
+                                    val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
+                                    showResult(requestId, cleanMessage ?: "")
+                                    return@collect
+                                } else if (parsedResult.isDupCached) {
+                                    // Cached response received
+                                    timingLogger?.markStep("http_retry_cached_finalized", mapOf("attempt" to attempt.toString(), "retry_duration_ms" to retryDurationMs.toString(), "source" to (parsedResult.source ?: "null")))
+                                    AppLog.d(TAG, "Retry: Processing cached final response")
+                                    val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
+                                    if (cleanMessage != null) {
+                                        showResult(requestId, cleanMessage)
+                                    } else {
+                                        showServiceIssue(requestId, "http_retry_cached_no_payload")
+                                    }
+                                    return@collect
+                                } else {
+                                    // Still in progress, continue retry
+                                    timingLogger?.markStep("http_retry_still_in_progress", mapOf("attempt" to attempt.toString(), "retry_duration_ms" to retryDurationMs.toString()))
+                                    AppLog.d(TAG, "Retry $attempt: Still in progress")
+                                }
+                            } else {
+                                timingLogger?.markStep("http_retry_failed", mapOf("attempt" to attempt.toString(), "reason" to "null_data"))
+                                failSession(requestId, "Invalid retry response")
+                                return@collect
+                            }
+                        }
+                        is Resource.Error -> {
+                            timingLogger?.markStep("http_retry_error", mapOf("attempt" to attempt.toString(), "error" to (chatResult.message ?: "unknown")))
+                            val errorMsg = chatResult.message
+                            if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
+                                showServiceIssue(requestId, "http_retry_error_msg", errorMsg)
+                            } else {
+                                showServiceIssue(requestId, "http_retry_error")
+                            }
+                            return@collect
+                        }
+                        is Resource.Loading -> {}
+                    }
+                }
+
+                // If we reach here, still in progress - apply backoff before next retry
+                if (attempt < maxRetries) {
+                    val delayMs = baseDelayMs * (1L shl (attempt - 1)) // Exponential backoff: 1s, 2s, 4s, ...
+                    timingLogger?.markStep("http_retry_backoff", mapOf("attempt" to attempt.toString(), "delay_ms" to delayMs.toString()))
+                    delay(delayMs)
+                }
+            }
+
+            // Retry budget exhausted - fail gracefully
+            val totalRetryDurationMs = System.currentTimeMillis() - retryStartMs
+            timingLogger?.markStep("http_retry_exhausted", mapOf("total_retries" to attempt.toString(), "total_retry_duration_ms" to totalRetryDurationMs.toString()))
+            AppLog.w(TAG, "Retry budget exhausted for RID: $requestId after $attempt attempts")
+            showServiceIssue(requestId, "http_retry_timeout")
         }
     }
 

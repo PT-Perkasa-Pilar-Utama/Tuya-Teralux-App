@@ -11,7 +11,9 @@ data class ParsedAssistantChatResult(
     val isControl: Boolean,
     val source: String?,
     val isDupDrop: Boolean,
-    val isValidationError: Boolean
+    val isValidationError: Boolean,
+    val isDupCached: Boolean,
+    val isDupInProgress: Boolean
 )
 
 object AssistantResponseParser {
@@ -31,8 +33,10 @@ object AssistantResponseParser {
             isBlocked = data.isBlocked ?: false,
             isControl = data.isControl ?: false,
             source = data.source,
-            isDupDrop = data.source == "HTTP_DUP_DROP",
-            isValidationError = false // HTTP usually doesn't return validation error as 200 Success
+            isDupDrop = isIdempotencyCached(data.source),
+            isValidationError = false, // HTTP usually doesn't return validation error as 200 Success
+            isDupCached = isIdempotencyCached(data.source),
+            isDupInProgress = isIdempotencyInProgress(data.source)
         )
     }
 
@@ -72,9 +76,52 @@ object AssistantResponseParser {
             isBlocked = isBlocked,
             isControl = isControl,
             source = source,
-            isDupDrop = source == "MQTT_SYNC_DROP" || source == "MQTT_DUP_DROP",
-            isValidationError = isValidationError
+            isDupDrop = isIdempotencyCached(source),
+            isValidationError = isValidationError,
+            isDupCached = isIdempotencyCached(source),
+            isDupInProgress = isIdempotencyInProgress(source)
         )
+    }
+
+    /**
+     * Checks if the source indicates a cached duplicate replay (idempotency completed response).
+     * This is a FINAL state - the request can be silently completed.
+     *
+     * Canonical contract:
+     * - "IDEMPOTENCY_CACHED": Duplicate request, returning cached completed response (FINAL)
+     *
+     * Legacy values (migration window):
+     * - "MQTT_DUP_DROP": Legacy MQTT duplicate drop
+     * - "HTTP_DUP_DROP": Legacy HTTP duplicate drop
+     */
+    private fun isIdempotencyCached(source: String?): Boolean {
+        return source == "IDEMPOTENCY_CACHED" ||
+            source == "MQTT_DUP_DROP" ||
+            source == "HTTP_DUP_DROP"
+    }
+
+    /**
+     * Checks if the source indicates a request is still in progress (idempotency non-final state).
+     * This is a NON-FINAL state - the request should continue waiting, NOT complete.
+     *
+     * Canonical contract:
+     * - "IDEMPOTENCY_IN_PROGRESS": Duplicate request, first request still processing (NON-FINAL)
+     *
+     * Legacy values (migration window):
+     * - "MQTT_SYNC_DROP": Text query dropped because Whisper is active (treated as in-progress during migration)
+     */
+    private fun isIdempotencyInProgress(source: String?): Boolean {
+        return source == "IDEMPOTENCY_IN_PROGRESS" ||
+            source == "MQTT_SYNC_DROP"
+    }
+
+    /**
+     * @deprecated Use isIdempotencyCached() or isIdempotencyInProgress() instead.
+     * Kept for backward compatibility during migration.
+     */
+    @Deprecated("Use isIdempotencyCached() or isIdempotencyInProgress() instead", ReplaceWith("isIdempotencyCached(source)"))
+    private fun isIdempotencyDuplicate(source: String?): Boolean {
+        return isIdempotencyCached(source)
     }
 
     fun getCleanMessage(result: ParsedAssistantChatResult, language: String): String? {

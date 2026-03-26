@@ -18,7 +18,6 @@ func SetupRAGRoutes(
 	openaiModelCtrl controllers.RAGModelsOpenAIController,
 	groqModelCtrl controllers.RAGModelsGroqController,
 	orionModelCtrl controllers.RAGModelsOrionController,
-	llamaCppModelCtrl controllers.RAGModelsLlamaCppController,
 ) {
 	// New standard: /api/models/rag/*
 	models := rg.Group("/api/models/rag")
@@ -34,7 +33,6 @@ func SetupRAGRoutes(
 		models.POST("/openai", openaiModelCtrl.Query)
 		models.POST("/groq", groqModelCtrl.Query)
 		models.POST("/orion", orionModelCtrl.Query)
-		models.POST("/llama/cpp", llamaCppModelCtrl.Query)
 	}
 
 	// Legacy support: /api/rag/* (backward compatibility)

@@ -24,6 +24,7 @@ func NewGetAllDevicesController(useCase *usecases.GetAllDevicesUseCase) *GetAllD
 		useCase: useCase,
 	}
 }
+
 // GetAllDevices handles GET /api/devices endpoint
 // @Summary      Get all devices
 // @Description  Retrieve a list of all registered devices with optional filtering

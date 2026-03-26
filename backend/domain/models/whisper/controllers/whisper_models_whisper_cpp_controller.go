@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	commonDtos "sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
-	recordingUsecases "sensio/domain/recordings/usecases"
 	"sensio/domain/models/whisper/dtos"
 	"sensio/domain/models/whisper/usecases"
+	recordingUsecases "sensio/domain/recordings/usecases"
 
 	"github.com/gin-gonic/gin"
 )

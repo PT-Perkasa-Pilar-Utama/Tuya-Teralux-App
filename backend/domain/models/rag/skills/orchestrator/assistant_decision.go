@@ -10,11 +10,11 @@ import (
 
 // AssistantDecision represents the structured output from the single LLM decision call.
 type AssistantDecision struct {
-	Intent        string            `json:"intent"`         // "chat" | "identity" | "control" | "blocked"
+	Intent        string            `json:"intent"` // "chat" | "identity" | "control" | "blocked"
 	Response      string            `json:"response,omitempty"`
 	Operation     string            `json:"operation,omitempty"` // operational verb: "nyalakan"|"matikan"|"brightness"|"temperature"|"fan_speed"
 	DeviceHints   []string          `json:"device_hints,omitempty"`
-	ValueHints    map[string]string `json:"value_hints,omitempty"` // e.g., {"brightness": "50", "temperature": "24"}
+	ValueHints    map[string]string `json:"value_hints,omitempty"`    // e.g., {"brightness": "50", "temperature": "24"}
 	ControlPrompt string            `json:"control_prompt,omitempty"` // normalized control command if model wants to specify
 	IsAmbiguous   bool              `json:"is_ambiguous,omitempty"`
 	BlockReason   string            `json:"block_reason,omitempty"`

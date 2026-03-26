@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"sensio/domain/common/infrastructure"
@@ -17,7 +16,7 @@ import (
 )
 
 type ChatUseCase interface {
-	Chat(ctx context.Context, uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error)
+	Chat(ctx context.Context, uid, terminalID, prompt, language, requestID string) (*dtos.RAGChatResponseDTO, error)
 }
 
 type ChatUseCaseImpl struct {
@@ -63,7 +62,7 @@ func NewChatUseCase(
 	}
 }
 
-func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, language string) (*dtos.RAGChatResponseDTO, error) {
+func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, language, requestID string) (*dtos.RAGChatResponseDTO, error) {
 	ucStart := time.Now()
 	pipelinePath := "unknown"
 	var controlDuration time.Duration // Track control execution time separately
@@ -75,29 +74,55 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		return nil, fmt.Errorf("prompt is empty")
 	}
 
-	// 0. Global Action Deduplication (Semantic Intent)
-	if u.badger != nil {
-		dedupStart := time.Now()
-		// Normalize prompt: trim, lowercase, remove extra spaces
-		normalizedPrompt := strings.ToLower(strings.Join(strings.Fields(prompt), " "))
+	// Idempotency check: if requestID is provided, check cache for duplicate/completed requests
+	// Key strategy: Use terminalID + requestID as primary basis (stable across MQTT/HTTP channels).
+	// UID is excluded from key identity to prevent cross-channel mismatch when the same interaction
+	// uses different auth contexts. Request ID must be unique per terminal interaction and reused
+	// across MQTT/HTTP fallback for the same user interaction.
+	if requestID != "" && u.badger != nil {
+		idempotencyStart := time.Now()
+		idempotencyKey := u.getChatIdempotencyKey(terminalID, requestID)
 
-		// Bucket by 3 seconds window
-		timeBucket := time.Now().Unix() / 3
-		// Include terminalID to scope per-device
-		dedupInput := fmt.Sprintf("%s:%s:%s:%d", uid, terminalID, normalizedPrompt, timeBucket)
-		dedupHash := sha256.Sum256([]byte(dedupInput))
-		dedupKey := fmt.Sprintf("chat:dedup:%x", dedupHash)
-
-		isNew, err := u.badger.SetIfAbsentWithTTL(dedupKey, []byte("1"), 3*time.Second)
+		// Try to acquire lock by setting in_progress marker
+		isNew, err := u.badger.SetIfAbsentWithTTL(idempotencyKey, []byte("in_progress"), 30*time.Second)
 		if err != nil {
-			utils.LogError("ChatUseCase: Deduplication check failed | error=%v", err)
+			utils.LogError("ChatUseCase: Idempotency lock check failed | request_id=%s | error=%v", requestID, err)
+			// Continue without idempotency check on error
 		} else if !isNew {
-			utils.LogInfo("ChatUseCase: Dropping duplicate prompt | dedup_key=%s | duration_ms=%d", dedupKey, time.Since(dedupStart).Milliseconds())
-			return &dtos.RAGChatResponseDTO{
-				Response:       "Mengerti, saya sedang memproses permintaan Anda.",
-				IsBlocked:      false,
-				HTTPStatusCode: 200,
-			}, nil
+			// Key exists - check if it's in_progress or completed
+			existingData, ttlRemaining, err := u.badger.GetWithTTL(idempotencyKey)
+			if err != nil {
+				utils.LogError("ChatUseCase: Idempotency cache read failed | request_id=%s | error=%v", requestID, err)
+			}
+			if existingData != nil {
+				if string(existingData) == "in_progress" {
+					// Another request is still processing
+					utils.LogInfo("ChatUseCase: Request already in progress | request_id=%s | duration_ms=%d", requestID, time.Since(idempotencyStart).Milliseconds())
+					return &dtos.RAGChatResponseDTO{
+						Response:       "Mengerti, saya sedang memproses permintaan Anda.",
+						IsBlocked:      false,
+						HTTPStatusCode: 200,
+						RequestID:      requestID,
+						Source:         "IDEMPOTENCY_IN_PROGRESS",
+					}, nil
+				}
+
+				// Try to unmarshal completed response
+				var cachedResponse dtos.RAGChatResponseDTO
+				if err := json.Unmarshal(existingData, &cachedResponse); err == nil {
+					utils.LogInfo("ChatUseCase: Returning cached response | request_id=%s | duration_ms=%d", requestID, time.Since(idempotencyStart).Milliseconds())
+					// Mark as cached duplicate
+					cachedResponse.Source = "IDEMPOTENCY_CACHED"
+					return &cachedResponse, nil
+				}
+
+				// Cache corrupted, delete and continue
+				utils.LogWarn("ChatUseCase: Idempotency cache corrupted | request_id=%s | error=%v", requestID, err)
+				_ = u.badger.Delete(idempotencyKey)
+			} else if ttlRemaining == 0 {
+				// Key expired, clean up and continue
+				_ = u.badger.Delete(idempotencyKey)
+			}
 		}
 	}
 
@@ -117,25 +142,6 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 	}
 	historyDuration := time.Since(historyStart)
 
-	// 2. Resolve provider
-	providerStart := time.Now()
-	llmClient := u.llm
-	fallbackClient := u.fallbackLLM
-	if u.providerResolver != nil && terminalID != "" {
-		resolveStart := time.Now()
-		resolved, err := u.providerResolver.ResolveByTerminalID(terminalID)
-		resolveDuration := time.Since(resolveStart)
-		
-		if err != nil {
-			utils.LogWarn("ChatUseCase: Provider resolution failed for terminal %s | duration_ms=%d | error=%v, using default", terminalID, resolveDuration.Milliseconds(), err)
-		} else {
-			llmClient = resolved.LLM
-			fallbackClient = resolved.FallbackLLM
-			utils.LogInfo("ChatUseCase: Using terminal-specific provider '%s' for terminal %s | resolution_duration_ms=%d", resolved.ProviderName, terminalID, resolveDuration.Milliseconds())
-		}
-	}
-	providerDuration := time.Since(providerStart)
-
 	// 3. Prepare Skill Context
 	skillCtx := &skills.SkillContext{
 		Ctx:        ctx,
@@ -144,7 +150,7 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		Prompt:     prompt,
 		Language:   language,
 		History:    history,
-		LLM:        llmClient,
+		LLM:        u.llm,
 		Config:     u.config,
 		Vector:     u.vector,
 		Badger:     u.badger,
@@ -168,11 +174,13 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 
 		utils.LogInfo("ChatUseCase: Guard blocked request | pipeline_path=%s | guard_duration_ms=%d | total_duration_ms=%d", pipelinePath, guardDuration.Milliseconds(), totalDuration.Milliseconds())
 
-		return &dtos.RAGChatResponseDTO{
+		resp := &dtos.RAGChatResponseDTO{
 			Response:       response,
 			IsBlocked:      isBlocked,
 			HTTPStatusCode: 200,
-		}, nil
+		}
+		u.finalizeIdempotency(requestID, terminalID, resp)
+		return resp, nil
 	}
 
 	// 4b. Fast Intent Router
@@ -189,12 +197,14 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 			u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, response, false)
 			totalDuration := time.Since(ucStart)
 			utils.LogInfo("ChatUseCase: Fast identity route | pipeline_path=%s | fast_intent_duration_ms=%d | total_duration_ms=%d", pipelinePath, fastIntentDuration.Milliseconds(), totalDuration.Milliseconds())
-			return &dtos.RAGChatResponseDTO{
+			resp := &dtos.RAGChatResponseDTO{
 				Response:       response,
 				IsControl:      false,
 				IsBlocked:      false,
 				HTTPStatusCode: 200,
-			}, nil
+			}
+			u.finalizeIdempotency(requestID, terminalID, resp)
+			return resp, nil
 
 		case orchestrator.FastIntentDiscovery:
 			pipelinePath = "fast_discovery"
@@ -202,12 +212,14 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 			u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, response, false)
 			totalDuration := time.Since(ucStart)
 			utils.LogInfo("ChatUseCase: Fast discovery route | pipeline_path=%s | fast_intent_duration_ms=%d | total_duration_ms=%d", pipelinePath, fastIntentDuration.Milliseconds(), totalDuration.Milliseconds())
-			return &dtos.RAGChatResponseDTO{
+			resp := &dtos.RAGChatResponseDTO{
 				Response:       response,
 				IsControl:      true,
 				IsBlocked:      false,
 				HTTPStatusCode: 200,
-			}, nil
+			}
+			u.finalizeIdempotency(requestID, terminalID, resp)
+			return resp, nil
 
 		case orchestrator.FastIntentControl:
 			pipelinePath = "fast_control"
@@ -221,12 +233,14 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 				u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, controlResult.Message, false)
 				totalDuration := time.Since(ucStart)
 				utils.LogInfo("ChatUseCase: Fast control executed | pipeline_path=%s | control_duration_ms=%d | total_duration_ms=%d", pipelinePath, controlDuration.Milliseconds(), totalDuration.Milliseconds())
-				return &dtos.RAGChatResponseDTO{
+				resp := &dtos.RAGChatResponseDTO{
 					Response:       controlResult.Message,
 					IsControl:      controlResult.IsControl,
 					IsBlocked:      false,
 					HTTPStatusCode: controlResult.HTTPStatusCode,
-				}, nil
+				}
+				u.finalizeIdempotency(requestID, terminalID, resp)
+				return resp, nil
 			}
 		}
 	}
@@ -235,32 +249,13 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 	pipelinePath = "single_decision_chat"
 	decisionStart := time.Now()
 	totalDecisionDuration := time.Duration(0)
-	
-	utils.LogDebug("ChatUseCase: DecisionEngine.Decide starting | llm_provider=%T", llmClient)
-	u.decisionEngine.SetLLM(llmClient)
-	decision, err := u.decisionEngine.Decide(skillCtx)
-	totalDecisionDuration = time.Since(decisionStart)
-	
-	utils.LogDebug("ChatUseCase: DecisionEngine.Decide completed | duration_ms=%d | err=%v", totalDecisionDuration.Milliseconds(), err)
 
-	if err != nil {
-		// Decision engine failed, try fallback provider
-		if fallbackClient != nil {
-			utils.LogWarn("ChatUseCase: Decision engine failed | primary_duration_ms=%d | error=%v, trying fallback provider", totalDecisionDuration.Milliseconds(), err)
-			fallbackStart := time.Now()
-			u.decisionEngine.SetLLM(fallbackClient)
-			decision, err = u.decisionEngine.Decide(skillCtx)
-			fallbackDuration := time.Since(fallbackStart)
-			totalDecisionDuration += fallbackDuration
-			
-			if err == nil {
-				pipelinePath = "single_decision_chat_fallback"
-				utils.LogInfo("ChatUseCase: DecisionEngine.Decide succeeded with fallback | fallback_duration_ms=%d | total_decision_ms=%d", fallbackDuration.Milliseconds(), totalDecisionDuration.Milliseconds())
-			} else {
-				utils.LogWarn("ChatUseCase: DecisionEngine.Decide failed with fallback | fallback_duration_ms=%d | error=%v", fallbackDuration.Milliseconds(), err)
-			}
-		}
-	}
+	utils.LogDebug("ChatUseCase: DecisionEngine.Decide starting | llm_provider=%T", u.llm)
+	u.decisionEngine.SetLLM(u.llm)
+	decision, err := u.executeDecisionWithFallback(skillCtx, &totalDecisionDuration)
+	totalDecisionDuration += time.Since(decisionStart)
+
+	utils.LogDebug("ChatUseCase: DecisionEngine.Decide completed | duration_ms=%d | err=%v", totalDecisionDuration.Milliseconds(), err)
 
 	if err != nil {
 		// Still failed, use service issue fallback
@@ -269,12 +264,14 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		u.saveHistoryIfNotBlocked(u.badger, historyKey, history, prompt, response, false)
 		totalDuration := time.Since(ucStart)
 		utils.LogError("ChatUseCase: Decision engine failed completely | pipeline_path=%s | total_duration_ms=%d", pipelinePath, totalDuration.Milliseconds())
-		return &dtos.RAGChatResponseDTO{
+		resp := &dtos.RAGChatResponseDTO{
 			Response:       response,
 			IsControl:      false,
 			IsBlocked:      false,
 			HTTPStatusCode: 200,
-		}, nil
+		}
+		u.finalizeIdempotency(requestID, terminalID, resp)
+		return resp, nil
 	}
 	decisionDuration := totalDecisionDuration
 
@@ -301,7 +298,7 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		controlStart := time.Now()
 		controlResult, err := u.executeDecisionControl(skillCtx, decision)
 		controlDuration := time.Since(controlStart)
-		
+
 		if err != nil {
 			utils.LogWarn("ChatUseCase: Decision control execution failed | duration_ms=%d | error=%v", controlDuration.Milliseconds(), err)
 			result = &skills.SkillResult{
@@ -333,20 +330,20 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		marshalStart := time.Now()
 		data, _ := json.Marshal(history)
 		marshalDuration := time.Since(marshalStart)
-		
+
 		setStart := time.Now()
 		_ = u.badger.Set(historyKey, data)
 		setDuration := time.Since(setStart)
-		
+
 		utils.LogDebug("ChatUseCase: History saved | key=%s | marshal_duration_ms=%d | set_duration_ms=%d | history_size=%d", historyKey, marshalDuration.Milliseconds(), setDuration.Milliseconds(), len(history))
 	}
 	historySaveDuration := time.Since(historySaveStart)
 
 	totalDuration := time.Since(ucStart)
-	utils.LogInfo("ChatUseCase: Chat completed | pipeline_path=%s | history_duration_ms=%d | provider_duration_ms=%d | guard_duration_ms=%d | fast_intent_duration_ms=%d | decision_duration_ms=%d | control_duration_ms=%d | history_save_duration_ms=%d | total_duration_ms=%d", 
-		pipelinePath, historyDuration.Milliseconds(), providerDuration.Milliseconds(), guardDuration.Milliseconds(), fastIntentDuration.Milliseconds(), decisionDuration.Milliseconds(), controlDuration.Milliseconds(), historySaveDuration.Milliseconds(), totalDuration.Milliseconds())
+	utils.LogInfo("ChatUseCase: Chat completed | pipeline_path=%s | history_duration_ms=%d | guard_duration_ms=%d | fast_intent_duration_ms=%d | decision_duration_ms=%d | control_duration_ms=%d | history_save_duration_ms=%d | total_duration_ms=%d",
+		pipelinePath, historyDuration.Milliseconds(), guardDuration.Milliseconds(), fastIntentDuration.Milliseconds(), decisionDuration.Milliseconds(), controlDuration.Milliseconds(), historySaveDuration.Milliseconds(), totalDuration.Milliseconds())
 
-	// 6. Handle Redirect for Control
+	// Handle Redirect for Control
 	var redirect *dtos.RedirectDTO
 	if result.IsControl && decision != nil && decision.Intent == "control" {
 		redirect = &dtos.RedirectDTO{
@@ -359,13 +356,17 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		}
 	}
 
-	return &dtos.RAGChatResponseDTO{
+	// Update idempotency cache with completed response
+	resp := &dtos.RAGChatResponseDTO{
 		Response:       result.Message,
 		IsControl:      result.IsControl,
 		IsBlocked:      result.IsBlocked,
 		Redirect:       redirect,
 		HTTPStatusCode: result.HTTPStatusCode,
-	}, nil
+	}
+	u.finalizeIdempotency(requestID, terminalID, resp)
+
+	return resp, nil
 }
 
 // getGuardResponse returns the appropriate response for guard results.
@@ -407,7 +408,7 @@ func (u *ChatUseCaseImpl) getDiscoveryResponse(ctx *skills.SkillContext, languag
 				// Build response from actual parsed devices
 				deviceTypes := make(map[string]int) // category -> count
 				deviceNames := make([]string, 0, len(snapshot.Devices))
-				
+
 				for _, dev := range snapshot.Devices {
 					// Normalize category
 					normalizedCat := u.normalizeDeviceCategory(dev.Category, dev.ProductName)
@@ -453,47 +454,47 @@ func (u *ChatUseCaseImpl) getDiscoveryResponse(ctx *skills.SkillContext, languag
 // normalizeDeviceCategory maps Tuya category codes to assistant-friendly labels.
 func (u *ChatUseCaseImpl) normalizeDeviceCategory(category, productName string) string {
 	cat := strings.ToLower(strings.TrimSpace(category))
-	
+
 	// AC categories
 	if cat == "wnykq" || cat == "ac" || cat == "cl" || strings.Contains(cat, "air conditioner") {
 		return "AC"
 	}
-	
+
 	// Light categories
 	if cat == "dj" || cat == "kg" || cat == "ty" || cat == "xdd" || cat == "fwd" || strings.Contains(cat, "light") || strings.Contains(cat, "lamp") {
 		return "Lampu"
 	}
-	
+
 	// Switch/outlet categories
 	if cat == "dlq" || cat == "pc" || cat == "cz" || strings.Contains(cat, "switch") || strings.Contains(cat, "outlet") {
 		return "Switch"
 	}
-	
+
 	// TV categories
 	if cat == "infrared_tv" || cat == "tv" || strings.Contains(cat, "television") {
 		return "TV"
 	}
-	
+
 	// Fan categories
 	if cat == "fs" || cat == "fskg" || strings.Contains(cat, "fan") {
 		return "Kipas"
 	}
-	
+
 	// Sensor categories
 	if cat == "wsdcg" || strings.Contains(cat, "sensor") {
 		return "Sensor"
 	}
-	
+
 	// Panel/terminal
 	if cat == "dgnzk" || strings.Contains(cat, "panel") || strings.Contains(cat, "terminal") {
 		return "Panel"
 	}
-	
+
 	// Speaker
 	if strings.Contains(cat, "speaker") {
 		return "Speaker"
 	}
-	
+
 	// Fallback to product name or category
 	if productName != "" {
 		return productName
@@ -529,11 +530,9 @@ func (u *ChatUseCaseImpl) saveHistoryIfNotBlocked(badger *infrastructure.BadgerS
 
 // executeFastControl executes a fast-routed control command.
 func (u *ChatUseCaseImpl) executeFastControl(ctx *skills.SkillContext, intent orchestrator.FastIntentResult) (*skills.SkillResult, error) {
-	// Build control prompt from fast intent
-	controlPrompt := fmt.Sprintf("%s %s", intent.ActionType, intent.DeviceName)
-	if intent.Value != "" {
-		controlPrompt = fmt.Sprintf("%s %s to %s", intent.ActionType, intent.DeviceName, intent.Value)
-	}
+	// Use the original user prompt directly to preserve quantifiers like "semua" (all)
+	// and ordinal hints that would be lost if we reconstructed from intent
+	controlPrompt := ctx.Prompt
 
 	// Call actual control use case for device execution
 	if u.controlUseCase != nil {
@@ -548,7 +547,7 @@ func (u *ChatUseCaseImpl) executeFastControl(ctx *skills.SkillContext, intent or
 			}, nil
 		}
 		utils.LogWarn("executeFastControl: Control execution failed: %v", err)
-		
+
 		status, message := u.mapControlRuntimeError(err, languageFromSkillContext(ctx))
 		return &skills.SkillResult{
 			Message:        message,
@@ -595,7 +594,7 @@ func (u *ChatUseCaseImpl) executeDecisionControl(ctx *skills.SkillContext, decis
 			}, nil
 		}
 		utils.LogWarn("executeDecisionControl: Control execution failed: %v", err)
-		
+
 		status, message := u.mapControlRuntimeError(err, languageFromSkillContext(ctx))
 		return &skills.SkillResult{
 			Message:        message,
@@ -625,7 +624,7 @@ func (u *ChatUseCaseImpl) buildControlPromptFromDecision(decision *orchestrator.
 	// 2. Fallback to structured reconstruction if operation and devices are present
 	if decision.Operation != "" && len(decision.DeviceHints) > 0 {
 		device := decision.DeviceHints[0]
-		
+
 		// Map values deterministically based on operation type
 		var value string
 		if decision.ValueHints != nil {
@@ -651,16 +650,16 @@ func (u *ChatUseCaseImpl) buildControlPromptFromDecision(decision *orchestrator.
 // mapControlRuntimeError maps ProcessControl runtime errors to appropriate HTTP status and message.
 func (u *ChatUseCaseImpl) mapControlRuntimeError(err error, language string) (status int, message string) {
 	errStr := strings.ToLower(err.Error())
-	
+
 	// Default to Indonesian
 	isEn := strings.EqualFold(language, "en")
 
 	// 1. Service/Provider Unavailable (503)
-	if strings.Contains(errStr, "auth") || 
-	   strings.Contains(errStr, "token") || 
-	   strings.Contains(errStr, "provider") || 
-	   strings.Contains(errStr, "unavailable") || 
-	   strings.Contains(errStr, "timeout") {
+	if strings.Contains(errStr, "auth") ||
+		strings.Contains(errStr, "token") ||
+		strings.Contains(errStr, "provider") ||
+		strings.Contains(errStr, "unavailable") ||
+		strings.Contains(errStr, "timeout") {
 		if isEn {
 			return 503, "Sorry, the control system is temporarily unavailable. Please try again in a moment."
 		}
@@ -687,4 +686,74 @@ func languageFromSkillContext(ctx *skills.SkillContext) string {
 		return "id"
 	}
 	return ctx.Language
+}
+
+// executeDecisionWithFallback executes the decision engine with health-aware remote provider fallback
+func (u *ChatUseCaseImpl) executeDecisionWithFallback(skillCtx *skills.SkillContext, totalDuration *time.Duration) (*orchestrator.AssistantDecision, error) {
+	var finalDecision *orchestrator.AssistantDecision
+	var err error
+
+	if skillCtx.TerminalID != "" {
+		// Use terminal-specific provider preference
+		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx.LLM = resolvedSet.LLM
+			u.decisionEngine.SetLLM(resolvedSet.LLM)
+
+			decisionStart := time.Now()
+			decision, execErr := u.decisionEngine.Decide(skillCtx)
+			*totalDuration += time.Since(decisionStart)
+
+			if execErr == nil {
+				finalDecision = decision
+			}
+			return execErr
+		})
+	} else {
+		// Use standard health-aware fallback
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx.LLM = resolvedSet.LLM
+			u.decisionEngine.SetLLM(resolvedSet.LLM)
+
+			decisionStart := time.Now()
+			decision, execErr := u.decisionEngine.Decide(skillCtx)
+			*totalDuration += time.Since(decisionStart)
+
+			if execErr == nil {
+				finalDecision = decision
+			}
+			return execErr
+		})
+	}
+
+	return finalDecision, err
+}
+
+// finalizeIdempotency persists the response to the idempotency cache if requestID is provided.
+// This ensures all return paths (early returns and normal completion) maintain consistent idempotency state.
+// Idempotency key uses terminalID + requestID (UID excluded for cross-channel stability).
+func (u *ChatUseCaseImpl) finalizeIdempotency(requestID, terminalID string, response *dtos.RAGChatResponseDTO) {
+	if requestID == "" || u.badger == nil {
+		return
+	}
+
+	idempotencyKey := u.getChatIdempotencyKey(terminalID, requestID)
+	responseData, marshalErr := json.Marshal(response)
+	if marshalErr != nil {
+		utils.LogError("ChatUseCase: Failed to marshal response for idempotency cache | request_id=%s | error=%v", requestID, marshalErr)
+		return
+	}
+
+	// Cache completed response for 5 minutes
+	if err := u.badger.SetWithTTL(idempotencyKey, responseData, 5*time.Minute); err != nil {
+		utils.LogError("ChatUseCase: Failed to update idempotency cache | request_id=%s | error=%v", requestID, err)
+	} else {
+		utils.LogDebug("ChatUseCase: Response cached for idempotency | request_id=%s", requestID)
+	}
+}
+
+// getChatIdempotencyKey returns the idempotency cache key for chat requests.
+// Key format: chat:idempotency:{terminalID}:{requestID}
+// UID is intentionally excluded to ensure cross-channel stability (MQTT/HTTP fallback).
+func (u *ChatUseCaseImpl) getChatIdempotencyKey(terminalID, requestID string) string {
+	return fmt.Sprintf("chat:idempotency:%s:%s", terminalID, requestID)
 }

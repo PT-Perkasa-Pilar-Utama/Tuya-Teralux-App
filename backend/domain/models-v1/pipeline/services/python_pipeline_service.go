@@ -34,13 +34,13 @@ type PipelineRequest struct {
 
 // PipelineResponse represents the response from Python Pipeline service.
 type PipelineResponse struct {
-	TaskID       string `json:"task_id"`
-	Status       string `json:"status"`
-	Transcript   string `json:"transcript,omitempty"`
-	RefinedText  string `json:"refined_text,omitempty"`
-	Translated   string `json:"translated,omitempty"`
-	Summary      string `json:"summary,omitempty"`
-	Error        string `json:"error,omitempty"`
+	TaskID      string `json:"task_id"`
+	Status      string `json:"status"`
+	Transcript  string `json:"transcript,omitempty"`
+	RefinedText string `json:"refined_text,omitempty"`
+	Translated  string `json:"translated,omitempty"`
+	Summary     string `json:"summary,omitempty"`
+	Error       string `json:"error,omitempty"`
 }
 
 // NewPythonPipelineService creates a new Python Pipeline service.

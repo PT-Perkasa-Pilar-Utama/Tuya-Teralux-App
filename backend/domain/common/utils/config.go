@@ -63,11 +63,11 @@ type Config struct {
 	PythonGrpcServiceURL     string // URL for Python gRPC service (e.g., "localhost:50051")
 
 	// MQTT
-	MqttBroker            string
-	MqttUsername          string
-	MqttPassword          string
-	EmqxAuthBaseURL       string
-	EmqxAuthApiKey        string
+	MqttBroker      string
+	MqttUsername    string
+	MqttPassword    string
+	EmqxAuthBaseURL string
+	EmqxAuthApiKey  string
 
 	// SMTP
 	SMTPHost     string
@@ -206,11 +206,11 @@ func LoadConfig() {
 		PythonPipelineServiceURL: getEnvAsDefault("PYTHON_PIPELINE_SERVICE_URL", "http://localhost:8001"),
 		PythonGrpcServiceURL:     getEnvAsDefault("PYTHON_GRPC_SERVICE_URL", "localhost:50051"),
 
-		MqttBroker:            os.Getenv("MQTT_BROKER"),
-		MqttUsername:          os.Getenv("MQTT_USERNAME"),
-		MqttPassword:          os.Getenv("MQTT_PASSWORD"),
-		EmqxAuthBaseURL:       os.Getenv("EMQX_AUTH_BASE_URL"),
-		EmqxAuthApiKey:        os.Getenv("EMQX_AUTH_API_KEY"),
+		MqttBroker:      os.Getenv("MQTT_BROKER"),
+		MqttUsername:    os.Getenv("MQTT_USERNAME"),
+		MqttPassword:    os.Getenv("MQTT_PASSWORD"),
+		EmqxAuthBaseURL: os.Getenv("EMQX_AUTH_BASE_URL"),
+		EmqxAuthApiKey:  os.Getenv("EMQX_AUTH_API_KEY"),
 
 		// SMTP
 		SMTPHost:     os.Getenv("SMTP_HOST"),

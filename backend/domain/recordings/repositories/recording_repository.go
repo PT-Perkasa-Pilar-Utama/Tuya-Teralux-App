@@ -36,12 +36,12 @@ func (r *recordingRepository) Save(recording *entities.Recording) error {
 	start := time.Now()
 	result := r.db.Create(recording)
 	duration := time.Since(start)
-	
+
 	if result.Error != nil {
 		log.Printf("RecordingRepository: Save failed | duration_ms=%d | error=%v", duration.Milliseconds(), result.Error)
 		return result.Error
 	}
-	
+
 	log.Printf("RecordingRepository: Save completed | id=%s | duration_ms=%d | rows=%d", recording.ID, duration.Milliseconds(), result.RowsAffected)
 	return nil
 }
@@ -65,12 +65,12 @@ func (r *recordingRepository) GetAll(page, limit int) ([]entities.Recording, int
 	queryStart := time.Now()
 	result := r.db.Order("created_at desc").Limit(limit).Offset(offset).Find(&recordings)
 	queryDuration := time.Since(queryStart)
-	
+
 	if result.Error != nil {
 		log.Printf("RecordingRepository: GetAll query failed | page=%d | limit=%d | duration_ms=%d | error=%v", page, limit, queryDuration.Milliseconds(), result.Error)
 		return nil, 0, result.Error
 	}
-	
+
 	totalDuration := time.Since(start)
 	utils.LogDebug("RecordingRepository: GetAll completed | page=%d | limit=%d | returned=%d | total=%d | duration_ms=%d", page, limit, len(recordings), total, totalDuration.Milliseconds())
 	return recordings, total, nil
@@ -78,13 +78,13 @@ func (r *recordingRepository) GetAll(page, limit int) ([]entities.Recording, int
 
 func (r *recordingRepository) GetByID(id string) (*entities.Recording, error) {
 	start := time.Now()
-	
+
 	// Try to get from cache first
 	cacheStart := time.Now()
 	cacheKey := fmt.Sprintf("recording:%s", id)
 	cachedData, err := r.badger.Get(cacheKey)
 	cacheDuration := time.Since(cacheStart)
-	
+
 	if err == nil && cachedData != nil {
 		var recording entities.Recording
 		if err := json.Unmarshal(cachedData, &recording); err == nil {
@@ -96,7 +96,7 @@ func (r *recordingRepository) GetByID(id string) (*entities.Recording, error) {
 
 	// Cache miss - fetch from database
 	utils.LogDebug("RecordingRepository: Cache MISS for recording ID %s | cache_duration_ms=%d", id, cacheDuration.Milliseconds())
-	
+
 	dbStart := time.Now()
 	var recording entities.Recording
 	if err := r.db.First(&recording, "id = ?", id).Error; err != nil {
@@ -123,11 +123,11 @@ func (r *recordingRepository) GetByID(id string) (*entities.Recording, error) {
 
 func (r *recordingRepository) Delete(id string) error {
 	start := time.Now()
-	
+
 	dbStart := time.Now()
 	result := r.db.Delete(&entities.Recording{}, "id = ?", id)
 	dbDuration := time.Since(dbStart)
-	
+
 	if result.Error != nil {
 		log.Printf("RecordingRepository: Delete failed | id=%s | db_duration_ms=%d | error=%v", id, dbDuration.Milliseconds(), result.Error)
 		return result.Error

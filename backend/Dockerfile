@@ -37,74 +37,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 
-############################################
-# AI Builder (whisper + llama) - Native Target
-############################################
-FROM native-builder AS ai-builder
-
-ARG TARGETARCH
-# Stable pinned versions
-ARG WHISPER_TAG=v1.7.4
-ARG LLAMA_TAG=b4765
-
-# ---- Build whisper.cpp ----
-COPY services/whisper.cpp /whisper.cpp
-RUN set -e; \
-    echo "🔨 Building whisper.cpp for ${TARGETARCH:-unknown}..." && \
-    if [ ! -f /whisper.cpp/CMakeLists.txt ]; then \
-        echo "❌ Error: /whisper.cpp/CMakeLists.txt not found. Submodule might not be initialized."; \
-        ls -la /whisper.cpp; \
-        exit 1; \
-    fi; \
-    mkdir -p /whisper.cpp/build && \
-    cmake -S /whisper.cpp -B /whisper.cpp/build -DGGML_NATIVE=OFF && \
-    cmake --build /whisper.cpp/build --config Release -t main -j$(nproc) && \
-    strip --strip-unneeded /whisper.cpp/build/bin/main && \
-    cp /whisper.cpp/build/bin/main /usr/local/bin/whisper-cli && \
-    echo "✅ whisper-cli built successfully."
-
-# ---- Build llama.cpp ----
-COPY services/llama.cpp /llama.cpp
-RUN set -e; \
-    echo "🔨 Configuring llama.cpp for ${TARGETARCH:-unknown}..." && \
-    if [ ! -f /llama.cpp/CMakeLists.txt ]; then \
-        echo "❌ Error: /llama.cpp/CMakeLists.txt not found. Submodule might not be initialized."; \
-        ls -la /llama.cpp; \
-        exit 1; \
-    fi; \
-    mkdir -p /llama.cpp/build && \
-    cmake -S /llama.cpp -B /llama.cpp/build \
-        -DGGML_NATIVE=OFF \
-        -DLLAMA_BUILD_COMMON=ON \
-        -DLLAMA_BUILD_TOOLS=ON \
-        -DLLAMA_BUILD_EXAMPLES=ON \
-        -DLLAMA_BUILD_SERVER=ON && \
-    echo "🔨 Building llama.cpp..." && \
-    ( cmake --build /llama.cpp/build --config Release -t llama-cli -j$(nproc) || \
-      cmake --build /llama.cpp/build --config Release -t main -j$(nproc) || \
-      { echo "❌ Build failed. Diagnostics:"; \
-        cmake --build /llama.cpp/build --target help | grep -E "llama-cli|main|server" || true; \
-        ls -la /llama.cpp/build/bin || true; \
-        exit 1; } ) && \
-    if [ -f /llama.cpp/build/bin/llama-cli ]; then \
-        BIN_TARGET=/llama.cpp/build/bin/llama-cli; \
-    else \
-        BIN_TARGET=/llama.cpp/build/bin/main; \
-    fi && \
-    echo "Found binary at: $BIN_TARGET" && \
-    test -x "$BIN_TARGET" && \
-    strip --strip-unneeded "$BIN_TARGET" && \
-    cp "$BIN_TARGET" /usr/local/bin/llama-cli && \
-    echo "🔨 Copying llama shared libraries..." && \
-    mkdir -p /usr/local/lib/llama && \
-    (cp /llama.cpp/build/bin/libllama.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
-    (cp /llama.cpp/build/src/libllama.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
-    (cp /llama.cpp/build/ggml/src/libggml.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
-    (cp /llama.cpp/build/ggml/src/libggml-base.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
-    (cp /llama.cpp/build/ggml/src/libggml-cpu.so* /usr/local/lib/llama/ 2>/dev/null || true) && \
-    echo "✅ llama-cli built successfully." && \
-    ls -la /usr/local/lib/llama/
-
 
 ############################################
 # Go Builder - Native Target
@@ -176,9 +108,6 @@ RUN useradd -m -u 1000 appuser && \
 # Copy binaries
 COPY --from=app-builder /app/app /app/app
 COPY --from=app-builder /usr/local/bin/migrate /usr/local/bin/migrate
-COPY --from=ai-builder /usr/local/bin/whisper-cli /app/bin/whisper-cli
-COPY --from=ai-builder /usr/local/bin/llama-cli /app/bin/llama-cli
-COPY --from=ai-builder /usr/local/lib/llama /app/lib/llama
 
 # Copy assets
 COPY --from=app-builder /app/migrations /app/migrations
@@ -187,19 +116,13 @@ COPY --from=app-builder /app/assets /app/assets
 COPY --from=app-builder /app/docs /app/docs
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
 
-RUN chmod +x /app/scripts/entrypoint.sh \
-    /app/bin/whisper-cli \
-    /app/bin/llama-cli && \
+RUN chmod +x /app/scripts/entrypoint.sh && \
     chown appuser:appuser /app/scripts/entrypoint.sh
 
 ENV PORT=8080
 ARG AUTO_MIGRATE=true
 ENV AUTO_MIGRATE=$AUTO_MIGRATE
 ENV MODEL_AUTO_DOWNLOAD=true
-ENV WHISPER_CLI=/app/bin/whisper-cli
-ENV LLAMA_CLI=/app/bin/llama-cli
-ENV LD_LIBRARY_PATH=/app/lib/llama:${LD_LIBRARY_PATH:-}
-
 VOLUME ["/app/models"]
 
 USER appuser

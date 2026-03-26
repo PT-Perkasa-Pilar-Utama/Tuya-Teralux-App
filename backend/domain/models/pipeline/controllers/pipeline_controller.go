@@ -8,9 +8,9 @@ import (
 	"sensio/domain/common/utils"
 	pipelineDtos "sensio/domain/models/pipeline/dtos"
 	pipelineUsecases "sensio/domain/models/pipeline/usecases"
-	recordingUsecases "sensio/domain/recordings/usecases"
 	speechdtos "sensio/domain/models/whisper/dtos"
 	speechUsecases "sensio/domain/models/whisper/usecases"
+	recordingUsecases "sensio/domain/recordings/usecases"
 	"strconv"
 	"strings"
 

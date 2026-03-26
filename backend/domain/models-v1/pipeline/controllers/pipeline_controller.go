@@ -3,12 +3,12 @@ package controllers
 import (
 	"net/http"
 	"path/filepath"
-	"strconv"
-	"strings"
 	commonDtos "sensio/domain/common/dtos"
 	pipelineDtos "sensio/domain/models-v1/pipeline/dtos"
 	"sensio/domain/models-v1/pipeline/services"
 	"sensio/domain/models-v1/pipeline/usecases"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
