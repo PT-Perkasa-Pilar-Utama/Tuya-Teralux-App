@@ -202,6 +202,9 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 		if meta.Trigger != "" {
 			status.Trigger = meta.Trigger
 		}
+		if meta.MacAddress != "" {
+			status.MacAddress = meta.MacAddress
+		}
 		if meta.TerminalID != "" {
 			status.TerminalID = meta.TerminalID
 		}
@@ -494,8 +497,8 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 	}
 
 	// Chaining to /chat ONLY if initiated via MQTT
-	if metadata != nil && metadata.Source == "mqtt" && metadata.TerminalID != "" && uc.mqttSvc != nil {
-		chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.TerminalID, uc.config.ApplicationEnvironment)
+	if metadata != nil && metadata.Source == "mqtt" && metadata.MacAddress != "" && uc.mqttSvc != nil {
+		chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.MacAddress, uc.config.ApplicationEnvironment)
 		prompt := finalResult.RefinedText
 		if prompt == "" {
 			prompt = finalResult.Transcription
@@ -517,7 +520,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 }
 
 func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, result *whisperdtos.AsyncTranscriptionResultDTO, err error) {
-	// Try to get existing status to preserve StartedAt and TerminalID
+	// Try to get existing status to preserve StartedAt, TerminalID, and MacAddress
 	var existing whisperdtos.AsyncTranscriptionStatusDTO
 	_, _, _ = uc.cache.GetWithTTL(taskID, &existing)
 
@@ -531,6 +534,7 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 		Result:     result,
 		StartedAt:  existing.StartedAt,
 		Trigger:    existing.Trigger,
+		MacAddress: existing.MacAddress,
 		TerminalID: existing.TerminalID,
 		ExpiresAt:  time.Now().Add(ttl).Format(time.RFC3339),
 	}
@@ -563,8 +567,8 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 		} else {
 			utils.LogInfo("%s", logMsg)
 		}
-		if status.TerminalID != "" && uc.mqttSvc != nil {
-			taskTopic := fmt.Sprintf("users/%s/%s/task", status.TerminalID, uc.config.ApplicationEnvironment)
+		if status.MacAddress != "" && uc.mqttSvc != nil {
+			taskTopic := fmt.Sprintf("users/%s/%s/task", status.MacAddress, uc.config.ApplicationEnvironment)
 			msg := map[string]string{
 				"event": "stop",
 				"task":  "Transcribe",

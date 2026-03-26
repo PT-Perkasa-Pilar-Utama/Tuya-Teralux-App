@@ -79,8 +79,8 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 				// Ensure Vector DB is still populated even on cache hit
 				// This handles cases where Badger cache exists but Vector DB was cleared or not initialized
 				// Only update assistant aggregate for full snapshots
-				isFull := isFullSnapshotRequest(category, page, limit)
-				go uc.populateVectorDB(uid, &cachedResp, isFull)
+				
+				go uc.populateVectorDB(uid, &cachedResp, true)
 
 				return &cachedResp, nil
 			}
@@ -414,8 +414,8 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	// Upsert to Vector DB so LLMs can find device DTOs and learn format
 	// Only update assistant aggregate for full (non-paginated, non-filtered) requests
 	if uc.vectorSvc != nil {
-		isFull := isFullSnapshotRequest(category, page, limit)
-		go uc.populateVectorDB(uid, resp, isFull)
+		
+		go uc.populateVectorDB(uid, resp, true) // Always update vector DB
 	}
 
 	totalDuration := time.Since(ucStart)
@@ -431,7 +431,7 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 		return
 	}
 
-	// Only update assistant aggregate key for full snapshots
+	// Always update assistant aggregate key (called with isFullSnapshot=true)
 	if isFullSnapshot {
 		// Upsert assistant-safe aggregate document
 		snapshot := uc.buildAssistantSafeSnapshot(resp)

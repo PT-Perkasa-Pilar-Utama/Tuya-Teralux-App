@@ -4492,6 +4492,9 @@ const docTemplate = `{
                 "expires_in_seconds": {
                     "type": "integer"
                 },
+                "mac_address": {
+                    "type": "string"
+                },
                 "result": {
                     "$ref": "#/definitions/dtos.AsyncTranscriptionResultDTO"
                 },

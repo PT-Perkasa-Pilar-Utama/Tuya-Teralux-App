@@ -5,8 +5,7 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Sensio Design Tokens
- * 
- * Centralized design system for consistent spacing, typography, and radii across the app.
+ * * Centralized design system for consistent spacing, typography, and radii across the app.
  * Based on 4dp grid system for vertical rhythm and visual harmony.
  */
 object SensioSpacing {

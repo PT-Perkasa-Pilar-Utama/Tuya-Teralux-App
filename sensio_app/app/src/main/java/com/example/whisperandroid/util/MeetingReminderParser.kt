@@ -92,7 +92,7 @@ object MeetingReminderParser {
     private fun normalizeTimezone(isoString: String): String {
         // Handle UTC Z suffix: convert "2024-03-24T10:00:00Z" to "2024-03-24T10:00:00+0000"
         val withUtcOffset = isoString.replace(Regex("""Z$"""), "+0000")
-        
+
         // If already in +0700 format, return as-is
         if (Regex("""\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}""").matches(withUtcOffset)) {
             return withUtcOffset

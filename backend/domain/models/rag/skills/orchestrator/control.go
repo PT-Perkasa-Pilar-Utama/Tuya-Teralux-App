@@ -184,6 +184,7 @@ func (o *ControlOrchestrator) isAllLightsIntent(prompt string) bool {
 	// Additional check: "turn on/off all" + "lights/lamps" in same prompt
 	// This catches "turn on all the lights in the living room"
 	hasAllQuantifier := strings.Contains(promptLower, "semua") ||
+		strings.Contains(promptLower, "semuanya") ||
 		strings.Contains(promptLower, "all ") ||
 		strings.Contains(promptLower, " all") ||
 		strings.Contains(promptLower, " every ")
@@ -195,6 +196,26 @@ func (o *ControlOrchestrator) isAllLightsIntent(prompt string) bool {
 
 	if hasAllQuantifier && hasLightWord {
 		return true
+	}
+
+	// NEW: Detect implicit "all" commands - user wants all lights off/on
+	// Patterns like "matikan lagi dong", "masih belum mati", "belum semua"
+	implicitAllPatterns := []string{
+		"lagi dong",      // "Matiin lagi dong" (implies retry all)
+		"semuanya",       // "Matiin semuanya"
+		"masih belum",    // "Masih belum mati" (implies not all off)
+		"belum semua",    // "Belum semua mati"
+		"kok ada yang",   // "Kok ada yang nyala" (implies some still on)
+		"ada yang masih", // "Ada yang masih nyala"
+	}
+
+	for _, pattern := range implicitAllPatterns {
+		if strings.Contains(promptLower, pattern) {
+			// Only return true if also has light-related word
+			if hasLightWord {
+				return true
+			}
+		}
 	}
 
 	return false

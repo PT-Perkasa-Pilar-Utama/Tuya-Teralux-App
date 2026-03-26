@@ -111,7 +111,7 @@ class MqttHelper(
         subscribeInternal("users/$username/$env/whisper/answer")
         subscribeInternal("users/$username/$env/task")
         subscribeInternal("users/$username/$env/chat")
-        
+
         // Re-subscribe to external topics (e.g., notification topic)
         externalTopics.forEach { topic ->
             subscribeInternal(topic)

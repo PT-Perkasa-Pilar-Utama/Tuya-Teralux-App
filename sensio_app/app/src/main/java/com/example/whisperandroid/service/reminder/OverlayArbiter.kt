@@ -41,7 +41,7 @@ class OverlayArbiter(private val context: Context) {
     fun canShowReminderOverlay(): Boolean {
         // Query overlay permission directly to ensure latest OS state
         val hasOverlayPermission = android.provider.Settings.canDrawOverlays(context)
-        
+
         if (!hasOverlayPermission) {
             Log.w(tag, "Cannot show reminder overlay: missing permission")
             return false

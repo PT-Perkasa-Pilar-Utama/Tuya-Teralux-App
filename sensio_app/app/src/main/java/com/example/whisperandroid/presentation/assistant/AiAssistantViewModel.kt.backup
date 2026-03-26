@@ -67,9 +67,6 @@ class AiAssistantViewModel(
     // Fallback gate to prevent overlapping fallback loops for the same request
     private var fallbackRunningForRequestId: String? = null
 
-    // Track recent request IDs to handle race conditions (e.g., retry with new ID before old response arrives)
-    private val recentRequestIds = ArrayDeque<String>()
-
     // Timing helper for structured latency logs
     private class AssistantTimingLogger(
         private val flow: String,
@@ -159,15 +156,6 @@ class AiAssistantViewModel(
             activeRequestId = null
             activeRequestType = null
             activeRequestText = null
-        }
-    }
-
-
-    // Helper to track request ID for recent request matching
-    private fun trackRequestId(requestId: String) {
-        recentRequestIds.add(requestId)
-        if (recentRequestIds.size > 5) {
-            recentRequestIds.removeFirst()
         }
     }
 
@@ -324,31 +312,25 @@ class AiAssistantViewModel(
 
                             val currentRequestId = activeRequestId
 
-                            // Relaxed RID validation: accept if matches active OR recent request IDs
-                            // This handles late responses after request was completed with error
-                            val isRidMatch = responseRequestId != null &&
-                                (responseRequestId == currentRequestId || recentRequestIds.contains(responseRequestId))
+                            // Strict early guards
+                            if (currentRequestId == null) {
+                                android.util.Log.w(
+                                    "AiAssistantViewModel",
+                                    "No active request, dropped chat/answer. Message: $message"
+                                )
+                                return@collect
+                            }
 
-                            // Only drop if NO matching request ID at all
-                            if (!isRidMatch) {
-                                // Check if this might be a late response for a completed request
-                                if (currentRequestId == null && responseRequestId != null && recentRequestIds.contains(responseRequestId)) {
-                                    // Late response for recent request - recover and process
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "Late response for recent request. RID: $responseRequestId, Recent IDs: ${recentRequestIds.toList().joinToString()}"
-                                    )
-                                    // Re-trigger the request state
-                                    activeRequestId = responseRequestId
-                                    activeRequestType = RequestType.Audio  // Default to audio for whisper flow
-                                    transitionTo(AssistantState.Processing, "late_response_recovery")
-                                } else {
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "No active request, dropped chat/answer. Message: $message"
-                                    )
-                                    return@collect
-                                }
+                            if (responseRequestId != currentRequestId) {
+                                activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "rid_mismatch", "expected_rid" to (currentRequestId ?: "null"), "got_rid" to (responseRequestId ?: "null")))
+                                android.util.Log.w(
+                                    "AiAssistantViewModel",
+                                    "MQTT response dropped (wrong or missing RID). " +
+                                        "Expected: $currentRequestId, Got: $responseRequestId"
+                                )
+                                // Gracefully complete with service-issue instead of silent drop
+                                completeWithServiceIssue(currentRequestId, "rid_mismatch")
+                                return@collect
                             }
 
                             val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
@@ -469,31 +451,25 @@ class AiAssistantViewModel(
 
                             val currentRequestId = activeRequestId
 
-                            // Relaxed RID validation: accept if matches active OR recent request IDs
-                            // This handles late responses after request was completed with error
-                            val isRidMatch = responseRequestId != null &&
-                                (responseRequestId == currentRequestId || recentRequestIds.contains(responseRequestId))
+                            // Strict early guards
+                            if (currentRequestId == null) {
+                                android.util.Log.w(
+                                    "AiAssistantViewModel",
+                                    "No active request, dropped whisper/answer. Message: $message"
+                                )
+                                return@collect
+                            }
 
-                            // Only drop if NO matching request ID at all
-                            if (!isRidMatch) {
-                                // Check if this might be a late response for a completed request
-                                if (currentRequestId == null && responseRequestId != null && recentRequestIds.contains(responseRequestId)) {
-                                    // Late response for recent request - recover and process
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "Late response for recent request. RID: $responseRequestId, Recent IDs: ${recentRequestIds.toList().joinToString()}"
-                                    )
-                                    // Re-trigger the request state
-                                    activeRequestId = responseRequestId
-                                    activeRequestType = RequestType.Audio  // Default to audio for whisper flow
-                                    transitionTo(AssistantState.Processing, "late_response_recovery")
-                                } else {
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "No active request, dropped chat/answer. Message: $message"
-                                    )
-                                    return@collect
-                                }
+                            if (responseRequestId != currentRequestId) {
+                                activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "rid_mismatch", "expected_rid" to (currentRequestId ?: "null"), "got_rid" to (responseRequestId ?: "null")))
+                                android.util.Log.w(
+                                    "AiAssistantViewModel",
+                                    "MQTT response dropped (wrong or missing RID). " +
+                                        "Expected: $currentRequestId, Got: $responseRequestId"
+                                )
+                                // Gracefully complete with service-issue instead of silent drop
+                                completeWithServiceIssue(currentRequestId, "rid_mismatch")
+                                return@collect
                             }
 
                             val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
@@ -585,7 +561,6 @@ class AiAssistantViewModel(
             appendUserMessageIfNeeded(text)
 
             activeRequestId = java.util.UUID.randomUUID().toString()
-            trackRequestId(activeRequestId!!)  // Track for recent request matching
             activeRequestType = RequestType.Chat
             activeRequestText = text
             transitionTo(AssistantState.Processing, "sendChat")
@@ -627,7 +602,6 @@ class AiAssistantViewModel(
         lastAssistantError = null
         val requestId = java.util.UUID.randomUUID().toString()
         activeRequestId = requestId
-        trackRequestId(requestId)  // Track for recent request matching
         activeRequestType = RequestType.Audio
         activeRequestText = null
         transitionTo(AssistantState.Recording, "startRecording")
@@ -695,7 +669,7 @@ class AiAssistantViewModel(
     private fun startResponseTimeout(requestId: String?) {
         if (requestId == null) return
         viewModelScope.launch {
-            kotlinx.coroutines.delay(60000L) // Wait up to 60s before HTTP fallback (extended for slow backend responses)
+            kotlinx.coroutines.delay(30000L) // Wait up to 30s before HTTP fallback
             if (activeRequestId == requestId && assistantState == AssistantState.Processing) {
                 android.util.Log.e(
                     "AiAssistantViewModel",
