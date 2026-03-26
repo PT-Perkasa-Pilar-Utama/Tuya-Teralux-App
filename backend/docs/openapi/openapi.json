@@ -5206,6 +5206,9 @@
                     "expires_in_seconds": {
                         "type": "integer"
                     },
+                    "mac_address": {
+                        "type": "string"
+                    },
                     "result": {
                         "$ref": "#/components/schemas/dtos.AsyncTranscriptionResultDTO"
                     },

@@ -65,7 +65,7 @@ class BackgroundAssistantCoordinator(
         const val GREETING_DURATION_MS = 1000L
         const val LISTENING_TICK_MS = 100L
         const val LISTENING_TIMEOUT_MS = 5000L
-        const val PROCESSING_TIMEOUT_MS = 3000L // Reduced from 12s to 3s for faster HTTP fallback
+        const val PROCESSING_TIMEOUT_MS = 30000L // Wait up to 30s before HTTP fallback
         const val TERMINAL_AUTO_DISMISS_MS = 60_000L
         // Note: RESULT and ERROR auto-dismiss after 60 seconds; user can still dismiss manually via outside tap
     }

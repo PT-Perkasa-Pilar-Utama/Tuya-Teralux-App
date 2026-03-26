@@ -11,7 +11,6 @@ import com.example.whisperandroid.util.MeetingReminderParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**

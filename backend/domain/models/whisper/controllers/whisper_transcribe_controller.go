@@ -93,16 +93,22 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 			return
 		}
 
+		// Use TerminalID for the active transcription flag to match TranscribeAudio behavior.
+		targetID := req.TerminalID
+		if targetID == "" {
+			targetID = mac
+		}
+
 		// Immediately mark as active to prevent chat handler race condition.
 		// It will be deleted either in the defer below (on failure) or by TranscribeAudio async processor.
-		utils.ActiveTranscriptions.Store(mac, true)
+		utils.ActiveTranscriptions.Store(targetID, true)
 
 		// Create a local error flag to determine if we should clean up the transcription flag.
 		// If we successfully start TranscribeAudio, it takes ownership of deleting the flag.
 		var taskStarted bool
 		defer func() {
 			if !taskStarted {
-				utils.ActiveTranscriptions.Delete(mac)
+				utils.ActiveTranscriptions.Delete(targetID)
 			}
 		}()
 
@@ -171,6 +177,10 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 		ackPublishStart := time.Now()
 		ackPublishSuccess := false
 		if mac != "" {
+			ackReqID := req.RequestID
+			if ackReqID == "" {
+				ackReqID = correlationID
+			}
 			publishErr := c.publishMqttResponse(mac, commonDtos.StandardResponse{
 				Status:  true,
 				Message: "Transcription task submitted successfully (Ephemeral)",
@@ -178,6 +188,8 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 					TaskID:      taskID,
 					TaskStatus:  "pending",
 					RecordingID: "", // No DB entry
+					RequestID:   ackReqID,
+					Source:      "MQTT_ACK",
 				},
 			})
 			ackPublishSuccess = (publishErr == nil)
