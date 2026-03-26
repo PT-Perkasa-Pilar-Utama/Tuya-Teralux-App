@@ -126,8 +126,17 @@ func (o *ControlOrchestrator) getDevices(ctx *skills.SkillContext) ([]tuyaDtos.T
 		return nil, "", err
 	}
 
+	// Detect "all lights" intent from the prompt
+	isAllLights := o.isAllLightsIntent(ctx.Prompt)
+
+	// Filter devices if "all lights" intent is detected
+	devices := aggResp.Devices
+	if isAllLights {
+		devices = o.filterLampDevices(devices)
+	}
+
 	var names []string
-	for _, d := range aggResp.Devices {
+	for _, d := range devices {
 		codes := []string{}
 		for _, st := range d.Status {
 			if strings.HasPrefix(st.Code, "switch") || strings.HasPrefix(st.Code, "bright") ||
@@ -142,7 +151,73 @@ func (o *ControlOrchestrator) getDevices(ctx *skills.SkillContext) ([]tuyaDtos.T
 		names = append(names, fmt.Sprintf("- %s%s (ID: %s)", d.Name, controlsStr, d.ID))
 	}
 
-	return aggResp.Devices, strings.Join(names, "\n"), nil
+	return devices, strings.Join(names, "\n"), nil
+}
+
+// isAllLightsIntent detects if the prompt indicates an "all lights" command.
+// Returns true only if the prompt contains light-specific phrases (requires "lampu/light/lamp" explicitly).
+// This prevents accidental filtering of non-light devices for generic "all" commands.
+func (o *ControlOrchestrator) isAllLightsIntent(prompt string) bool {
+	promptLower := strings.ToLower(strings.TrimSpace(prompt))
+
+	// Light-specific "all" patterns (Indonesian and English)
+	// These MUST contain both "all" quantifier AND light-related words
+	lightSpecificPatterns := []string{
+		"semua lampu",
+		"lampu semua",
+		"all lights",
+		"all light",
+		"every light",
+		"semua light",
+		"all the lights",
+		"all of the lights",
+		"semua lamp",
+		"all lamp",
+	}
+
+	for _, pattern := range lightSpecificPatterns {
+		if strings.Contains(promptLower, pattern) {
+			return true
+		}
+	}
+
+	// Additional check: "turn on/off all" + "lights/lamps" in same prompt
+	// This catches "turn on all the lights in the living room"
+	hasAllQuantifier := strings.Contains(promptLower, "semua") ||
+		strings.Contains(promptLower, "all ") ||
+		strings.Contains(promptLower, " all") ||
+		strings.Contains(promptLower, " every ")
+
+	hasLightWord := strings.Contains(promptLower, "lampu") ||
+		strings.Contains(promptLower, "light") ||
+		strings.Contains(promptLower, "lamp") ||
+		strings.Contains(promptLower, "switch")
+
+	if hasAllQuantifier && hasLightWord {
+		return true
+	}
+
+	return false
+}
+
+// filterLampDevices filters devices to only include lamp-relevant categories.
+// This excludes panel-category devices (like dgnzk) to prevent false targeting.
+func (o *ControlOrchestrator) filterLampDevices(devices []tuyaDtos.TuyaDeviceDTO) []tuyaDtos.TuyaDeviceDTO {
+	var filtered []tuyaDtos.TuyaDeviceDTO
+
+	for _, d := range devices {
+		category := strings.ToLower(d.Category)
+
+		// Include lamp-relevant categories:
+		// - dj, xdd, fwd, ty: Standard light categories
+		// - kg, cz, pc, dlq: Smart Switch lamps
+		if category == "dj" || category == "xdd" || category == "fwd" || category == "ty" ||
+			category == "kg" || category == "cz" || category == "pc" || category == "dlq" {
+			filtered = append(filtered, d)
+		}
+	}
+
+	return filtered
 }
 
 func (o *ControlOrchestrator) executeControl(ctx *skills.SkillContext, target *tuyaDtos.TuyaDeviceDTO) (*skills.SkillResult, error) {

@@ -64,6 +64,9 @@ class AiAssistantViewModel(
     private val requestStartedAtMs = mutableMapOf<String, Long>()
     private var activeTimingLogger: AssistantTimingLogger? = null
 
+    // Fallback gate to prevent overlapping fallback loops for the same request
+    private var fallbackRunningForRequestId: String? = null
+
     // Timing helper for structured latency logs
     private class AssistantTimingLogger(
         private val flow: String,
@@ -177,6 +180,11 @@ class AiAssistantViewModel(
         activeTimingLogger?.logTotal("total_e2e_duration")
         activeTimingLogger = null
 
+        // Reset fallback gate on terminal completion
+        if (requestId == fallbackRunningForRequestId) {
+            fallbackRunningForRequestId = null
+        }
+
         if (message != null) {
             transcriptionResults = transcriptionResults + TranscriptionMessage(
                 text = message,
@@ -204,6 +212,11 @@ class AiAssistantViewModel(
         activeTimingLogger?.markStep("request_failed", mapOf("error" to (error ?: "unknown")))
         activeTimingLogger?.logTotal("total_e2e_duration")
         activeTimingLogger = null
+
+        // Reset fallback gate on terminal completion
+        if (requestId == fallbackRunningForRequestId) {
+            fallbackRunningForRequestId = null
+        }
 
         if (error != null) {
             lastAssistantError = error
@@ -236,6 +249,11 @@ class AiAssistantViewModel(
         activeTimingLogger?.markStep("service_issue_completed", mapOf("source" to source, "elapsed_ms" to (elapsed ?: -1).toString()))
         activeTimingLogger?.logTotal("total_e2e_duration")
         activeTimingLogger = null
+
+        // Reset fallback gate on terminal completion
+        if (requestId == fallbackRunningForRequestId) {
+            fallbackRunningForRequestId = null
+        }
 
         // Friendly service-issue message (matches backend ServiceIssue skill)
         val serviceIssueMessage = when (selectedLanguage) {
@@ -319,12 +337,14 @@ class AiAssistantViewModel(
                                 return@collect
                             }
 
-                            // Ignore ack-only sync/drop messages to prevent premature transition away from Processing
-                            if (parsedResult.isDupDrop) {
-                                activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "ack_only_source", "source" to (parsedResult.source ?: "null")))
+                            // Ignore only non-final in-progress acks to prevent premature transition away from Processing.
+                            // isDupInProgress: non-final in-progress ack (MQTT_SYNC_DROP / IDEMPOTENCY_IN_PROGRESS) - ignored.
+                            // isDupDrop (IDEMPOTENCY_CACHED): cached final response - must be processed normally with payload.
+                            if (parsedResult.isDupInProgress) {
+                                activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "in_progress_ack", "source" to (parsedResult.source ?: "null")))
                                 android.util.Log.d(
                                     "AiAssistantViewModel",
-                                    "Ignored sync/dup drop from ${parsedResult.source} for RID: $currentRequestId"
+                                    "Ignored in-progress ack from ${parsedResult.source} for RID: $currentRequestId"
                                 )
                                 return@collect
                             }
@@ -576,6 +596,14 @@ class AiAssistantViewModel(
 
     private fun runHttpFallback() {
         val requestId = activeRequestId ?: return
+
+        // Prevent overlapping fallback loops for the same request
+        if (fallbackRunningForRequestId == requestId) {
+            android.util.Log.w("AiAssistantViewModel", "Fallback already running for RID: $requestId")
+            return
+        }
+        fallbackRunningForRequestId = requestId
+
         val type = activeRequestType
         val fallbackIdempotencyKey = "fallback_$requestId"
 
@@ -621,9 +649,25 @@ class AiAssistantViewModel(
                                 val data = resource.data
                                 if (data != null) {
                                     val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
-                                    if (parsedResult.isDupDrop) {
+                                    if (parsedResult.isDupInProgress) {
+                                        // IDEMPOTENCY_IN_PROGRESS: First request still processing
+                                        // Launch bounded retry loop to re-check HTTP chat status
+                                        activeTimingLogger?.markStep("http_fallback_chat_in_progress", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
+                                        android.util.Log.d("AiAssistantViewModel", "Fallback: Request in progress, starting bounded retry")
+                                        launchBoundedRetryForInProgress(
+                                            requestId = requestId,
+                                            text = text,
+                                            selectedLanguage = selectedLanguage,
+                                            terminalId = terminalId,
+                                            username = username,
+                                            token = token,
+                                            fallbackIdempotencyKey = fallbackIdempotencyKey,
+                                            httpChatStartMs = httpChatStartMs
+                                        )
+                                    } else if (parsedResult.isDupCached) {
+                                        // IDEMPOTENCY_CACHED: Duplicate with completed response, silent finish
                                         activeTimingLogger?.markStep("http_fallback_chat_dup_drop", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
-                                        android.util.Log.d("AiAssistantViewModel", "Fallback: Silent completion for HTTP_DUP_DROP")
+                                        android.util.Log.d("AiAssistantViewModel", "Fallback: Silent completion for cached duplicate")
                                         completeRequest(requestId, null, null, "http_dup")
                                     } else {
                                         activeTimingLogger?.markStep("http_fallback_chat_success", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
@@ -761,9 +805,15 @@ class AiAssistantViewModel(
                                 val data = chatResult.data
                                 if (data != null) {
                                     val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
-                                    if (parsedResult.isDupDrop) {
+                                    if (parsedResult.isDupInProgress) {
+                                        // IDEMPOTENCY_IN_PROGRESS: First request still processing, continue waiting
+                                        activeTimingLogger?.markStep("http_poll_chat_in_progress", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
+                                        android.util.Log.d("AiAssistantViewModel", "Poll: Request in progress, continue waiting")
+                                        // Do NOT completeRequest - continue polling for real result
+                                    } else if (parsedResult.isDupCached) {
+                                        // IDEMPOTENCY_CACHED: Duplicate with completed response, silent finish
                                         activeTimingLogger?.markStep("http_poll_chat_dup_drop", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
-                                        android.util.Log.d("AiAssistantViewModel", "Poll: Silent completion for HTTP_DUP_DROP")
+                                        android.util.Log.d("AiAssistantViewModel", "Poll: Silent completion for cached duplicate")
                                         completeRequest(requestId, null, null, "http_dup")
                                     } else {
                                         activeTimingLogger?.markStep("http_poll_chat_success", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
@@ -799,6 +849,115 @@ class AiAssistantViewModel(
             if (!isCompleted) {
                 completeWithServiceIssue(requestId, "polling_timeout")
             }
+        }
+    }
+
+    /**
+     * Launches a bounded retry loop for HTTP chat when response is IDEMPOTENCY_IN_PROGRESS.
+     * Re-checks chat status with exponential backoff until:
+     * - Final payload received (!isDupInProgress)
+     * - Request no longer active (activeRequestId changed)
+     * - Retry budget exhausted (then fails gracefully with service issue message)
+     */
+    private fun launchBoundedRetryForInProgress(
+        requestId: String,
+        text: String,
+        selectedLanguage: String,
+        terminalId: String,
+        username: String,
+        token: String,
+        fallbackIdempotencyKey: String,
+        httpChatStartMs: Long
+    ) {
+        viewModelScope.launch {
+            val maxRetries = 4
+            val baseDelayMs = 1000L
+            var attempt = 0
+            val retryStartMs = System.currentTimeMillis()
+
+            activeTimingLogger?.markStep("http_retry_loop_started", mapOf("max_retries" to maxRetries.toString(), "base_delay_ms" to baseDelayMs.toString()))
+
+            while (attempt < maxRetries) {
+                if (activeRequestId != requestId) {
+                    activeTimingLogger?.markStep("http_retry_loop_abandoned", mapOf("reason" to "request_changed", "attempt" to (attempt + 1).toString()))
+                    android.util.Log.d("AiAssistantViewModel", "Retry loop abandoned: request changed")
+                    return@launch
+                }
+
+                attempt++
+                activeTimingLogger?.markStep("http_retry_attempt", mapOf("attempt" to attempt.toString(), "max" to maxRetries.toString()))
+                android.util.Log.d("AiAssistantViewModel", "Retry attempt $attempt/$maxRetries for RID: $requestId")
+
+                // Re-check chat status
+                val retryChatStartMs = System.currentTimeMillis()
+                com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
+                    prompt = text,
+                    language = selectedLanguage,
+                    terminalId = terminalId,
+                    uid = username,
+                    token = token,
+                    requestId = requestId,
+                    idempotencyKey = fallbackIdempotencyKey
+                ).collect { resource ->
+                    if (activeRequestId != requestId) return@collect
+
+                    when (resource) {
+                        is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                            val data = resource.data
+                            if (data != null) {
+                                val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
+                                val retryDurationMs = System.currentTimeMillis() - retryChatStartMs
+
+                                if (!parsedResult.isDupInProgress && !parsedResult.isDupCached) {
+                                    // Final response received
+                                    activeTimingLogger?.markStep("http_retry_success", mapOf("attempt" to attempt.toString(), "retry_duration_ms" to retryDurationMs.toString()))
+                                    activeTimingLogger?.markStep("http_fallback_chat_success", mapOf("http_chat_duration_ms" to (System.currentTimeMillis() - httpChatStartMs).toString()))
+                                    handleHttpChatResponse(parsedResult, requestId)
+                                    return@collect
+                                } else if (parsedResult.isDupCached) {
+                                    // Cached response received
+                                    activeTimingLogger?.markStep("http_retry_cached", mapOf("attempt" to attempt.toString(), "retry_duration_ms" to retryDurationMs.toString()))
+                                    activeTimingLogger?.markStep("http_fallback_chat_dup_drop", mapOf("http_chat_duration_ms" to (System.currentTimeMillis() - httpChatStartMs).toString()))
+                                    completeRequest(requestId, null, null, "http_dup")
+                                    return@collect
+                                } else {
+                                    // Still in progress, continue retry
+                                    activeTimingLogger?.markStep("http_retry_still_in_progress", mapOf("attempt" to attempt.toString(), "retry_duration_ms" to retryDurationMs.toString()))
+                                    android.util.Log.d("AiAssistantViewModel", "Retry $attempt: Still in progress")
+                                }
+                            } else {
+                                activeTimingLogger?.markStep("http_retry_failed", mapOf("attempt" to attempt.toString(), "reason" to "null_data"))
+                                failRequest(requestId, "Invalid retry response")
+                                return@collect
+                            }
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                            activeTimingLogger?.markStep("http_retry_error", mapOf("attempt" to attempt.toString(), "error" to (resource.message ?: "unknown")))
+                            val errorMsg = resource.message
+                            if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
+                                completeRequest(requestId, errorMsg, null, "http_retry_error_msg")
+                            } else {
+                                completeWithServiceIssue(requestId, "http_retry_error")
+                            }
+                            return@collect
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                    }
+                }
+
+                // If we reach here, still in progress - apply backoff before next retry
+                if (attempt < maxRetries) {
+                    val delayMs = baseDelayMs * (1L shl (attempt - 1)) // Exponential backoff: 1s, 2s, 4s, ...
+                    activeTimingLogger?.markStep("http_retry_backoff", mapOf("attempt" to attempt.toString(), "delay_ms" to delayMs.toString()))
+                    kotlinx.coroutines.delay(delayMs)
+                }
+            }
+
+            // Retry budget exhausted - fail gracefully
+            val totalRetryDurationMs = System.currentTimeMillis() - retryStartMs
+            activeTimingLogger?.markStep("http_retry_exhausted", mapOf("total_retries" to attempt.toString(), "total_retry_duration_ms" to totalRetryDurationMs.toString()))
+            android.util.Log.w("AiAssistantViewModel", "Retry budget exhausted for RID: $requestId after $attempt attempts")
+            completeWithServiceIssue(requestId, "http_retry_timeout")
         }
     }
 

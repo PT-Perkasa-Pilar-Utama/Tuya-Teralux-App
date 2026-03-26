@@ -89,7 +89,7 @@ func TestIsRetryableUploadError(t *testing.T) {
 func TestIsRetryableUploadError_NetTimeout(t *testing.T) {
 	// Create a mock net.Error with Timeout() returning true
 	mockNetError := &mockNetError{timeout: true, temporary: false}
-	
+
 	result := IsRetryableUploadError(mockNetError)
 	if !result {
 		t.Errorf("IsRetryableUploadError(net timeout) = false, want true")

@@ -91,13 +91,13 @@ func (r *TerminalRepository) GetAllPaginated(offset, limit int, roomID *string) 
 // GetByID retrieves a single terminal record by ID with caching
 func (r *TerminalRepository) GetByID(id string) (*entities.Terminal, error) {
 	start := time.Now()
-	
+
 	// Try to get from cache first
 	cacheStart := time.Now()
 	cacheKey := fmt.Sprintf("terminal:%s", id)
 	cachedData, err := r.cache.Get(cacheKey)
 	cacheDuration := time.Since(cacheStart)
-	
+
 	if err == nil && cachedData != nil {
 		var terminal entities.Terminal
 		if err := json.Unmarshal(cachedData, &terminal); err == nil {
@@ -109,16 +109,16 @@ func (r *TerminalRepository) GetByID(id string) (*entities.Terminal, error) {
 
 	// Cache miss - fetch from database
 	utils.LogDebug("TerminalRepository: Cache MISS for terminal ID %s | cache_duration_ms=%d", id, cacheDuration.Milliseconds())
-	
+
 	if r.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-	
+
 	dbStart := time.Now()
 	var terminal entities.Terminal
 	err = r.db.Where("id = ?", id).First(&terminal).Error
 	dbDuration := time.Since(dbStart)
-	
+
 	if err != nil {
 		utils.LogDebug("TerminalRepository: Database query failed for terminal ID %s | db_duration_ms=%d | error=%v", id, dbDuration.Milliseconds(), err)
 		return nil, err
@@ -143,13 +143,13 @@ func (r *TerminalRepository) GetByID(id string) (*entities.Terminal, error) {
 // GetByMacAddress retrieves a single terminal record by MAC address with caching
 func (r *TerminalRepository) GetByMacAddress(macAddress string) (*entities.Terminal, error) {
 	start := time.Now()
-	
+
 	// Try to get from cache first
 	cacheStart := time.Now()
 	cacheKey := fmt.Sprintf("terminal:mac:%s", macAddress)
 	cachedData, err := r.cache.Get(cacheKey)
 	cacheDuration := time.Since(cacheStart)
-	
+
 	if err == nil && cachedData != nil {
 		var terminal entities.Terminal
 		if err := json.Unmarshal(cachedData, &terminal); err == nil {
@@ -161,16 +161,16 @@ func (r *TerminalRepository) GetByMacAddress(macAddress string) (*entities.Termi
 
 	// Cache miss - fetch from database
 	utils.LogDebug("TerminalRepository: Cache MISS for MAC %s | cache_duration_ms=%d", macAddress, cacheDuration.Milliseconds())
-	
+
 	if r.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-	
+
 	dbStart := time.Now()
 	var terminal entities.Terminal
 	err = r.db.Where("mac_address = ?", macAddress).First(&terminal).Error
 	dbDuration := time.Since(dbStart)
-	
+
 	if err != nil {
 		utils.LogDebug("TerminalRepository: Database query failed for MAC %s | db_duration_ms=%d | error=%v", macAddress, dbDuration.Milliseconds(), err)
 		return nil, err

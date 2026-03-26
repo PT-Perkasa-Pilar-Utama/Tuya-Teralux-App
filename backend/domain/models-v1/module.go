@@ -6,12 +6,12 @@ import (
 	pipelineRoutes "sensio/domain/models-v1/pipeline/routes"
 	pipelineServices "sensio/domain/models-v1/pipeline/services"
 	pipelineUsecases "sensio/domain/models-v1/pipeline/usecases"
-	whisperControllers "sensio/domain/models-v1/whisper/controllers"
-	whisperRoutes "sensio/domain/models-v1/whisper/routes"
-	whisperServices "sensio/domain/models-v1/whisper/services"
 	ragControllers "sensio/domain/models-v1/rag/controllers"
 	ragRoutes "sensio/domain/models-v1/rag/routes"
 	ragServices "sensio/domain/models-v1/rag/services"
+	whisperControllers "sensio/domain/models-v1/whisper/controllers"
+	whisperRoutes "sensio/domain/models-v1/whisper/routes"
+	whisperServices "sensio/domain/models-v1/whisper/services"
 
 	"github.com/gin-gonic/gin"
 )

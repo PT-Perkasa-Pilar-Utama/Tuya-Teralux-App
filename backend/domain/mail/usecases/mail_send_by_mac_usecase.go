@@ -197,7 +197,7 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 			}
 			return building
 		}(),
-		"booking_room":       info["SDTGetRoomTeraluxRoomName"],
+		"booking_room": info["SDTGetRoomTeraluxRoomName"],
 		"agenda_context": func() interface{} {
 			// 1. Try external API
 			apiAgenda := info["SDTGetRoomTeraluxMeetingAgenda"]

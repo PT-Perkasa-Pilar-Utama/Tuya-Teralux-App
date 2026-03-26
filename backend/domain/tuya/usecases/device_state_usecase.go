@@ -7,6 +7,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/entities"
+	"sync"
 	"time"
 )
 
@@ -18,7 +19,8 @@ type DeviceStateUseCase interface {
 }
 
 type deviceStateUseCase struct {
-	cache *infrastructure.BadgerService
+	cache       *infrastructure.BadgerService
+	deviceLocks sync.Map // map[deviceID]*sync.Mutex - per-device locks to prevent race conditions
 }
 
 // NewDeviceStateUseCase initializes a new deviceStateUseCase.
@@ -28,14 +30,33 @@ func NewDeviceStateUseCase(cache *infrastructure.BadgerService) DeviceStateUseCa
 	}
 }
 
+// getDeviceLock retrieves or creates a mutex for a specific device ID.
+// This ensures that concurrent updates to the same device state are serialized.
+func (uc *deviceStateUseCase) getDeviceLock(deviceID string) *sync.Mutex {
+	lock, _ := uc.deviceLocks.LoadOrStore(deviceID, &sync.Mutex{})
+	return lock.(*sync.Mutex)
+}
+
+// cleanupDeviceLock removes a device lock from the map.
+// This should be called periodically to prevent memory leaks.
+func (uc *deviceStateUseCase) cleanupDeviceLock(deviceID string) {
+	uc.deviceLocks.Delete(deviceID)
+}
+
 // SaveDeviceState saves the last control state for a device to persistent storage.
 // The state is stored with key format: "device_state:{device_id}" without TTL.
 // This function merges new commands with existing state to preserve all device parameters.
+// A per-device lock is used to prevent race conditions during the read-merge-write lifecycle.
 //
 // param deviceID The unique ID of the device.
 // param commands A list of commands representing the device's current state.
 // return error An error if the save operation fails.
 func (uc *deviceStateUseCase) SaveDeviceState(deviceID string, commands []dtos.DeviceStateCommandDTO) error {
+	// Acquire per-device lock to prevent concurrent updates
+	mu := uc.getDeviceLock(deviceID)
+	mu.Lock()
+	defer mu.Unlock()
+
 	// Retrieve existing state first
 	existingState, err := uc.GetDeviceState(deviceID)
 	if err != nil {
@@ -136,7 +157,7 @@ func (uc *deviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceState
 		if f, ok := val.(float64); ok && f == float64(int(f)) {
 			val = int(f)
 		}
-		
+
 		commandDTOs = append(commandDTOs, dtos.DeviceStateCommandDTO{
 			Code:  cmd.Code,
 			Value: val,
@@ -159,6 +180,7 @@ func (uc *deviceStateUseCase) GetDeviceState(deviceID string) (*dtos.DeviceState
 
 // CleanupOrphanedStates removes device states for devices that no longer exist.
 // This is called after fetching the device list from Tuya API.
+// It also cleans up stale per-device locks to prevent memory leaks.
 //
 // param validDeviceIDs A list of all currently valid device IDs from Tuya.
 // return error An error if the cleanup operation fails.
@@ -182,12 +204,14 @@ func (uc *deviceStateUseCase) CleanupOrphanedStates(validDeviceIDs []string) err
 		// Extract device ID from key "device_state:{device_id}"
 		deviceID := key[len("device_state:"):]
 
-		// If device ID is not in valid list, delete the state
+		// If device ID is not in valid list, delete the state and clean up lock
 		if !validIDMap[deviceID] {
 			if err := uc.cache.Delete(key); err != nil {
 				utils.LogWarn("DeviceStateUseCase: Failed to delete orphaned state for device %s: %v", deviceID, err)
 				continue
 			}
+			// Clean up the per-device lock to prevent memory leak
+			uc.cleanupDeviceLock(deviceID)
 			utils.LogInfo("DeviceStateUseCase: Deleted orphaned state for device %s", deviceID)
 			deletedCount++
 		}

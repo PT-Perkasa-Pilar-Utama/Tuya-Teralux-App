@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
-	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	device_repositories "sensio/domain/terminal/device/repositories"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/services"
 	tuya_utils "sensio/domain/tuya/utils"
@@ -63,7 +63,7 @@ func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStat
 // @throws error If the API returns a failure (e.g., invalid token).
 func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error) {
 	ucStart := time.Now()
-	
+
 	// Get config
 	config := utils.GetConfig()
 
@@ -175,7 +175,7 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		batchStatusStart := time.Now()
 		batchStatusResponse, err := uc.service.FetchBatchDeviceStatus(statusFullURL, statusHeaders)
 		batchStatusDuration := time.Since(batchStatusStart)
-		
+
 		if err == nil && batchStatusResponse.Success {
 			for _, s := range batchStatusResponse.Result {
 				statusMap[s.ID] = s.IsOnline

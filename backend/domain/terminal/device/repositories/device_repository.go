@@ -135,7 +135,7 @@ func (r *DeviceRepository) GetByID(id string) (*entities.Device, error) {
 			utils.LogDebug("DeviceRepository: Cache HIT (not found) for device ID %s", id)
 			return nil, fmt.Errorf("device not found (cached)")
 		}
-		
+
 		var device entities.Device
 		if err := json.Unmarshal(cachedData, &device); err == nil {
 			utils.LogDebug("DeviceRepository: Cache HIT for device ID %s", id)
@@ -151,7 +151,7 @@ func (r *DeviceRepository) GetByID(id string) (*entities.Device, error) {
 	}
 	var device entities.Device
 	err = r.db.Where("id = ?", id).First(&device).Error
-	
+
 	// Negative cache: cache "not found" results for 5 minutes to prevent repeated DB queries
 	if err != nil {
 		if err := r.cache.SetWithTTL(cacheKey, []byte("__NOT_FOUND__"), 5*time.Minute); err != nil {

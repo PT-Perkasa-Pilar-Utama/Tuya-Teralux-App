@@ -82,29 +82,29 @@ func (m *MockBadgerService) KeysWithPrefix(prefix string) ([]string, error) {
 // Helper function to create a test usecase
 func createTestUploadSessionUseCase(t *testing.T) (*uploadSessionUseCase, func()) {
 	cfg := &utils.Config{
-		ChunkUploadMaxFileSizeGB:        20,
-		ChunkUploadDefaultChunkBytes:    1024,       // 1KB for testing
-		ChunkUploadMinChunkBytes:        256,        // 256 bytes
-		ChunkUploadMaxChunkBytes:        10 * 1024,  // 10KB
-		ChunkUploadSessionTTL:           "24h",
+		ChunkUploadMaxFileSizeGB:     20,
+		ChunkUploadDefaultChunkBytes: 1024,      // 1KB for testing
+		ChunkUploadMinChunkBytes:     256,       // 256 bytes
+		ChunkUploadMaxChunkBytes:     10 * 1024, // 10KB
+		ChunkUploadSessionTTL:        "24h",
 	}
 
 	// Use a temporary directory for test uploads
 	tempDir := t.TempDir()
-	
+
 	// Create a mock badger store
 	mockBadger := NewMockBadgerService()
-	
+
 	uc := &uploadSessionUseCase{
 		cache:     mockBadger,
 		cfg:       cfg,
 		uploadDir: tempDir,
 	}
-	
+
 	cleanup := func() {
 		_ = os.RemoveAll(tempDir)
 	}
-	
+
 	return uc, cleanup
 }
 
@@ -121,7 +121,7 @@ func TestUploadChunk_ExactSizeValidation(t *testing.T) {
 		OwnerUID:       "test-user",
 		MimeType:       "audio/mp4",
 	}
-	
+
 	sessionResp, err := uc.CreateSession(req)
 	if err != nil {
 		t.Fatalf("Failed to create session: %v", err)
@@ -131,20 +131,20 @@ func TestUploadChunk_ExactSizeValidation(t *testing.T) {
 		// Upload chunk 0 with only 512 bytes instead of 1024
 		chunkData := make([]byte, 512)
 		ack, err := uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(chunkData))
-		
+
 		if err == nil {
 			t.Error("Expected error for undersized chunk, got nil")
 		}
 		if ack != nil {
 			t.Error("Expected nil ack for failed upload")
 		}
-		
+
 		// Verify chunk was not recorded
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		if _, exists := meta.ReceivedChunks[0]; exists {
 			t.Error("Chunk 0 should not be recorded for undersized upload")
 		}
-		
+
 		// Verify chunk file was deleted
 		chunkPath := filepath.Join(uc.uploadDir, sessionResp.SessionID, "chunk_0")
 		if _, err := os.Stat(chunkPath); !os.IsNotExist(err) {
@@ -156,14 +156,14 @@ func TestUploadChunk_ExactSizeValidation(t *testing.T) {
 		// Upload chunk 0 with exact 1024 bytes
 		chunkData := make([]byte, 1024)
 		ack, err := uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(chunkData))
-		
+
 		if err != nil {
 			t.Errorf("Unexpected error for correctly-sized chunk: %v", err)
 		}
 		if ack == nil {
 			t.Error("Expected ack for successful upload")
 		}
-		
+
 		// Verify chunk was recorded
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		if size, exists := meta.ReceivedChunks[0]; !exists || size != 1024 {
@@ -180,17 +180,17 @@ func TestUploadChunk_ExactSizeValidation(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp2, _ := uc.CreateSession(req2)
-		
+
 		// Upload chunk 0 correctly
 		chunkData0 := make([]byte, 1024)
 		uc.UploadChunk(sessionResp2.SessionID, 0, "test-user", bytes.NewReader(chunkData0))
-		
+
 		// Upload chunk 1 (last) with wrong size (512 instead of 1024)
 		chunkData1 := make([]byte, 512)
 		ack, err := uc.UploadChunk(sessionResp2.SessionID, 1, "test-user", bytes.NewReader(chunkData1))
-		
+
 		if err == nil {
 			t.Error("Expected error for undersized last chunk, got nil")
 		}
@@ -208,24 +208,24 @@ func TestUploadChunk_ExactSizeValidation(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp3, _ := uc.CreateSession(req3)
-		
+
 		// Upload chunk 0 correctly
 		chunkData0 := make([]byte, 1024)
 		uc.UploadChunk(sessionResp3.SessionID, 0, "test-user", bytes.NewReader(chunkData0))
-		
+
 		// Upload chunk 1 (last) with exact size
 		chunkData1 := make([]byte, 1024)
 		ack, err := uc.UploadChunk(sessionResp3.SessionID, 1, "test-user", bytes.NewReader(chunkData1))
-		
+
 		if err != nil {
 			t.Errorf("Unexpected error for correctly-sized last chunk: %v", err)
 		}
 		if ack == nil {
 			t.Error("Expected ack for successful upload")
 		}
-		
+
 		// Verify session is now ready
 		meta, _ := uc.getMetadata(sessionResp3.SessionID)
 		if meta.State != "ready" {
@@ -247,18 +247,18 @@ func TestValidateSessionIntegrity(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp, _ := uc.CreateSession(req)
-		
+
 		// Upload only chunk 0
 		chunkData := make([]byte, 1024)
 		uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(chunkData))
-		
+
 		// Manually corrupt metadata to claim chunk 1 exists
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		meta.ReceivedChunks[1] = 1024
 		uc.saveMetadata(meta)
-		
+
 		// Validation should fail
 		err := uc.validateSessionIntegrity(meta)
 		if err == nil {
@@ -277,18 +277,18 @@ func TestValidateSessionIntegrity(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp, _ := uc.CreateSession(req)
-		
+
 		// Upload chunk 0 with 1024 bytes
 		chunkData := make([]byte, 1024)
 		uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(chunkData))
-		
+
 		// Manually corrupt metadata to claim different size
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		meta.ReceivedChunks[0] = 512 // Claim it's only 512 bytes
 		uc.saveMetadata(meta)
-		
+
 		// Validation should fail
 		err := uc.validateSessionIntegrity(meta)
 		if err == nil {
@@ -304,23 +304,23 @@ func TestValidateSessionIntegrity(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp, _ := uc.CreateSession(req)
-		
+
 		// Upload all chunks correctly
 		chunkData0 := make([]byte, 1024)
 		chunkData1 := make([]byte, 1024)
 		chunkData2 := make([]byte, 952) // Last chunk: 3000 - 2048 = 952
-		
+
 		uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(chunkData0))
 		uc.UploadChunk(sessionResp.SessionID, 1, "test-user", bytes.NewReader(chunkData1))
 		uc.UploadChunk(sessionResp.SessionID, 2, "test-user", bytes.NewReader(chunkData2))
-		
+
 		// Manually corrupt metadata to claim wrong total
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		meta.ReceivedChunks[2] = 1024 // Claim last chunk is full size
 		uc.saveMetadata(meta)
-		
+
 		// Validation should fail
 		err := uc.validateSessionIntegrity(meta)
 		if err == nil {
@@ -342,9 +342,9 @@ func TestFinalizeSession_MergedFileValidation(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp, _ := uc.CreateSession(req)
-		
+
 		// Upload all chunks correctly
 		for i := 0; i < 3; i++ {
 			chunkData := make([]byte, 1024)
@@ -353,7 +353,7 @@ func TestFinalizeSession_MergedFileValidation(t *testing.T) {
 				t.Fatalf("Failed to upload chunk %d: %v", i, err)
 			}
 		}
-		
+
 		// Finalize should succeed
 		finalized, err := uc.FinalizeSession(sessionResp.SessionID, "test-user")
 		if err != nil {
@@ -362,7 +362,7 @@ func TestFinalizeSession_MergedFileValidation(t *testing.T) {
 		if finalized == nil {
 			t.Error("Expected finalized upload result")
 		}
-		
+
 		// Verify merged file exists and has correct size
 		mergedInfo, err := os.Stat(finalized.MergedPath)
 		if err != nil {
@@ -381,21 +381,21 @@ func TestFinalizeSession_MergedFileValidation(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp, _ := uc.CreateSession(req)
-		
+
 		// Upload chunks 0 and 1 correctly
 		for i := 0; i < 2; i++ {
 			chunkData := make([]byte, 1024)
 			uc.UploadChunk(sessionResp.SessionID, i, "test-user", bytes.NewReader(chunkData))
 		}
-		
+
 		// Manually corrupt: claim chunk 2 exists but don't upload it
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		meta.ReceivedChunks[2] = 1024
 		meta.State = "ready"
 		uc.saveMetadata(meta)
-		
+
 		// Finalize should fail
 		finalized, err := uc.FinalizeSession(sessionResp.SessionID, "test-user")
 		if err == nil {
@@ -420,18 +420,18 @@ func TestGetSessionStatus_IntegrityValidation(t *testing.T) {
 			OwnerUID:       "test-user",
 			MimeType:       "audio/mp4",
 		}
-		
+
 		sessionResp, _ := uc.CreateSession(req)
-		
+
 		// Upload chunk 0
 		chunkData := make([]byte, 1024)
 		uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(chunkData))
-		
+
 		// Manually corrupt metadata
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		meta.ReceivedChunks[0] = 512 // Wrong size
 		uc.saveMetadata(meta)
-		
+
 		// Status should fail
 		status, err := uc.GetSessionStatus(sessionResp.SessionID, "test-user")
 		if err == nil {
@@ -455,28 +455,28 @@ func TestInvalidateCorruptSession(t *testing.T) {
 		OwnerUID:       "test-user",
 		MimeType:       "audio/mp4",
 	}
-	
+
 	sessionResp, _ := uc.CreateSession(req)
-	
+
 	// Upload chunk 0
 	chunkData := make([]byte, 1024)
 	uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(chunkData))
-	
+
 	// Get metadata before invalidation
 	meta, _ := uc.getMetadata(sessionResp.SessionID)
-	
+
 	// Invalidate
 	err := uc.invalidateCorruptSession(meta)
 	if err != nil {
 		t.Fatalf("invalidateCorruptSession failed: %v", err)
 	}
-	
+
 	// Verify session directory is deleted
 	sessionDir := filepath.Join(uc.uploadDir, sessionResp.SessionID)
 	if _, err := os.Stat(sessionDir); !os.IsNotExist(err) {
 		t.Error("Session directory should be deleted after invalidation")
 	}
-	
+
 	// Verify metadata is deleted
 	_, err = uc.getMetadata(sessionResp.SessionID)
 	if err == nil {
@@ -537,9 +537,9 @@ func TestUploadChunk_RetryableInterruption(t *testing.T) {
 		// Simulate partial upload by sending only 512 bytes of expected 1024
 		// This simulates a connection interruption mid-upload
 		partialData := make([]byte, 512)
-		
+
 		ack, err := uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(partialData))
-		
+
 		// Should return error for incomplete chunk
 		if err == nil {
 			t.Error("Expected error for partial chunk upload, got nil")
@@ -547,13 +547,13 @@ func TestUploadChunk_RetryableInterruption(t *testing.T) {
 		if ack != nil {
 			t.Error("Expected nil ack for failed upload")
 		}
-		
+
 		// Verify chunk was NOT recorded in metadata
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		if _, exists := meta.ReceivedChunks[0]; exists {
 			t.Error("Partial chunk should not be recorded in metadata")
 		}
-		
+
 		// Verify chunk file was deleted
 		chunkPath := filepath.Join(uc.uploadDir, sessionResp.SessionID, "chunk_0")
 		if _, err := os.Stat(chunkPath); !os.IsNotExist(err) {
@@ -564,22 +564,22 @@ func TestUploadChunk_RetryableInterruption(t *testing.T) {
 	t.Run("full retry after partial failure succeeds", func(t *testing.T) {
 		// After partial failure, full retry should succeed
 		fullData := make([]byte, 1024)
-		
+
 		ack, err := uc.UploadChunk(sessionResp.SessionID, 0, "test-user", bytes.NewReader(fullData))
-		
+
 		if err != nil {
 			t.Errorf("Unexpected error for full retry: %v", err)
 		}
 		if ack == nil {
 			t.Error("Expected ack for successful upload")
 		}
-		
+
 		// Verify chunk was recorded
 		meta, _ := uc.getMetadata(sessionResp.SessionID)
 		if size, exists := meta.ReceivedChunks[0]; !exists || size != 1024 {
 			t.Errorf("Chunk 0 should be recorded with size 1024, got %d", size)
 		}
-		
+
 		// Verify chunk file exists
 		chunkPath := filepath.Join(uc.uploadDir, sessionResp.SessionID, "chunk_0")
 		if _, err := os.Stat(chunkPath); os.IsNotExist(err) {
@@ -597,21 +597,21 @@ func TestUploadChunk_RetryableInterruption(t *testing.T) {
 			MimeType:       "audio/mp4",
 		}
 		sessionResp2, _ := uc.CreateSession(req2)
-		
+
 		// Partial upload
 		partialData := make([]byte, 256)
 		uc.UploadChunk(sessionResp2.SessionID, 0, "test-user", bytes.NewReader(partialData))
-		
+
 		// Session should still be in "uploading" state
 		meta, _ := uc.getMetadata(sessionResp2.SessionID)
 		if meta.State != "uploading" {
 			t.Errorf("Session should remain in uploading state after partial upload, got %s", meta.State)
 		}
-		
+
 		// Full retry should work
 		fullData := make([]byte, 1024)
 		ack, err := uc.UploadChunk(sessionResp2.SessionID, 0, "test-user", bytes.NewReader(fullData))
-		
+
 		if err != nil {
 			t.Errorf("Full retry failed: %v", err)
 		}
@@ -620,4 +620,3 @@ func TestUploadChunk_RetryableInterruption(t *testing.T) {
 		}
 	})
 }
-

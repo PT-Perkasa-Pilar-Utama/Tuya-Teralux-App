@@ -70,7 +70,7 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 			// According to the plan, we treat any failure as request failure
 			return nil, fmt.Errorf("failed to publish to topic %s: %w", topic, err)
 		}
-		
+
 		publishedTopics = append(publishedTopics, topic)
 	}
 

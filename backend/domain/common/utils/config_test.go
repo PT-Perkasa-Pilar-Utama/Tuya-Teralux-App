@@ -42,7 +42,7 @@ func TestValidateEnvDuration(t *testing.T) {
 func TestGetByteConfigWithMBFallback(t *testing.T) {
 	t.Run("Byte-based env var takes precedence", func(t *testing.T) {
 		os.Setenv("TEST_BYTE_VAR", "2097152") // 2 MB in bytes
-		os.Setenv("TEST_MB_VAR", "8")          // 8 MB
+		os.Setenv("TEST_MB_VAR", "8")         // 8 MB
 		defer os.Unsetenv("TEST_BYTE_VAR")
 		defer os.Unsetenv("TEST_MB_VAR")
 

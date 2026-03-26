@@ -4939,7 +4939,9 @@ const docTemplate = `{
                     "example": "Nyalakan AC"
                 },
                 "request_id": {
-                    "type": "string"
+                    "description": "RequestID is a unique identifier for cross-channel idempotency.\nWhen the same request_id is sent via both HTTP and MQTT channels,\nonly ONE Tuya command execution will occur. The second channel will\nreturn either a \"processing\" acknowledgment (if first request is still\nin progress) or the cached response (if first request completed).\nClient should generate a UUID per user interaction and use it for both\nHTTP and MQTT dispatch to prevent duplicate device control.",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "terminal_id": {
                     "type": "string",
@@ -4969,14 +4971,14 @@ const docTemplate = `{
                     "$ref": "#/definitions/dtos.RedirectDTO"
                 },
                 "request_id": {
-                    "description": "Tracking ID",
+                    "description": "Tracking ID (echoes request_id from request)",
                     "type": "string"
                 },
                 "response": {
                     "type": "string"
                 },
                 "source": {
-                    "description": "e.g., \"MQTT\", \"HTTP\"",
+                    "description": "Response source: \"HTTP_HANDLER\", \"MQTT_SUBSCRIBER\", \"IDEMPOTENCY_CACHED\", \"IDEMPOTENCY_IN_PROGRESS\", \"MQTT_SYNC_DROP\"",
                     "type": "string"
                 }
             }
