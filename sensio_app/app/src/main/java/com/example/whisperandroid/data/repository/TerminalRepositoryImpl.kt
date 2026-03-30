@@ -3,6 +3,7 @@ package com.example.whisperandroid.data.repository
 import com.example.whisperandroid.common.util.getErrorMessage
 import com.example.whisperandroid.data.remote.api.TerminalApi
 import com.example.whisperandroid.data.remote.dto.TerminalRequestDto
+import com.example.whisperandroid.data.remote.dto.UpdateAiEngineProfileRequestDto
 import com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto
 import com.example.whisperandroid.domain.model.TerminalRegistration
 import com.example.whisperandroid.domain.repository.TerminalRepository
@@ -57,7 +58,6 @@ class TerminalRepositoryImpl(
             val response = api.getTerminalByMac(apiKey, macAddress)
 
             if (response.status && response.data != null) {
-                // Success - Found
                 val terminalItem = response.data.terminal
                 val tId = terminalItem?.id ?: response.data.id ?: ""
                 val actualMac = terminalItem?.macAddress ?: response.data.macAddress ?: macAddress
@@ -66,7 +66,6 @@ class TerminalRepositoryImpl(
                 }
                 tokenManager.saveMacAddress(actualMac)
 
-                // Save MQTT credentials if present
                 val mUsername = terminalItem?.mqttUsername ?: response.data.mqttUsername
                 val mPassword = terminalItem?.mqttPassword ?: response.data.mqttPassword
 
@@ -84,8 +83,6 @@ class TerminalRepositoryImpl(
                     )
                 )
             } else {
-                // 404 or other error - Not Found (or API specific error)
-                // If API returns false status with "not found", we treat as null (not registered)
                 if (response.message.contains("not found", ignoreCase = true)) {
                     Result.success(null)
                 } else {
@@ -94,9 +91,30 @@ class TerminalRepositoryImpl(
             }
         } catch (e: retrofit2.HttpException) {
             if (e.code() == 404) {
-                Result.success(null) // Not found means not registered
+                Result.success(null)
             } else {
                 Result.failure(Exception(e.getErrorMessage()))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+
+    override suspend fun getAiEngineProfileByMac(macAddress: String): Result<com.example.whisperandroid.domain.repository.AiEngineProfileState?> =
+        try {
+            val response = api.getAiEngineProfileByMac(apiKey, macAddress)
+            if (response.status && response.data != null) {
+                Result.success(
+                    com.example.whisperandroid.domain.repository.AiEngineProfileState(
+                        profile = response.data.profile,
+                        source = response.data.source,
+                        effectiveProvider = response.data.effectiveProvider,
+                        effectiveMode = response.data.effectiveMode
+                    )
+                )
+            } else if (response.status && response.data == null) {
+                 Result.success(null)
+            } else {
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -110,6 +128,26 @@ class TerminalRepositoryImpl(
             )
             if (response.status && response.data != null) {
                 Result.success(response.data.password)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: retrofit2.HttpException) {
+            Result.failure(Exception(e.getErrorMessage()))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+
+    override suspend fun updateAiEngineProfile(terminalId: String, profile: String?): Result<Unit> =
+        try {
+            val request = UpdateAiEngineProfileRequestDto(profile = profile)
+            val response = api.updateAiEngineProfile(
+                "Bearer ${tokenManager.getAccessToken()}",
+                terminalId,
+                request
+            )
+
+            if (response.status) {
+                Result.success(Unit)
             } else {
                 Result.failure(Exception(response.message))
             }

@@ -4,6 +4,7 @@ import com.example.whisperandroid.data.remote.dto.TerminalRequestDto
 import com.example.whisperandroid.data.remote.dto.TerminalResponseDto
 import com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -16,18 +17,31 @@ interface TerminalApi {
         @Body request: TerminalRequestDto
     ): TerminalResponseDto
 
-    @retrofit2.http.GET("/api/terminal/mac/{mac}")
+    @GET("/api/terminal/mac/{mac}")
     suspend fun getTerminalByMac(
         @Header("X-API-KEY") apiKey: String,
-        @retrofit2.http.Path("mac") mac: String
+        @Path("mac") mac: String
     ): TerminalResponseDto
 
-    @retrofit2.http.PUT("/api/terminal/{id}")
+    @GET("/api/terminal/mac/{mac}/ai-engine-profile")
+    suspend fun getAiEngineProfileByMac(
+        @Header("X-API-KEY") apiKey: String,
+        @Path("mac") mac: String
+    ): com.example.whisperandroid.data.remote.dto.AiEngineProfileResponseDto
+
+    @PUT("/api/terminal/{id}")
     suspend fun updateTerminal(
         @Header("Authorization") token: String,
         @Path("id") id: String,
-        @Body request: UpdateTerminalRequestDto
-    ): TerminalResponseDto
+        @Body request: com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto
+    ): com.example.whisperandroid.data.remote.dto.StandardResponseDto<Unit>
+
+    @PUT("/api/terminal/{id}/ai-engine-profile")
+    suspend fun updateAiEngineProfile(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body request: com.example.whisperandroid.data.remote.dto.UpdateAiEngineProfileRequestDto
+    ): com.example.whisperandroid.data.remote.dto.AiEngineProfileResponseDto
 
     @retrofit2.http.GET("/api/mqtt/users/{username}")
     suspend fun getMqttCredentials(

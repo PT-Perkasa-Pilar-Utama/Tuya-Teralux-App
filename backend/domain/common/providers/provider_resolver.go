@@ -19,6 +19,20 @@ var SupportedProviders = map[string]bool{
 	"orion":  true,
 }
 
+// SupportedEngineProfiles defines product-facing profile names, separate from SupportedProviders.
+// "plaud" is listed here for vocabulary completeness but rejected at the write endpoint in this phase.
+var SupportedEngineProfiles = map[string]bool{
+	"fast":     true,
+	"standard": true,
+	"plaud":    true,
+}
+
+// fastProfileCandidates are the bounded provider set for the 'fast' engine profile.
+var fastProfileCandidates = []string{"openai", "groq"}
+
+// standardProfileCandidates are the bounded provider set for the 'standard' engine profile.
+var standardProfileCandidates = []string{"orion"}
+
 // IsValidProvider checks if a provider name is supported as a user-facing provider
 func IsValidProvider(provider string) bool {
 	if provider == "" {
@@ -32,12 +46,26 @@ func NormalizeProvider(provider string) string {
 	return strings.ToLower(strings.TrimSpace(provider))
 }
 
+// NormalizeEngineProfile normalizes an engine profile name to lowercase.
+func NormalizeEngineProfile(profile string) string {
+	return strings.ToLower(strings.TrimSpace(profile))
+}
+
+// IsValidEngineProfile checks if a profile name is a known engine profile vocabulary entry.
+func IsValidEngineProfile(profile string) bool {
+	if profile == "" {
+		return false
+	}
+	return SupportedEngineProfiles[NormalizeEngineProfile(profile)]
+}
+
 // ResolvedProviderSet holds the resolved LLM and Whisper clients for a specific provider
 type ResolvedProviderSet struct {
 	LLM           skills.LLMClient
 	WhisperClient WhisperProvider
 	ProviderName  string
-	IsExplicit    bool // True if provider was explicitly selected by user, false if using default/fallback
+	IsExplicit    bool   // True if provider was explicitly selected by user, false if using default/fallback
+	SelectionMode string // "profile_fast" | "profile_standard" | "provider_explicit" | "default"
 }
 
 // WhisperProvider is the interface for whisper transcription services
@@ -65,6 +93,9 @@ type ProviderResolver interface {
 
 	// ExecuteWithFallback executes an operation with health-aware remote fallback
 	ExecuteWithFallback(executable func(resolvedSet *ResolvedProviderSet) error, skipProviders ...string) error
+
+	// ExecuteWithCandidateFallback executes with a bounded candidate list, using health-aware scoring within it.
+	ExecuteWithCandidateFallback(candidates []string, executable func(resolvedSet *ResolvedProviderSet) error) error
 
 	// ExecuteWithFallbackByTerminal executes with terminal-specific provider preference, then health-aware fallback
 	ExecuteWithFallbackByTerminal(terminalID string, executable func(resolvedSet *ResolvedProviderSet) error) error
@@ -97,7 +128,8 @@ type TerminalRepository interface {
 
 // Terminal is a minimal terminal data structure for provider resolution
 type Terminal struct {
-	AiProvider *string
+	AiProvider      *string
+	AiEngineProfile *string // Product-facing engine profile ("fast", "standard")
 }
 
 // NewProviderResolver creates a new ProviderResolver instance
@@ -179,24 +211,65 @@ func (r *providerResolverImpl) ResolveByMacAddress(macAddress string) (*Resolved
 func (r *providerResolverImpl) resolveFromTerminal(terminal *Terminal) (*ResolvedProviderSet, error) {
 	start := time.Now()
 
-	// If terminal has a provider preference, use it
+	// Precedence 1: AiEngineProfile (product abstraction layer)
+	if terminal.AiEngineProfile != nil && *terminal.AiEngineProfile != "" {
+		profile := NormalizeEngineProfile(*terminal.AiEngineProfile)
+
+		switch profile {
+		case "fast":
+			utils.LogInfo("ProviderResolver: resolveFromTerminal | engine_profile=fast | candidates=%v | selection_mode=profile_fast | duration_ms=%d",
+				fastProfileCandidates, time.Since(start).Milliseconds())
+			return &ResolvedProviderSet{
+				LLM:           nil,
+				WhisperClient: nil,
+				ProviderName:  "profile_fast",
+				IsExplicit:    true,
+				SelectionMode: "profile_fast",
+			}, nil
+
+		case "standard":
+			utils.LogInfo("ProviderResolver: resolveFromTerminal | engine_profile=standard | candidates=%v | selection_mode=profile_standard | duration_ms=%d",
+				standardProfileCandidates, time.Since(start).Milliseconds())
+			return &ResolvedProviderSet{
+				LLM:           nil,
+				WhisperClient: nil,
+				ProviderName:  "profile_standard",
+				IsExplicit:    true,
+				SelectionMode: "profile_standard",
+			}, nil
+
+		case "plaud":
+			utils.LogWarn("ProviderResolver: terminal has unsupported profile 'plaud'; falling back to legacy behavior | duration_ms=%d",
+				time.Since(start).Milliseconds())
+			// Fall through to legacy path
+
+		default:
+			utils.LogWarn("ProviderResolver: unknown engine_profile '%s'; falling back to legacy behavior | duration_ms=%d",
+				*terminal.AiEngineProfile, time.Since(start).Milliseconds())
+			// Fall through to legacy path
+		}
+	}
+
+	// Precedence 2: AiProvider (legacy explicit provider)
 	if terminal.AiProvider != nil && *terminal.AiProvider != "" {
 		provider := NormalizeProvider(*terminal.AiProvider)
 
 		if IsValidProvider(provider) {
-			utils.LogDebug("ProviderResolver: Using terminal provider '%s' | duration_ms=%d", provider, time.Since(start).Milliseconds())
+			utils.LogDebug("ProviderResolver: Using terminal provider '%s' | selection_mode=provider_explicit | duration_ms=%d", provider, time.Since(start).Milliseconds())
 			result := r.ResolveProvider(provider)
 			result.IsExplicit = true
-			utils.LogDebug("ProviderResolver: resolveFromTerminal completed | provider=%s | isExplicit=true | duration_ms=%d", provider, time.Since(start).Milliseconds())
+			result.SelectionMode = "provider_explicit"
+			utils.LogDebug("ProviderResolver: resolveFromTerminal completed | provider=%s | selection_mode=provider_explicit | duration_ms=%d", provider, time.Since(start).Milliseconds())
 			return result, nil
 		}
 		utils.LogWarn("ProviderResolver: Invalid provider '%s' in terminal, using default | duration_ms=%d", *terminal.AiProvider, time.Since(start).Milliseconds())
 	}
 
-	// Fall back to default
+	// Precedence 3: Default
 	result := r.ResolveDefault()
 	result.IsExplicit = false
-	utils.LogDebug("ProviderResolver: Using default provider '%s' | isExplicit=false | duration_ms=%d", result.ProviderName, time.Since(start).Milliseconds())
+	result.SelectionMode = "default"
+	utils.LogDebug("ProviderResolver: Using default provider '%s' | selection_mode=default | duration_ms=%d", result.ProviderName, time.Since(start).Milliseconds())
 	return result, nil
 }
 
@@ -368,9 +441,19 @@ func (r *providerResolverImpl) ExecuteWithFallback(executable func(resolvedSet *
 func (r *providerResolverImpl) ExecuteWithFallbackByTerminal(terminalID string, executable func(resolvedSet *ResolvedProviderSet) error) error {
 	// First, try to resolve provider from terminal preference
 	resolved, err := r.ResolveByTerminalID(terminalID)
-	if err == nil && resolved != nil && resolved.LLM != nil && resolved.ProviderName != "" {
-		// Check if this is an explicit provider choice
-		if resolved.IsExplicit {
+	if err == nil && resolved != nil && resolved.ProviderName != "" {
+		// Handle engine profile selection modes
+		if resolved.SelectionMode == "profile_fast" {
+			utils.LogDebug("ProviderResolver: Executing with fast profile candidates for terminal %s", terminalID)
+			return r.ExecuteWithCandidateFallback(fastProfileCandidates, executable)
+		}
+		if resolved.SelectionMode == "profile_standard" {
+			utils.LogDebug("ProviderResolver: Executing with standard profile candidates for terminal %s", terminalID)
+			return r.ExecuteWithCandidateFallback(standardProfileCandidates, executable)
+		}
+
+		// Legacy explicit provider path
+		if resolved.IsExplicit && resolved.LLM != nil {
 			// Explicit provider: execute and return immediately, NO fallback
 			attemptStart := time.Now()
 			err := executable(resolved)
@@ -380,8 +463,8 @@ func (r *providerResolverImpl) ExecuteWithFallbackByTerminal(terminalID string, 
 				if r.healthAwareResolver != nil {
 					r.healthAwareResolver.RecordSuccess(resolved.ProviderName, attemptDuration.Milliseconds())
 				}
-				utils.LogInfo("ProviderResolver: Explicit provider execution succeeded | terminalID=%s | provider=%s | duration_ms=%d",
-					terminalID, resolved.ProviderName, attemptDuration.Milliseconds())
+				utils.LogInfo("ProviderResolver: Explicit provider execution succeeded | terminalID=%s | provider=%s | selection_mode=%s | duration_ms=%d",
+					terminalID, resolved.ProviderName, resolved.SelectionMode, attemptDuration.Milliseconds())
 			} else {
 				if r.healthAwareResolver != nil {
 					r.healthAwareResolver.RecordFailure(resolved.ProviderName)
@@ -391,10 +474,6 @@ func (r *providerResolverImpl) ExecuteWithFallbackByTerminal(terminalID string, 
 			}
 			return err
 		}
-
-		// Not explicit (default fallback): proceed with health-aware fallback chain
-		utils.LogDebug("ProviderResolver: Using default provider for terminal %s, proceeding with health-aware fallback", terminalID)
-		return r.ExecuteWithFallback(executable)
 	}
 
 	// No valid provider from terminal, use health-aware fallback
@@ -405,9 +484,19 @@ func (r *providerResolverImpl) ExecuteWithFallbackByTerminal(terminalID string, 
 func (r *providerResolverImpl) ExecuteWithFallbackByMac(macAddress string, executable func(resolvedSet *ResolvedProviderSet) error) error {
 	// First, try to resolve provider from terminal preference
 	resolved, err := r.ResolveByMacAddress(macAddress)
-	if err == nil && resolved != nil && resolved.LLM != nil && resolved.ProviderName != "" {
-		// Check if this is an explicit provider choice
-		if resolved.IsExplicit {
+	if err == nil && resolved != nil && resolved.ProviderName != "" {
+		// Handle engine profile selection modes
+		if resolved.SelectionMode == "profile_fast" {
+			utils.LogDebug("ProviderResolver: Executing with fast profile candidates for MAC %s", macAddress)
+			return r.ExecuteWithCandidateFallback(fastProfileCandidates, executable)
+		}
+		if resolved.SelectionMode == "profile_standard" {
+			utils.LogDebug("ProviderResolver: Executing with standard profile candidates for MAC %s", macAddress)
+			return r.ExecuteWithCandidateFallback(standardProfileCandidates, executable)
+		}
+
+		// Legacy explicit provider path
+		if resolved.IsExplicit && resolved.LLM != nil {
 			// Explicit provider: execute and return immediately, NO fallback
 			attemptStart := time.Now()
 			err := executable(resolved)
@@ -417,8 +506,8 @@ func (r *providerResolverImpl) ExecuteWithFallbackByMac(macAddress string, execu
 				if r.healthAwareResolver != nil {
 					r.healthAwareResolver.RecordSuccess(resolved.ProviderName, attemptDuration.Milliseconds())
 				}
-				utils.LogInfo("ProviderResolver: Explicit provider execution succeeded | macAddress=%s | provider=%s | duration_ms=%d",
-					macAddress, resolved.ProviderName, attemptDuration.Milliseconds())
+				utils.LogInfo("ProviderResolver: Explicit provider execution succeeded | macAddress=%s | provider=%s | selection_mode=%s | duration_ms=%d",
+					macAddress, resolved.ProviderName, resolved.SelectionMode, attemptDuration.Milliseconds())
 			} else {
 				if r.healthAwareResolver != nil {
 					r.healthAwareResolver.RecordFailure(resolved.ProviderName)
@@ -428,10 +517,6 @@ func (r *providerResolverImpl) ExecuteWithFallbackByMac(macAddress string, execu
 			}
 			return err
 		}
-
-		// Not explicit (default fallback): proceed with health-aware fallback chain
-		utils.LogDebug("ProviderResolver: Using default provider for MAC %s, proceeding with health-aware fallback", macAddress)
-		return r.ExecuteWithFallback(executable)
 	}
 
 	// No valid provider from terminal, use health-aware fallback
@@ -441,6 +526,82 @@ func (r *providerResolverImpl) ExecuteWithFallbackByMac(macAddress string, execu
 // GetHealthAwareResolver returns the health-aware resolver for candidate-based selection
 func (r *providerResolverImpl) GetHealthAwareResolver() HealthAwareResolver {
 	return r.healthAwareResolver
+}
+
+// ExecuteWithCandidateFallback executes an operation with a bounded candidate list using health-aware scoring.
+// It does not fall outside the provided candidate list regardless of global fallback settings.
+func (r *providerResolverImpl) ExecuteWithCandidateFallback(candidates []string, executable func(resolvedSet *ResolvedProviderSet) error) error {
+	if len(candidates) == 0 {
+		return fmt.Errorf("no candidates provided for bounded fallback")
+	}
+
+	// Filter candidates to those with configured API keys; sort by health score if available.
+	configured := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		if r.isProviderConfigured(c) {
+			configured = append(configured, c)
+		} else {
+			utils.LogDebug("ProviderResolver: ExecuteWithCandidateFallback skipping unconfigured candidate %s", c)
+		}
+	}
+	
+	if len(configured) == 0 {
+		return fmt.Errorf("no configured providers available for requested engine profile")
+	}
+
+	eligible := make([]string, 0, len(configured))
+	healthResolver := r.healthAwareResolver
+	for _, c := range configured {
+		if healthResolver != nil && !healthResolver.IsProviderHealthy(c) {
+			utils.LogDebug("ProviderResolver: ExecuteWithCandidateFallback skipping unhealthy candidate %s", c)
+			continue
+		}
+		eligible = append(eligible, c)
+	}
+	if len(eligible) == 0 {
+		// All configured candidates in cooldown — retry with full configured list rather than silently failing
+		utils.LogWarn("ProviderResolver: All configured bounded candidates unhealthy, retrying with full configured list: %v", configured)
+		eligible = configured
+	}
+
+	var lastErr error
+	attemptedProviders := make([]string, 0, len(eligible))
+
+	for _, provider := range eligible {
+		attemptedProviders = append(attemptedProviders, provider)
+
+		providerSet := r.ResolveProvider(provider)
+		if providerSet == nil || providerSet.LLM == nil {
+			utils.LogWarn("ProviderResolver: ExecuteWithCandidateFallback: no client for candidate %s, skipping", provider)
+			continue
+		}
+
+		attemptStart := time.Now()
+		err := executable(providerSet)
+		attemptDuration := time.Since(attemptStart)
+
+		if err == nil {
+			if healthResolver != nil {
+				healthResolver.RecordSuccess(provider, attemptDuration.Milliseconds())
+			}
+			utils.LogInfo("ProviderResolver: ExecuteWithCandidateFallback succeeded | provider=%s | duration_ms=%d | attempts=%d | providers_tried=%v",
+				provider, attemptDuration.Milliseconds(), len(attemptedProviders), attemptedProviders)
+			return nil
+		}
+
+		if healthResolver != nil {
+			healthResolver.RecordFailure(provider)
+		}
+		lastErr = err
+		utils.LogWarn("ProviderResolver: ExecuteWithCandidateFallback candidate %s failed (attempt %d/%d): %v",
+			provider, len(attemptedProviders), len(eligible), err)
+	}
+
+	utils.LogError("ProviderResolver: ExecuteWithCandidateFallback all candidates failed | providers_tried=%v | last_error=%v", attemptedProviders, lastErr)
+	if lastErr != nil {
+		return fmt.Errorf("all bounded candidates failed, last error: %w", lastErr)
+	}
+	return fmt.Errorf("all bounded candidates failed")
 }
 
 // GetProviderServices returns all available provider services for initialization
@@ -484,4 +645,8 @@ func ValidateProviderConfig(provider string, cfg *utils.Config) error {
 	}
 
 	return nil
+}
+
+func (r *providerResolverImpl) isProviderConfigured(provider string) bool {
+	return ValidateProviderConfig(provider, r.config) == nil
 }
