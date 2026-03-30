@@ -382,6 +382,186 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing device's details by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Update a device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated device data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateDeviceRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.UpdateDeviceRequestDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/devices/{id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the status value for a specific device by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Update device status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated status data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateDeviceStatusRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.DeviceStatusResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.UpdateDeviceStatusRequestDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/api/devices/{id}/statuses": {
@@ -2359,6 +2539,98 @@ const docTemplate = `{
                     }
                 }
             },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing terminal record's metadata by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Update a terminal",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated terminal data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateTerminalRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.StandardResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.TerminalResponseDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dtos.ValidationErrorResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dtos.UpdateTerminalRequestDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -4220,6 +4492,9 @@ const docTemplate = `{
                 "expires_in_seconds": {
                     "type": "integer"
                 },
+                "mac_address": {
+                    "type": "string"
+                },
                 "result": {
                     "$ref": "#/definitions/dtos.AsyncTranscriptionResultDTO"
                 },
@@ -4580,7 +4855,7 @@ const docTemplate = `{
                         "type": "string"
                     },
                     "example": [
-                        "[\"users/AA:BB:CC:DD:EE:FF/notification\"]"
+                        "[\"users/AA:BB:CC:DD:EE:FF/dev/notification\"]"
                     ]
                 },
                 "room_id": {
@@ -4667,7 +4942,9 @@ const docTemplate = `{
                     "example": "Nyalakan AC"
                 },
                 "request_id": {
-                    "type": "string"
+                    "description": "RequestID is a unique identifier for cross-channel idempotency.\nWhen the same request_id is sent via both HTTP and MQTT channels,\nonly ONE Tuya command execution will occur. The second channel will\nreturn either a \"processing\" acknowledgment (if first request is still\nin progress) or the cached response (if first request completed).\nClient should generate a UUID per user interaction and use it for both\nHTTP and MQTT dispatch to prevent duplicate device control.",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "terminal_id": {
                     "type": "string",
@@ -4697,14 +4974,14 @@ const docTemplate = `{
                     "$ref": "#/definitions/dtos.RedirectDTO"
                 },
                 "request_id": {
-                    "description": "Tracking ID",
+                    "description": "Tracking ID (echoes request_id from request)",
                     "type": "string"
                 },
                 "response": {
                     "type": "string"
                 },
                 "source": {
-                    "description": "e.g., \"MQTT\", \"HTTP\"",
+                    "description": "Response source: \"HTTP_HANDLER\", \"MQTT_SUBSCRIBER\", \"IDEMPOTENCY_CACHED\", \"IDEMPOTENCY_IN_PROGRESS\", \"MQTT_SYNC_DROP\"",
                     "type": "string"
                 }
             }
@@ -4769,13 +5046,16 @@ const docTemplate = `{
             ],
             "properties": {
                 "language": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "id"
                 },
                 "mac_address": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "AA:BB:CC:DD:EE:FF"
                 },
                 "text": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Ini adalah transkrip panjang dari rapat teknis..."
                 }
             }
         },
@@ -5141,17 +5421,7 @@ const docTemplate = `{
             }
         },
         "dtos.TuyaCommandDTO": {
-            "type": "object",
-            "required": [
-                "code",
-                "value"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "value": {}
-            }
+            "type": "object"
         },
         "dtos.TuyaDeviceDTO": {
             "type": "object",
@@ -5269,15 +5539,30 @@ const docTemplate = `{
             ],
             "properties": {
                 "code": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "temp"
                 },
                 "remote_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "ir-remote-001"
                 },
                 "value": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 24
                 }
             }
+        },
+        "dtos.UpdateDeviceRequestDTO": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "Updated Device Name"
+                }
+            }
+        },
+        "dtos.UpdateDeviceStatusRequestDTO": {
+            "type": "object"
         },
         "dtos.UpdateSceneRequestDTO": {
             "type": "object",
@@ -5292,7 +5577,33 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Evening Mode"
+                }
+            }
+        },
+        "dtos.UpdateTerminalRequestDTO": {
+            "type": "object",
+            "properties": {
+                "ai_provider": {
+                    "type": "string",
+                    "example": "openai"
+                },
+                "device_type_id": {
+                    "type": "string",
+                    "example": "hub-type-002"
+                },
+                "mac_address": {
+                    "type": "string",
+                    "example": "AA:BB:CC:DD:EE:FF"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Updated Hub Name"
+                },
+                "room_id": {
+                    "type": "string",
+                    "example": "room-456"
                 }
             }
         },

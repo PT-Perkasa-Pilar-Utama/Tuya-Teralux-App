@@ -46,7 +46,7 @@ func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *
 
 func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, prompt string) (*dtos.ControlResultDTO, error) {
 	ucStart := time.Now()
-	
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -59,32 +59,15 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 		return nil, fmt.Errorf("control skill not configured")
 	}
 
-	// Resolve provider based on terminal ID
-	providerStart := time.Now()
-	llmClient := u.llm
-	fallbackClient := u.fallbackLLM
-	if u.providerResolver != nil && terminalID != "" {
-		resolveStart := time.Now()
-		resolved, err := u.providerResolver.ResolveByTerminalID(terminalID)
-		resolveDuration := time.Since(resolveStart)
-		
-		if err != nil {
-			utils.LogWarn("ControlUseCase: Provider resolution failed for terminal %s | duration_ms=%d | error=%v, using default", terminalID, resolveDuration.Milliseconds(), err)
-		} else {
-			llmClient = resolved.LLM
-			fallbackClient = resolved.FallbackLLM
-			utils.LogInfo("ControlUseCase: Using terminal-specific provider '%s' for terminal %s | resolution_duration_ms=%d", resolved.ProviderName, terminalID, resolveDuration.Milliseconds())
-		}
-	}
-	providerDuration := time.Since(providerStart)
-	utils.LogDebug("ControlUseCase: Provider resolution completed | terminalID=%s | duration_ms=%d", terminalID, providerDuration.Milliseconds())
+	// Provider resolution is handled by FallbackOrchestrator
+	providerDuration := time.Millisecond * 0
 
 	skillCtx := &skills.SkillContext{
 		Ctx:        ctx,
 		UID:        uid,
 		TerminalID: terminalID,
 		Prompt:     prompt,
-		LLM:        llmClient,
+		LLM:        u.llm, // Initialized with default, overridden by executeSkillWithFallback
 		Config:     u.config,
 		Vector:     u.vector,
 		Badger:     u.badger,
@@ -108,24 +91,10 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 
 	// Execute skill (LLM call happens here)
 	skillStart := time.Now()
-	res, err := u.skill.Execute(skillCtx)
+	res, err := u.executeSkillWithFallback(ctx, skillCtx)
 	skillDuration := time.Since(skillStart)
-	
+
 	utils.LogDebug("ControlUseCase: Skill.Execute completed | duration_ms=%d | err=%v", skillDuration.Milliseconds(), err)
-	
-	if err != nil && fallbackClient != nil {
-		utils.LogWarn("Control: Primary LLM failed | duration_ms=%d | error=%v, falling back to local model", skillDuration.Milliseconds(), err)
-		fallbackStart := time.Now()
-		skillCtx.LLM = fallbackClient
-		res, err = u.skill.Execute(skillCtx)
-		fallbackDuration := time.Since(fallbackStart)
-		
-		if err == nil {
-			utils.LogInfo("Control: Fallback LLM succeeded | fallback_duration_ms=%d", fallbackDuration.Milliseconds())
-		} else {
-			utils.LogWarn("Control: Fallback LLM also failed | fallback_duration_ms=%d | error=%v", fallbackDuration.Milliseconds(), err)
-		}
-	}
 
 	if err != nil {
 		totalDuration := time.Since(ucStart)
@@ -141,7 +110,7 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 	}
 
 	totalDuration := time.Since(ucStart)
-	utils.LogInfo("ControlUseCase: ProcessControl completed | terminalID=%s | provider_duration_ms=%d | history_duration_ms=%d | skill_duration_ms=%d | total_duration_ms=%d | deviceID=%s", 
+	utils.LogInfo("ControlUseCase: ProcessControl completed | terminalID=%s | provider_duration_ms=%d | history_duration_ms=%d | skill_duration_ms=%d | total_duration_ms=%d | deviceID=%s",
 		terminalID, providerDuration.Milliseconds(), historyDuration.Milliseconds(), skillDuration.Milliseconds(), totalDuration.Milliseconds(), deviceID)
 
 	return &dtos.ControlResultDTO{
@@ -150,4 +119,34 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 		HTTPStatusCode: res.HTTPStatusCode,
 	}, nil
 
+}
+
+// executeSkillWithFallback executes the skill with health-aware remote provider fallback
+func (u *controlUseCase) executeSkillWithFallback(ctx context.Context, skillCtx *skills.SkillContext) (*skills.SkillResult, error) {
+	var result *skills.SkillResult
+	var err error
+
+	if skillCtx.TerminalID != "" {
+		// Use terminal-specific provider preference
+		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx.LLM = resolvedSet.LLM
+			res, execErr := u.skill.Execute(skillCtx)
+			if execErr == nil {
+				result = res
+			}
+			return execErr
+		})
+	} else {
+		// Use standard health-aware fallback
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx.LLM = resolvedSet.LLM
+			res, execErr := u.skill.Execute(skillCtx)
+			if execErr == nil {
+				result = res
+			}
+			return execErr
+		})
+	}
+
+	return result, err
 }

@@ -51,42 +51,51 @@ func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLa
 		return "", fmt.Errorf("translation skill not configured")
 	}
 
-	// Resolve provider based on macAddress if provided
-	llmClient := u.llm
-	fallbackClient := u.fallbackLLM
-	if u.providerResolver != nil && len(args) > 0 && args[0] != "" {
+	// Use centralized health-aware fallback chain with terminal preference if macAddress provided
+	var result string
+	var err error
+
+	if len(args) > 0 && args[0] != "" {
+		// Use terminal-specific provider preference
 		macAddress := args[0]
-		resolved, err := u.providerResolver.ResolveByMacAddress(macAddress)
-		if err != nil {
-			utils.LogWarn("TranslateUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
-		} else {
-			llmClient = resolved.LLM
-			fallbackClient = resolved.FallbackLLM
-			utils.LogInfo("TranslateUseCase: Using terminal-specific provider '%s' for MAC %s", resolved.ProviderName, macAddress)
-		}
-	}
-
-	skillCtx := &skills.SkillContext{
-		Ctx:      ctx,
-		Prompt:   text,
-		Language: targetLang,
-		LLM:      llmClient,
-		Config:   u.config,
-	}
-
-	res, err := u.skill.Execute(skillCtx)
-	if err != nil && fallbackClient != nil {
-		utils.LogWarn("Translate: Primary LLM failed, falling back to local model: %v", err)
-		skillCtx.LLM = fallbackClient
-		res, err = u.skill.Execute(skillCtx)
+		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx := &skills.SkillContext{
+				Ctx:      ctx,
+				Prompt:   text,
+				Language: targetLang,
+				LLM:      resolvedSet.LLM,
+				Config:   u.config,
+			}
+			res, execErr := u.skill.Execute(skillCtx)
+			if execErr == nil {
+				result = res.Message
+			}
+			return execErr
+		})
+	} else {
+		// Use standard health-aware fallback
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx := &skills.SkillContext{
+				Ctx:      ctx,
+				Prompt:   text,
+				Language: targetLang,
+				LLM:      resolvedSet.LLM,
+				Config:   u.config,
+			}
+			res, execErr := u.skill.Execute(skillCtx)
+			if execErr == nil {
+				result = res.Message
+			}
+			return execErr
+		})
 	}
 
 	if err != nil {
 		return "", err
 	}
 
-	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, res.Message, targetLang)
-	return res.Message, nil
+	utils.LogDebug("RAG Translate: original='%s', translated='%s', target='%s'", text, result, targetLang)
+	return result, nil
 }
 
 func (u *translateUseCase) TranslateTextSync(ctx context.Context, text, targetLang string, args ...string) (string, error) {

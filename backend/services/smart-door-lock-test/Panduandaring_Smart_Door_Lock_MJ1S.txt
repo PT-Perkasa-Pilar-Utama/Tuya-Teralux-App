@@ -1,0 +1,615 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Smart Door Lock Tuya App WiFi WeChat Fingerprint Password</title>
+<meta name="Creator" content="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/146.0.0.0 Safari/537.36"/>
+<meta name="Producer" content="Skia/PDF m146"/>
+<meta name="CreationDate" content="2026-03-26T07:15:55Z"/>
+<meta name="ModDate" content="2026-03-26T07:15:55Z"/>
+</head>
+<body>
+<pre>
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+PANDUAN PENGGUNAAN
+
+Smart Door Lock Tuya App WiFi WeChat
+Fingerprint Password
+
+REFINE Smart Door Lock Tuya App WiFi Fingerprint Password - MJ1S
+
+OEM
+
+7RHT57BK
+
+Pengenalan produk
+
+https://www.panduandaring.com/p/r4p91r
+
+1/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+(1) Kompartemen baterai
+(2) Gagang pintu bagian dalam
+(3) Kenop kunci manual
+(4) Panel dan area sensor kartu
+(5) Area sensor sidik jari
+(6) Gagang pintu bagian luar
+(7) Slot kunci darurat dan Port USB (untuk daya darurat)
+Untuk membuka penutupnya, tekan sisi kiri penutup lalu cungkil sisi kanan penutup.
+
+Petunjuk penggunaan
+Informasi
+1. Kata sandi default adalah 123456.
+2. Tombol # berfungsi untuk konfirmasi atau masuk ke tombol fungsi menu.
+3. Tombol * berfungsi untuk menghapus atau kembali ke menu sebelumnya.
+4. Tekan tombol * + # untuk masuk ke mode administrator.
+5. Setelah menambahkan kata sandi administrator, kata sandi 123456 akan terhapus secara otomatis.
+6. Tekan tombol # untuk membunyikan bel.
+https://www.panduandaring.com/p/r4p91r
+
+2/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Pemasangan Baterai
+1. Tekan tombol Press pada panel pintu bagian dalam untuk membuka kompartemen baterai.
+2. Pasang 4 baterai jenis AA ke dalam kompartemen baterai dan pastikan polaritas baterai telah terpasang dengan
+benar.
+3. Pasang kembali penutup kompartemen baterai.
+
+Menghubungkan Kabel
+Hubungkan kabel pada pintu bagian luar dengan kabel daya pada pintu bagian dalam dengan cara sejajarkan alur,
+kemudian pintu akan secara otomatis menyala dan siap dioperasikan.
+
+Mengubah Arah Gagang Pintu
+
+https://www.panduandaring.com/p/r4p91r
+
+3/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Anda dapat mengubah arah gagang pintu bagian dalam dan luar dengan mengikuti langkah berikut:
+
+1) Mengubah Arah Gagang Pintu Bagian Luar
+
+1. Posisikan pintu bagian luar secara terbalik seperti ilustrasi pada gambar di atas, kemudian putar gagang ke arah
+yang Anda inginkan.
+2. Tempatkan 1 baut ke dalam lubang yang ditunjuk arah panah.
+Catatan: Baut termasuk dalam kelengkapan aksesori yang Anda dapatkan.
+
+3. Kencangkan baut menggunakan obeng (obeng tidak termasuk dalam paket pembelian) hingga terpasang erat.
+
+Pengoperasian Awal
+1. Setelah pintu dihubungkan ke daya, tekan tombol * + # untuk masuk ke mode manajemen.
+2. Masukkan kata sandi administrasi default yaitu 123456, kemudian pintu akan masuk ke mode manajemen. Pada
+saat ini, segera daftarkan kata sandi administrasi.
+
+Menu Utama
+Setelah masuk ke menu utama, pintu akan membunyikan menu, yaitu:
+1. Add user
+
+Berfungsi untuk menambahkan kata sandi administrasi dan pengguna umum.
+2. Delete user
+
+Berfungsi untuk menghapus kata sandi administrasi dan pengguna umum.
+3. System settings
+
+Berfungsi untuk melakukan pengaturan sistem pada pintu.
+
+https://www.panduandaring.com/p/r4p91r
+
+4/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+4. Data statistic and records
+
+Berfungsi untuk melihat riwayat akses pintu.
+
+Manajemen Administrator
+1) Menambahkan Kata Sandi Administrator
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen. Selanjutnya
+masukkan kata sandi administrasi default yaitu 123456.
+2. Tekan tombol 1 untuk masuk ke menu penambahan pengguna.
+3. Tekan tombol 1 untuk masuk ke mode administrator.
+4. Tekan tombol 1 lagi untuk masuk ke pengaturan kata sandi.
+5. Daftarkan kata sandi administrator dengan memasukkan 6 digit angka (misalnya, 232323), kemudian tekan tombol
+# untuk konfirmasi.
+6. Masukkan ulang kata sandi administrator tadi, kemudian tekan tombol # untuk konfirmasi.
+7. Setelah berhasil menambahkan kata sandi administrator, prompt suara berbunyi "Add successful".
+Catatan: Setelah mengganti kata sandi informasi administrator, kata sandi bawaan 123456 akan terhapus secara
+
+otomatis.
+
+2) Menambahkan Sidik Jari Administrator
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 1 untuk masuk ke menu penambahan pengguna.
+3. Tekan tombol 1 untuk masuk ke mode administrator.
+4. Tekan tombol 1 lagi untuk masuk ke pengaturan kata sandi.
+5. Tempelkan sidik jari sebanyak 7 kali pada area lingkaran yang menyala di engsel pintu dan ikuti instruksi prompt
+suara yang berbunyi.
+6. Setelah berhasil menambahkan sidik jari administrator, prompt suara berbunyi "Add successful".
+Catatan: Setelah menambahkan sidik jari administrator, kata sandi bawaan 123456 akan terhapus secara otomatis.
+
+Manajemen Pengguna
+1) Menambahkan Kata Sandi Pengguna
+
+https://www.panduandaring.com/p/r4p91r
+
+5/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Peringatan: Kata sandi administrator harus ditambahkan terlebih dahulu sebelum menambahkan kata sandi
+pengguna!
+
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen, lalu masukkan
+kata sandi administrasi.
+2. Tekan tombol 1 untuk masuk ke menu penambahan pengguna.
+3. Tekan tombol 2 untuk masuk ke mode pengguna.
+4. Tekan tombol 1 untuk masuk ke pengaturan kata sandi.
+5. Daftarkan kata sandi pengguna dengan memasukkan 6 digit angka (misalnya, 898989), kemudian tekan tombol #
+untuk konfirmasi.
+6. Masukkan ulang kata sandi administrator tadi, kemudian tekan tombol # untuk konfirmasi.
+7. Setelah berhasil menambahkan kata sandi pengguna, prompt suara berbunyi "Add successful".
+
+2) Menambahkan Sidik Jari Pengguna
+Peringatan: Kata sandi administrator harus ditambahkan terlebih dahulu sebelum menambahkan sidik jari pengguna!
+
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen, lalu masukkan
+kata sandi administrasi.
+2. Tekan tombol 1 untuk masuk ke menu penambahan pengguna.
+3. Tekan tombol 2 untuk masuk ke mode pengguna.
+4. Tekan tombol 1 untuk masuk ke pengaturan kata sandi.
+5. Tempelkan sidik jari sebanyak 7 kali pada area lingkaran yang menyala di engsel pintu dan ikuti instruksi prompt
+suara yang berbunyi.
+6. Setelah berhasil menambahkan sidik jari administrator, prompt suara berbunyi "Add successful".
+
+3) Menambahkan Kartu Pengguna
+Peringatan: Kata sandi administrator harus ditambahkan terlebih dahulu sebelum menambahkan kartu pengguna.
+
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen, lalu masukkan
+kata sandi administrasi.
+2. Tekan tombol 1 untuk masuk ke menu penambahan pengguna.
+3. Tekan tombol 2 untuk masuk ke mode pengguna.
+4. Tekan tombol 1 untuk masuk ke pengaturan kata sandi.
+
+https://www.panduandaring.com/p/r4p91r
+
+6/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+5. Tempelkan kartu pada area panel dan ikuti instruksi prompt suara yang berbunyi.
+6. Setelah berhasil menambahkan sidik jari administrator, prompt suara berbunyi "Add successful".
+
+Menghapus Kata Sandi
+1) Menghapus Kata Sandi, Sidik Jari, atau Kartu Administrator
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 2 untuk masuk ke menu menghapus pengguna.
+3. Tekan tombol 1 untuk masuk ke mode hapus.
+4. Masukkan kata sandi, sidik jari, atau kartu administrasi yang ingin dihapus.
+5. Tekan tombol # untuk konfirmasi.
+6. Setelah berhasil terhapus, prompt suara berbunyi "Delete successful".
+
+2) Menghapus Kata Sandi, Sidik Jari, atau Kartu Pengguna
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 2 untuk masuk ke menu menghapus pengguna.
+3. Tekan tombol 1 untuk masuk ke mode hapus.
+4. Masukkan kata sandi, sidik jari, atau kartu pengguna yang ingin dihapus.
+5. Tekan tombol # untuk konfirmasi.
+6. Setelah berhasil terhapus, prompt suara berbunyi "Delete successful".
+
+Pengaturan Sistem
+1) Pengaturan Tanggal dan Waktu
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 1 untuk masuk ke pengaturan tanggal dan waktu.
+4. Ikuti instruksi sesuai dengan prompt yang berbunyi. Urutan pengaturannya, yaitu tahun – bulan – tanggal – jam –
+menit.
+5. Setelah memasukkan angka pada masing-masing kategori, tekan tombol # untuk konfirmasi.
+https://www.panduandaring.com/p/r4p91r
+
+7/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+6. Setelah pengaturan berhasil, prompt suara berbunyi "Successful".
+
+2) Pengaturan Pemasangan
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 2 untuk masuk ke pengaturan buka pintu.
+4. Tekan tombol 1 untuk mengaktifkan mode buka pintu normal atau normal open set. Saat mode ini diaktifkan, pintu
+akan terus terbuka dan tidak terkunci untuk sementara waktu. Selanjutnya prompt suara berbunyi "Door open".
+5. Mode ini secara otomatis akan mati setelah Anda mengunci pintu dengan kata sandi, sidik jari, atau kartu.
+
+3) Pengaturan Fungsi
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 3 untuk masuk ke pengaturan fungsi.
+4. Pengaturan fungsi memiliki beberapa kategori pengaturan, yaitu; pengaturan volume, pengaturan tuas, dan
+pengaturan bahasa.
+
+a. Pengaturan Volume
+
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 3 lagi untuk masuk ke pengaturan fungsi.
+4. Tekan tombol 2 untuk masuk ke pengaturan volume.
+5. Selanjutnya prompt suara akan berbunyi "High voice", lalu tekan tombol 2 secara berturut-turut untuk mengubah
+volume suara dengan urutan; maksimum (high voice) – mati (pintu tidak berbunyi) – minimum (low voice).
+6. Tekan tombol * untuk kembali dan menyimpan pengaturan.
+
+b. Pengaturan Tuas
+
+Pengaturan ini berfungsi untuk menentukan tuas pintu bisa digunakan untuk membuka kunci dari dalam tanpa perlu
+verifikasi atau tidak.
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+
+https://www.panduandaring.com/p/r4p91r
+
+8/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 3 untuk masuk ke pengaturan fungsi.
+4. Tekan tombol 3 lagi untuk masuk ke pengaturan tuas, lalu prompt suara akan berbunyi "Lever disable" (nonaktif).
+Tekan tombol 3 lagi untuk mengaktifkannya lagi, lalu prompt suara akan berbunyi "Lever enable" (aktif).
+Saat fungsi ini diaktifkan, tuas pintu bisa langsung diputar dari dalam untuk membuka pintu, cocok untuk keadaan
+darurat agar orang mudah keluar.
+Saat fungsi ini dinonaktifkan, tuas pintu akan dikunci. Jadi meskipun dari dalam, pengguna tetap harus menggunakan
+sidik jari, kata sandi, atau kartu untuk membuka pintu. Hal ini untuk keamanan ekstra, misalnya agar anak kecil tidak
+asal buka pintu.
+5. Tekan tombol * untuk kembali ke menu sebelumnya.
+
+c. Pengaturan Bahasa
+
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 3 untuk masuk ke pengaturan fungsi.
+4. Tekan tombol 4 untuk masuk ke pengaturan bahasa.
+5. Tekan tombol 4 secara berturut-turut untuk mengubah bahasa sesuai kebutuhan dengan urutan; Rusia – Mandarin
+– Inggris.
+6. Tekan tombol * untuk kembali ke menu sebelumnya.
+
+Reset
+1) Dengan Panel
+Berfungsi untuk mengembalikan semua pengaturan ke pengaturan pabrik.
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen.
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 4 untuk masuk ke pengaturan fungsi.
+4. Selanjutnya prompt suara akan berbunyi "Restore factory settings, please confirm key".
+5. Tekan tombol # untuk konfirmasi dan tunggu beberapa saat.
+
+2) Dengan Tombol
+https://www.panduandaring.com/p/r4p91r
+
+9/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+1. Terdapat tombol reset di bagian belakang panel pintu yang terletak di bagian dalam kompartemen baterai.
+2. Tekan dan tahan tombol reset tersebut selama 7 detik hingga prompt suara berbunyi "Restore factory settings,
+please confirm key". Selanjutnya tekan tombol # untuk konfirmasi.
+3. Prompt suara akan berbunyi "Successful" yang menandakan pengaturan telah direset ke pengaturan pabrik.
+
+Data dan Statistik Histori
+Menu ini berfungsi untuk mengetahui data metode yang terdaftar dan riwayat akses.
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen. Selanjutnya
+masukkan kata sandi administrasi default yaitu 123456.
+2. Tekan tombol 4 untuk masuk ke menu data dan catatan statistik.
+Tekan tombol 1 untuk masuk ke menu statistik administrator.
+Tekan tombol 2 untuk masuk ke menu statistik pengguna.
+Tekan tombol 3 untuk masuk ke menu statistik histori.
+3. Setelah memilih menu, sistem akan membacakan data.
+
+Suplai Daya Darurat
+1. Saat daya baterai habis dan tidak terdapat kunci, Anda dapat menghubungkan suplai daya eksternal untuk
+membuka pintu.
+2. Buka penutup di bagian bawah pintu bagian luar dengan cara mencungkilnya.
+3. Colok kabel USB ke port USB Type–C, kemudian hubungkan ujung kabel lainnya ke stopkontak menggunakan
+adaptor daya.
+4. Selanjutnya pintu akan langsung menyala.
+Catatan: Disarankan untuk menggunakan suplai daya dengan output arus 2 A atau di atasnya.
+
+https://www.panduandaring.com/p/r4p91r
+
+10/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Unduh Aplikasi Tuya atau Smart Life
+1. Pindai kode QR berikut untuk unduh aplikasi Tuya atau Smart Life atau unduh di App Store (iOS) dan Play Store
+(Android) dengan kata kunci pencarian Tuya Smart atau Smart Life.
+
+2. Buat akun dan masukkan informasi data yang dibutuhkan. Tidak disarankan menggunakan mode Guest karena
+tidak dapat mengoperasikan semua menu dengan optimal.
+
+Menghubungkan Pintu ke Aplikasi Tuya atau Smart Life
+Pastikan fungsi Bluetooth dan Wi–Fi pada ponsel telah aktif. Langkah penggunaan dan User Interface aplikasi Tuya
+dan Smart Life sama, jadi Anda dapat memilih salah satunya saja.
+
+1. Usap panel untuk menyalakan panel, lalu tekan tombol * dan # untuk masuk ke mode manajemen. Masukkan kata
+sandi administrasi.
+2. Tekan tombol 3 untuk masuk ke menu pengaturan sistem.
+3. Tekan tombol 3 untuk masuk ke pengaturan fungsi.
+4. Tekan tombol 1 untuk masuk ke pengaturan jaringan. Selanjutnya prompt suara akan berbunyi "Connecting
+gateway" dan berbunyi beep-beep selama proses pencarian aplikasi.
+
+➕
+
+5. Buka aplikasi. Pada halaman utama, tekan tombol
+di pojok kanan atas, lalu klik Add Device untuk menambahkan
+aplikasi. Pastikan ponsel diletakkan sedekat mungkin dengan pintu.
+
+https://www.panduandaring.com/p/r4p91r
+
+11/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+6. Tunggu beberapa saat. Selanjutnya akan muncul perangkat dengan nama U688S-WiFi-Pro. Pilih perangkat tersebut
+untuk menghubungkan pintu ke aplikasi.
+
+7. Masukkan Wi–Fi dan kata sandi yang sesuai, lalu klik Next. Pastikan Wi–Fi memiliki koneksi 2.4 GHz.
+
+8. Tunggu beberapa saat hingga aplikasi berhasil menambahkan perangkat. Setelah berhasil, akan muncul indikator
+"Added successfully" di aplikasi.
+
+https://www.panduandaring.com/p/r4p91r
+
+12/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+9. Aplikasi hanya dapat digunakan untuk menambahkan kata sandi sementara dan membuka kunci hanya saat tombol
+bel ditekan. Jika bel tidak ditekan, pintu tidak dapat digunakan untuk membuka atau mengunci pintu dari jarak jauh.
+
+10. Saat bel pada pintu dibunyikan atau pintu terbuka, notifikasi akan muncul di aplikasi.
+
+Catatan:
+• Aplikasi dan pintu memungkinkan penggunaan jarak jauh menggunakan koneksi internet perangkat yang Anda
+gunakan tetapi hanya untuk membuka pintu saat tombol bel ditekan. Pastikan produk selalu terhubung dengan
+jaringan Wi–Fi yang stabil untuk memastikan kinerja normal pengoperasian.
+• Penggunaan fungsi Bluetooth dan Wi–Fi pada produk hanya untuk melakukan pemasangan awal. Penggunaan
+selanjutnya pintu hanya membutuhkan jaringan Wi–Fi yang stabil.
+
+https://www.panduandaring.com/p/r4p91r
+
+13/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Menambahkan Kata Sandi Sementara dengan Aplikasi
+Pada halaman Home, klik Temporary Password. Selanjutnya pilih jenis kata sandi sesuai kebutuhan. Aplikasi hanya
+dapat digunakan untuk menambahkan kata sandi sementara berupa PIN saja (tidak dapat berupa kartu dan sidik jari).
+
+1) Online Password
+Kata sandi ini dapat digunakan saat koneksi Wi–Fi atau internet Anda stabil.
+a. Time-Limited Password
+
+Merupakan kata sandi yang hanya berlaku dalam batasan waktu tertentu, rentang waktu tersebut dapat langsung
+diatur oleh pengguna. Setelah melewati batas waktu yang telah diatur, kata sandi tersebut tidak dapat digunakan lagi.
+Berikut langkahnya:
+1. Klik Time-Limited Password.
+2. Klik Add.
+3. Masukkan kata sandi sebanyak 7 digit sesuai keinginan Anda di kolom kata sandi. Anda juga dapat memasukkan
+kata sandi random yang akan diatur oleh sistem aplikasi dengan klik Generate Randomly.
+4. Masukkan nama kata sandi di kolom Password Name.
+5. Masukkan waktu mulai kata sandi berlaku di kolom Effective Time, atur waktu sesuai kebutuhan lalu klik OK.
+6. Masukkan waktu berakhirnya kata sandi di kolom Expiration Time, atur waktu sesuai kebutuhan lalu klik OK.
+7. Aktifkan mode Repeat jika ingin mengulang kata sandi sementara ini dalam waktu yang akan datang. Jika tidak
+diperlukan, mode dapat dinonaktifkan.
+https://www.panduandaring.com/p/r4p91r
+
+14/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+8. Setelah selesai pengaturan, klik Save di pojok kanan atas. Simpan kata sandi atau lakukan screenshot agar Anda
+tidak lupa karena aplikasi tidak akan menampilkan kata sandi ini lagi.
+
+2) Offline Password
+Kata sandi ini disarankan untuk digunakan saat koneksi Wi–Fi atau internet Anda tidak stabil.
+a. One-Time Password
+
+Merupakan kata sandi yang hanya berlaku pada saat itu saja setelah melakukan pengaturan. Durasi kata sandi ini
+berlaku selama 6 jam dan hanya dapat digunakan sebelum kata sandi kedaluwarsa. Setelah 6 jam, kata sandi tidak
+dapat digunakan lagi. Berikut langkahnya:
+1. Klik One-Time Password.
+2. Klik Add atau ikon
+
+➕ di pojok kanan atas.
+
+3. Klik Obtain Password untuk menampilkan kata sandi yang dihasilkan dari aplikasi. Setelah kata sandi muncul,
+simpan kata sandi atau lakukan screenshot agar Anda tidak lupa karena aplikasi tidak akan menampilkan kata sandi
+ini lagi.
+4. Selanjutnya klik Done.
+
+https://www.panduandaring.com/p/r4p91r
+
+15/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+b. Time-Limited Password
+
+Merupakan kata sandi yang hanya berlaku dalam batasan waktu tertentu, rentang waktu tersebut dapat langsung
+diatur oleh pengguna. Setelah melewati batas waktu yang telah diatur, kata sandi tersebut tidak dapat digunakan lagi.
+Berikut langkahnya:
+1. Klik Time-Limited Password.
+2. Klik Add.
+3. Masukkan waktu mulai kata sandi berlaku di kolom Effective Time, atur waktu sesuai kebutuhan lalu klik OK.
+4. Masukkan waktu berakhirnya kata sandi di kolom Expiration Time, atur waktu sesuai kebutuhan lalu klik OK.
+5. Klik Obtain Password untuk menampilkan kata sandi yang dihasilkan dari aplikasi. Setelah muncul, simpan kata
+sandi atau lakukan screenshot agar Anda tidak lupa karena aplikasi tidak akan menampilkan kata sandi ini lagi.
+6. Klik Done.
+
+Menambahkan Pengguna Lain
+1. Pada antarmuka Home, pilih Member Management untuk menambahkan pengguna lain.
+2. Pilih simbol
+
+➕ yang ada di pojok kanan atas untuk memilih Family Member atau Other Member.
+
+Catatan: Pengguna lain harus memiliki aplikasi yang sama dengan yang Anda gunakan (Tuya Smart atau Smart Life).
+
+https://www.panduandaring.com/p/r4p91r
+
+16/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Membuka Pintu dengan Aplikasi
+Ingat! Pintu dapat dibuka dengan aplikasi dari jarak jauh HANYA saat tombol bel pada pintu ditekan.
+
+1. Saat tombol bel ditekan, bel akan berbunyi dan notifikasi ada pengunjung akan muncul di bar notifikasi ponsel Anda.
+
+2. Buka halaman Home. Notifikasi buka pintu akan muncul secara otomatis selama 60 detik.
+Selanjutnya geser ikon kunci ke kanan untuk membuka pintu atau geser ikon kunci ke kiri untuk menolak membuka
+pintu. Notifikasi ini hanya muncul selama 60 detik, oleh karena itu, segera buka halaman Home aplikasi segera setelah
+bel berbunyi.
+
+https://www.panduandaring.com/p/r4p91r
+
+17/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Menghapus Koneksi Aplikasi dan Pintu
+1. Pada halaman Home, klik ikon edit di pojok kanan atas.
+
+2. Klik opsi Remove Device pada bagian bawah aplikasi. Selanjutnya klik Remove untuk menghapus aplikasi tanpa
+menghapus data, klik Remove and Clear Data untuk menghapus aplikasi dan semua pada dari aplikasi.
+
+https://www.panduandaring.com/p/r4p91r
+
+18/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Petunjuk pemeliharaan
+1. Jaga agar produk tetap kering dan tidak lembap.
+2. Bersihkan dengan kain lembap yang lembut. Jangan membersihkan menggunakan pembersih cair atau pelarut.
+3. Jangan membersihkan menggunakan air yang mengalir langsung.
+4. Jangan membongkar atau memodifikasi produk.
+5. Jauhkan produk dari benda yang mudah terbakar dan sumber panas.
+6. Jauhkan produk dari lingkungan bersuhu ekstrem.
+7. Simpan di tempat kering dan sejuk, jauhkan dari sinar matahari langsung.
+
+Kelengkapan Produk
+• 1 x Smart Door Lock Unit Outdoor
+
+• 1 x Braket Besi
+
+• 1 x Smart Door Lock Unit Indoor
+
+• 2 x Kunci Fisik
+
+• 1 x Mortise
+
+• 1 x Set Kunci (1 Lockcase dan 2 Kunci Manual)
+
+• 2 x Kartu Akses
+
+• 1 x Set Baut dan Sekrup
+
+• 1 x Braket Plastik
+
+• 1 x Panduan Penggunaan
+
+https://www.panduandaring.com/p/r4p91r
+
+19/20
+
+3/26/26, 2:15 PM
+
+Smart Door Lock Tuya App WiFi WeChat Fingerprint Password
+
+Spesifikasi
+Material
+
+Aluminium Alloy dan Akrilik
+Unit Indoor: 7.5 x 2.5 x 37 cm
+
+Dimensi
+
+Unit Outdoor: 7.5 x 2.5 x 37 cm
+Mortise: 24 x 2.4 x 8.8 cm
+Rekomendasi Tebal Pintu: 4-10 cm
+Maksimal Kartu Terdaftar: Hingga 50
+
+Lain-lain
+
+Maksimal Sidik Jari Terdaftar: Hingga 50
+Dukungan Frekuensi Kartu: 13.56 MHz
+
+Koneksi Wireless
+
+WiFi
+- Aplikasi Tuya
+- Fingerprint
+
+Mode Akses
+
+- Password
+- Kartu Akses
+- Kunci Manual
+
+Spesifikasi Baterai
+
+Tipe Baterai: 4 x Baterai AA (Baterai Tidak Termasuk)
+Port Daya Darurat: USB Type C
+
+PT JDN
+Jl. Letjen S. Parman Kav. 28, Grogol - Petamburan, Jakarta Barat 11470
+(021) 3970 1911
+
+https://www.panduandaring.com/p/r4p91r
+
+20/20
+
+</pre>
+</body>
+</html>

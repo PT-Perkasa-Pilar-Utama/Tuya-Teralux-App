@@ -24,8 +24,8 @@ type TuyaDeviceDTO struct {
 
 // TuyaCommandDTO represents a single command
 type TuyaCommandDTO struct {
-	Code  string      `json:"code" binding:"required"`
-	Value interface{} `json:"value" binding:"required"`
+	Code  string      `json:"code" binding:"required" example:"switch_1"`
+	Value interface{} `json:"value" binding:"required" example:"true"`
 }
 
 // TuyaCommandsRequestDTO represents the request body for sending commands
@@ -35,9 +35,9 @@ type TuyaCommandsRequestDTO struct {
 
 // TuyaIRACCommandDTO represents a single IR AC command request
 type TuyaIRACCommandDTO struct {
-	RemoteID string `json:"remote_id" binding:"required"`
-	Code     string `json:"code" binding:"required"`
-	Value    int    `json:"value"`
+	RemoteID string `json:"remote_id" binding:"required" example:"ir-remote-001"`
+	Code     string `json:"code" binding:"required" example:"temp"`
+	Value    int    `json:"value" example:"24"`
 }
 
 // TuyaDeviceStatusDTO represents device status for API consumers

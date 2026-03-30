@@ -20,30 +20,30 @@ const (
 // FastIntentResult contains the classification result and extracted control data.
 type FastIntentResult struct {
 	Intent       FastIntentType
-	DeviceName   string            // extracted device name if control
-	ActionType   string            // "on", "off", "brightness", "temperature", "fan_speed"
-	Value        string            // extracted value (e.g., "50", "24", "level_2")
-	ValuePercent int               // normalized percentage value if applicable
-	Temperature  int               // temperature value if applicable
-	Confidence   float64           // 0.0 to 1.0, how confident we are in this classification
+	DeviceName   string  // extracted device name if control
+	ActionType   string  // "on", "off", "brightness", "temperature", "fan_speed"
+	Value        string  // extracted value (e.g., "50", "24", "level_2")
+	ValuePercent int     // normalized percentage value if applicable
+	Temperature  int     // temperature value if applicable
+	Confidence   float64 // 0.0 to 1.0, how confident we are in this classification
 }
 
 // FastIntentRouter classifies prompts using deterministic rules.
 type FastIntentRouter struct {
 	// Compiled regex patterns for performance
-	brightnessPattern *regexp.Regexp
+	brightnessPattern  *regexp.Regexp
 	temperaturePattern *regexp.Regexp
-	fanSpeedPattern   *regexp.Regexp
-	deviceNamePattern *regexp.Regexp
+	fanSpeedPattern    *regexp.Regexp
+	deviceNamePattern  *regexp.Regexp
 }
 
 // NewFastIntentRouter creates a new fast intent router with pre-compiled patterns.
 func NewFastIntentRouter() *FastIntentRouter {
 	return &FastIntentRouter{
-		brightnessPattern: regexp.MustCompile(`(?i)(\d+)\s*(persen|percent|%)|brightness\s*(\d+)|level\s*(\d+)`),
+		brightnessPattern:  regexp.MustCompile(`(?i)(\d+)\s*(persen|percent|%)|brightness\s*(\d+)|level\s*(\d+)`),
 		temperaturePattern: regexp.MustCompile(`(?i)(\d+)\s*(derajat|degree|°c|celsius)|temp(?:erature)?\s*(\d+)`),
-		fanSpeedPattern:   regexp.MustCompile(`(?i)(kipas|fan)\s*(level|speed|kecepatan)\s*(\d+)|fan\s*(low|medium|high)|kipas\s*(pelan|sedang|kencang)`),
-		deviceNamePattern: regexp.MustCompile(`(?i)(lampu|light|ac|kipas|fan|tv|speaker|perangkat|device)\s+([a-z0-9\s]+)`),
+		fanSpeedPattern:    regexp.MustCompile(`(?i)(kipas|fan)\s*(level|speed|kecepatan)\s*(\d+)|fan\s*(low|medium|high)|kipas\s*(pelan|sedang|kencang)`),
+		deviceNamePattern:  regexp.MustCompile(`(?i)(lampu|light|ac|kipas|fan|tv|speaker|perangkat|device)\s+([a-z0-9\s]+)`),
 	}
 }
 

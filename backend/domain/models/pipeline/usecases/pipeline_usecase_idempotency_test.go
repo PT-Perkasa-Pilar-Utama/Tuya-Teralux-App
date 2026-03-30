@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"sensio/domain/common/tasks"
+	"sensio/domain/common/utils"
 	pipelineDtos "sensio/domain/models/pipeline/dtos"
 	ragDtos "sensio/domain/models/rag/dtos"
-	speechUsecases "sensio/domain/models/whisper/usecases"
 	whisperDtos "sensio/domain/models/whisper/dtos"
-	"sensio/domain/common/utils"
+	speechUsecases "sensio/domain/models/whisper/usecases"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -135,15 +135,15 @@ func TestIdempotencyHashWithSessionID(t *testing.T) {
 		audioHash := fmt.Sprintf("%x", []byte("dummy_audio"))
 
 		// With session ID
-		hashInputWithSession := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", 
+		hashInputWithSession := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s",
 			idempotencyKey, language, targetLanguage, macAddress, audioHash, sessionID)
 
 		// Without session ID
-		hashInputWithoutSession := fmt.Sprintf("%s_%s_%s_%s_%s", 
+		hashInputWithoutSession := fmt.Sprintf("%s_%s_%s_%s_%s",
 			idempotencyKey, language, targetLanguage, macAddress, audioHash)
 
 		// They should be different
-		assert.NotEqual(t, hashInputWithSession, hashInputWithoutSession, 
+		assert.NotEqual(t, hashInputWithSession, hashInputWithoutSession,
 			"Hash input with session ID should differ from hash input without session ID")
 	})
 
@@ -155,12 +155,12 @@ func TestIdempotencyHashWithSessionID(t *testing.T) {
 		macAddress := "AA:BB:CC:DD:EE:FF"
 		audioHash := fmt.Sprintf("%x", []byte("dummy_audio"))
 
-		hashInput1 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", 
+		hashInput1 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s",
 			idempotencyKey, language, targetLanguage, macAddress, audioHash, sessionID)
-		hashInput2 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", 
+		hashInput2 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s",
 			idempotencyKey, language, targetLanguage, macAddress, audioHash, sessionID)
 
-		assert.Equal(t, hashInput1, hashInput2, 
+		assert.Equal(t, hashInput1, hashInput2,
 			"Same inputs should produce same hash input")
 	})
 
@@ -171,12 +171,12 @@ func TestIdempotencyHashWithSessionID(t *testing.T) {
 		macAddress := "AA:BB:CC:DD:EE:FF"
 		audioHash := fmt.Sprintf("%x", []byte("dummy_audio"))
 
-		hashInput1 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", 
+		hashInput1 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s",
 			idempotencyKey, language, targetLanguage, macAddress, audioHash, "session_1")
-		hashInput2 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", 
+		hashInput2 := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s",
 			idempotencyKey, language, targetLanguage, macAddress, audioHash, "session_2")
 
-		assert.NotEqual(t, hashInput1, hashInput2, 
+		assert.NotEqual(t, hashInput1, hashInput2,
 			"Different session IDs should produce different hash inputs")
 	})
 }
@@ -516,15 +516,20 @@ func TestExecutePipelineWithSession_ActualIdempotency(t *testing.T) {
 		err := os.WriteFile(testAudioPath4, testAudioContent, 0644)
 		assert.NoError(t, err)
 
+		// Compute audio hash BEFORE executing pipeline (file will be deleted by async cleanup)
+		audioHash, err := utils.HashFile(testAudioPath4)
+		assert.NoError(t, err)
+
 		// Execute pipeline
 		taskID, err := pipelineUC.ExecutePipelineWithSession(context.Background(), testAudioPath4, req, idempotencyKey, sessionID)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, taskID)
 
-		// Verify task ID is stored in cache with correct hash key
-		audioHash, err := utils.HashFile(testAudioPath4)
-		assert.NoError(t, err)
+		// Wait briefly for async pipeline to complete and cleanup file
+		time.Sleep(100 * time.Millisecond)
 
+		// Verify task ID is stored in cache with correct hash key
+		// Note: We use the pre-computed hash since file was deleted by async cleanup
 		expectedHashKey := "idemp_pipeline_" + utils.HashString(
 			fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", idempotencyKey, req.Language, req.TargetLanguage, req.MacAddress, audioHash, sessionID),
 		)
@@ -545,13 +550,19 @@ func TestExecutePipelineWithSession_ActualIdempotency(t *testing.T) {
 		err := os.WriteFile(testAudioPath5, testAudioContent, 0644)
 		assert.NoError(t, err)
 
+		// Compute audio hash BEFORE executing pipeline (file will be deleted by async cleanup)
+		audioHash, err := utils.HashFile(testAudioPath5)
+		assert.NoError(t, err)
+
 		// First call - create task
 		taskID1, err := pipelineUC.ExecutePipelineWithSession(context.Background(), testAudioPath5, req, idempotencyKey, sessionID)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, taskID1)
 
-		// Manually set task status to failed BEFORE the async pipeline completes
-		// This simulates a failure that happens during execution
+		// Wait briefly for async pipeline to start and create the task status
+		time.Sleep(50 * time.Millisecond)
+
+		// Manually set task status to failed (simulating a failure during execution)
 		failedStatus := pipelineDtos.PipelineStatusDTO{
 			TaskID:        taskID1,
 			OverallStatus: "failed",
@@ -564,6 +575,13 @@ func TestExecutePipelineWithSession_ActualIdempotency(t *testing.T) {
 		// Also update the cache to reflect the failed status
 		// (In real scenario, the async pipeline would do this)
 		_ = cache.SetWithTTL(taskID1, failedStatus, 24*time.Hour)
+
+		// Compute the idempotency hash key to update the idempotency cache
+		hashInput := fmt.Sprintf("%s_%s_%s_%s_%s_session:%s", idempotencyKey, req.Language, req.TargetLanguage, req.MacAddress, audioHash, sessionID)
+		idempotencyHash := "idemp_pipeline_" + utils.HashString(hashInput)
+
+		// Update the idempotency cache to map hash -> taskID (so the retry check can find it)
+		_ = cache.SetWithTTL(idempotencyHash, taskID1, 24*time.Hour)
 
 		// Second call - should create new task because previous one failed
 		taskID2, err := pipelineUC.ExecutePipelineWithSession(context.Background(), testAudioPath5, req, idempotencyKey, sessionID)
@@ -587,10 +605,10 @@ type MockMQTTPublisher struct {
 }
 
 type MockMQTTMessage struct {
-	topic   string
-	qos     byte
+	topic    string
+	qos      byte
 	retained bool
-	payload interface{}
+	payload  interface{}
 }
 
 func (m *MockMQTTPublisher) Publish(topic string, qos byte, retained bool, payload interface{}) error {
@@ -621,8 +639,8 @@ func (m *MockTranscribeUseCase) TranscribeAudioSync(
 	opts speechUsecases.TranscribeOptions,
 ) (*whisperDtos.AsyncTranscriptionResultDTO, error) {
 	return &whisperDtos.AsyncTranscriptionResultDTO{
-		Transcription: "This is a test transcription",
-		RefinedText:   "This is a refined transcription",
+		Transcription:    "This is a test transcription",
+		RefinedText:      "This is a refined transcription",
 		DetectedLanguage: "en",
 	}, nil
 }

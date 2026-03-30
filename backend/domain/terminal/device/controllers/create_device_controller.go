@@ -21,6 +21,7 @@ func NewCreateDeviceController(useCase *usecases.CreateDeviceUseCase) *CreateDev
 		useCase: useCase,
 	}
 }
+
 // CreateDevice handles POST /api/devices endpoint
 // @Summary      Create a new device
 // @Description  Register a new device under a terminal

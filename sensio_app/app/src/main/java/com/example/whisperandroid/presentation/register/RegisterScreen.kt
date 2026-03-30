@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,12 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,12 +36,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -50,6 +52,11 @@ import com.example.whisperandroid.presentation.components.SensioButton
 import com.example.whisperandroid.presentation.components.SensioLogo
 import com.example.whisperandroid.presentation.components.SensioTextField
 import com.example.whisperandroid.presentation.components.ToastObserver
+import com.example.whisperandroid.ui.theme.SensioBorder
+import com.example.whisperandroid.ui.theme.SensioElevation
+import com.example.whisperandroid.ui.theme.SensioRadius
+import com.example.whisperandroid.ui.theme.SensioSpacing
+import com.example.whisperandroid.ui.theme.SensioTypography
 
 @Composable
 fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
@@ -75,7 +82,6 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
         ) { permissions ->
             val recordGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
             val storageGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
-            // We just request them, the UI will update based on checkSelfPermission later
         }
 
     // Proactive Request on Launch
@@ -114,24 +120,17 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
         }
     }
 
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val containerColor = MaterialTheme.colorScheme.primaryContainer
-    val surfaceColor = MaterialTheme.colorScheme.surface
-
+    // Enhanced background gradient with subtle radial design
     val bgGradient =
-        Brush.linearGradient(
+        Brush.radialGradient(
             colors =
             listOf(
-                MaterialTheme.colorScheme.background,
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
                 MaterialTheme.colorScheme.background
             ),
-            start =
-            androidx.compose.ui.geometry
-                .Offset(0f, 0f),
-            end =
-            androidx.compose.ui.geometry
-                .Offset(2000f, 2000f)
+            center = Offset(800f, 400f),
+            radius = 1200f
         )
 
     Box(
@@ -150,8 +149,8 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                 Row(
                     modifier =
                     Modifier
-                        .padding(32.dp)
-                        .fillMaxWidth(0.9f),
+                        .padding(SensioSpacing.Xl)
+                        .fillMaxWidth(0.85f),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -159,8 +158,8 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                     Column(
                         modifier =
                         Modifier
-                            .weight(1.2f)
-                            .padding(end = 48.dp),
+                            .weight(1f)
+                            .padding(end = SensioSpacing.Xxl),
                         horizontalAlignment = Alignment.Start,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -174,32 +173,21 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         }
 
                         // Text is NOT clickable
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(SensioSpacing.Xxl))
                         Text(
-                            text = "Secure Your\nConversation.",
-                            fontSize = 48.sp,
-                            lineHeight = 56.sp,
-                            fontWeight = FontWeight.Black,
+                            text = "Secure Your\nConversation",
+                            fontSize = SensioTypography.HeadlineTablet,
+                            lineHeight = 44.sp,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
-                            style =
-                            androidx.compose.ui.text.TextStyle(
-                                shadow =
-                                androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black.copy(alpha = 0.3f),
-                                    offset =
-                                    androidx.compose.ui.geometry
-                                        .Offset(2f, 2f),
-                                    blurRadius = 8f
-                                )
-                            )
+                            style = MaterialTheme.typography.displaySmall
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(SensioSpacing.Md))
                         Text(
-                            text = "Experience private, high-fidelity transcription for " +
-                                "your enterprise meetings.",
-                            fontSize = 18.sp,
+                            text = "Private, high-quality transcription for enterprise teams.",
+                            fontSize = SensioTypography.Subtitle,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            lineHeight = 26.sp,
+                            lineHeight = 24.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -219,7 +207,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         isLoading = uiState.isLoading,
                         error = uiState.error,
                         onRegisterClick = { viewModel.register(name, roomId) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(0.8f)
                     )
                 }
             } else {
@@ -228,9 +216,8 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                     modifier =
                     Modifier
                         .fillMaxSize()
-                        .padding(top = 16.dp, start = 24.dp, end = 24.dp, bottom = 24.dp)
+                        .padding(top = SensioSpacing.Lg, start = SensioSpacing.Lg, end = SensioSpacing.Lg, bottom = SensioSpacing.Xl)
                         .padding(WindowInsets.statusBars.asPaddingValues()),
-                    // Add status bar padding
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -244,41 +231,35 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         SensioLogo()
                     }
 
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(SensioSpacing.Xl))
 
-                    // Text (Not Clickable)
+                    // Text (Not Clickable) - Improved headline for mobile
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Secure Your Conversation",
-                            fontSize = 24.sp, // Reduced font size to fit
-                            fontWeight = FontWeight.Black,
+                            fontSize = SensioTypography.HeadlineMobile,
+                            lineHeight = 32.sp,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
-                            textAlign = TextAlign.Center, // Explicitly center text
-                            style =
-                            androidx.compose.ui.text.TextStyle(
-                                shadow =
-                                androidx.compose.ui.graphics.Shadow(
-                                    color = Color.Black.copy(alpha = 0.2f),
-                                    offset =
-                                    androidx.compose.ui.geometry
-                                        .Offset(1f, 1f),
-                                    blurRadius = 4f
-                                )
-                            )
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.headlineSmall
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(SensioSpacing.Sm))
                         Text(
                             text = "Private meeting transcription",
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Normal,
-                            textAlign = TextAlign.Center // Explicitly center text
+                            fontSize = SensioTypography.Body,
+                            lineHeight = 22.sp,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center
                         )
                     }
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(SensioSpacing.Xxl))
 
                     RegisterCard(
                         name = name,
@@ -312,25 +293,25 @@ fun RegisterCard(
     onRegisterClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedCard(
+    Surface(
         modifier =
         modifier
-            .padding(8.dp)
+            .widthIn(max = 400.dp)
+            .fillMaxWidth()
+            .padding(SensioSpacing.Sm)
             .wrapContentHeight(),
-        shape = RoundedCornerShape(32.dp),
-        colors =
-        CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-        ),
+        shape = RoundedCornerShape(SensioRadius.Xxl),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        shadowElevation = SensioElevation.Md,
         border =
         androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            width = SensioBorder.Md,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         )
     ) {
         Column(
-            modifier = Modifier.padding(32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier.padding(SensioSpacing.Lg),
+            verticalArrangement = Arrangement.spacedBy(SensioSpacing.Md),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             SensioTextField(
@@ -359,8 +340,9 @@ fun RegisterCard(
             if (error != null) {
                 Text(
                     text = error,
-                    color = Color.Red.copy(alpha = 0.7f),
-                    fontSize = 14.sp
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                    fontSize = SensioTypography.Caption,
+                    textAlign = TextAlign.Center
                 )
             }
         }

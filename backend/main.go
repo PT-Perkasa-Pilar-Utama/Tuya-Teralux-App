@@ -15,18 +15,18 @@ import (
 	"sensio/domain/common/middlewares"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail"
+	"sensio/domain/models"
+	models_v1 "sensio/domain/models-v1"
 	"sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
 	"sensio/domain/scene"
 	scene_entities "sensio/domain/scene/entities"
 	"sensio/domain/terminal"
-	terminal_entities "sensio/domain/terminal/terminal/entities"
 	device_entities "sensio/domain/terminal/device/entities"
-	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	device_repositories "sensio/domain/terminal/device/repositories"
+	terminal_entities "sensio/domain/terminal/terminal/entities"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/tuya"
-	"sensio/domain/models"
-	models_v1 "sensio/domain/models-v1"
 )
 
 // @title           Sensio API
@@ -254,7 +254,7 @@ func run() error {
 	if port == "" {
 		port = "8080"
 	}
-	
+
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      router,

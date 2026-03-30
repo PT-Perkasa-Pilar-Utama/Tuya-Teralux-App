@@ -1,7 +1,6 @@
 package common
 
 import (
-	"net/http"
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/routes"
@@ -13,39 +12,47 @@ import (
 
 // CommonModule encapsulates common domain components
 type CommonModule struct {
-	HealthController      *controllers.HealthController
-	CacheController       *controllers.CacheController
-	DocsController        *controllers.DocsController
-	MqttService                  *infrastructure.MqttService
-	DeviceInfoExternalController *controllers.DeviceInfoExternalController
+	HealthController               *controllers.HealthController
+	CacheController                *controllers.CacheController
+	DocsController                 *controllers.DocsController
+	MqttService                    *infrastructure.MqttService
+	DeviceInfoExternalController   *controllers.DeviceInfoExternalController
 	NotificationExternalController *controllers.NotificationExternalController
 }
 
 // NewCommonModule initializes the common domain components
 func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService, terminalRepo terminal_repositories.ITerminalRepository) *CommonModule {
 	bigSvc := services.NewDeviceInfoExternalService()
-	
+
 	// Initialize notification service
 	notificationSvc := services.NewNotificationExternalService(terminalRepo, mqttSvc)
 
 	return &CommonModule{
-		HealthController:      controllers.NewHealthController(),
-		CacheController:       controllers.NewCacheController(badger, vector),
-		DocsController:               controllers.NewDocsController(),
-		MqttService:                  mqttSvc,
-		DeviceInfoExternalController: controllers.NewDeviceInfoExternalController(bigSvc),
+		HealthController:               controllers.NewHealthController(),
+		CacheController:                controllers.NewCacheController(badger, vector),
+		DocsController:                 controllers.NewDocsController(),
+		MqttService:                    mqttSvc,
+		DeviceInfoExternalController:   controllers.NewDeviceInfoExternalController(bigSvc),
 		NotificationExternalController: controllers.NewNotificationExternalController(notificationSvc),
 	}
 }
 
 // RegisterRoutes registers common routes
 func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
-	// Markdown Docs
+	// Markdown Docs - render markdown with custom controller
 	router.GET("/docs/*path", m.DocsController.ServeDocs)
 
-	// OpenAPI 3.1 Routes (Primary docs endpoint)
-	// Serve Swagger UI at /openapi
-	router.StaticFS("/openapi", http.Dir("./docs/openapi"))
+	// OpenAPI 3.1 Routes with Scalar UI
+	// Specific routes first, then catch-all
+	router.GET("/openapi.json", func(c *gin.Context) {
+		c.File("./docs/openapi/openapi.json")
+	})
+	router.GET("/openapi.yaml", func(c *gin.Context) {
+		c.File("./docs/openapi/openapi.yaml")
+	})
+	router.GET("/openapi/", func(c *gin.Context) {
+		c.File("./docs/openapi/index.html")
+	})
 
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)

@@ -47,34 +47,43 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 		return "", fmt.Errorf("refine skill not configured")
 	}
 
-	// Resolve provider based on macAddress if provided
-	llmClient := u.llm
-	fallbackClient := u.fallbackLLM
-	if u.providerResolver != nil && len(args) > 0 && args[0] != "" {
+	// Use centralized health-aware fallback chain with terminal preference if macAddress provided
+	var result string
+	var err error
+
+	if len(args) > 0 && args[0] != "" {
+		// Use terminal-specific provider preference
 		macAddress := args[0]
-		resolved, err := u.providerResolver.ResolveByMacAddress(macAddress)
-		if err != nil {
-			utils.LogWarn("RefineUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
-		} else {
-			llmClient = resolved.LLM
-			fallbackClient = resolved.FallbackLLM
-			utils.LogInfo("RefineUseCase: Using terminal-specific provider '%s' for MAC %s", resolved.ProviderName, macAddress)
-		}
-	}
-
-	skillCtx := &skills.SkillContext{
-		Ctx:      ctx,
-		Prompt:   text,
-		Language: lang,
-		LLM:      llmClient,
-		Config:   u.config,
-	}
-
-	res, err := u.skill.Execute(skillCtx)
-	if err != nil && fallbackClient != nil {
-		utils.LogWarn("Refine: Primary LLM failed, falling back to local model: %v", err)
-		skillCtx.LLM = fallbackClient
-		res, err = u.skill.Execute(skillCtx)
+		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx := &skills.SkillContext{
+				Ctx:      ctx,
+				Prompt:   text,
+				Language: lang,
+				LLM:      resolvedSet.LLM,
+				Config:   u.config,
+			}
+			res, execErr := u.skill.Execute(skillCtx)
+			if execErr == nil {
+				result = res.Message
+			}
+			return execErr
+		})
+	} else {
+		// Use standard health-aware fallback
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			skillCtx := &skills.SkillContext{
+				Ctx:      ctx,
+				Prompt:   text,
+				Language: lang,
+				LLM:      resolvedSet.LLM,
+				Config:   u.config,
+			}
+			res, execErr := u.skill.Execute(skillCtx)
+			if execErr == nil {
+				result = res.Message
+			}
+			return execErr
+		})
 	}
 
 	if err != nil {
@@ -82,7 +91,7 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 		return "", err
 	}
 
-	utils.LogDebug("Refine: completed (lang=%s chars=%d duration=%s output_chars=%d)", lang, textChars, time.Since(startTime), len(res.Message))
-	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, res.Message)
-	return res.Message, nil
+	utils.LogDebug("Refine: completed (lang=%s chars=%d duration=%s output_chars=%d)", lang, textChars, time.Since(startTime), len(result))
+	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, result)
+	return result, nil
 }

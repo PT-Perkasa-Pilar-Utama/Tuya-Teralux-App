@@ -39,7 +39,7 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 
 	// Support WSS (WebSocket Secure) and MQTT over TLS
 	brokerURL := cfg.MqttBroker
-	
+
 	// Check if using WSS (WebSocket Secure)
 	if strings.HasPrefix(brokerURL, "wss://") {
 		// WSS URL - use as-is for WebSocket connection
@@ -52,10 +52,10 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 	} else {
 		// Traditional MQTT/mqtts - extract host:port
 		if strings.HasPrefix(brokerURL, "ssl://") ||
-		   strings.HasPrefix(brokerURL, "tcps://") ||
-		   strings.HasPrefix(brokerURL, "mqtts://") ||
-		   strings.HasPrefix(brokerURL, "mqtt://") ||
-		   strings.HasPrefix(brokerURL, "tcp://") {
+			strings.HasPrefix(brokerURL, "tcps://") ||
+			strings.HasPrefix(brokerURL, "mqtts://") ||
+			strings.HasPrefix(brokerURL, "mqtt://") ||
+			strings.HasPrefix(brokerURL, "tcp://") {
 			brokerURL = strings.SplitN(brokerURL, "://", 2)[1]
 		}
 		opts.AddBroker(brokerURL)
@@ -65,16 +65,16 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 	opts.SetUsername(cfg.MqttUsername)
 	opts.SetPassword(cfg.MqttPassword)
 	opts.SetAutoReconnect(true)
-	opts.SetCleanSession(true) // Use clean session for fresh connection
+	opts.SetCleanSession(true)               // Use clean session for fresh connection
 	opts.SetConnectTimeout(30 * time.Second) // Longer timeout for TLS handshake
-	opts.SetKeepAlive(30 * time.Second) // MQTT keepalive (lowered to prevent proxy idle timeouts)
-	opts.SetOrderMatters(false) // Allow parallel publishes
+	opts.SetKeepAlive(30 * time.Second)      // MQTT keepalive (lowered to prevent proxy idle timeouts)
+	opts.SetOrderMatters(false)              // Allow parallel publishes
 	opts.SetMaxReconnectInterval(5 * time.Second)
 
 	// Enable TLS if the broker URL starts with ssl://, tcps://, or mqtts://
 	if strings.HasPrefix(cfg.MqttBroker, "ssl://") ||
-	   strings.HasPrefix(cfg.MqttBroker, "tcps://") ||
-	   strings.HasPrefix(cfg.MqttBroker, "mqtts://") {
+		strings.HasPrefix(cfg.MqttBroker, "tcps://") ||
+		strings.HasPrefix(cfg.MqttBroker, "mqtts://") {
 		// Extract hostname for SNI (Server Name Indication)
 		brokerHost := strings.SplitN(strings.SplitN(cfg.MqttBroker, "://", 2)[1], ":", 2)[0]
 		if brokerHost != "" {
@@ -89,7 +89,7 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 					utils.LogError("Failed to append CA certs from %s", caCertPath)
 				}
 			}
-			
+
 			// Load client certificate and key for mutual TLS (mTLS)
 			tlsConfig := &tls.Config{
 				MinVersion:         tls.VersionTLS12,
@@ -97,7 +97,7 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 				RootCAs:            rootCAs,
 				InsecureSkipVerify: false,
 			}
-			
+
 			// Try to load client certificate for mTLS
 			clientCertPath := "/tmp/mqtt_client.crt"
 			clientKeyPath := "/tmp/mqtt_client.key"
@@ -108,7 +108,7 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 				tlsConfig.Certificates = []tls.Certificate{cert}
 				utils.LogDebug("Client certificate loaded for mTLS")
 			}
-			
+
 			opts.SetTLSConfig(tlsConfig)
 			utils.LogDebug("MQTT TLS configured: host=%s, SNI=%s", brokerHost, brokerHost)
 		}
@@ -133,29 +133,29 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 // Connect initiates the connection to the MQTT broker with retry logic
 func (s *MqttService) Connect() error {
 	utils.LogInfo("Connecting to MQTT broker: %s", s.config.MqttBroker)
-	
+
 	maxRetries := 3
 	var lastErr error
-	
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		utils.LogDebug("MQTT connect attempt %d/%d", attempt, maxRetries)
-		
+
 		token := s.client.Connect()
 		token.Wait()
-		
+
 		if token.Error() == nil {
 			utils.LogInfo("Successfully connected to MQTT broker: %s", s.config.MqttBroker)
 			return nil
 		}
-		
+
 		lastErr = token.Error()
 		utils.LogError("MQTT connect attempt %d failed: %v", attempt, lastErr)
-		
+
 		if attempt < maxRetries {
 			time.Sleep(2 * time.Second)
 		}
 	}
-	
+
 	return fmt.Errorf("failed to connect to MQTT after %d attempts: %w", maxRetries, lastErr)
 }
 

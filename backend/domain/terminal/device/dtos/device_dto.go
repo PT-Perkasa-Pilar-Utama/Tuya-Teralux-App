@@ -16,7 +16,7 @@ type CreateDeviceResponseDTO struct {
 
 // UpdateDeviceRequestDTO represents the request body for updating a device
 type UpdateDeviceRequestDTO struct {
-	Name *string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty" example:"Updated Device Name"`
 }
 
 // DeviceFilterDTO represents filter options for listing devices

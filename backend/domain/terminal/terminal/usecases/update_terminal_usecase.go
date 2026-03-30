@@ -77,13 +77,8 @@ func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTermi
 			item.AiProvider = nil
 		} else {
 			normalizedProvider := providers.NormalizeProvider(*req.AiProvider)
-			// Check for legacy 'local' value and treat it as invalid for new updates
-			if providers.IsFallbackOnlyProvider(normalizedProvider) {
-				details = append(details, utils.ValidationErrorDetail{
-					Field:   "ai_provider",
-					Message: "Invalid ai_provider. Supported values: gemini, openai, groq, orion",
-				})
-			} else if !providers.IsValidProvider(normalizedProvider) {
+			// Validate provider - only remote providers are supported
+			if !providers.IsValidProvider(normalizedProvider) {
 				details = append(details, utils.ValidationErrorDetail{
 					Field:   "ai_provider",
 					Message: "Invalid ai_provider. Supported values: gemini, openai, groq, orion",

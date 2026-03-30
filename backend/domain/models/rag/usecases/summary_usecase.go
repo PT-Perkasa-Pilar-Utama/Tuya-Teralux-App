@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/providers"
+	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
@@ -28,18 +28,18 @@ type SummaryUseCase interface {
 }
 
 type summaryUseCase struct {
-	llm           skills.LLMClient
-	fallbackLLM   skills.LLMClient
-	config        *utils.Config
-	cache         *tasks.BadgerTaskCache
-	store         *tasks.StatusStore[dtos.RAGStatusDTO]
-	renderer      services.SummaryPDFRenderer
-	bigExternal   *commonServices.DeviceInfoExternalService
-	mqttSvc       mqttPublisher
-	llmTimeout    time.Duration
-	renderTimeout time.Duration
-	skill         skills.Skill
-	chunkSkill    skills.Skill
+	llm              skills.LLMClient
+	fallbackLLM      skills.LLMClient
+	config           *utils.Config
+	cache            *tasks.BadgerTaskCache
+	store            *tasks.StatusStore[dtos.RAGStatusDTO]
+	renderer         services.SummaryPDFRenderer
+	bigExternal      *commonServices.DeviceInfoExternalService
+	mqttSvc          mqttPublisher
+	llmTimeout       time.Duration
+	renderTimeout    time.Duration
+	skill            skills.Skill
+	chunkSkill       skills.Skill
 	providerResolver providers.ProviderResolver
 }
 
@@ -131,31 +131,55 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		return nil, fmt.Errorf("summary skill not configured")
 	}
 
-	// Resolve provider based on terminal MAC address
-	llmClient := u.llm
-	fallbackClient := u.fallbackLLM
-	if u.providerResolver != nil && macAddress != "" {
-		resolved, err := u.providerResolver.ResolveByMacAddress(macAddress)
-		if err != nil {
-			utils.LogWarn("SummaryUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
-		} else {
-			llmClient = resolved.LLM
-			fallbackClient = resolved.FallbackLLM
-			utils.LogInfo("SummaryUseCase: Using terminal-specific provider '%s' for MAC %s", resolved.ProviderName, macAddress)
-		}
-	}
+	// Use health-aware fallback chain for summarization with terminal preference
+	executeWithFallback := func(ctx context.Context, prompt string, language string, meetingContext string, style string, date string, location string, participants string) (*skills.SkillResult, error) {
+		var result *skills.SkillResult
+		var err error
 
-	skillCtx := &skills.SkillContext{
-		Ctx:          ctx,
-		Prompt:       text,
-		Language:     language,
-		LLM:          llmClient,
-		Config:       u.config,
-		Date:         date,
-		Location:     location,
-		Participants: participants,
-		Style:        style,
-		Context:      meetingContext,
+		if macAddress != "" {
+			// Use terminal-specific provider preference
+			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+				skillCtx := &skills.SkillContext{
+					Ctx:          ctx,
+					Prompt:       prompt,
+					Language:     language,
+					LLM:          resolvedSet.LLM,
+					Config:       u.config,
+					Date:         date,
+					Location:     location,
+					Participants: participants,
+					Style:        style,
+					Context:      meetingContext,
+				}
+				res, execErr := u.skill.Execute(skillCtx)
+				if execErr == nil {
+					result = res
+				}
+				return execErr
+			})
+		} else {
+			// Use standard health-aware fallback
+			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+				skillCtx := &skills.SkillContext{
+					Ctx:          ctx,
+					Prompt:       prompt,
+					Language:     language,
+					LLM:          resolvedSet.LLM,
+					Config:       u.config,
+					Date:         date,
+					Location:     location,
+					Participants: participants,
+					Style:        style,
+					Context:      meetingContext,
+				}
+				res, execErr := u.skill.Execute(skillCtx)
+				if execErr == nil {
+					result = res
+				}
+				return execErr
+			})
+		}
+		return result, err
 	}
 
 	var trimmedSummary string
@@ -166,10 +190,9 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	// Phase 3: Chunked Summarization for long transcripts
 	if len(text) > 4000*4 { // Heuristic: ~4000 tokens
 		utils.LogInfo("SummaryUseCase: Text too long (%d chars), using chunked summarization", len(text))
-		chunkedSummary, chunkErr := u.summarizeInChunks(ctx, text, language, meetingContext, llmClient)
+		chunkedSummary, chunkErr := u.summarizeInChunks(ctx, text, language, meetingContext, macAddress)
 		if chunkErr == nil {
-			skillCtx.Prompt = chunkedSummary
-			res, err = u.skill.Execute(skillCtx)
+			res, err = executeWithFallback(ctx, chunkedSummary, language, meetingContext, style, date, location, participants)
 			if err == nil {
 				trimmedSummary = res.Message
 			}
@@ -180,12 +203,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 
 	// Single-pass execution
 	if trimmedSummary == "" {
-		res, err = u.skill.Execute(skillCtx)
-		if err != nil && fallbackClient != nil {
-			utils.LogWarn("SummaryTask: Primary LLM failed, falling back to local: %v", err)
-			skillCtx.LLM = fallbackClient
-			res, err = u.skill.Execute(skillCtx)
-		}
+		res, err = executeWithFallback(ctx, text, language, meetingContext, style, date, location, participants)
 		if err != nil {
 			return nil, err
 		}
@@ -253,13 +271,20 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	}, nil
 }
 
-func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, language string, meetingContext string, llmClient skills.LLMClient) (string, error) {
+func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, language string, meetingContext string, args ...string) (string, error) {
 	if u.chunkSkill == nil {
 		return "", fmt.Errorf("chunk summary skill not configured")
 	}
 
 	chunks := u.splitText(text, 16000) // ~4000 tokens
 	var intermediateSummaries []string
+
+	// Check for macAddress in args for terminal-specific provider preference
+	macAddress := ""
+	if len(args) > 0 {
+		macAddress = args[0]
+	}
+
 	for idx, chunk := range chunks {
 		select {
 		case <-ctx.Done():
@@ -267,20 +292,51 @@ func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, lan
 		default:
 		}
 		utils.LogInfo("summarizeInChunks: Processing chunk %d/%d", idx+1, len(chunks))
-		sCtx := &skills.SkillContext{
-			Ctx:      ctx,
-			Prompt:   chunk,
-			Language: language,
-			LLM:      llmClient,
-			Config:   u.config,
-			Context:  meetingContext,
+
+		var chunkSummary string
+		var err error
+
+		if macAddress != "" {
+			// Use terminal-specific provider preference
+			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+				sCtx := &skills.SkillContext{
+					Ctx:      ctx,
+					Prompt:   chunk,
+					Language: language,
+					LLM:      resolvedSet.LLM,
+					Config:   u.config,
+					Context:  meetingContext,
+				}
+				res, execErr := u.chunkSkill.Execute(sCtx)
+				if execErr == nil {
+					chunkSummary = res.Message
+				}
+				return execErr
+			})
+		} else {
+			// Use standard health-aware fallback
+			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+				sCtx := &skills.SkillContext{
+					Ctx:      ctx,
+					Prompt:   chunk,
+					Language: language,
+					LLM:      resolvedSet.LLM,
+					Config:   u.config,
+					Context:  meetingContext,
+				}
+				res, execErr := u.chunkSkill.Execute(sCtx)
+				if execErr == nil {
+					chunkSummary = res.Message
+				}
+				return execErr
+			})
 		}
-		res, err := u.chunkSkill.Execute(sCtx)
+
 		if err != nil {
 			utils.LogError("summarizeInChunks: Chunk %d failed: %v", idx+1, err)
 			continue
 		}
-		intermediateSummaries = append(intermediateSummaries, res.Message)
+		intermediateSummaries = append(intermediateSummaries, chunkSummary)
 	}
 
 	if len(intermediateSummaries) == 0 {
