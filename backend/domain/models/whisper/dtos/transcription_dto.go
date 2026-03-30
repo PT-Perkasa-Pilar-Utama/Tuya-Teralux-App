@@ -33,6 +33,8 @@ type TranscriptionTaskResponseDTO struct {
 	TaskID      string `json:"task_id" example:"abc-123"`
 	TaskStatus  string `json:"task_status" example:"pending"`
 	RecordingID string `json:"recording_id,omitempty" example:"uuid-v4"`
+	RequestID   string `json:"request_id,omitempty" example:"req-uuid"`
+	Source      string `json:"source,omitempty" example:"MQTT_ACK"`
 }
 
 type MqttPublishRequest struct {
@@ -51,6 +53,7 @@ type AsyncTranscriptionStatusDTO struct {
 	Result          *AsyncTranscriptionResultDTO `json:"result,omitempty"`
 	Error           string                       `json:"error,omitempty" example:"service unavailable"`
 	Trigger         string                       `json:"trigger,omitempty" example:"/api/whisper/models/gemini"`
+	MacAddress      string                       `json:"mac_address,omitempty"`
 	TerminalID      string                       `json:"terminal_id,omitempty"`
 	HTTPStatusCode  int                          `json:"-"`
 	StartedAt       string                       `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`

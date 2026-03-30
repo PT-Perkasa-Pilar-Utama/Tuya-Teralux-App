@@ -57,7 +57,6 @@ type TranscribeUseCase interface {
 
 type transcribeUseCase struct {
 	whisperClient    WhisperClient
-	fallbackClient   WhisperClient
 	refineUC         ragUsecases.RefineUseCase
 	store            *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
 	cache            *tasks.BadgerTaskCache
@@ -68,7 +67,6 @@ type transcribeUseCase struct {
 
 func NewTranscribeUseCase(
 	whisperClient WhisperClient,
-	fallbackClient WhisperClient,
 	refineUC ragUsecases.RefineUseCase,
 	store *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO],
 	cache *tasks.BadgerTaskCache,
@@ -78,7 +76,6 @@ func NewTranscribeUseCase(
 ) TranscribeUseCase {
 	return &transcribeUseCase{
 		whisperClient:    whisperClient,
-		fallbackClient:   fallbackClient,
 		refineUC:         refineUC,
 		store:            store,
 		cache:            cache,
@@ -86,6 +83,39 @@ func NewTranscribeUseCase(
 		mqttSvc:          mqttSvc,
 		providerResolver: providerResolver,
 	}
+}
+
+// transcribeWithFallback attempts transcription respecting terminal AI preferences first, then gracefully failing over to remote provider candidates
+func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, processingPath string, language string, diarize bool, disableFallback bool, isPipeline bool, resolvedProvider string, macAddress string) (*whisperdtos.WhisperResult, error) {
+	var finalResult *whisperdtos.WhisperResult
+
+	executable := func(resolvedSet *providers.ResolvedProviderSet) error {
+		if resolvedSet.WhisperClient == nil {
+			return fmt.Errorf("no Whisper client available for provider %s", resolvedSet.ProviderName)
+		}
+		res, err := resolvedSet.WhisperClient.Transcribe(ctx, processingPath, language, diarize)
+		if err == nil {
+			finalResult = res
+		}
+		return err
+	}
+
+	var err error
+	if disableFallback && resolvedProvider != "" && resolvedProvider != "unknown" {
+		// Direct execution without fallback - resolve the specific provider
+		providerSet := uc.providerResolver.ResolveProvider(resolvedProvider)
+		if providerSet != nil && providerSet.ProviderName == resolvedProvider && providerSet.WhisperClient != nil {
+			finalResult, err = providerSet.WhisperClient.Transcribe(ctx, processingPath, language, diarize)
+		} else {
+			err = fmt.Errorf("provider %s not available", resolvedProvider)
+		}
+	} else if macAddress != "" {
+		err = uc.providerResolver.ExecuteWithFallbackByMac(macAddress, executable)
+	} else {
+		err = uc.providerResolver.ExecuteWithFallback(executable)
+	}
+
+	return finalResult, err
 }
 
 func (uc *transcribeUseCase) CheckIdempotency(idempotencyKey string, audioHash string, language string, terminalID string) (string, bool) {
@@ -172,6 +202,9 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 		if meta.Trigger != "" {
 			status.Trigger = meta.Trigger
 		}
+		if meta.MacAddress != "" {
+			status.MacAddress = meta.MacAddress
+		}
 		if meta.TerminalID != "" {
 			status.TerminalID = meta.TerminalID
 		}
@@ -209,8 +242,6 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	var detectedLang string
 
 	// Resolve provider from terminal context (MAC address) if available
-	whisperClient := uc.whisperClient
-	fallbackClient := uc.fallbackClient
 	resolvedProvider := "unknown"
 
 	// Use terminal context for provider resolution if provided
@@ -220,8 +251,6 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		if err != nil {
 			utils.LogWarn("TranscribeUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
 		} else {
-			whisperClient = resolved.WhisperClient
-			fallbackClient = resolved.FallbackWhisper
 			resolvedProvider = resolved.ProviderName
 			utils.LogInfo("TranscribeUseCase: Using terminal-specific provider '%s' for MAC %s", resolvedProvider, macAddress)
 		}
@@ -323,25 +352,12 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 					var res *whisperdtos.WhisperResult
 					var transErr error
 
-					// Retry logic (max 2 attempts)
-					for attempt := 1; attempt <= 2; attempt++ {
-						res, transErr = whisperClient.Transcribe(ctx, path, opts.Language, opts.Diarize)
-						if transErr != nil && fallbackClient != nil && !opts.DisableFallback {
-							if opts.IsPipeline && resolvedProvider == "orion" {
-								utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client (Orion) failed in pipeline mode, skipping local fallback: %v", idx, attempt, transErr)
-							} else {
-								utils.LogWarn("TranscribeSync Segment %d (Attempt %d): Primary client failed, falling back to local: %v", idx, attempt, transErr)
-								res, transErr = fallbackClient.Transcribe(ctx, path, opts.Language, opts.Diarize)
-							}
-						}
-						if transErr == nil {
-							break
-						}
-						utils.LogWarn("TranscribeSync Segment %d (Attempt %d) failed: %v", idx, attempt, transErr)
-						if attempt < 2 {
-							time.Sleep(1 * time.Second)
-						}
+					var macAddress string
+					if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
+						macAddress = opts.TerminalContext[0]
 					}
+					// Use health-aware fallback chain for each segment
+					res, transErr = uc.transcribeWithFallback(ctx, path, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
 
 					mu.Lock()
 					defer mu.Unlock()
@@ -384,16 +400,12 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	}
 
 	if !useSegment {
-		result, err := whisperClient.Transcribe(ctx, processingPath, opts.Language, opts.Diarize)
-		if err != nil && fallbackClient != nil && !opts.DisableFallback {
-			if opts.IsPipeline && resolvedProvider == "orion" {
-				utils.LogWarn("TranscribeSync: Primary client (Orion) failed in pipeline mode, skipping local fallback: %v", err)
-			} else {
-				utils.LogWarn("TranscribeSync: Primary client failed, falling back to local: %v", err)
-				result, err = fallbackClient.Transcribe(ctx, processingPath, opts.Language, opts.Diarize)
-			}
+		var macAddress string
+		if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
+			macAddress = opts.TerminalContext[0]
 		}
-
+		// Use health-aware fallback chain for full-file transcription
+		result, err := uc.transcribeWithFallback(ctx, processingPath, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -485,8 +497,8 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 	}
 
 	// Chaining to /chat ONLY if initiated via MQTT
-	if metadata != nil && metadata.Source == "mqtt" && metadata.TerminalID != "" && uc.mqttSvc != nil {
-		chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.TerminalID, uc.config.ApplicationEnvironment)
+	if metadata != nil && metadata.Source == "mqtt" && metadata.MacAddress != "" && uc.mqttSvc != nil {
+		chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.MacAddress, uc.config.ApplicationEnvironment)
 		prompt := finalResult.RefinedText
 		if prompt == "" {
 			prompt = finalResult.Transcription
@@ -508,7 +520,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 }
 
 func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, result *whisperdtos.AsyncTranscriptionResultDTO, err error) {
-	// Try to get existing status to preserve StartedAt and TerminalID
+	// Try to get existing status to preserve StartedAt, TerminalID, and MacAddress
 	var existing whisperdtos.AsyncTranscriptionStatusDTO
 	_, _, _ = uc.cache.GetWithTTL(taskID, &existing)
 
@@ -522,6 +534,7 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 		Result:     result,
 		StartedAt:  existing.StartedAt,
 		Trigger:    existing.Trigger,
+		MacAddress: existing.MacAddress,
 		TerminalID: existing.TerminalID,
 		ExpiresAt:  time.Now().Add(ttl).Format(time.RFC3339),
 	}
@@ -554,8 +567,8 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 		} else {
 			utils.LogInfo("%s", logMsg)
 		}
-		if status.TerminalID != "" && uc.mqttSvc != nil {
-			taskTopic := fmt.Sprintf("users/%s/%s/task", status.TerminalID, uc.config.ApplicationEnvironment)
+		if status.MacAddress != "" && uc.mqttSvc != nil {
+			taskTopic := fmt.Sprintf("users/%s/%s/task", status.MacAddress, uc.config.ApplicationEnvironment)
 			msg := map[string]string{
 				"event": "stop",
 				"task":  "Transcribe",

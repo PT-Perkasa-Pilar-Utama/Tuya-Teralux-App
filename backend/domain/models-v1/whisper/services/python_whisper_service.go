@@ -20,11 +20,11 @@ type GrpcWhisperService struct {
 
 // TranscribeResponse represents the response from Python Whisper service.
 type TranscribeResponse struct {
-	TaskID      string
-	Status      string
-	Transcript  string
-	Error       string
-	DurationMs  int64
+	TaskID     string
+	Status     string
+	Transcript string
+	Error      string
+	DurationMs int64
 }
 
 // JobStatusResponse represents the job status response.
@@ -75,8 +75,8 @@ func NewGrpcWhisperService(cfg *utils.Config) (*GrpcWhisperService, error) {
 		cfg.PythonGrpcServiceURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(50 * 1024 * 1024), // 50MB
-			grpc.MaxCallSendMsgSize(50 * 1024 * 1024),
+			grpc.MaxCallRecvMsgSize(50*1024*1024), // 50MB
+			grpc.MaxCallSendMsgSize(50*1024*1024),
 		),
 	)
 	if err != nil {
@@ -109,10 +109,10 @@ func (s *GrpcWhisperService) Transcribe(audioPath, language string, diarize bool
 
 	// Create gRPC request
 	req := &grpcpb.TranscribeRequest{
-		AudioData:   audioData,
-		FileName:    audioPath,
-		Language:    language,
-		Diarize:     diarize,
+		AudioData:     audioData,
+		FileName:      audioPath,
+		Language:      language,
+		Diarize:       diarize,
 		CorrelationId: fmt.Sprintf("req_%d", time.Now().UnixNano()),
 	}
 
@@ -160,9 +160,9 @@ func (s *GrpcWhisperService) GetStatus(taskID string) (*TranscribeResponse, erro
 // CreateUploadSession creates a new upload session via gRPC.
 func (s *GrpcWhisperService) CreateUploadSession(fileName string, totalSize int64, chunkCount int32) (*UploadSessionResponse, error) {
 	req := &grpcpb.CreateUploadSessionRequest{
-		FileName:   fileName,
-		TotalSize:  totalSize,
-		ChunkCount: chunkCount,
+		FileName:      fileName,
+		TotalSize:     totalSize,
+		ChunkCount:    chunkCount,
 		CorrelationId: fmt.Sprintf("session_%d", time.Now().UnixNano()),
 	}
 
@@ -189,9 +189,9 @@ func (s *GrpcWhisperService) CreateUploadSession(fileName string, totalSize int6
 // UploadChunk uploads a chunk of audio file via gRPC streaming.
 func (s *GrpcWhisperService) UploadChunk(sessionID string, chunkIndex int32, chunkData []byte) (*UploadChunkResponse, error) {
 	req := &grpcpb.UploadChunkRequest{
-		SessionId:    sessionID,
-		ChunkIndex:   chunkIndex,
-		ChunkData:    chunkData,
+		SessionId:     sessionID,
+		ChunkIndex:    chunkIndex,
+		ChunkData:     chunkData,
 		CorrelationId: fmt.Sprintf("chunk_%d", time.Now().UnixNano()),
 	}
 
@@ -224,7 +224,7 @@ func (s *GrpcWhisperService) UploadChunk(sessionID string, chunkIndex int32, chu
 // GetSessionStatus gets upload session status via gRPC.
 func (s *GrpcWhisperService) GetSessionStatus(sessionID string) (*UploadSessionResponse, error) {
 	req := &grpcpb.GetUploadSessionStatusRequest{
-		SessionId:    sessionID,
+		SessionId:     sessionID,
 		CorrelationId: fmt.Sprintf("session_status_%d", time.Now().UnixNano()),
 	}
 
@@ -251,7 +251,7 @@ func (s *GrpcWhisperService) GetSessionStatus(sessionID string) (*UploadSessionR
 // FinalizeSession finalizes upload session and merges chunks via gRPC.
 func (s *GrpcWhisperService) FinalizeSession(sessionID string) (*FinalizeUploadSessionResponse, error) {
 	req := &grpcpb.FinalizeUploadSessionRequest{
-		SessionId:    sessionID,
+		SessionId:     sessionID,
 		CorrelationId: fmt.Sprintf("finalize_%d", time.Now().UnixNano()),
 	}
 

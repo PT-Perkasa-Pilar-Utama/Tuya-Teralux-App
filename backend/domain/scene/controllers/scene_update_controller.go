@@ -15,6 +15,9 @@ type SceneUpdateController struct {
 	useCase *usecases.UpdateSceneUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = scene_dtos.UpdateSceneRequestDTO{}
+
 func NewSceneUpdateController(useCase *usecases.UpdateSceneUseCase) *SceneUpdateController {
 	return &SceneUpdateController{
 		useCase: useCase,

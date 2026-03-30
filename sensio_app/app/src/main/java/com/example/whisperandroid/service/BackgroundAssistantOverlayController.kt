@@ -108,8 +108,10 @@ class BackgroundAssistantOverlayController(
         override val savedStateRegistry: SavedStateRegistry get() = ssrController.savedStateRegistry
 
         fun activate() {
-            ssrController.performAttach()
-            ssrController.performRestore(null)
+            if (lifecycleRegistry.currentState == Lifecycle.State.INITIALIZED) {
+                ssrController.performAttach()
+                ssrController.performRestore(null)
+            }
             lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
             lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
             lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)

@@ -1,9 +1,9 @@
 package dtos
 
 type RAGRequestDTO struct {
-	Text       string `json:"text" binding:"required"`
-	Language   string `json:"language,omitempty"`
-	MacAddress string `json:"mac_address,omitempty"`
+	Text       string `json:"text" binding:"required" example:"Ini adalah transkrip panjang dari rapat teknis..."`
+	Language   string `json:"language,omitempty" example:"id"`
+	MacAddress string `json:"mac_address,omitempty" example:"AA:BB:CC:DD:EE:FF"`
 }
 
 type RAGSummaryRequestDTO struct {
@@ -61,7 +61,14 @@ type RAGSummaryResponseDTO struct {
 }
 
 type RAGChatRequestDTO struct {
-	RequestID  string `json:"request_id,omitempty"`
+	// RequestID is a unique identifier for cross-channel idempotency.
+	// When the same request_id is sent via both HTTP and MQTT channels,
+	// only ONE Tuya command execution will occur. The second channel will
+	// return either a "processing" acknowledgment (if first request is still
+	// in progress) or the cached response (if first request completed).
+	// Client should generate a UUID per user interaction and use it for both
+	// HTTP and MQTT dispatch to prevent duplicate device control.
+	RequestID  string `json:"request_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Prompt     string `json:"prompt" binding:"required" example:"Nyalakan AC"`
 	Language   string `json:"language,omitempty" example:"id"`
 	TerminalID string `json:"terminal_id" binding:"required" example:"tx-1"`
@@ -74,9 +81,16 @@ type RAGChatResponseDTO struct {
 	IsBlocked      bool         `json:"is_blocked"`
 	Redirect       *RedirectDTO `json:"redirect,omitempty"`
 	HTTPStatusCode int          `json:"-"`                     // HTTP status code to return (not exposed in JSON)
-	RequestID      string       `json:"request_id,omitempty"`  // Tracking ID
-	Source         string       `json:"source,omitempty"`      // e.g., "MQTT", "HTTP"
+	RequestID      string       `json:"request_id,omitempty"`  // Tracking ID (echoes request_id from request)
+	Source         string       `json:"source,omitempty"`      // Response source: "HTTP_HANDLER", "MQTT_SUBSCRIBER", "IDEMPOTENCY_CACHED", "IDEMPOTENCY_IN_PROGRESS", "MQTT_SYNC_DROP"
 	InstanceID     string       `json:"instance_id,omitempty"` // Server start time
+
+	// Idempotency Source Contract:
+	// - "IDEMPOTENCY_CACHED": Duplicate request with same request_id, returning cached completed response
+	// - "IDEMPOTENCY_IN_PROGRESS": Duplicate request with same request_id, first request still processing
+	// - "MQTT_SYNC_DROP": Text query dropped because Whisper transcription is active for same terminal
+	// - "HTTP_HANDLER" / "MQTT_SUBSCRIBER": Fresh request processed via respective channel
+	// Frontend should use these markers to suppress duplicate UI updates and handle silent-complete flows.
 }
 
 type RedirectDTO struct {

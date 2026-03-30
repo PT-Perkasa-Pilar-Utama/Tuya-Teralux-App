@@ -45,21 +45,28 @@ class BackgroundAssistantService : Service() {
         super.onCreate()
         AppLog.i(TAG, "Service onCreate")
 
+        // Ensure NetworkModule is initialized
+        NetworkModule.ensureInitialized(applicationContext)
+
         createNotificationChannels()
         startForeground(notificationId, createNotification())
 
         // Initialize dependencies
-        coordinator = NetworkModule.backgroundAssistantCoordinator
-        coordinator.start(serviceScope)
+        try {
+            coordinator = NetworkModule.backgroundAssistantCoordinator
+            coordinator.start(serviceScope)
 
-        overlayController = BackgroundAssistantOverlayController(
-            context = this,
-            coordinator = coordinator,
-            onError = {
-                AppLog.e(TAG, "Overlay error occurred")
-                // Post high-priority notification if needed
-            }
-        )
+            overlayController = BackgroundAssistantOverlayController(
+                context = this,
+                coordinator = coordinator,
+                onError = {
+                    AppLog.e(TAG, "Overlay error occurred")
+                    // Post high-priority notification if needed
+                }
+            )
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Failed to initialize coordinator or overlay", e)
+        }
 
         wakeWordManager = SensioWakeWordManager(this) {
             AppLog.d(TAG, "Wake word detected")
@@ -69,6 +76,10 @@ class BackgroundAssistantService : Service() {
         coordinator.onDismissed = {
             AppLog.d(TAG, "Coordinator dismissed, hiding overlay")
             overlayController?.hide()
+
+            // Notify arbiter that assistant overlay is no longer active
+            NetworkModule.overlayArbiter.markAssistantOverlayActive(false)
+
             if (NetworkModule.backgroundAssistantModeStore.isEnabled.value) {
                 checkPermissionsAndStart(isPeriodic = false)
             }
@@ -176,6 +187,9 @@ class BackgroundAssistantService : Service() {
                 dismissAlertNotification()
                 overlayController?.show()
                 coordinator.onWakeDetected()
+
+                // Notify arbiter that assistant overlay is active
+                NetworkModule.overlayArbiter.markAssistantOverlayActive(true)
             } else {
                 AppLog.w(TAG, "Missing overlay permission")
                 showAlertNotification(

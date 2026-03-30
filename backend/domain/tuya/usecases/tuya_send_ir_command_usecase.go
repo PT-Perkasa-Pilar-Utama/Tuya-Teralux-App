@@ -137,14 +137,23 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 		return false, err
 	}
 
-	utils.LogDebug("SendIRACCommand: Tuya response received | duration_ms=%d | success=%v | code=%d | msg=%s",
-		irApiDuration.Milliseconds(), resp.Success, resp.Code, resp.Msg)
+	utils.LogDebug("SendIRACCommand: Tuya response received | duration_ms=%d | success=%v | code=%d | msg=%s | result=%v",
+		irApiDuration.Milliseconds(), resp.Success, resp.Code, resp.Msg, resp.Result)
 
 	if !resp.Success {
+		utils.LogError("SendIRACCommand: Gateway IR API failed | code=%d | msg=%s", resp.Code, resp.Msg)
 		return false, fmt.Errorf("Gateway IR API failed: %s (code: %d)", resp.Msg, resp.Code)
 	}
 
-	// Save state after successful command
+	// Check Result field (business logic success)
+	if !resp.Result {
+		// API call succeeded but device execution failed (e.g., device offline, command rejected)
+		utils.LogWarn("SendIRACCommand: IR API succeeded but device execution failed | remoteID=%s | code=%d | msg=%s", remoteID, resp.Code, resp.Msg)
+		// Do NOT save state - command was not effective
+		return false, nil
+	}
+
+	// Command was truly effective (Success=true && Result=true) - save state
 	if uc.deviceStateUC != nil {
 		stateStart := time.Now()
 		stateCommands := make([]dtos.DeviceStateCommandDTO, 0, len(params))
@@ -161,5 +170,5 @@ func (uc *tuyaSendIRCommandUseCase) SendIRACCommand(accessToken, infraredID, rem
 		}
 	}
 
-	return resp.Result, nil
+	return true, nil
 }

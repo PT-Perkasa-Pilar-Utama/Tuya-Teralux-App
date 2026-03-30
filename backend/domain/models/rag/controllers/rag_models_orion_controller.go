@@ -18,6 +18,9 @@ type ragModelsOrionController struct {
 	usecase usecases.QueryOrionModelUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = dtos.RAGRawPromptRequestDTO{}
+
 func NewRAGModelsOrionController(usecase usecases.QueryOrionModelUseCase) RAGModelsOrionController {
 	return &ragModelsOrionController{usecase: usecase}
 }

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
-	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	device_repositories "sensio/domain/terminal/device/repositories"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/services"
 	tuya_utils "sensio/domain/tuya/utils"
@@ -63,7 +63,7 @@ func NewTuyaGetAllDevicesUseCase(service *services.TuyaDeviceService, deviceStat
 // @throws error If the API returns a failure (e.g., invalid token).
 func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page, limit int, category string) (*dtos.TuyaDevicesResponseDTO, error) {
 	ucStart := time.Now()
-	
+
 	// Get config
 	config := utils.GetConfig()
 
@@ -79,8 +79,8 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 				// Ensure Vector DB is still populated even on cache hit
 				// This handles cases where Badger cache exists but Vector DB was cleared or not initialized
 				// Only update assistant aggregate for full snapshots
-				isFull := isFullSnapshotRequest(category, page, limit)
-				go uc.populateVectorDB(uid, &cachedResp, isFull)
+				
+				go uc.populateVectorDB(uid, &cachedResp, true)
 
 				return &cachedResp, nil
 			}
@@ -175,7 +175,7 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 		batchStatusStart := time.Now()
 		batchStatusResponse, err := uc.service.FetchBatchDeviceStatus(statusFullURL, statusHeaders)
 		batchStatusDuration := time.Since(batchStatusStart)
-		
+
 		if err == nil && batchStatusResponse.Success {
 			for _, s := range batchStatusResponse.Result {
 				statusMap[s.ID] = s.IsOnline
@@ -414,8 +414,8 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	// Upsert to Vector DB so LLMs can find device DTOs and learn format
 	// Only update assistant aggregate for full (non-paginated, non-filtered) requests
 	if uc.vectorSvc != nil {
-		isFull := isFullSnapshotRequest(category, page, limit)
-		go uc.populateVectorDB(uid, resp, isFull)
+		
+		go uc.populateVectorDB(uid, resp, true) // Always update vector DB
 	}
 
 	totalDuration := time.Since(ucStart)
@@ -431,7 +431,7 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 		return
 	}
 
-	// Only update assistant aggregate key for full snapshots
+	// Always update assistant aggregate key (called with isFullSnapshot=true)
 	if isFullSnapshot {
 		// Upsert assistant-safe aggregate document
 		snapshot := uc.buildAssistantSafeSnapshot(resp)

@@ -24,10 +24,10 @@ var tuyaUIDPattern = regexp.MustCompile(`^sg[0-9A-Za-z]{6,}$`)
 var hexIDPattern = regexp.MustCompile(`^[A-Fa-f0-9]{12,24}$`)
 
 type RAGChatController struct {
-	chatUC         usecases.ChatUseCase
-	mqttSvc        *infrastructure.MqttService
-	terminalRepo   terminalRepos.ITerminalRepository
-	instanceID     string // server start time identifier
+	chatUC       usecases.ChatUseCase
+	mqttSvc      *infrastructure.MqttService
+	terminalRepo terminalRepos.ITerminalRepository
+	instanceID   string // server start time identifier
 }
 
 func isLikelyTuyaUID(uid string) bool {
@@ -215,7 +215,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 
 			utils.LogInfo("[%s] RAGChat MQTT [Handler: StartMqttSubscription]: Starting chat process for UID: %s, Prompt: '%s'", requestID, uid, req.Prompt)
 			chatStart := time.Now()
-			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language)
+			res, err := c.chatUC.Chat(context.Background(), uid, req.TerminalID, req.Prompt, req.Language, requestID)
 			chatDuration := time.Since(chatStart)
 			if err != nil {
 				utils.LogError("[%s] RAGChat MQTT: Chat processing failed: %v | chat_duration_ms=%d | total_duration_ms=%d", requestID, err, chatDuration.Milliseconds(), time.Since(handlerStart).Milliseconds())
@@ -233,8 +233,12 @@ func (c *RAGChatController) StartMqttSubscription() error {
 			}
 
 			// Add tracking metadata to response
+			// Preserve Source if already set by usecase (e.g., IDEMPOTENCY_CACHED, IDEMPOTENCY_IN_PROGRESS)
+			// Only set channel source if not already set
+			if res.Source == "" {
+				res.Source = "MQTT_SUBSCRIBER"
+			}
 			res.RequestID = requestID
-			res.Source = "MQTT_SUBSCRIBER"
 			res.InstanceID = c.instanceID
 
 			// Publish result back
@@ -291,7 +295,7 @@ func (c *RAGChatController) StartMqttSubscription() error {
 // @Router /api/models/rag/chat [post]
 func (c *RAGChatController) Chat(ctx *gin.Context) {
 	handlerStart := time.Now()
-	
+
 	var req dtos.RAGChatRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		bindDuration := time.Since(handlerStart)
@@ -322,7 +326,7 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	utils.LogInfo("[%s] RAGChat HTTP [Handler: Chat]: Starting chat process for UID: %s, Terminal: %s, Prompt: '%s'", requestID, uidStr, req.TerminalID, req.Prompt)
 
 	chatStart := time.Now()
-	res, err := c.chatUC.Chat(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt, req.Language)
+	res, err := c.chatUC.Chat(ctx.Request.Context(), uidStr, req.TerminalID, req.Prompt, req.Language, requestID)
 	chatDuration := time.Since(chatStart)
 	if err != nil {
 		utils.LogError("[%s] RAGChatController.Chat: %v | chat_duration_ms=%d | total_duration_ms=%d", requestID, err, chatDuration.Milliseconds(), time.Since(handlerStart).Milliseconds())
@@ -335,7 +339,11 @@ func (c *RAGChatController) Chat(ctx *gin.Context) {
 	utils.LogInfo("[%s] RAGChat HTTP: Chat usecase completed | chat_duration_ms=%d", requestID, chatDuration.Milliseconds())
 
 	// Add tracking metadata
-	res.Source = "HTTP_HANDLER"
+	// Preserve Source if already set by usecase (e.g., IDEMPOTENCY_CACHED, IDEMPOTENCY_IN_PROGRESS)
+	// Only set channel source if not already set
+	if res.Source == "" {
+		res.Source = "HTTP_HANDLER"
+	}
 	res.RequestID = requestID
 	res.InstanceID = c.instanceID
 

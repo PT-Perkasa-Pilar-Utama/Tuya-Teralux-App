@@ -16,6 +16,9 @@ type UpdateTerminalController struct {
 	useCase *usecases.UpdateTerminalUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = terminal_dtos.UpdateTerminalRequestDTO{}
+
 // NewUpdateTerminalController creates a new UpdateTerminalController instance
 func NewUpdateTerminalController(useCase *usecases.UpdateTerminalUseCase) *UpdateTerminalController {
 	return &UpdateTerminalController{
@@ -32,13 +35,12 @@ func NewUpdateTerminalController(useCase *usecases.UpdateTerminalUseCase) *Updat
 // @Param        id       path      string  true  "Terminal ID"
 // @Param        request  body      terminal_dtos.UpdateTerminalRequestDTO  true  "Updated terminal data"
 // @Success      200  {object}  dtos.StandardResponse{data=terminal_dtos.TerminalResponseDTO}
-// @Failure      422  {object}  dtos.ValidationErrorResponse
+// @Failure      422  {object}  dtos.ValidationErrorResponse{data=terminal_dtos.UpdateTerminalRequestDTO}
 // @Failure      404  {object}  dtos.ErrorResponse
 // @Failure      409  {object}  dtos.ErrorResponse
 // @Failure      500  {object}  dtos.ErrorResponse
 // @Router       /api/terminal/{id} [put]
 // @Security     BearerAuth
-
 func (c *UpdateTerminalController) UpdateTerminal(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var req terminal_dtos.UpdateTerminalRequestDTO

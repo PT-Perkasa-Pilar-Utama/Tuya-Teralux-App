@@ -37,6 +37,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         appContext = applicationContext
 
+        // Ensure NetworkModule is initialized
+        NetworkModule.ensureInitialized(this)
+
         if (com.example.whisperandroid.util.DeviceUtils.isTerminal()) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else if (com.example.whisperandroid.util.DeviceUtils.isPhone(this)) {
@@ -78,6 +81,7 @@ fun MainScreen(
         val permissions = mutableListOf(android.Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(android.Manifest.permission.READ_MEDIA_AUDIO)
+            permissions.add(android.Manifest.permission.POST_NOTIFICATIONS)
         } else {
             permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)

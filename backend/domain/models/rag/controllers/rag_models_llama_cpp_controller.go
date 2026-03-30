@@ -18,6 +18,9 @@ type ragModelsLlamaCppController struct {
 	usecase usecases.QueryLlamaCppModelUseCase
 }
 
+// Force Swaggo to detect DTOs
+var _ = dtos.RAGRawPromptRequestDTO{}
+
 func NewRAGModelsLlamaCppController(usecase usecases.QueryLlamaCppModelUseCase) RAGModelsLlamaCppController {
 	return &ragModelsLlamaCppController{usecase: usecase}
 }

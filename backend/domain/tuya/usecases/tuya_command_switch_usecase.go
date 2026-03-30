@@ -142,6 +142,18 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 				switch {
 				case retryErr == nil && retryResp.Success:
 					utils.LogInfo("Retry success with corrected commands!")
+					// Only save state if retry was truly effective (Success && Result)
+					if retryResp.Result {
+						if uc.deviceStateUC != nil {
+							stateCommands := make([]dtos.DeviceStateCommandDTO, len(commands))
+							for i, cmd := range commands {
+								stateCommands[i] = dtos.DeviceStateCommandDTO(cmd)
+							}
+							if err := uc.deviceStateUC.SaveDeviceState(deviceID, stateCommands); err != nil {
+								utils.LogWarn("Failed to save device state for %s: %v", deviceID, err)
+							}
+						}
+					}
 					return retryResp.Result, nil
 				case retryErr != nil:
 					utils.LogError("Retry failed: %v", retryErr)
@@ -154,7 +166,15 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 		return false, fmt.Errorf("Gateway API failed: %s (code: %d)", resp.Msg, resp.Code)
 	}
 
-	// Save state after successful command
+	// Check Result field (business logic success)
+	if !resp.Result {
+		// API call succeeded but device execution failed (e.g., device offline, command rejected)
+		utils.LogWarn("Tuya API succeeded but device execution failed. DeviceID=%s, Code=%d, Msg=%s", deviceID, resp.Code, resp.Msg)
+		// Do NOT save state - command was not effective
+		return false, nil
+	}
+
+	// Command was truly effective (Success=true && Result=true) - save state
 	if uc.deviceStateUC != nil {
 		stateCommands := make([]dtos.DeviceStateCommandDTO, len(commands))
 		for i, cmd := range commands {
@@ -165,5 +185,5 @@ func (uc *tuyaCommandSwitchUseCase) SendSwitchCommand(accessToken, deviceID stri
 		}
 	}
 
-	return resp.Result, nil
+	return true, nil
 }

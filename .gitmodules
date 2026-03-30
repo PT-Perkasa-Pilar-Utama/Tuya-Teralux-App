@@ -1,9 +1,4 @@
 [submodule "backend/services/EMQX-Auth-Service"]
 	path = backend/services/EMQX-Auth-Service
 	url = https://github.com/farismnrr/EMQX-Auth-Service
-[submodule "backend/services/llama.cpp"]
-	path = backend/services/llama.cpp
-	url = https://github.com/ggerganov/llama.cpp.git
-[submodule "backend/services/whisper.cpp"]
-	path = backend/services/whisper.cpp
-	url = https://github.com/ggerganov/whisper.cpp.git
+	branch = main

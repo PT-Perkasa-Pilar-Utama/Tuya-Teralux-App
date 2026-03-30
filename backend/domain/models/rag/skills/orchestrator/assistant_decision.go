@@ -10,11 +10,11 @@ import (
 
 // AssistantDecision represents the structured output from the single LLM decision call.
 type AssistantDecision struct {
-	Intent        string            `json:"intent"`         // "chat" | "identity" | "control" | "blocked"
+	Intent        string            `json:"intent"` // "chat" | "identity" | "control" | "blocked"
 	Response      string            `json:"response,omitempty"`
 	Operation     string            `json:"operation,omitempty"` // operational verb: "nyalakan"|"matikan"|"brightness"|"temperature"|"fan_speed"
 	DeviceHints   []string          `json:"device_hints,omitempty"`
-	ValueHints    map[string]string `json:"value_hints,omitempty"` // e.g., {"brightness": "50", "temperature": "24"}
+	ValueHints    map[string]string `json:"value_hints,omitempty"`    // e.g., {"brightness": "50", "temperature": "24"}
 	ControlPrompt string            `json:"control_prompt,omitempty"` // normalized control command if model wants to specify
 	IsAmbiguous   bool              `json:"is_ambiguous,omitempty"`
 	BlockReason   string            `json:"block_reason,omitempty"`
@@ -135,11 +135,17 @@ Intent Guidelines:
 
 For Control Intent:
 - "operation": Use the operational verb that matches the command
-  - "nyalakan" for turn on commands
-  - "matikan" for turn off commands
-  - "brightness" for brightness adjustment
-  - "temperature" for temperature setting
-  - "fan_speed" for fan speed adjustment
+  - "nyalakan" for turn on commands (nyalakan, nyalain, turn on, hidupkan, hidupin)
+  - "matikan" for turn off commands (matikan, matiin, turn off, tutup, mateni)
+  - "brightness" for brightness adjustment (kecerahan, terang, gelap, persen, %%)
+  - "temperature" for temperature setting (suhu, temperatur, derajat, degree)
+  - "fan_speed" for fan speed adjustment (kipas, fan, kecepatan, speed)
+
+CRITICAL: Match the action verb EXACTLY as the user requested!
+  - If user says "MATIKAN" / "MATIIN" / "TURN OFF" → operation MUST be "matikan"
+  - If user says "NYALAKAN" / "NYALAIN" / "TURN ON" → operation MUST be "nyalakan"
+  - DO NOT reverse the action! This is a critical error.
+  - Double-check: Does your operation match what the user asked for?
 - "device_hints": MUST list the target device(s) - required for control
 - "value_hints": Include numeric values if applicable (e.g., {"temperature": "24"}, {"brightness": "50"})
 - "control_prompt": Optionally provide the full normalized command in Indonesian
@@ -152,6 +158,7 @@ Rules:
 3. For control commands, be specific about device and action
 4. If ambiguous (multiple devices match), set is_ambiguous=true
 5. Keep responses concise and helpful
+6. VERIFY ACTION VERB: Before outputting, check that "operation" matches user's command (matikan vs nyalakan)
 
 Examples:
 
@@ -163,6 +170,12 @@ Output: {"intent":"control","response":"Baik, mengatur AC ke 24 derajat","operat
 
 User: "Matikan kipas angin"
 Output: {"intent":"control","response":"Baik, mematikan kipas angin","operation":"matikan","device_hints":["kipas angin"]}
+
+User: "Matiin semua lampu"
+Output: {"intent":"control","response":"Baik, mematikan semua lampu","operation":"matikan","device_hints":["lampu"],"control_prompt":"matikan semua lampu"}
+
+User: "Nyalain AC ruang tamu"
+Output: {"intent":"control","response":"Baik, menyalakan AC ruang tamu","operation":"nyalakan","device_hints":["ac ruang tamu"]}
 
 User: "Lampu kamar 50 persen"
 Output: {"intent":"control","response":"Baik, mengatur lampu kamar ke 50 persen","operation":"brightness","device_hints":["lampu kamar"],"value_hints":{"brightness":"50"}}

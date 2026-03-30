@@ -225,11 +225,11 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	}
 
 	transOpts := speechUsecases.TranscribeOptions{
-		Language:         req.Language,
-		Diarize:          req.Diarize,
-		Refine:           refine,
-		IsPipeline:       true,
-		DisableFallback:  true, // MEETING SUMMARY REQUIREMENT: No local fallback for pipeline path
+		Language:        req.Language,
+		Diarize:         req.Diarize,
+		Refine:          refine,
+		IsPipeline:      true,
+		DisableFallback: true, // MEETING SUMMARY REQUIREMENT: No local fallback for pipeline path
 		ProgressCallback: func(progress int) {
 			u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "transcription", "processing", progress, nil)
 		},

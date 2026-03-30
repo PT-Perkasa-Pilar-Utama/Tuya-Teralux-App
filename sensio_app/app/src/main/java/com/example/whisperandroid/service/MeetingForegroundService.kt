@@ -55,6 +55,10 @@ class MeetingForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         isServiceCreated = true
+
+        // Ensure NetworkModule is initialized
+        NetworkModule.ensureInitialized(applicationContext)
+
         createNotificationChannel()
     }
 

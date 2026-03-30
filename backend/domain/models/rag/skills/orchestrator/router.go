@@ -62,7 +62,7 @@ func NewRouter(registry *skills.SkillRegistry, translator skills.TranslateServic
 // RouteAndExecute analyzes the prompt, picks the best skill, and executes it.
 func (r *Router) RouteAndExecute(ctx *skills.SkillContext) (*skills.SkillResult, error) {
 	routerStart := time.Now()
-	
+
 	// 0. Guard: Check for spam before wasting an LLM call
 	guardStart := time.Now()
 	guardDuration := time.Duration(0)
@@ -108,7 +108,7 @@ func (r *Router) RouteAndExecute(ctx *skills.SkillContext) (*skills.SkillResult,
 			if err != nil {
 				return nil, err
 			}
-			
+
 			translateDuration := time.Duration(0)
 			if ctx.Language != "" && ctx.Language != "en" && r.translator != nil && res.Message != "" {
 				utils.LogDebug("Router: Translating response to '%s'", ctx.Language)

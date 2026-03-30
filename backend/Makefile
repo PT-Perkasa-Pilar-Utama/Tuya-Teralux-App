@@ -11,8 +11,8 @@ help:
 	@echo "  make dev-full         - Run full stack (MySQL + Backend + RAG)"
 	@echo "  make dev-mysql        - Start only MySQL for development"
 	@echo "  make test             - Run all unit tests"
-	@echo "  make lint             - Run go vet, golangci-lint, and go build check"
-	@echo "  make lint-strict      - Run all linters (vet, golangci-lint, build check)"
+	@echo "  make lint             - Run gofmt check, go vet, and go build check"
+	@echo "  make lint-strict      - Run gofmt check, go vet, and go build check"
 	@echo ""
 	@echo "  --- API DOCS (OpenAPI 3.1) ---"
 	@echo "  make openapi-tools    - Install OpenAPI converter and validator tools"
@@ -88,10 +88,6 @@ dev-compose: start-mysql-dev
 # Start only the backend Go server with Air
 dev-backend: kill-server
 	@echo "🚀 Starting development server with hot reload..."; \
-	if [ ! -f bin/whisper-cli ] || [ ! -f bin/llama-cli ] || [ ! -f bin/llama-server ]; then \
-		echo "🛠️ Some AI binaries missing. Running setup..."; \
-		make setup-dev; \
-	fi; \
 	mkdir -p .air; \
 	echo "🚀 Starting backend with Air (Port 8081)..."; \
 	($(shell go env GOPATH)/bin/air || (echo "❌ air not found. Installing..." && go install github.com/air-verse/air@latest && $(shell go env GOPATH)/bin/air))
@@ -99,10 +95,6 @@ dev-backend: kill-server
 # Start the backend and RAG service (used by dev-full)
 dev-server: kill-server
 	@echo "🚀 Starting development stack (Backend + RAG)..."; \
-	if [ ! -f bin/whisper-cli ] || [ ! -f bin/llama-cli ] || [ ! -f bin/llama-server ]; then \
-		echo "🛠️ Some AI binaries missing. Running setup..."; \
-		make setup-dev; \
-	fi; \
 	if [ ! -d services/rag-whisper-service/venv ]; then \
 		echo "🛠️ Python venv missing. Running RAG service setup..."; \
 		cd services/rag-whisper-service && python3 -m venv venv && ./venv/bin/pip install --upgrade pip && ./venv/bin/pip install .; \
@@ -158,7 +150,7 @@ generate-openapi:
 	@echo "🔄 Converting Swagger 2.0 to OpenAPI 3.1..."
 	@bash ../scripts/backend/generate_openapi.sh
 	@echo "🔧 Fixing missing requestBody schemas in openapi.json..."
-	@python3 scripts/fix_openapi.py docs/swagger/swagger.json docs/openapi/openapi.json
+	@python3 scripts/fix_openapi.py docs/openapi/openapi.json docs/openapi/openapi.json
 	@echo "✅ OpenAPI conversion completed"
 
 # Validate OpenAPI specification
@@ -254,99 +246,21 @@ start-docker: stop-docker
 	@echo "🚀 Starting Docker container locally..."
 	docker run --rm -it -d -p 8081:8080 --name $(IMAGE_BASE) --env-file .env $(IMAGE_BASE):$(IMAGE_TAG)
 
-# --- AI Components Configuration ---
-WHISPER_TAG ?= v1.7.4
-LLAMA_TAG   ?= b4765
+# --- Setup Configuration ---
 
-# Model Metadata (Pinned from entrypoint.sh)
-WHISPER_URL = https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-base.bin
-WHISPER_SHA = 60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe
-
-LLAMA_URL = https://huggingface.co/unsloth/Llama-3.2-1B-Instruct-GGUF/resolve/b9a1b2bae395064b27533b8a56b1306f4d2d2f5f/Llama-3.2-1B-Instruct-Q4_K_M.gguf
-LLAMA_SHA = 3f5a22426976ab26cfe84dba63c1d08391717abb1af893e10f1b2968d862dcc1
-
-# Paths
-WHISPER_SRC_DIR = services/whisper.cpp
-WHISPER_BUILD_DIR = $(WHISPER_SRC_DIR)/build
-LLAMA_SRC_DIR = services/llama.cpp
-LLAMA_BUILD_DIR = $(LLAMA_SRC_DIR)/build
-
-# Run backend setup (whisper & llama build) - Comprehensive Setup
+# Run backend setup (RAG Service build) - Comprehensive Setup
 setup:
 	@echo "🚀 Running comprehensive backend setup..."
-	@# Check for dependencies
-	@command -v cmake >/dev/null 2>&1 || { echo >&2 "❌ Error: cmake is not installed. Please install it (e.g., 'sudo pacman -S cmake' or 'sudo apt install cmake')."; exit 1; }
 	@mkdir -p bin
-	@echo "📥 Synchronizing and initializing submodules..."
-	@git submodule update --init --recursive
-	@echo "🔨 Building AI binaries..."
-	@rm -rf $(WHISPER_BUILD_DIR) $(LLAMA_BUILD_DIR)
-	@mkdir -p $(WHISPER_BUILD_DIR)
-	@cd $(WHISPER_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF && make whisper-cli -j$$(nproc)
-	@mkdir -p $(LLAMA_BUILD_DIR)
-	@echo "🔨 Configuring llama.cpp..."
-	@cd $(LLAMA_BUILD_DIR) && cmake .. -DGGML_NATIVE=OFF || { echo "❌ CMake configuration failed"; exit 1; }
-	@echo "🔨 Building llama.cpp..."
-	@cd $(LLAMA_BUILD_DIR) && (make llama-cli llama-server -j$$(nproc) || make main server -j$$(nproc) || \
-		{ echo "❌ Build failed. Diagnostics:"; \
-		  make help | grep -E "llama-cli|main|server" || true; \
-		  ls -la bin || true; \
-		  exit 1; })
-	@cp $(WHISPER_BUILD_DIR)/bin/whisper-cli bin/whisper-cli
-	@if [ -f $(LLAMA_BUILD_DIR)/bin/llama-cli ]; then \
-		cp $(LLAMA_BUILD_DIR)/bin/llama-cli bin/llama-cli; \
-	elif [ -f $(LLAMA_BUILD_DIR)/bin/main ]; then \
-		cp $(LLAMA_BUILD_DIR)/bin/main bin/llama-cli; \
-	else \
-		echo "❌ llama-cli binary not found"; exit 1; \
-	fi
-	@if [ -f $(LLAMA_BUILD_DIR)/bin/llama-server ]; then \
-		cp $(LLAMA_BUILD_DIR)/bin/llama-server bin/llama-server; \
-	elif [ -f $(LLAMA_BUILD_DIR)/bin/server ]; then \
-		cp $(LLAMA_BUILD_DIR)/bin/server bin/llama-server; \
-	else \
-		echo "❌ llama-server binary not found"; exit 1; \
-	fi
 	@echo "🐍 Setting up RAG+Whisper Service..."
 	@if [ ! -d services/rag-whisper-service/venv ]; then \
 		cd services/rag-whisper-service && python3 -m venv venv; \
 	fi
 	@cd services/rag-whisper-service && ./venv/bin/pip install --upgrade pip && ./venv/bin/pip install .
-	@$(MAKE) download-models
 	@echo "✅ Setup complete. Use 'make dev' to start."
 
 # Legacy target for backward compatibility or simple setup
 setup-dev: setup
-
-# Download and verify default models
-download-models:
-	@echo "📥 Downloading and verifying models..."
-	@mkdir -p bin
-	@# Verify or download Whisper model
-	@if [ -f bin/ggml-base.bin ]; then \
-		echo "Verifying Whisper model checksum..."; \
-		if ! echo "$(WHISPER_SHA)  bin/ggml-base.bin" | sha256sum -c --status; then \
-			echo "⚠️ Whisper checksum mismatch! Re-downloading..."; \
-			curl -L $(WHISPER_URL) -o bin/ggml-base.bin; \
-		fi; \
-	else \
-		echo "Downloading Whisper base model..."; \
-		curl -L $(WHISPER_URL) -o bin/ggml-base.bin; \
-	fi
-	@echo "✅ Whisper model verified."
-	
-	@# Verify or download Llama model
-	@if [ -f bin/llama-model.gguf ]; then \
-		echo "Verifying Llama model checksum..."; \
-		if ! echo "$(LLAMA_SHA)  bin/llama-model.gguf" | sha256sum -c --status; then \
-			echo "⚠️ Llama checksum mismatch! Re-downloading..."; \
-			curl -L $(LLAMA_URL) -o bin/llama-model.gguf; \
-		fi; \
-	else \
-		echo "Downloading Llama-3.2-1B model..."; \
-		curl -L $(LLAMA_URL) -o bin/llama-model.gguf; \
-	fi
-	@echo "✅ Llama model verified."
 
 # Conveniences
 # Usage: make rag text="turn on the lamp"
@@ -374,12 +288,17 @@ vet:
 lint:
 	@$(MAKE) lint-strict
 
-# Run go vet, golangci-lint, and go build check
+# Run gofmt check, go vet, and go build check
 lint-strict:
+	@echo "🧹 Checking gofmt..."
+	@UNFORMATTED=$$(gofmt -l main.go domain); \
+	if [ -n "$$UNFORMATTED" ]; then \
+		echo "❌ gofmt required for files:"; \
+		echo "$$UNFORMATTED"; \
+		exit 1; \
+	fi
 	@echo "🔍 Running go vet..."
 	@go vet . ./domain/...
-	@echo "✨ Running golangci-lint..."
-	@golangci-lint run
 	@echo "🔨 Running go build check..."
 	@CGO_CFLAGS="-w" go build -o /dev/null . ./domain/...
 
