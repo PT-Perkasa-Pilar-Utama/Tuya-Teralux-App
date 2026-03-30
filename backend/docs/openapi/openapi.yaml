@@ -2244,6 +2244,45 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
+    /api/terminal/{id}/ai-engine-profile:
+        put:
+            tags:
+                - 02. Terminal
+            summary: Update AI engine profile
+            description: Sets or clears the AI engine profile (fast, standard) for a terminal. plaud is rejected as not yet available.
+            parameters:
+                - name: id
+                  in: path
+                  description: Terminal ID
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                description: Profile update
+                required: true
+                content:
+                    application/json: {}
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.StandardResponse'
+                "404":
+                    description: Not Found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
     /api/terminal/{id}/scenes:
         get:
             tags:
@@ -2470,6 +2509,34 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
                 "500":
                     description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
+    /api/terminal/mac/{mac}/ai-engine-profile:
+        get:
+            tags:
+                - 02. Terminal
+            summary: Get AI engine profile by MAC
+            description: Returns the AI engine profile (fast, standard) for a terminal identified by MAC address
+            parameters:
+                - name: mac
+                  in: path
+                  description: Terminal MAC address
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.StandardResponse'
+                "404":
+                    description: Not Found
                     content:
                         application/json:
                             schema:
@@ -4036,6 +4103,12 @@ components:
                     example: Evening Mode
             required:
                 - name
+        dtos.UpdateTerminalAIEngineProfileRequestDTO:
+            type: object
+            properties:
+                profile:
+                    type: string
+                    description: '"fast", "standard", or null/empty to clear'
         dtos.UpdateTerminalRequestDTO:
             type: object
             properties:

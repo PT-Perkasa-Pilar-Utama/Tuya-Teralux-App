@@ -5,6 +5,7 @@ import com.example.whisperandroid.data.local.BackgroundAssistantModeStore
 import com.example.whisperandroid.data.local.TokenManager
 import com.example.whisperandroid.data.remote.dto.TuyaDeviceDto
 import com.example.whisperandroid.data.remote.dto.TuyaDevicesResponseDto
+import com.example.whisperandroid.domain.repository.AiEngineProfileState
 import com.example.whisperandroid.domain.repository.TerminalRepository
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
 import com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
@@ -128,5 +129,66 @@ class DashboardViewModelTest {
 
         val state = vm.uiState.value
         assertEquals("sync failed", state.error)
+    }
+
+    @Test
+    fun `loadCurrentAiEngineProfile sets profile when source is engine_profile`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>(relaxed = true)
+        val terminalRepository = mockk<TerminalRepository>()
+        val tokenManager = mockk<TokenManager>(relaxed = true)
+        val tuyaSyncReadyFlow = MutableStateFlow(true)
+        
+        io.mockk.every { modeStore.isEnabled } returns MutableStateFlow(false)
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC"
+        
+        coEvery { terminalRepository.getAiEngineProfileByMac("AA:BB:CC") } returns Result.success(
+            AiEngineProfileState(
+                profile = "fast",
+                source = "engine_profile",
+                effectiveProvider = null,
+                effectiveMode = "fast"
+            )
+        )
+
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+        vm.loadCurrentAiEngineProfile()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("fast", state.aiEngineProfile)
+        assertEquals(null, state.legacyMigrationWarning)
+    }
+
+    @Test
+    fun `loadCurrentAiEngineProfile sets warning when source is legacy_provider`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>(relaxed = true)
+        val terminalRepository = mockk<TerminalRepository>()
+        val tokenManager = mockk<TokenManager>(relaxed = true)
+        val tuyaSyncReadyFlow = MutableStateFlow(true)
+        
+        io.mockk.every { modeStore.isEnabled } returns MutableStateFlow(false)
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC"
+        
+        coEvery { terminalRepository.getAiEngineProfileByMac("AA:BB:CC") } returns Result.success(
+            AiEngineProfileState(
+                profile = null,
+                source = "legacy_provider",
+                effectiveProvider = "openai",
+                effectiveMode = "legacy"
+            )
+        )
+
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+        vm.loadCurrentAiEngineProfile()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(null, state.aiEngineProfile)
+        assertTrue(state.legacyMigrationWarning != null)
+        assertTrue(state.legacyMigrationWarning!!.contains("legacy AI provider"))
     }
 }

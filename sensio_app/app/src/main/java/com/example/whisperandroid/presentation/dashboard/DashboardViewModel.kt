@@ -9,16 +9,26 @@ import com.example.whisperandroid.domain.repository.TerminalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class DashboardUiState(
     val isBackgroundModeEnabled: Boolean = false,
     val isOverlayPermissionGranted: Boolean = false,
     val isTuyaSyncReady: Boolean = false,
-    val aiProvider: String? = null,
-    val isSavingAiProvider: Boolean = false,
+    val terminalName: String = "",
+    val terminalId: String = "",
+    val macAddress: String = "",
+    val isRegistered: Boolean = false,
+    val isLoadingAuth: Boolean = true,
+    val isSavingAuth: Boolean = false,
+    val isAuthModalVisible: Boolean = false,
+    val aiEngineProfile: String? = null,
+    val isSavingAiEngineProfile: Boolean = false,
+    val isMicrophoneActive: Boolean = false,
     val error: String? = null,
-    val shouldRedirectToRegister: Boolean = false
+    val shouldRedirectToRegister: Boolean = false,
+    val legacyMigrationWarning: String? = null
 )
 
 class DashboardViewModel(
@@ -41,7 +51,7 @@ class DashboardViewModel(
     init {
         observeBackgroundMode()
         observeTuyaSyncReady()
-        loadCurrentAiProvider()
+        loadCurrentAiEngineProfile()
     }
 
     private fun observeTuyaSyncReady() {
@@ -62,54 +72,66 @@ class DashboardViewModel(
         }
     }
 
-    fun loadCurrentAiProvider() {
+    fun loadCurrentAiEngineProfile() {
         viewModelScope.launch {
-            // Get MAC address from token manager (source of truth for terminal lookup)
             val macAddress = tokenManager.getMacAddress()
             if (macAddress.isNullOrEmpty()) {
                 return@launch
             }
 
-            val result = terminalRepository.getTerminalByMac(macAddress)
-            result.onSuccess { registration ->
-                _uiState.value = _uiState.value.copy(
-                    aiProvider = registration?.aiProvider
-                )
+            val result = terminalRepository.getAiEngineProfileByMac(macAddress)
+            result.onSuccess { state ->
+                val warning = if (state?.source == "legacy_provider") {
+                    "This terminal is still using a legacy AI provider setting. Choose Fast or Standard to migrate."
+                } else null
+
+                _uiState.update {
+                    it.copy(
+                        aiEngineProfile = state?.profile,
+                        legacyMigrationWarning = warning
+                    )
+                }
             }
         }
     }
 
-    fun updateAiProvider(provider: String?) {
+    fun updateAiEngineProfile(profile: String?) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isSavingAiProvider = true,
-                error = null
-            )
+            _uiState.update {
+                it.copy(
+                    isSavingAiEngineProfile = true,
+                    error = null
+                )
+            }
 
             val terminalId = tokenManager.getTerminalId()
             if (terminalId.isNullOrEmpty()) {
-                _uiState.value = _uiState.value.copy(
-                    isSavingAiProvider = false,
-                    error = "Terminal ID not found",
-                    shouldRedirectToRegister = true
-                )
+                _uiState.update {
+                    it.copy(
+                        isSavingAiEngineProfile = false,
+                        error = "Terminal ID not found",
+                        shouldRedirectToRegister = true
+                    )
+                }
                 return@launch
             }
 
-            val result = terminalRepository.updateTerminal(terminalId, provider)
+            val result = terminalRepository.updateAiEngineProfile(terminalId, profile)
             result.onSuccess {
-                _uiState.value = _uiState.value.copy(
-                    isSavingAiProvider = false,
-                    aiProvider = provider
-                )
+                _uiState.update {
+                    it.copy(
+                        isSavingAiEngineProfile = false,
+                        aiEngineProfile = profile,
+                        legacyMigrationWarning = null
+                    )
+                }
             }.onFailure { e ->
-                val errorMsg = e.message ?: "Failed to update AI provider"
-                // Check if error is 404 - Terminal not found
+                val errorMsg = e.message ?: "Failed to update AI profile"
                 val isNotFound = errorMsg.contains("404") || errorMsg.contains("not found", ignoreCase = true) ||
                     errorMsg.contains("Terminal not found", ignoreCase = true)
 
                 _uiState.value = _uiState.value.copy(
-                    isSavingAiProvider = false,
+                    isSavingAiEngineProfile = false,
                     error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg,
                     shouldRedirectToRegister = isNotFound
                 )

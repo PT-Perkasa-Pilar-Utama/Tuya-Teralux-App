@@ -41,7 +41,8 @@ func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*providers.Ter
 		return nil, err
 	}
 	return &providers.Terminal{
-		AiProvider: term.AiProvider,
+		AiProvider:      term.AiProvider,
+		AiEngineProfile: term.AiEngineProfile,
 	}, nil
 }
 
@@ -51,7 +52,8 @@ func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string)
 		return nil, err
 	}
 	return &providers.Terminal{
-		AiProvider: term.AiProvider,
+		AiProvider:      term.AiProvider,
+		AiEngineProfile: term.AiEngineProfile,
 	}, nil
 }
 
