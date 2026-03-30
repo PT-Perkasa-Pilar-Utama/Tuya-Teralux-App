@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.16.6
 	github.com/yuin/goldmark v1.7.16
-	google.golang.org/grpc v1.79.2
+	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.6.0
