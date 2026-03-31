@@ -12,17 +12,48 @@ definitions:
         type: string
       value: {}
     type: object
+  dtos.ActionItem:
+    properties:
+      deadline:
+        type: string
+      id:
+        type: integer
+      pic:
+        description: Person in charge (may be empty if not specified)
+        type: string
+      status:
+        type: string
+      task:
+        type: string
+    type: object
   dtos.AsyncTranscriptionResultDTO:
     properties:
+      confidence_summary:
+        $ref: '#/definitions/dtos.ConfidenceSummary'
       detected_language:
         example: id
         type: string
+      normalization_applied:
+        description: Whether safe normalization was applied
+        type: boolean
       refined_text:
         example: Hello world
         type: string
+      segments:
+        items:
+          $ref: '#/definitions/dtos.TranscriptSegment'
+        type: array
+      transcript_format:
+        $ref: '#/definitions/dtos.TranscriptFormat'
       transcription:
         example: Halo dunia
         type: string
+      utterances:
+        description: Optional structured artifacts (backward compatible - empty when
+          not available)
+        items:
+          $ref: '#/definitions/dtos.Utterance'
+        type: array
     type: object
   dtos.AsyncTranscriptionStatusDTO:
     properties:
@@ -51,6 +82,38 @@ definitions:
       trigger:
         example: /api/whisper/models/gemini
         type: string
+    type: object
+  dtos.ConfidenceSummary:
+    properties:
+      average_confidence:
+        type: number
+      max_confidence:
+        type: number
+      min_confidence:
+        type: number
+      segments_count:
+        type: integer
+      utterances_count:
+        type: integer
+    type: object
+  dtos.CoverageStats:
+    properties:
+      compression_ratio:
+        type: number
+      coverage_ratio:
+        description: processed_windows / total_windows
+        type: number
+      empty_windows:
+        description: Windows with no extractable content
+        type: integer
+      processed_windows:
+        type: integer
+      source_chars:
+        type: integer
+      summary_chars:
+        type: integer
+      total_windows:
+        type: integer
     type: object
   dtos.CreateDeviceRequestDTO:
     properties:
@@ -99,6 +162,15 @@ definitions:
       mqtt_username:
         type: string
       terminal_id:
+        type: string
+    type: object
+  dtos.Decision:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      rationale:
         type: string
     type: object
   dtos.DeviceListResponseDTO:
@@ -289,6 +361,16 @@ definitions:
         example: "123"
         type: string
     type: object
+  dtos.OpenIssue:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      owner:
+        description: May be empty if not assigned
+        type: string
+    type: object
   dtos.PipelineResponseDTO:
     properties:
       task_id:
@@ -306,7 +388,7 @@ definitions:
       started_at:
         type: string
       status:
-        description: pending, processing, completed, failed, skipped
+        description: pending, processing, completed, failed, skipped, cancelled
         example: pending
         type: string
     type: object
@@ -318,8 +400,10 @@ definitions:
         type: string
       expires_in_seconds:
         type: integer
+      mac_address:
+        type: string
       overall_status:
-        description: pending, processing, completed, failed
+        description: pending, processing, completed, failed, cancelled
         example: processing
         type: string
       stages:
@@ -434,9 +518,19 @@ definitions:
     type: object
   dtos.RAGStatusDTO:
     properties:
+      action_items:
+        items:
+          $ref: '#/definitions/dtos.ActionItem'
+        type: array
       agenda_context:
         type: string
       body: {}
+      coverage_stats:
+        $ref: '#/definitions/dtos.CoverageStats'
+      decisions:
+        items:
+          $ref: '#/definitions/dtos.Decision'
+        type: array
       duration_seconds:
         example: 2.5
         type: number
@@ -463,11 +557,23 @@ definitions:
         type: string
       method:
         type: string
+      open_issues:
+        items:
+          $ref: '#/definitions/dtos.OpenIssue'
+        type: array
       pdf_url:
         type: string
       result:
         example: The meeting discussed...
         type: string
+      risks:
+        items:
+          $ref: '#/definitions/dtos.Risk'
+        type: array
+      source_language:
+        type: string
+      speaker_coverage:
+        $ref: '#/definitions/dtos.SpeakerCoverage'
       started_at:
         example: "2026-02-21T11:00:00Z"
         type: string
@@ -476,6 +582,15 @@ definitions:
         type: string
       summary:
         description: Alias for Result in summary tasks
+        type: string
+      summary_mode:
+        description: '"single_pass" or "hierarchical_structured"'
+        type: string
+      summary_version:
+        description: Optional structured summary artifacts (backward compatible -
+          empty when not available)
+        type: string
+      translated_from_language:
         type: string
       trigger:
         example: /api/rag/summary
@@ -521,6 +636,18 @@ definitions:
       endpoint:
         type: string
       method:
+        type: string
+    type: object
+  dtos.Risk:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      impact:
+        description: Low/Medium/High or 1-10 score
+        type: string
+      mitigation:
         type: string
     type: object
   dtos.SceneIDResponseDTO:
@@ -581,6 +708,21 @@ definitions:
         type: string
       temperature:
         type: number
+    type: object
+  dtos.SpeakerCoverage:
+    properties:
+      speaker_breakdown:
+        additionalProperties:
+          type: integer
+        description: Speaker label -> utterance count
+        type: object
+      speakers_with_names:
+        description: Speakers with identified names vs "Speaker 1"
+        type: integer
+      total_speakers:
+        type: integer
+      utterance_count:
+        type: integer
     type: object
   dtos.StandardResponse:
     properties:
@@ -654,10 +796,44 @@ definitions:
       terminal:
         $ref: '#/definitions/dtos.TerminalResponseDTO'
     type: object
+  dtos.TranscriptFormat:
+    enum:
+    - plain_text
+    - utterance_list
+    type: string
+    x-enum-varnames:
+    - TranscriptFormatPlainText
+    - TranscriptFormatUtteranceList
+  dtos.TranscriptSegment:
+    properties:
+      end_ms:
+        description: Segment end time in milliseconds (ESTIMATE)
+        type: integer
+      index:
+        description: Segment index (0, 1, 2, ...)
+        type: integer
+      start_ms:
+        description: Segment start time in milliseconds (ESTIMATE)
+        type: integer
+      text:
+        description: Transcribed text for this segment
+        type: string
+      utterances:
+        description: Utterances within this segment, if available
+        items:
+          $ref: '#/definitions/dtos.Utterance'
+        type: array
+    type: object
   dtos.TranscriptionTaskResponseDTO:
     properties:
       recording_id:
         example: uuid-v4
+        type: string
+      request_id:
+        example: req-uuid
+        type: string
+      source:
+        example: MQTT_ACK
         type: string
       task_id:
         example: abc-123
@@ -801,6 +977,24 @@ definitions:
         type: string
       room_id:
         example: room-456
+        type: string
+    type: object
+  dtos.Utterance:
+    properties:
+      confidence:
+        description: Confidence score (0.0-1.0) if available
+        type: number
+      end_ms:
+        description: End time in milliseconds (ESTIMATE if provider doesn't supply)
+        type: integer
+      speaker_label:
+        description: e.g., "Speaker 1", "John Doe"
+        type: string
+      start_ms:
+        description: Start time in milliseconds (ESTIMATE if provider doesn't supply)
+        type: integer
+      text:
+        description: Transcribed text for this utterance
         type: string
     type: object
   dtos.V1PipelineStatusResponseDTO:
@@ -1736,6 +1930,31 @@ paths:
       tags:
       - 04. Models
   /api/models/pipeline/status/{task_id}:
+    delete:
+      description: Cancels an active pipeline task. Returns 200 if task was cancelled
+        or already terminal, 404 if task not found.
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a pipeline task
+      tags:
+      - 04. Models
     get:
       description: Poll for status and results of a unified pipeline job.
       parameters:

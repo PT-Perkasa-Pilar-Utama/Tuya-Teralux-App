@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.whisperandroid.MainActivity
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.local.TokenManager
 import com.example.whisperandroid.data.manager.MeetingProcessManager
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
 import java.io.File
@@ -21,12 +22,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MeetingForegroundService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val notificationId = 1001
     private val channelId = "meeting_processing_channel"
+    private val tokenManager by lazy { TokenManager(applicationContext) }
 
     companion object {
         const val ACTION_CANCEL = "com.example.whisperandroid.service.ACTION_CANCEL"
@@ -167,10 +171,45 @@ class MeetingForegroundService : Service() {
     }
 
     private fun handleCancel() {
-        // Cancel the processing job
+        // Cancel the processing job immediately
         processingJob?.cancel()
         processingJob = null
         currentProcessingJob = null
+
+        // Call backend cancel API if we have a pipeline task ID
+        // We must wait for this to complete to ensure E2E consistency
+        var backendCancelSucceeded = false
+        val taskId = MeetingProcessManager.getPipelineTaskId()
+        if (taskId != null) {
+            // Block until backend cancel completes (with timeout)
+            try {
+                val token = tokenManager.getAccessToken() ?: ""
+                if (token.isNotEmpty()) {
+                    // Run cancel request synchronously in IO scope
+                    val result = runBlocking {
+                        withTimeoutOrNull(5000) {
+                            NetworkModule.pipelineRepository.cancelPipelineTask(taskId, token)
+                        }
+                    }
+                    // Check if result is success
+                    backendCancelSucceeded = result?.isSuccess == true
+                    if (backendCancelSucceeded) {
+                        Log.d("MeetingForegroundService", "Backend cancel request succeeded for task: $taskId")
+                    } else {
+                        Log.w("MeetingForegroundService", "Backend cancel request failed or timed out for task: $taskId")
+                    }
+                } else {
+                    Log.w("MeetingForegroundService", "No auth token available for backend cancel")
+                }
+            } catch (e: Exception) {
+                Log.w("MeetingForegroundService", "Backend cancel request failed: ${e.message}")
+                backendCancelSucceeded = false
+            }
+        } else {
+            Log.d("MeetingForegroundService", "No pipeline task ID available - skipping backend cancel")
+            // No task ID means backend was never contacted, so local cancel is truthful
+            backendCancelSucceeded = true
+        }
 
         // Clear the persisted session state to prevent resume of abandoned upload
         currentAudioPath?.let { audioPath ->
@@ -178,8 +217,18 @@ class MeetingForegroundService : Service() {
         }
         currentAudioPath = null
 
-        // Update state to Cancelled (not Error)
-        MeetingProcessManager.cancel()
+        // Update state based on backend cancel result
+        // Only show Cancelled if backend actually confirmed cancellation
+        // This ensures UI truthfulness - we don't claim cancel succeeded if BE is still running
+        if (backendCancelSucceeded) {
+            MeetingProcessManager.cancel()
+        } else {
+            // Backend cancel failed - show error state to indicate inconsistency
+            // User should be aware that processing may still continue on backend
+            MeetingProcessManager.updateState(
+                MeetingProcessState.Error("Gagal membatalkan proses di server. Proses mungkin masih berlanjut.")
+            )
+        }
 
         // Stop the service
         stopForeground(false)

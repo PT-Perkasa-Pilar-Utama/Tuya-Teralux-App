@@ -594,6 +594,117 @@ func TestExecutePipelineWithSession_ActualIdempotency(t *testing.T) {
 	})
 }
 
+// TestPipelineAudioPreservation tests that meeting-summary jobs preserve input audio files
+// while non-summary jobs clean them up as expected.
+func TestPipelineAudioPreservation(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Run("meeting-summary job preserves input audio file", func(t *testing.T) {
+		// Setup mock dependencies
+		mockBadger := NewMockBadgerService()
+		cache := tasks.NewBadgerTaskCache(mockBadger, "cache:task:")
+		store := tasks.NewStatusStore[pipelineDtos.PipelineStatusDTO]()
+		mockMQTT := &MockMQTTPublisher{}
+		mockTranscribeUC := &MockTranscribeUseCase{}
+		mockTranslateUC := &MockTranslateUseCase{}
+		mockSummaryUC := &MockSummaryUseCase{}
+
+		pipelineUC := NewPipelineUseCase(
+			mockTranscribeUC,
+			mockTranslateUC,
+			mockSummaryUC,
+			cache,
+			store,
+			mockMQTT,
+		)
+
+		// Create test audio file
+		testAudioPath := tmpDir + "/test_meeting_summary.wav"
+		testAudioContent := []byte("fake audio data for meeting summary test")
+		err := os.WriteFile(testAudioPath, testAudioContent, 0644)
+		assert.NoError(t, err)
+
+		// Verify file exists before pipeline
+		_, err = os.Stat(testAudioPath)
+		assert.NoError(t, err, "Test audio file should exist before pipeline execution")
+
+		req := pipelineDtos.PipelineRequestDTO{
+			Language:       "id",
+			TargetLanguage: "en",
+			MacAddress:     "AA:BB:CC:DD:EE:FF",
+			Diarize:        false,
+			Refine:         boolPtr(true),
+			Summarize:      true, // Meeting summary enabled
+		}
+
+		// Execute pipeline
+		taskID, err := pipelineUC.ExecutePipelineWithSession(context.Background(), testAudioPath, req, "", "")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, taskID)
+
+		// Wait briefly for async cleanup to occur (if it were going to)
+		time.Sleep(100 * time.Millisecond)
+
+		// Verify file still exists after pipeline completion (preserved for meeting summary)
+		_, err = os.Stat(testAudioPath)
+		assert.NoError(t, err, "Input audio file should be preserved for meeting-summary jobs")
+
+		// Cleanup: manually remove test file
+		os.Remove(testAudioPath)
+	})
+
+	t.Run("non-summary job deletes input audio file", func(t *testing.T) {
+		// Setup mock dependencies
+		mockBadger := NewMockBadgerService()
+		cache := tasks.NewBadgerTaskCache(mockBadger, "cache:task:")
+		store := tasks.NewStatusStore[pipelineDtos.PipelineStatusDTO]()
+		mockMQTT := &MockMQTTPublisher{}
+		mockTranscribeUC := &MockTranscribeUseCase{}
+		mockTranslateUC := &MockTranslateUseCase{}
+		mockSummaryUC := &MockSummaryUseCase{}
+
+		pipelineUC := NewPipelineUseCase(
+			mockTranscribeUC,
+			mockTranslateUC,
+			mockSummaryUC,
+			cache,
+			store,
+			mockMQTT,
+		)
+
+		// Create test audio file
+		testAudioPath := tmpDir + "/test_non_summary.wav"
+		testAudioContent := []byte("fake audio data for non-summary test")
+		err := os.WriteFile(testAudioPath, testAudioContent, 0644)
+		assert.NoError(t, err)
+
+		// Verify file exists before pipeline
+		_, err = os.Stat(testAudioPath)
+		assert.NoError(t, err, "Test audio file should exist before pipeline execution")
+
+		req := pipelineDtos.PipelineRequestDTO{
+			Language:       "id",
+			TargetLanguage: "en",
+			MacAddress:     "AA:BB:CC:DD:EE:FF",
+			Diarize:        false,
+			Refine:         boolPtr(true),
+			Summarize:      false, // Meeting summary disabled
+		}
+
+		// Execute pipeline
+		taskID, err := pipelineUC.ExecutePipelineWithSession(context.Background(), testAudioPath, req, "", "")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, taskID)
+
+		// Wait briefly for async cleanup to occur
+		time.Sleep(100 * time.Millisecond)
+
+		// Verify file is deleted after pipeline completion (non-summary job)
+		_, err = os.Stat(testAudioPath)
+		assert.True(t, os.IsNotExist(err), "Input audio file should be deleted for non-summary jobs")
+	})
+}
+
 // Helper functions for tests
 func boolPtr(b bool) *bool {
 	return &b

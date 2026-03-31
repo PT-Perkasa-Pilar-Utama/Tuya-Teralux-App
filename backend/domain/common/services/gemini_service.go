@@ -242,9 +242,33 @@ func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, langua
 
 	transcription := geminiResp.Candidates[0].Content.Parts[0].Text
 
+	// Parse structured utterances if diarization was requested
+	var utterances []dtos.Utterance
+	var transcriptFormat dtos.TranscriptFormat
+
+	if diarize {
+		utterances = utils.ParseUtterancesFromText(transcription)
+		if len(utterances) > 0 {
+			transcriptFormat = dtos.TranscriptFormatUtteranceList
+		}
+	}
+
+	if len(utterances) == 0 {
+		transcriptFormat = dtos.TranscriptFormatPlainText
+	}
+
+	// Diarized is true ONLY if:
+	// 1. Diarization was requested AND
+	// 2. Actual speaker-labeled utterances were extracted (not fabricated)
+	diarized := diarize && len(utterances) > 0
+
 	return &dtos.WhisperResult{
-		Transcription:    transcription,
-		DetectedLanguage: language,
-		Source:           "Gemini Whisper",
+		Transcription:     transcription,
+		DetectedLanguage:  language,
+		Source:            "Gemini Whisper",
+		Diarized:          diarized,
+		Utterances:        utterances,
+		TranscriptFormat:  transcriptFormat,
+		ConfidenceSummary: utils.BuildConfidenceSummary(utterances, 1),
 	}, nil
 }

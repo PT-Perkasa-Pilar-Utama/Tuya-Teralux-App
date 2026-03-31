@@ -133,4 +133,17 @@ class PipelineRepositoryImpl(
             emit(Resource.Error("Pipeline submission failed: ${e.message}"))
         }
     }
+
+    override suspend fun cancelPipelineTask(taskId: String, token: String): Result<Unit> {
+        return try {
+            val response = api.cancelPipelineTask(taskId, "Bearer $token", apiKey)
+            if (response.status) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Cancel failed: ${response.message}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Cancel request failed: ${e.message}"))
+        }
+    }
 }

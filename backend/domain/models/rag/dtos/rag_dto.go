@@ -1,5 +1,69 @@
 package dtos
 
+// ActionItem represents a structured action item extracted from meeting summary
+type ActionItem struct {
+	ID       int    `json:"id"`
+	Task     string `json:"task"`
+	PIC      string `json:"pic,omitempty"` // Person in charge (may be empty if not specified)
+	Deadline string `json:"deadline,omitempty"`
+	Status   string `json:"status,omitempty"`
+}
+
+// Decision represents a structured decision made during the meeting
+type Decision struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+	Rationale   string `json:"rationale,omitempty"`
+}
+
+// OpenIssue represents an unresolved topic or question
+type OpenIssue struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+	Owner       string `json:"owner,omitempty"` // May be empty if not assigned
+}
+
+// Risk represents an identified risk with mitigation strategy
+type Risk struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+	Impact      string `json:"impact,omitempty"` // Low/Medium/High or 1-10 score
+	Mitigation  string `json:"mitigation,omitempty"`
+}
+
+// SpeakerCoverage provides statistics about speaker attribution in the transcript
+type SpeakerCoverage struct {
+	TotalSpeakers     int            `json:"total_speakers,omitempty"`
+	SpeakersWithNames int            `json:"speakers_with_names,omitempty"` // Speakers with identified names vs "Speaker 1"
+	UtteranceCount    int            `json:"utterance_count,omitempty"`
+	SpeakerBreakdown  map[string]int `json:"speaker_breakdown,omitempty"` // Speaker label -> utterance count
+}
+
+// CoverageStats provides statistics about transcript coverage in hierarchical summarization
+type CoverageStats struct {
+	TotalWindows     int     `json:"total_windows"`
+	ProcessedWindows int     `json:"processed_windows"`
+	EmptyWindows     int     `json:"empty_windows"`  // Windows with no extractable content
+	CoverageRatio    float64 `json:"coverage_ratio"` // processed_windows / total_windows
+	SourceChars      int     `json:"source_chars"`
+	SummaryChars     int     `json:"summary_chars"`
+	CompressionRatio float64 `json:"compression_ratio"`
+}
+
+// StructuredSummary encapsulates structured meeting summary artifacts
+type StructuredSummary struct {
+	SummaryVersion         string           `json:"summary_version,omitempty"` // e.g., "2.0-structured"
+	SummaryMode            string           `json:"summary_mode,omitempty"`    // "single_pass" or "hierarchical_structured"
+	ActionItems            []ActionItem     `json:"action_items,omitempty"`
+	Decisions              []Decision       `json:"decisions,omitempty"`
+	OpenIssues             []OpenIssue      `json:"open_issues,omitempty"`
+	Risks                  []Risk           `json:"risks,omitempty"`
+	CoverageStats          *CoverageStats   `json:"coverage_stats,omitempty"`
+	SpeakerCoverage        *SpeakerCoverage `json:"speaker_coverage,omitempty"`
+	SourceLanguage         string           `json:"source_language,omitempty"`
+	TranslatedFromLanguage string           `json:"translated_from_language,omitempty"` // If translation was applied
+}
+
 type RAGRequestDTO struct {
 	Text       string `json:"text" binding:"required" example:"Ini adalah transkrip panjang dari rapat teknis..."`
 	Language   string `json:"language,omitempty" example:"id"`
@@ -38,6 +102,18 @@ type RAGStatusDTO struct {
 	ExecutionResult interface{}       `json:"execution_result,omitempty"` // holds the response from the fetched endpoint
 	ExpiresAt       string            `json:"expires_at,omitempty"`
 	ExpiresInSecond int64             `json:"expires_in_seconds,omitempty"`
+
+	// Optional structured summary artifacts (backward compatible - empty when not available)
+	SummaryVersion         string           `json:"summary_version,omitempty"`
+	SummaryMode            string           `json:"summary_mode,omitempty"` // "single_pass" or "hierarchical_structured"
+	ActionItems            []ActionItem     `json:"action_items,omitempty"`
+	Decisions              []Decision       `json:"decisions,omitempty"`
+	OpenIssues             []OpenIssue      `json:"open_issues,omitempty"`
+	Risks                  []Risk           `json:"risks,omitempty"`
+	CoverageStats          *CoverageStats   `json:"coverage_stats,omitempty"`
+	SpeakerCoverage        *SpeakerCoverage `json:"speaker_coverage,omitempty"`
+	SourceLanguage         string           `json:"source_language,omitempty"`
+	TranslatedFromLanguage string           `json:"translated_from_language,omitempty"`
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface.
@@ -58,6 +134,18 @@ type RAGSummaryResponseDTO struct {
 	Summary       string `json:"summary"`
 	PDFUrl        string `json:"pdf_url,omitempty"`
 	AgendaContext string `json:"agenda_context,omitempty"`
+
+	// Optional structured summary artifacts (backward compatible - empty when not available)
+	SummaryVersion         string           `json:"summary_version,omitempty"`
+	SummaryMode            string           `json:"summary_mode,omitempty"`
+	ActionItems            []ActionItem     `json:"action_items,omitempty"`
+	Decisions              []Decision       `json:"decisions,omitempty"`
+	OpenIssues             []OpenIssue      `json:"open_issues,omitempty"`
+	Risks                  []Risk           `json:"risks,omitempty"`
+	CoverageStats          *CoverageStats   `json:"coverage_stats,omitempty"`
+	SpeakerCoverage        *SpeakerCoverage `json:"speaker_coverage,omitempty"`
+	SourceLanguage         string           `json:"source_language,omitempty"`
+	TranslatedFromLanguage string           `json:"translated_from_language,omitempty"`
 }
 
 type RAGChatRequestDTO struct {

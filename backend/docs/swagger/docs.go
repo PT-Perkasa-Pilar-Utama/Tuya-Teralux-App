@@ -1382,6 +1382,44 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancels an active pipeline task. Returns 200 if task was cancelled or already terminal, 404 if task not found.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "04. Models"
+                ],
+                "summary": "Cancel a pipeline task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    }
+                }
             }
         },
         "/api/models/rag/chat": {
@@ -4458,20 +4496,64 @@ const docTemplate = `{
                 "value": {}
             }
         },
+        "dtos.ActionItem": {
+            "type": "object",
+            "properties": {
+                "deadline": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "pic": {
+                    "description": "Person in charge (may be empty if not specified)",
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "task": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.AsyncTranscriptionResultDTO": {
             "type": "object",
             "properties": {
+                "confidence_summary": {
+                    "$ref": "#/definitions/dtos.ConfidenceSummary"
+                },
                 "detected_language": {
                     "type": "string",
                     "example": "id"
+                },
+                "normalization_applied": {
+                    "description": "Whether safe normalization was applied",
+                    "type": "boolean"
                 },
                 "refined_text": {
                     "type": "string",
                     "example": "Hello world"
                 },
+                "segments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.TranscriptSegment"
+                    }
+                },
+                "transcript_format": {
+                    "$ref": "#/definitions/dtos.TranscriptFormat"
+                },
                 "transcription": {
                     "type": "string",
                     "example": "Halo dunia"
+                },
+                "utterances": {
+                    "description": "Optional structured artifacts (backward compatible - empty when not available)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.Utterance"
+                    }
                 }
             }
         },
@@ -4512,6 +4594,54 @@ const docTemplate = `{
                 "trigger": {
                     "type": "string",
                     "example": "/api/whisper/models/gemini"
+                }
+            }
+        },
+        "dtos.ConfidenceSummary": {
+            "type": "object",
+            "properties": {
+                "average_confidence": {
+                    "type": "number"
+                },
+                "max_confidence": {
+                    "type": "number"
+                },
+                "min_confidence": {
+                    "type": "number"
+                },
+                "segments_count": {
+                    "type": "integer"
+                },
+                "utterances_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dtos.CoverageStats": {
+            "type": "object",
+            "properties": {
+                "compression_ratio": {
+                    "type": "number"
+                },
+                "coverage_ratio": {
+                    "description": "processed_windows / total_windows",
+                    "type": "number"
+                },
+                "empty_windows": {
+                    "description": "Windows with no extractable content",
+                    "type": "integer"
+                },
+                "processed_windows": {
+                    "type": "integer"
+                },
+                "source_chars": {
+                    "type": "integer"
+                },
+                "summary_chars": {
+                    "type": "integer"
+                },
+                "total_windows": {
+                    "type": "integer"
                 }
             }
         },
@@ -4584,6 +4714,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "terminal_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.Decision": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "rationale": {
                     "type": "string"
                 }
             }
@@ -4864,6 +5008,21 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.OpenIssue": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "owner": {
+                    "description": "May be empty if not assigned",
+                    "type": "string"
+                }
+            }
+        },
         "dtos.PipelineResponseDTO": {
             "type": "object",
             "properties": {
@@ -4889,7 +5048,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "description": "pending, processing, completed, failed, skipped",
+                    "description": "pending, processing, completed, failed, skipped, cancelled",
                     "type": "string",
                     "example": "pending"
                 }
@@ -4907,8 +5066,11 @@ const docTemplate = `{
                 "expires_in_seconds": {
                     "type": "integer"
                 },
+                "mac_address": {
+                    "type": "string"
+                },
                 "overall_status": {
-                    "description": "pending, processing, completed, failed",
+                    "description": "pending, processing, completed, failed, cancelled",
                     "type": "string",
                     "example": "processing"
                 },
@@ -5062,10 +5224,25 @@ const docTemplate = `{
         "dtos.RAGStatusDTO": {
             "type": "object",
             "properties": {
+                "action_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionItem"
+                    }
+                },
                 "agenda_context": {
                     "type": "string"
                 },
                 "body": {},
+                "coverage_stats": {
+                    "$ref": "#/definitions/dtos.CoverageStats"
+                },
+                "decisions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.Decision"
+                    }
+                },
                 "duration_seconds": {
                     "type": "number",
                     "example": 2.5
@@ -5104,12 +5281,30 @@ const docTemplate = `{
                 "method": {
                     "type": "string"
                 },
+                "open_issues": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.OpenIssue"
+                    }
+                },
                 "pdf_url": {
                     "type": "string"
                 },
                 "result": {
                     "type": "string",
                     "example": "The meeting discussed..."
+                },
+                "risks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.Risk"
+                    }
+                },
+                "source_language": {
+                    "type": "string"
+                },
+                "speaker_coverage": {
+                    "$ref": "#/definitions/dtos.SpeakerCoverage"
                 },
                 "started_at": {
                     "type": "string",
@@ -5121,6 +5316,17 @@ const docTemplate = `{
                 },
                 "summary": {
                     "description": "Alias for Result in summary tasks",
+                    "type": "string"
+                },
+                "summary_mode": {
+                    "description": "\"single_pass\" or \"hierarchical_structured\"",
+                    "type": "string"
+                },
+                "summary_version": {
+                    "description": "Optional structured summary artifacts (backward compatible - empty when not available)",
+                    "type": "string"
+                },
+                "translated_from_language": {
                     "type": "string"
                 },
                 "trigger": {
@@ -5184,6 +5390,24 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "method": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.Risk": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "impact": {
+                    "description": "Low/Medium/High or 1-10 score",
+                    "type": "string"
+                },
+                "mitigation": {
                     "type": "string"
                 }
             }
@@ -5274,6 +5498,28 @@ const docTemplate = `{
                 },
                 "temperature": {
                     "type": "number"
+                }
+            }
+        },
+        "dtos.SpeakerCoverage": {
+            "type": "object",
+            "properties": {
+                "speaker_breakdown": {
+                    "description": "Speaker label -\u003e utterance count",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "speakers_with_names": {
+                    "description": "Speakers with identified names vs \"Speaker 1\"",
+                    "type": "integer"
+                },
+                "total_speakers": {
+                    "type": "integer"
+                },
+                "utterance_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -5386,12 +5632,59 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.TranscriptFormat": {
+            "type": "string",
+            "enum": [
+                "plain_text",
+                "utterance_list"
+            ],
+            "x-enum-varnames": [
+                "TranscriptFormatPlainText",
+                "TranscriptFormatUtteranceList"
+            ]
+        },
+        "dtos.TranscriptSegment": {
+            "type": "object",
+            "properties": {
+                "end_ms": {
+                    "description": "Segment end time in milliseconds (ESTIMATE)",
+                    "type": "integer"
+                },
+                "index": {
+                    "description": "Segment index (0, 1, 2, ...)",
+                    "type": "integer"
+                },
+                "start_ms": {
+                    "description": "Segment start time in milliseconds (ESTIMATE)",
+                    "type": "integer"
+                },
+                "text": {
+                    "description": "Transcribed text for this segment",
+                    "type": "string"
+                },
+                "utterances": {
+                    "description": "Utterances within this segment, if available",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.Utterance"
+                    }
+                }
+            }
+        },
         "dtos.TranscriptionTaskResponseDTO": {
             "type": "object",
             "properties": {
                 "recording_id": {
                     "type": "string",
                     "example": "uuid-v4"
+                },
+                "request_id": {
+                    "type": "string",
+                    "example": "req-uuid"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "MQTT_ACK"
                 },
                 "task_id": {
                     "type": "string",
@@ -5604,6 +5897,31 @@ const docTemplate = `{
                 "room_id": {
                     "type": "string",
                     "example": "room-456"
+                }
+            }
+        },
+        "dtos.Utterance": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "description": "Confidence score (0.0-1.0) if available",
+                    "type": "number"
+                },
+                "end_ms": {
+                    "description": "End time in milliseconds (ESTIMATE if provider doesn't supply)",
+                    "type": "integer"
+                },
+                "speaker_label": {
+                    "description": "e.g., \"Speaker 1\", \"John Doe\"",
+                    "type": "string"
+                },
+                "start_ms": {
+                    "description": "Start time in milliseconds (ESTIMATE if provider doesn't supply)",
+                    "type": "integer"
+                },
+                "text": {
+                    "description": "Transcribed text for this utterance",
+                    "type": "string"
                 }
             }
         },

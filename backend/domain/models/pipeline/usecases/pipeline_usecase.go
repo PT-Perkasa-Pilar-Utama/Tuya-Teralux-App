@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sensio/domain/common/tasks"
@@ -10,6 +11,7 @@ import (
 	ragUsecases "sensio/domain/models/rag/usecases"
 	speechUsecases "sensio/domain/models/whisper/usecases"
 	"strings"
+	"sync"
 	"time"
 
 	"encoding/json"
@@ -22,19 +24,36 @@ type mqttPublisher interface {
 	Publish(topic string, qos byte, retained bool, payload interface{}) error
 }
 
+// PipelineUseCase orchestrates the 4-stage meeting processing pipeline:
+// Transcription -> Refinement -> Translation -> Summary
+//
+// ARCHITECTURE NOTE: Pipeline results are stored in in-memory/cache status stores
+// with TTL (default 24h). Structured artifacts (utterances, segments, action items,
+// decisions, etc.) are EPHEMERAL and will be lost after TTL expiry or server restart.
+//
+// For persistent storage of structured meeting artifacts, future work should:
+// 1. Add tables for transcription_segments, meeting_decisions, action_items, etc.
+// 2. Persist structured results after each stage completion
+// 3. Implement retrieval APIs for historical meeting data
+//
+// Current persistence: Only recording metadata is persisted to DB
+// (see: domain/recordings/entities/recording.go)
 type PipelineUseCase interface {
 	ExecutePipeline(ctx context.Context, inputPath string, req pipelineDtos.PipelineRequestDTO, idempotencyKey string) (string, error)
 	ExecutePipelineWithSession(ctx context.Context, inputPath string, req pipelineDtos.PipelineRequestDTO, idempotencyKey string, sessionID string) (string, error)
 	CheckIdempotency(idempotencyKey string, audioHash string, req pipelineDtos.PipelineRequestDTO) (string, bool)
+	CancelTask(taskID string) error
 }
 
 type pipelineUseCase struct {
-	transcribeUC speechUsecases.TranscribeUseCase
-	translateUC  ragUsecases.TranslateUseCase
-	summaryUC    ragUsecases.SummaryUseCase
-	cache        *tasks.BadgerTaskCache
-	store        *tasks.StatusStore[pipelineDtos.PipelineStatusDTO]
-	mqttSvc      mqttPublisher
+	transcribeUC   speechUsecases.TranscribeUseCase
+	translateUC    ragUsecases.TranslateUseCase
+	summaryUC      ragUsecases.SummaryUseCase
+	cache          *tasks.BadgerTaskCache
+	store          *tasks.StatusStore[pipelineDtos.PipelineStatusDTO]
+	mqttSvc        mqttPublisher
+	cancelRegistry map[string]context.CancelFunc
+	registryMu     sync.RWMutex
 }
 
 func NewPipelineUseCase(
@@ -46,12 +65,13 @@ func NewPipelineUseCase(
 	mqttSvc mqttPublisher,
 ) PipelineUseCase {
 	return &pipelineUseCase{
-		transcribeUC: transcribeUC,
-		translateUC:  translateUC,
-		summaryUC:    summaryUC,
-		cache:        cache,
-		store:        store,
-		mqttSvc:      mqttSvc,
+		transcribeUC:   transcribeUC,
+		translateUC:    translateUC,
+		summaryUC:      summaryUC,
+		cache:          cache,
+		store:          store,
+		mqttSvc:        mqttSvc,
+		cancelRegistry: make(map[string]context.CancelFunc),
 	}
 }
 
@@ -161,6 +181,7 @@ func (u *pipelineUseCase) ExecutePipelineWithSession(ctx context.Context, inputP
 		TaskID:        taskID,
 		OverallStatus: "pending",
 		StartedAt:     now,
+		MacAddress:    req.MacAddress,
 		Stages: map[string]pipelineDtos.PipelineStageStatus{
 			"transcription": {Status: "pending"},
 			"refinement":    {Status: "pending"},
@@ -193,8 +214,10 @@ func (u *pipelineUseCase) ExecutePipelineWithSession(ctx context.Context, inputP
 	u.publishEvent(taskID, req.MacAddress, "accepted", "pending", "", "", 0, nil)
 
 	asyncCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	u.registerCancel(taskID, cancel)
 	go func() {
 		defer cancel()
+		defer u.unregisterCancel(taskID)
 		u.runPipelineAsync(asyncCtx, taskID, inputPath, req)
 	}()
 
@@ -202,7 +225,14 @@ func (u *pipelineUseCase) ExecutePipelineWithSession(ctx context.Context, inputP
 }
 
 func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, inputPath string, req pipelineDtos.PipelineRequestDTO) {
-	defer os.Remove(inputPath)
+	// Determine if input audio should be preserved (meeting-summary jobs)
+	preserveInputAudio := req.Summarize
+	if preserveInputAudio {
+		utils.LogInfo("Pipeline Task %s: Preserving input audio (meeting summary) | path=%s", taskID, inputPath)
+	} else {
+		defer os.Remove(inputPath)
+		utils.LogInfo("Pipeline Task %s: Will delete input audio after pipeline | path=%s", taskID, inputPath)
+	}
 
 	status, _ := u.store.Get(taskID)
 	if status == nil {
@@ -212,6 +242,14 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	u.saveStatus(taskID, *status)
 
 	u.publishEvent(taskID, req.MacAddress, "started", "processing", "", "", 0, nil)
+
+	// Check for cancellation before starting Stage 1
+	select {
+	case <-ctx.Done():
+		u.handleCancellation(taskID, "", status, req.MacAddress)
+		return
+	default:
+	}
 
 	// Stage 1: Transcription
 	startTime := time.Now()
@@ -237,13 +275,42 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	}
 
 	transResult, err := u.transcribeUC.TranscribeAudioSync(ctx, inputPath, transOpts)
+	// Check for cancellation immediately after blocking call
+	select {
+	case <-ctx.Done():
+		u.handleCancellation(taskID, "transcription", status, req.MacAddress)
+		return
+	default:
+	}
+
 	if err != nil {
 		u.failStage(taskID, req.MacAddress, "transcription", err)
 		return
 	}
+
+	// OBSERVABILITY: Log transcription quality indicators
+	utils.LogInfo("Pipeline Task %s: Transcription completed (Duration: %.2fs)", taskID, time.Since(startTime).Seconds())
+
+	if transResult.TranscriptFormat != "" {
+		utils.LogInfo("Pipeline Task %s: Transcript format: %s", taskID, transResult.TranscriptFormat)
+	}
+	if len(transResult.Utterances) > 0 {
+		utils.LogInfo("Pipeline Task %s: Extracted %d utterances with speaker diarization", taskID, len(transResult.Utterances))
+	} else if req.Diarize {
+		utils.LogWarn("Pipeline Task %s: WARNING - Diarization requested but no utterances extracted (provider may not support it)", taskID)
+	}
+	if len(transResult.Segments) > 0 {
+		utils.LogInfo("Pipeline Task %s: Segmented transcription with %d segments", taskID, len(transResult.Segments))
+	}
+	if transResult.ConfidenceSummary != nil {
+		utils.LogInfo("Pipeline Task %s: Confidence avg: %.2f (utterances: %d)",
+			taskID, transResult.ConfidenceSummary.AverageConfidence,
+			transResult.ConfidenceSummary.UtterancesCount)
+	}
+
 	status.Stages["transcription"] = pipelineDtos.PipelineStageStatus{
 		Status:          "completed",
-		Result:          transResult.Transcription,
+		Result:          transResult, // Store full result with utterances, segments, etc.
 		DurationSeconds: time.Since(startTime).Seconds(),
 	}
 	u.saveStatus(taskID, *status)
@@ -252,6 +319,14 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	// Stage 2: Refinement
 	refinedText := transResult.Transcription
 	if status.Stages["refinement"].Status != "skipped" {
+		// Check for cancellation before starting refinement
+		select {
+		case <-ctx.Done():
+			u.handleCancellation(taskID, "transcription", status, req.MacAddress)
+			return
+		default:
+		}
+
 		startTime = time.Now()
 		status.Stages["refinement"] = pipelineDtos.PipelineStageStatus{Status: "processing", StartedAt: startTime.Format(time.RFC3339)}
 		u.saveStatus(taskID, *status)
@@ -272,12 +347,28 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	// Stage 3: Translation
 	finalText := refinedText
 	if status.Stages["translation"].Status != "skipped" {
+		// Check for cancellation before starting translation
+		select {
+		case <-ctx.Done():
+			u.handleCancellation(taskID, "refinement", status, req.MacAddress)
+			return
+		default:
+		}
+
 		startTime = time.Now()
 		status.Stages["translation"] = pipelineDtos.PipelineStageStatus{Status: "processing", StartedAt: startTime.Format(time.RFC3339)}
 		u.saveStatus(taskID, *status)
 		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "translation", "processing", 0, nil)
 
 		transText, err := u.translateUC.TranslateTextSync(ctx, refinedText, req.TargetLanguage, req.MacAddress)
+		// Check for cancellation immediately after blocking call
+		select {
+		case <-ctx.Done():
+			u.handleCancellation(taskID, "translation", status, req.MacAddress)
+			return
+		default:
+		}
+
 		if err != nil {
 			u.failStage(taskID, req.MacAddress, "translation", err)
 			return
@@ -294,6 +385,14 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 
 	// Stage 4: Summary
 	if status.Stages["summary"].Status != "skipped" {
+		// Check for cancellation before starting summary
+		select {
+		case <-ctx.Done():
+			u.handleCancellation(taskID, "translation", status, req.MacAddress)
+			return
+		default:
+		}
+
 		startTime = time.Now()
 		status.Stages["summary"] = pipelineDtos.PipelineStageStatus{Status: "processing", StartedAt: startTime.Format(time.RFC3339)}
 		u.saveStatus(taskID, *status)
@@ -301,18 +400,70 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 
 		participantsStr := strings.Join(req.Participants, ", ")
 		summResult, err := u.summaryUC.SummarizeTextSync(ctx, finalText, req.TargetLanguage, req.Context, req.Style, req.Date, req.Location, participantsStr, req.MacAddress)
+		// Check for cancellation immediately after blocking call
+		select {
+		case <-ctx.Done():
+			u.handleCancellation(taskID, "summary", status, req.MacAddress)
+			return
+		default:
+		}
+
 		if err != nil {
 			u.failStage(taskID, req.MacAddress, "summary", err)
 			return
 		}
+
+		// OBSERVABILITY: Log summary mode and structured artifacts
+		summaryMode := "single_pass"
+		if summResult.SummaryMode != "" {
+			summaryMode = summResult.SummaryMode
+		}
+
+		utils.LogInfo("Pipeline Task %s: Summary stage completed (Duration: %.2fs, Mode: %s)",
+			taskID, time.Since(startTime).Seconds(), summaryMode)
+
+		// Log structured artifact counts if available
+		if len(summResult.ActionItems) > 0 {
+			utils.LogInfo("Pipeline Task %s: Extracted %d action items", taskID, len(summResult.ActionItems))
+		}
+		if len(summResult.Decisions) > 0 {
+			utils.LogInfo("Pipeline Task %s: Extracted %d decisions", taskID, len(summResult.Decisions))
+		}
+		if len(summResult.OpenIssues) > 0 {
+			utils.LogInfo("Pipeline Task %s: Extracted %d open issues", taskID, len(summResult.OpenIssues))
+		}
+		if len(summResult.Risks) > 0 {
+			utils.LogInfo("Pipeline Task %s: Extracted %d risks", taskID, len(summResult.Risks))
+		}
+		if summResult.CoverageStats != nil {
+			utils.LogInfo("Pipeline Task %s: Coverage ratio: %.2f (windows: %d/%d)",
+				taskID, summResult.CoverageStats.CoverageRatio,
+				summResult.CoverageStats.ProcessedWindows,
+				summResult.CoverageStats.TotalWindows)
+		}
+
+		// Warning logs for risky degradations
+		if summResult.SummaryMode == "single_pass" && len(finalText) > 16000 {
+			utils.LogWarn("Pipeline Task %s: WARNING - Long transcript (%d chars) used single_pass mode (hierarchical failed or not triggered)", taskID, len(finalText))
+		}
+
 		status.Stages["summary"] = pipelineDtos.PipelineStageStatus{
 			Status:          "completed",
 			Result:          summResult,
 			DurationSeconds: time.Since(startTime).Seconds(),
 		}
-		utils.LogInfo("Pipeline Task %s: Summary stage completed (Duration: %.2fs)", taskID, status.Stages["summary"].DurationSeconds)
 		u.saveStatus(taskID, *status)
 		u.publishEvent(taskID, req.MacAddress, "stage_update", "processing", "summary", "completed", 100, nil)
+	}
+
+	// Final cancellation check before marking task as completed
+	// This prevents race condition where CancelTask() is called after summary completes
+	// but before overall_status is set to completed
+	select {
+	case <-ctx.Done():
+		u.handleCancellation(taskID, "summary", status, req.MacAddress)
+		return
+	default:
 	}
 
 	// Finalize
@@ -373,4 +524,127 @@ func (u *pipelineUseCase) publishEvent(taskID string, macAddress string, event s
 	topic := fmt.Sprintf("users/%s/%s/task", macAddress, utils.GetConfig().ApplicationEnvironment)
 	payloadBytes, _ := json.Marshal(taskEvent)
 	_ = u.mqttSvc.Publish(topic, 0, false, payloadBytes)
+}
+
+// registerCancel stores the cancel function for a task
+func (u *pipelineUseCase) registerCancel(taskID string, cancel context.CancelFunc) {
+	u.registryMu.Lock()
+	defer u.registryMu.Unlock()
+	u.cancelRegistry[taskID] = cancel
+}
+
+// unregisterCancel removes the cancel function for a task
+func (u *pipelineUseCase) unregisterCancel(taskID string) {
+	u.registryMu.Lock()
+	defer u.registryMu.Unlock()
+	delete(u.cancelRegistry, taskID)
+}
+
+// getAndRemoveCancel retrieves and removes the cancel function for a task
+func (u *pipelineUseCase) getAndRemoveCancel(taskID string) context.CancelFunc {
+	u.registryMu.Lock()
+	defer u.registryMu.Unlock()
+	cancel := u.cancelRegistry[taskID]
+	delete(u.cancelRegistry, taskID)
+	return cancel
+}
+
+// CancelTask cancels an active pipeline task
+func (u *pipelineUseCase) CancelTask(taskID string) error {
+	status, found := u.store.Get(taskID)
+	if !found || status == nil {
+		// Also check cache in case store doesn't have it
+		var cachedStatus pipelineDtos.PipelineStatusDTO
+		_, cachedExists, _ := u.cache.GetWithTTL(taskID, &cachedStatus)
+		if !cachedExists {
+			return errors.New("task not found")
+		}
+		status = &cachedStatus
+	}
+
+	// Check if task is already in a terminal state
+	if status.OverallStatus == "completed" || status.OverallStatus == "cancelled" || status.OverallStatus == "failed" {
+		// Already terminal - treat as no-op success
+		utils.LogInfo("Pipeline: CancelTask called for task %s already in terminal state: %s", taskID, status.OverallStatus)
+		return nil
+	}
+
+	// Trigger cancellation
+	cancel := u.getAndRemoveCancel(taskID)
+	if cancel != nil {
+		cancel()
+	}
+
+	// Mark task as cancelled
+	u.markCancelled(taskID, status)
+
+	utils.LogInfo("Pipeline: Task %s cancelled successfully", taskID)
+	return nil
+}
+
+// handleCancellation handles cooperative cancellation during pipeline execution
+func (u *pipelineUseCase) handleCancellation(taskID string, currentStage string, status *pipelineDtos.PipelineStatusDTO, macAddress string) {
+	utils.LogInfo("Pipeline: Task %s cancelled during stage: %s", taskID, currentStage)
+
+	// Mark the current stage as cancelled if we know which stage was active
+	if currentStage != "" {
+		stage := status.Stages[currentStage]
+		stage.Status = "cancelled"
+		stage.Error = "task cancelled by user"
+		status.Stages[currentStage] = stage
+	}
+
+	// Set overall status to cancelled
+	status.OverallStatus = "cancelled"
+	u.saveStatus(taskID, *status)
+
+	// Publish MQTT cancellation event
+	u.publishCancelledEvent(taskID, currentStage, macAddress)
+}
+
+// markCancelled marks a task as cancelled and publishes MQTT event
+func (u *pipelineUseCase) markCancelled(taskID string, status *pipelineDtos.PipelineStatusDTO) {
+	// Find the active stage (the one that was processing)
+	activeStage := ""
+	for stageName, stageStatus := range status.Stages {
+		if stageStatus.Status == "processing" {
+			activeStage = stageName
+			break
+		}
+	}
+
+	// Set the active stage to cancelled
+	if activeStage != "" {
+		stage := status.Stages[activeStage]
+		stage.Status = "cancelled"
+		stage.Error = "task cancelled by user"
+		status.Stages[activeStage] = stage
+	}
+
+	// Set overall status to cancelled
+	status.OverallStatus = "cancelled"
+	u.saveStatus(taskID, *status)
+
+	// Publish MQTT cancellation event
+	u.publishCancelledEvent(taskID, activeStage, status.MacAddress)
+}
+
+// publishCancelledEvent publishes a cancellation event to MQTT
+func (u *pipelineUseCase) publishCancelledEvent(taskID string, stage string, macAddress string) {
+	if !utils.GetConfig().TaskEventPublishEnabled || u.mqttSvc == nil || macAddress == "" {
+		return
+	}
+
+	taskEvent := events.NewTaskEventV1(taskID, "MeetingPipeline", "cancelled", "cancelled")
+	if stage != "" {
+		taskEvent.Stage = stage
+		taskEvent.StageStatus = "cancelled"
+	}
+	taskEvent.Error = "task cancelled by user"
+
+	topic := fmt.Sprintf("users/%s/%s/task", macAddress, utils.GetConfig().ApplicationEnvironment)
+	payloadBytes, _ := json.Marshal(taskEvent)
+	_ = u.mqttSvc.Publish(topic, 0, false, payloadBytes)
+
+	utils.LogInfo("Pipeline: Published cancellation event for task %s on topic %s", taskID, topic)
 }

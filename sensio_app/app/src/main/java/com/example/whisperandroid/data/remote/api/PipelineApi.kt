@@ -6,6 +6,7 @@ import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
 import com.example.whisperandroid.data.remote.dto.TranscriptionSubmissionData
 import okhttp3.MultipartBody
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
@@ -50,4 +51,11 @@ interface PipelineApi {
         @Header("Authorization") token: String,
         @Header("X-API-KEY") apiKey: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
+
+    @DELETE("/api/models/pipeline/status/{task_id}")
+    suspend fun cancelPipelineTask(
+        @Path("task_id") taskId: String,
+        @Header("Authorization") token: String,
+        @Header("X-API-KEY") apiKey: String
+    ): SpeechResponseDto<Unit>
 }

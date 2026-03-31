@@ -224,10 +224,34 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 		return nil, fmt.Errorf("failed to decode json response: %w", err)
 	}
 
+	transcription := strings.TrimSpace(result.Text)
+
+	// Groq Whisper doesn't provide diarization structure, but we can
+	// attempt to parse speaker labels if they exist in the text
+	var utterances []dtos.Utterance
+	var transcriptFormat dtos.TranscriptFormat
+
+	if diarize {
+		utterances = utils.ParseUtterancesFromText(transcription)
+		if len(utterances) > 0 {
+			transcriptFormat = dtos.TranscriptFormatUtteranceList
+		}
+	}
+
+	if len(utterances) == 0 {
+		transcriptFormat = dtos.TranscriptFormatPlainText
+	}
+
+	// Diarized is true ONLY if actual speaker-labeled utterances were extracted
+	diarized := diarize && len(utterances) > 0
+
 	return &dtos.WhisperResult{
-		Transcription:    strings.TrimSpace(result.Text),
-		DetectedLanguage: language,
-		Diarized:         false,
-		Source:           "Groq Whisper",
+		Transcription:     transcription,
+		DetectedLanguage:  language,
+		Diarized:          diarized,
+		Source:            "Groq Whisper",
+		Utterances:        utterances,
+		TranscriptFormat:  transcriptFormat,
+		ConfidenceSummary: utils.BuildConfidenceSummary(utterances, 1),
 	}, nil
 }

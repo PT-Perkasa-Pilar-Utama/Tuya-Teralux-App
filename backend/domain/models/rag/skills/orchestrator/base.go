@@ -72,6 +72,26 @@ func (b *BaseOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (*sk
 		model = "low"
 	}
 
+	// Handle {{language}} placeholder for structured extraction skills
+	if strings.Contains(finalPrompt, "{{language}}") {
+		targetLangName := "Indonesian"
+		if strings.EqualFold(ctx.Language, "en") {
+			targetLangName = "English"
+		}
+		finalPrompt = strings.ReplaceAll(finalPrompt, "{{language}}", targetLangName)
+	}
+
+	// Handle {{window_id}} placeholder for structured extraction skills
+	if strings.Contains(finalPrompt, "{{window_id}}") {
+		windowID := "0"
+		if ctx.Metadata != nil {
+			if wid, ok := ctx.Metadata["window_id"]; ok {
+				windowID = wid
+			}
+		}
+		finalPrompt = strings.ReplaceAll(finalPrompt, "{{window_id}}", windowID)
+	}
+
 	// 2. Call LLM
 	res, err := ctx.LLM.CallModel(ctx.Ctx, finalPrompt, model)
 	if err != nil {

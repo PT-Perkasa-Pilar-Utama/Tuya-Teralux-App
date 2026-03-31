@@ -79,7 +79,7 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 				// Ensure Vector DB is still populated even on cache hit
 				// This handles cases where Badger cache exists but Vector DB was cleared or not initialized
 				// Only update assistant aggregate for full snapshots
-				
+
 				go uc.populateVectorDB(uid, &cachedResp, true)
 
 				return &cachedResp, nil
@@ -414,7 +414,7 @@ func (uc *tuyaGetAllDevicesUseCase) GetAllDevices(accessToken, uid string, page,
 	// Upsert to Vector DB so LLMs can find device DTOs and learn format
 	// Only update assistant aggregate for full (non-paginated, non-filtered) requests
 	if uc.vectorSvc != nil {
-		
+
 		go uc.populateVectorDB(uid, resp, true) // Always update vector DB
 	}
 

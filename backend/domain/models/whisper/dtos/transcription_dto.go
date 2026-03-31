@@ -1,11 +1,58 @@
 package dtos
 
+// Utterance represents a single speaker turn with timing information
+// WARNING: start_ms and end_ms are ESTIMATES based on text length heuristics
+// when not explicitly provided by the transcription provider. They are NOT
+// audio-aligned timestamps and should NOT be treated as precise evidence.
+// Only trust timing data when the provider explicitly returns it.
+type Utterance struct {
+	SpeakerLabel string  `json:"speaker_label,omitempty"` // e.g., "Speaker 1", "John Doe"
+	StartMs      int64   `json:"start_ms"`                // Start time in milliseconds (ESTIMATE if provider doesn't supply)
+	EndMs        int64   `json:"end_ms"`                  // End time in milliseconds (ESTIMATE if provider doesn't supply)
+	Text         string  `json:"text"`                    // Transcribed text for this utterance
+	Confidence   float64 `json:"confidence,omitempty"`    // Confidence score (0.0-1.0) if available
+}
+
+// TranscriptSegment represents a chunk of transcript used in segmented/long-audio transcription
+// WARNING: start_ms and end_ms are ESTIMATES based on cumulative text length heuristics
+// when not explicitly provided by the transcription provider. They are NOT audio-aligned.
+type TranscriptSegment struct {
+	Index      int         `json:"index"`                // Segment index (0, 1, 2, ...)
+	StartMs    int64       `json:"start_ms"`             // Segment start time in milliseconds (ESTIMATE)
+	EndMs      int64       `json:"end_ms"`               // Segment end time in milliseconds (ESTIMATE)
+	Text       string      `json:"text"`                 // Transcribed text for this segment
+	Utterances []Utterance `json:"utterances,omitempty"` // Utterances within this segment, if available
+}
+
+// TranscriptFormat indicates the structure of the transcript
+type TranscriptFormat string
+
+const (
+	TranscriptFormatPlainText     TranscriptFormat = "plain_text"
+	TranscriptFormatUtteranceList TranscriptFormat = "utterance_list"
+)
+
+// ConfidenceSummary holds provider metadata about transcription confidence
+type ConfidenceSummary struct {
+	AverageConfidence float64 `json:"average_confidence,omitempty"`
+	MinConfidence     float64 `json:"min_confidence,omitempty"`
+	MaxConfidence     float64 `json:"max_confidence,omitempty"`
+	SegmentsCount     int     `json:"segments_count,omitempty"`
+	UtterancesCount   int     `json:"utterances_count,omitempty"`
+}
+
 // WhisperResult represents the result of a transcription from any provider
 type WhisperResult struct {
-	Transcription    string
-	DetectedLanguage string
-	Source           string // Which service was used: "Orion", "Local", "Gemini"
-	Diarized         bool   // Whether diarization was performed
+	Transcription    string `json:"transcription"` // Plain text transcription (backward compatible)
+	DetectedLanguage string `json:"detected_language"`
+	Source           string `json:"source"`   // Which service was used: "Orion", "Local", "Gemini"
+	Diarized         bool   `json:"diarized"` // Whether diarization was performed
+
+	// Optional structured artifacts (backward compatible - empty when not available)
+	Utterances        []Utterance         `json:"utterances,omitempty"`         // Ordered speaker turns
+	Segments          []TranscriptSegment `json:"segments,omitempty"`           // Ordered transcript chunks
+	TranscriptFormat  TranscriptFormat    `json:"transcript_format,omitempty"`  // Structure type
+	ConfidenceSummary *ConfidenceSummary  `json:"confidence_summary,omitempty"` // Provider metadata
 }
 
 type WhisperMqttRequestDTO struct {
@@ -46,6 +93,13 @@ type AsyncTranscriptionResultDTO struct {
 	Transcription    string `json:"transcription" example:"Halo dunia"`
 	RefinedText      string `json:"refined_text,omitempty" example:"Hello world"`
 	DetectedLanguage string `json:"detected_language,omitempty" example:"id"`
+
+	// Optional structured artifacts (backward compatible - empty when not available)
+	Utterances           []Utterance         `json:"utterances,omitempty"`
+	Segments             []TranscriptSegment `json:"segments,omitempty"`
+	TranscriptFormat     TranscriptFormat    `json:"transcript_format,omitempty"`
+	ConfidenceSummary    *ConfidenceSummary  `json:"confidence_summary,omitempty"`
+	NormalizationApplied bool                `json:"normalization_applied,omitempty"` // Whether safe normalization was applied
 }
 
 type AsyncTranscriptionStatusDTO struct {

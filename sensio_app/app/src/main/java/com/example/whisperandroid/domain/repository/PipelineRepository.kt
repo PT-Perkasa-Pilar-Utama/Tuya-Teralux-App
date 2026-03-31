@@ -46,4 +46,9 @@ interface PipelineRepository {
         macAddress: String?,
         idempotencyKey: String?
     ): Flow<Resource<String>>
+
+    /**
+     * Cancels an active pipeline task.
+     */
+    suspend fun cancelPipelineTask(taskId: String, token: String): Result<Unit>
 }

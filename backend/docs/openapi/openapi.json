@@ -1595,6 +1595,51 @@
                         "BearerAuth": []
                     }
                 ]
+            },
+            "delete": {
+                "tags": [
+                    "04. Models"
+                ],
+                "summary": "[Models] [Pipeline] Cancel a pipeline task",
+                "description": "Cancels an active pipeline task. Returns 200 if task was cancelled or already terminal, 404 if task not found.",
+                "parameters": [
+                    {
+                        "name": "task_id",
+                        "in": "path",
+                        "description": "Task ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/dtos.StandardResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/dtos.StandardResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
             }
         },
         "/api/models/rag/chat": {
@@ -5172,20 +5217,64 @@
                     "value": {}
                 }
             },
+            "dtos.ActionItem": {
+                "type": "object",
+                "properties": {
+                    "deadline": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "pic": {
+                        "type": "string",
+                        "description": "Person in charge (may be empty if not specified)"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "task": {
+                        "type": "string"
+                    }
+                }
+            },
             "dtos.AsyncTranscriptionResultDTO": {
                 "type": "object",
                 "properties": {
+                    "confidence_summary": {
+                        "$ref": "#/components/schemas/dtos.ConfidenceSummary"
+                    },
                     "detected_language": {
                         "type": "string",
                         "example": "id"
+                    },
+                    "normalization_applied": {
+                        "type": "boolean",
+                        "description": "Whether safe normalization was applied"
                     },
                     "refined_text": {
                         "type": "string",
                         "example": "Hello world"
                     },
+                    "segments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.TranscriptSegment"
+                        }
+                    },
+                    "transcript_format": {
+                        "$ref": "#/components/schemas/dtos.TranscriptFormat"
+                    },
                     "transcription": {
                         "type": "string",
                         "example": "Halo dunia"
+                    },
+                    "utterances": {
+                        "type": "array",
+                        "description": "Optional structured artifacts (backward compatible - empty when not available)",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.Utterance"
+                        }
                     }
                 }
             },
@@ -5226,6 +5315,54 @@
                     "trigger": {
                         "type": "string",
                         "example": "/api/whisper/models/gemini"
+                    }
+                }
+            },
+            "dtos.ConfidenceSummary": {
+                "type": "object",
+                "properties": {
+                    "average_confidence": {
+                        "type": "number"
+                    },
+                    "max_confidence": {
+                        "type": "number"
+                    },
+                    "min_confidence": {
+                        "type": "number"
+                    },
+                    "segments_count": {
+                        "type": "integer"
+                    },
+                    "utterances_count": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "dtos.CoverageStats": {
+                "type": "object",
+                "properties": {
+                    "compression_ratio": {
+                        "type": "number"
+                    },
+                    "coverage_ratio": {
+                        "type": "number",
+                        "description": "processed_windows / total_windows"
+                    },
+                    "empty_windows": {
+                        "type": "integer",
+                        "description": "Windows with no extractable content"
+                    },
+                    "processed_windows": {
+                        "type": "integer"
+                    },
+                    "source_chars": {
+                        "type": "integer"
+                    },
+                    "summary_chars": {
+                        "type": "integer"
+                    },
+                    "total_windows": {
+                        "type": "integer"
                     }
                 }
             },
@@ -5298,6 +5435,20 @@
                         "type": "string"
                     },
                     "terminal_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "dtos.Decision": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "rationale": {
                         "type": "string"
                     }
                 }
@@ -5577,6 +5728,21 @@
                     }
                 }
             },
+            "dtos.OpenIssue": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "owner": {
+                        "type": "string",
+                        "description": "May be empty if not assigned"
+                    }
+                }
+            },
             "dtos.PipelineResponseDTO": {
                 "type": "object",
                 "properties": {
@@ -5603,7 +5769,7 @@
                     },
                     "status": {
                         "type": "string",
-                        "description": "pending, processing, completed, failed, skipped",
+                        "description": "pending, processing, completed, failed, skipped, cancelled",
                         "example": "pending"
                     }
                 }
@@ -5620,9 +5786,12 @@
                     "expires_in_seconds": {
                         "type": "integer"
                     },
+                    "mac_address": {
+                        "type": "string"
+                    },
                     "overall_status": {
                         "type": "string",
-                        "description": "pending, processing, completed, failed",
+                        "description": "pending, processing, completed, failed, cancelled",
                         "example": "processing"
                     },
                     "stages": {
@@ -5775,10 +5944,25 @@
             "dtos.RAGStatusDTO": {
                 "type": "object",
                 "properties": {
+                    "action_items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.ActionItem"
+                        }
+                    },
                     "agenda_context": {
                         "type": "string"
                     },
                     "body": {},
+                    "coverage_stats": {
+                        "$ref": "#/components/schemas/dtos.CoverageStats"
+                    },
+                    "decisions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.Decision"
+                        }
+                    },
                     "duration_seconds": {
                         "type": "number",
                         "example": 2.5
@@ -5817,12 +6001,30 @@
                     "method": {
                         "type": "string"
                     },
+                    "open_issues": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.OpenIssue"
+                        }
+                    },
                     "pdf_url": {
                         "type": "string"
                     },
                     "result": {
                         "type": "string",
                         "example": "The meeting discussed..."
+                    },
+                    "risks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.Risk"
+                        }
+                    },
+                    "source_language": {
+                        "type": "string"
+                    },
+                    "speaker_coverage": {
+                        "$ref": "#/components/schemas/dtos.SpeakerCoverage"
                     },
                     "started_at": {
                         "type": "string",
@@ -5835,6 +6037,17 @@
                     "summary": {
                         "type": "string",
                         "description": "Alias for Result in summary tasks"
+                    },
+                    "summary_mode": {
+                        "type": "string",
+                        "description": "\"single_pass\" or \"hierarchical_structured\""
+                    },
+                    "summary_version": {
+                        "type": "string",
+                        "description": "Optional structured summary artifacts (backward compatible - empty when not available)"
+                    },
+                    "translated_from_language": {
+                        "type": "string"
                     },
                     "trigger": {
                         "type": "string",
@@ -5897,6 +6110,24 @@
                         "type": "string"
                     },
                     "method": {
+                        "type": "string"
+                    }
+                }
+            },
+            "dtos.Risk": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "integer"
+                    },
+                    "impact": {
+                        "type": "string",
+                        "description": "Low/Medium/High or 1-10 score"
+                    },
+                    "mitigation": {
                         "type": "string"
                     }
                 }
@@ -5987,6 +6218,28 @@
                     },
                     "temperature": {
                         "type": "number"
+                    }
+                }
+            },
+            "dtos.SpeakerCoverage": {
+                "type": "object",
+                "properties": {
+                    "speaker_breakdown": {
+                        "type": "object",
+                        "description": "Speaker label -> utterance count",
+                        "additionalProperties": {
+                            "type": "integer"
+                        }
+                    },
+                    "speakers_with_names": {
+                        "type": "integer",
+                        "description": "Speakers with identified names vs \"Speaker 1\""
+                    },
+                    "total_speakers": {
+                        "type": "integer"
+                    },
+                    "utterance_count": {
+                        "type": "integer"
                     }
                 }
             },
@@ -6099,12 +6352,55 @@
                     }
                 }
             },
+            "dtos.TranscriptFormat": {
+                "type": "string",
+                "enum": [
+                    "plain_text",
+                    "utterance_list"
+                ]
+            },
+            "dtos.TranscriptSegment": {
+                "type": "object",
+                "properties": {
+                    "end_ms": {
+                        "type": "integer",
+                        "description": "Segment end time in milliseconds (ESTIMATE)"
+                    },
+                    "index": {
+                        "type": "integer",
+                        "description": "Segment index (0, 1, 2, ...)"
+                    },
+                    "start_ms": {
+                        "type": "integer",
+                        "description": "Segment start time in milliseconds (ESTIMATE)"
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "Transcribed text for this segment"
+                    },
+                    "utterances": {
+                        "type": "array",
+                        "description": "Utterances within this segment, if available",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.Utterance"
+                        }
+                    }
+                }
+            },
             "dtos.TranscriptionTaskResponseDTO": {
                 "type": "object",
                 "properties": {
                     "recording_id": {
                         "type": "string",
                         "example": "uuid-v4"
+                    },
+                    "request_id": {
+                        "type": "string",
+                        "example": "req-uuid"
+                    },
+                    "source": {
+                        "type": "string",
+                        "example": "MQTT_ACK"
                     },
                     "task_id": {
                         "type": "string",
@@ -6317,6 +6613,31 @@
                     "room_id": {
                         "type": "string",
                         "example": "room-456"
+                    }
+                }
+            },
+            "dtos.Utterance": {
+                "type": "object",
+                "properties": {
+                    "confidence": {
+                        "type": "number",
+                        "description": "Confidence score (0.0-1.0) if available"
+                    },
+                    "end_ms": {
+                        "type": "integer",
+                        "description": "End time in milliseconds (ESTIMATE if provider doesn't supply)"
+                    },
+                    "speaker_label": {
+                        "type": "string",
+                        "description": "e.g., \"Speaker 1\", \"John Doe\""
+                    },
+                    "start_ms": {
+                        "type": "integer",
+                        "description": "Start time in milliseconds (ESTIMATE if provider doesn't supply)"
+                    },
+                    "text": {
+                        "type": "string",
+                        "description": "Transcribed text for this utterance"
                     }
                 }
             },
