@@ -32,8 +32,8 @@ func NewCreateTerminalController(useCase *usecases.CreateTerminalUseCase) *Creat
 // @Success      201  {object}  dtos.StandardResponse{data=terminal_dtos.CreateTerminalResponseDTO}
 // @Failure      422  {object}  dtos.ValidationErrorResponse
 // @Failure      500  {object}  dtos.ErrorResponse
+// @Security     ApiKeyAuth
 // @Router       /api/terminal [post]
-// @Security     BearerAuth
 func (c *CreateTerminalController) CreateTerminal(ctx *gin.Context) {
 	var req terminal_dtos.CreateTerminalRequestDTO
 

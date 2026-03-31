@@ -36,8 +36,8 @@ func NewGetTerminalByMACController(useCase *usecases.GetTerminalByMACUseCase) *G
 // @Failure      400  {object}  dtos.ValidationErrorResponse
 // @Failure      404  {object}  dtos.ErrorResponse
 // @Failure      500  {object}  dtos.ErrorResponse
+// @Security     ApiKeyAuth
 // @Router       /api/terminal/mac/{mac} [get]
-// @Security     BearerAuth
 func (c *GetTerminalByMACController) GetTerminalByMAC(ctx *gin.Context) {
 	mac := ctx.Param("mac")
 	if strings.TrimSpace(mac) == "" || strings.Contains(mac, "INVALID") {

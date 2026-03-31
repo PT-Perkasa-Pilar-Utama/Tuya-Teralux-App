@@ -1601,7 +1601,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
-                - BearerAuth: []
+                - ApiKeyAuth: []
     /api/terminal/{id}:
         get:
             tags:
@@ -1967,7 +1967,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
-                - BearerAuth: []
+                - ApiKeyAuth: []
     /api/tuya/auth:
         get:
             tags:
@@ -3823,6 +3823,20 @@ components:
                     type: string
         dtos.TuyaCommandDTO:
             type: object
+            properties:
+                code:
+                    type: string
+                    example: switch_1
+                value:
+                    type: object
+                    additionalProperties:
+                        isbool: false
+                        boolval: false
+                        schemaval:
+                            type: string
+            required:
+                - code
+                - value
         dtos.TuyaDeviceDTO:
             type: object
             properties:
@@ -3917,6 +3931,23 @@ components:
                     example: Updated Device Name
         dtos.UpdateDeviceStatusRequestDTO:
             type: object
+            properties:
+                code:
+                    type: string
+                    example: switch_1
+                remote_id:
+                    type: string
+                    description: Optional, for IR devices
+                    example: ir-remote-001
+                value:
+                    type: object
+                    additionalProperties:
+                        isbool: false
+                        boolval: false
+                        schemaval:
+                            type: string
+            required:
+                - code
         dtos.UpdateSceneRequestDTO:
             type: object
             properties:

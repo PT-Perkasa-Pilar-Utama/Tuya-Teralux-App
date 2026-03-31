@@ -2385,7 +2385,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Register a new terminal device with MAC address and metadata",
@@ -2448,7 +2448,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Retrieve terminal information by MAC address",
@@ -5714,7 +5714,23 @@ const docTemplate = `{
             }
         },
         "dtos.TuyaCommandDTO": {
-            "type": "object"
+            "type": "object",
+            "required": [
+                "code",
+                "value"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "switch_1"
+                },
+                "value": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         },
         "dtos.TuyaDeviceDTO": {
             "type": "object",
@@ -5855,7 +5871,27 @@ const docTemplate = `{
             }
         },
         "dtos.UpdateDeviceStatusRequestDTO": {
-            "type": "object"
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "switch_1"
+                },
+                "remote_id": {
+                    "description": "Optional, for IR devices",
+                    "type": "string",
+                    "example": "ir-remote-001"
+                },
+                "value": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         },
         "dtos.UpdateSceneRequestDTO": {
             "type": "object",

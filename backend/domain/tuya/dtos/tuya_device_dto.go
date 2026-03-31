@@ -25,7 +25,7 @@ type TuyaDeviceDTO struct {
 // TuyaCommandDTO represents a single command
 type TuyaCommandDTO struct {
 	Code  string      `json:"code" binding:"required" example:"switch_1"`
-	Value interface{} `json:"value" binding:"required" example:"true"`
+	Value interface{} `json:"value" binding:"required" swaggertype:"object,string"`
 }
 
 // TuyaCommandsRequestDTO represents the request body for sending commands

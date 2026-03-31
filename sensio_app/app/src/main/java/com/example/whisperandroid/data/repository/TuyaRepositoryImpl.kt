@@ -7,8 +7,8 @@ import com.example.whisperandroid.domain.repository.TuyaRepository
 
 class TuyaRepositoryImpl(
     private val api: TuyaApi,
-    private val apiKey: String,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val apiKey: String
 ) : TuyaRepository {
     override suspend fun authenticate(): Result<String> =
         try {
@@ -32,7 +32,7 @@ class TuyaRepositoryImpl(
             val token = tokenManager.getAccessToken() ?: return Result.failure(
                 Exception("No access token found")
             )
-            val response = api.getDevices("Bearer $token", apiKey)
+            val response = api.getDevices("Bearer $token")
             if (response.status && response.data != null) {
                 Result.success(response.data)
             } else {

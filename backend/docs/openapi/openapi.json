@@ -2823,7 +2823,7 @@
                 },
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ]
             }
@@ -2902,7 +2902,7 @@
                 },
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ]
             }
@@ -6430,7 +6430,23 @@
                 }
             },
             "dtos.TuyaCommandDTO": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "example": "switch_1"
+                    },
+                    "value": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "code",
+                    "value"
+                ]
             },
             "dtos.TuyaDeviceDTO": {
                 "type": "object",
@@ -6571,7 +6587,27 @@
                 }
             },
             "dtos.UpdateDeviceStatusRequestDTO": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "example": "switch_1"
+                    },
+                    "remote_id": {
+                        "type": "string",
+                        "description": "Optional, for IR devices",
+                        "example": "ir-remote-001"
+                    },
+                    "value": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "code"
+                ]
             },
             "dtos.UpdateSceneRequestDTO": {
                 "type": "object",

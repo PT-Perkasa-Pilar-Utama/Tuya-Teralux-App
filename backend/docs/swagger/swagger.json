@@ -2382,7 +2382,7 @@
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Register a new terminal device with MAC address and metadata",
@@ -2445,7 +2445,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "ApiKeyAuth": []
                     }
                 ],
                 "description": "Retrieve terminal information by MAC address",
@@ -5711,7 +5711,23 @@
             }
         },
         "dtos.TuyaCommandDTO": {
-            "type": "object"
+            "type": "object",
+            "required": [
+                "code",
+                "value"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "switch_1"
+                },
+                "value": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         },
         "dtos.TuyaDeviceDTO": {
             "type": "object",
@@ -5852,7 +5868,27 @@
             }
         },
         "dtos.UpdateDeviceStatusRequestDTO": {
-            "type": "object"
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "switch_1"
+                },
+                "remote_id": {
+                    "description": "Optional, for IR devices",
+                    "type": "string",
+                    "example": "ir-remote-001"
+                },
+                "value": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         },
         "dtos.UpdateSceneRequestDTO": {
             "type": "object",

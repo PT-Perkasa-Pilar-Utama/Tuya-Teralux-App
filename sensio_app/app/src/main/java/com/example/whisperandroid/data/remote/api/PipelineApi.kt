@@ -34,28 +34,24 @@ interface PipelineApi {
         @Part("participants") participants: String? = null,
         @Part("mac_address") macAddress: String? = null,
         @Header("Authorization") token: String,
-        @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Idempotency-Key") idempotencyKey: String? = null
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/models/pipeline/status/{task_id}")
     suspend fun getPipelineStatus(
         @Path("task_id") taskId: String,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<PipelineStatusDto>
 
     @POST("/api/models/pipeline/job/by-upload")
     suspend fun executePipelineByUpload(
         @retrofit2.http.Body request: PipelineSubmitByUploadRequestDto,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @DELETE("/api/models/pipeline/status/{task_id}")
     suspend fun cancelPipelineTask(
         @Path("task_id") taskId: String,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<Unit>
 }
