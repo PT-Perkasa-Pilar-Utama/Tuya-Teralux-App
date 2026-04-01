@@ -339,8 +339,10 @@ definitions:
       room_id:
         example: "123"
         type: string
+      time_end:
+        example: "14:00:00"
+        type: string
     required:
-    - datetime_end
     - room_id
     type: object
   dtos.NotificationPublishResponse:
@@ -2198,6 +2200,431 @@ paths:
       summary: Translate text to specified language
       tags:
       - 04. Models
+  /api/models/v1/pipeline/job:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Execute a full AI pipeline (transcribe, translate, summarize)
+      parameters:
+      - description: Audio file
+        in: formData
+        name: audio
+        required: true
+        type: file
+      - description: 'Source language (default: id)'
+        in: formData
+        name: language
+        type: string
+      - description: 'Target language (default: en)'
+        in: formData
+        name: target_language
+        type: string
+      - description: Enable summarization (true/false)
+        in: formData
+        name: summarize
+        type: string
+      - description: Enable speaker diarization (true/false)
+        in: formData
+        name: diarize
+        type: string
+      - description: Enable refinement (true/false)
+        in: formData
+        name: refine
+        type: string
+      - description: Comma-separated participant names
+        in: formData
+        name: participants
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.TaskIDResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Execute AI pipeline job
+      tags:
+      - 05. Models-v1
+  /api/models/v1/pipeline/status/{task_id}:
+    get:
+      description: Get the status of a pipeline job by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dtos.V1PipelineStatusResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get pipeline status
+      tags:
+      - 05. Models-v1
+  /api/models/v1/rag/chat:
+    post:
+      consumes:
+      - application/json
+      description: Chat using the legacy Python RAG service
+      parameters:
+      - description: Chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Chat with model (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/rag/control:
+    post:
+      consumes:
+      - application/json
+      description: Control devices using the legacy Python RAG service
+      parameters:
+      - description: Control request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Device control (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/rag/status/{task_id}:
+    get:
+      description: Get the status of a RAG task by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get RAG status (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/rag/summary:
+    post:
+      consumes:
+      - application/json
+      description: Summarize text using the legacy Python RAG service
+      parameters:
+      - description: Summary request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Summarize text (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/rag/translate:
+    post:
+      consumes:
+      - application/json
+      description: Translate text using the legacy Python RAG service
+      parameters:
+      - description: Translation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.RAGRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Translate text (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/whisper/status/{transcribe_id}:
+    get:
+      description: Get the status of a transcription task by ID
+      parameters:
+      - description: Transcription Task ID
+        in: path
+        name: transcribe_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transcription status (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/whisper/transcribe:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Transcribe an audio file by providing its local path
+      parameters:
+      - description: Local path to audio file
+        in: formData
+        name: audio_path
+        required: true
+        type: string
+      - description: Audio language
+        in: formData
+        name: language
+        type: string
+      - description: Enable speaker diarization
+        in: formData
+        name: diarize
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/whisper/uploads/sessions:
+    post:
+      consumes:
+      - application/json
+      description: Initialize a new chunked upload session for a large audio file
+      parameters:
+      - description: Upload session configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create upload session (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/whisper/uploads/sessions/{id}:
+    get:
+      description: Get the current status and progress of an upload session
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get upload session status (v1)
+      tags:
+      - 05. Models-v1
+  /api/models/v1/whisper/uploads/sessions/{id}/chunks/{index}:
+    put:
+      consumes:
+      - application/octet-stream
+      description: Upload a single chunk of an audio file for a session
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Chunk index
+        in: path
+        name: index
+        required: true
+        type: integer
+      - description: Binary chunk data
+        in: body
+        name: chunk
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dtos.StandardResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dtos.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload chunk (v1)
+      tags:
+      - 05. Models-v1
   /api/models/whisper/transcribe:
     post:
       consumes:
@@ -2295,7 +2722,7 @@ paths:
       summary: Get transcription status (Consolidated)
       tags:
       - 04. Models
-  /api/mqtt/credentials/{username}:
+  /api/mqtt/users/{username}:
     get:
       consumes:
       - application/json
@@ -2339,8 +2766,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Computes publish_at = datetime_end - interval_time and immediately
-        publishes it to all terminals in the room via MQTT.
+      description: |-
+        Computes publish_at = datetime_end (or time_end) - interval_time and immediately publishes it to all terminals in the room via MQTT.
+        At least one of datetime_end or time_end must be provided. If both are provided, datetime_end takes priority.
       parameters:
       - description: Notification details
         in: body
@@ -3201,431 +3629,6 @@ paths:
       summary: Get Sensor Data
       tags:
       - 01. Tuya
-  /api/v1/models/pipeline/job:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Execute a full AI pipeline (transcribe, translate, summarize)
-      parameters:
-      - description: Audio file
-        in: formData
-        name: audio
-        required: true
-        type: file
-      - description: 'Source language (default: id)'
-        in: formData
-        name: language
-        type: string
-      - description: 'Target language (default: en)'
-        in: formData
-        name: target_language
-        type: string
-      - description: Enable summarization (true/false)
-        in: formData
-        name: summarize
-        type: string
-      - description: Enable speaker diarization (true/false)
-        in: formData
-        name: diarize
-        type: string
-      - description: Enable refinement (true/false)
-        in: formData
-        name: refine
-        type: string
-      - description: Comma-separated participant names
-        in: formData
-        name: participants
-        type: string
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.TaskIDResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Execute AI pipeline job
-      tags:
-      - 05. Models-v1
-  /api/v1/models/pipeline/status/{task_id}:
-    get:
-      description: Get the status of a pipeline job by ID
-      parameters:
-      - description: Task ID
-        in: path
-        name: task_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dtos.V1PipelineStatusResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get pipeline status
-      tags:
-      - 05. Models-v1
-  /api/v1/models/rag/chat:
-    post:
-      consumes:
-      - application/json
-      description: Chat using the legacy Python RAG service
-      parameters:
-      - description: Chat request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/services.RAGRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Chat with model (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/rag/control:
-    post:
-      consumes:
-      - application/json
-      description: Control devices using the legacy Python RAG service
-      parameters:
-      - description: Control request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/services.RAGRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Device control (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/rag/status/{task_id}:
-    get:
-      description: Get the status of a RAG task by ID
-      parameters:
-      - description: Task ID
-        in: path
-        name: task_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get RAG status (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/rag/summary:
-    post:
-      consumes:
-      - application/json
-      description: Summarize text using the legacy Python RAG service
-      parameters:
-      - description: Summary request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/services.RAGRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Summarize text (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/rag/translate:
-    post:
-      consumes:
-      - application/json
-      description: Translate text using the legacy Python RAG service
-      parameters:
-      - description: Translation request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/services.RAGRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Translate text (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/whisper/status/{transcribe_id}:
-    get:
-      description: Get the status of a transcription task by ID
-      parameters:
-      - description: Transcription Task ID
-        in: path
-        name: transcribe_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get transcription status (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/whisper/transcribe:
-    post:
-      consumes:
-      - application/x-www-form-urlencoded
-      description: Transcribe an audio file by providing its local path
-      parameters:
-      - description: Local path to audio file
-        in: formData
-        name: audio_path
-        required: true
-        type: string
-      - description: Audio language
-        in: formData
-        name: language
-        type: string
-      - description: Enable speaker diarization
-        in: formData
-        name: diarize
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dtos.StandardResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Transcribe audio (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/whisper/uploads/sessions:
-    post:
-      consumes:
-      - application/json
-      description: Initialize a new chunked upload session for a large audio file
-      parameters:
-      - description: Upload session configuration
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create upload session (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/whisper/uploads/sessions/{id}:
-    get:
-      description: Get the current status and progress of an upload session
-      parameters:
-      - description: Session ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO'
-              type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get upload session status (v1)
-      tags:
-      - 05. Models-v1
-  /api/v1/models/whisper/uploads/sessions/{id}/chunks/{index}:
-    put:
-      consumes:
-      - application/octet-stream
-      description: Upload a single chunk of an audio file for a session
-      parameters:
-      - description: Session ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Chunk index
-        in: path
-        name: index
-        required: true
-        type: integer
-      - description: Binary chunk data
-        in: body
-        name: chunk
-        required: true
-        schema:
-          type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/dtos.StandardResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dtos.ValidationErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dtos.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Upload chunk (v1)
-      tags:
-      - 05. Models-v1
   /api/whisper/models/gemini:
     post:
       consumes:
@@ -3876,7 +3879,7 @@ securityDefinitions:
     name: X-API-KEY
     type: apiKey
   BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
+    description: Enter JWT token only (without "Bearer " prefix)
     in: header
     name: Authorization
     type: apiKey

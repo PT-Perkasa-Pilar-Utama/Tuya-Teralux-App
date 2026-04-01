@@ -481,6 +481,8 @@ func (uc *tuyaGetAllDevicesUseCase) populateVectorDB(uid string, resp *dtos.Tuya
 
 // buildAssistantSafeSnapshot creates a sanitized snapshot of devices for assistant/vector storage.
 // Excludes sensitive fields: local_key, ip, gateway_id, icon, create_time, update_time
+// NOTE: Online status is intentionally excluded to prevent LLM from making decisions based on stale cache data.
+// Device status is fetched real-time during control execution.
 func (uc *tuyaGetAllDevicesUseCase) buildAssistantSafeSnapshot(resp *dtos.TuyaDevicesResponseDTO) *dtos.AssistantSafeDevicesSnapshotDTO {
 	snapshot := &dtos.AssistantSafeDevicesSnapshotDTO{
 		Devices:      make([]dtos.AssistantSafeDeviceDTO, 0, len(resp.Devices)),
@@ -497,7 +499,6 @@ func (uc *tuyaGetAllDevicesUseCase) buildAssistantSafeSnapshot(resp *dtos.TuyaDe
 			Category:       dev.Category,
 			RemoteCategory: dev.RemoteCategory,
 			ProductName:    dev.ProductName,
-			Online:         dev.Online,
 			Status:         dev.Status,
 		}
 		snapshot.Devices = append(snapshot.Devices, safeDev)

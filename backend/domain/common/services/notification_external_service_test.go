@@ -7,6 +7,7 @@ import (
 	"sensio/domain/terminal/terminal/entities"
 	"strconv"
 	"testing"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/stretchr/testify/assert"
@@ -204,6 +205,126 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		var apiErr *utils.APIError
 		assert.True(t, errors.As(err, &apiErr))
 		assert.Equal(t, 400, apiErr.StatusCode)
+	})
+
+	t.Run("Success - With time_end only", func(t *testing.T) {
+		mockRepo := new(MockTerminalRepository)
+		mockMqtt := new(MockMqttService)
+		service := NewNotificationExternalService(mockRepo, mockMqtt)
+
+		terminals := []entities.Terminal{
+			{MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: roomID},
+		}
+
+		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
+
+		timeEnd := "14:30:45"
+		// Parse time_end and combine with current date to get dateTimeEnd
+		timeOnly, _ := time.Parse("15:04:05", timeEnd)
+		now := time.Now()
+		dateTimeEnd := time.Date(now.Year(), now.Month(), now.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, now.Location())
+		// Compute publish_at = dateTimeEnd - interval_time
+		expectedPublishAt := dateTimeEnd.Add(time.Duration(-intervalTime) * time.Minute)
+		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt.Format(time.RFC3339) + `","remaining_minutes":` + strconv.Itoa(intervalTime) + `}`)
+		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
+
+		req := terminal_dtos.NotificationPublishRequest{
+			RoomID:       roomID,
+			DateTimeEnd:  "",
+			TimeEnd:      timeEnd,
+			IntervalTime: intervalTime,
+		}
+
+		resp, err := service.PublishNotificationToRoom(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, roomID, resp.RoomID)
+		assert.Equal(t, 1, resp.PublishedCount)
+
+		mockRepo.AssertExpectations(t)
+		mockMqtt.AssertExpectations(t)
+	})
+
+	t.Run("Success - datetime_end takes priority over time_end", func(t *testing.T) {
+		mockRepo := new(MockTerminalRepository)
+		mockMqtt := new(MockMqttService)
+		service := NewNotificationExternalService(mockRepo, mockMqtt)
+
+		terminals := []entities.Terminal{
+			{MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: roomID},
+		}
+
+		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
+
+		dateTimeEnd := "2026-03-17T14:00:00+07:00"
+		timeEnd := "15:00:00"
+		expectedPublishAt := "2026-03-17T13:45:00+07:00"
+		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt + `","remaining_minutes":` + strconv.Itoa(intervalTime) + `}`)
+		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
+
+		req := terminal_dtos.NotificationPublishRequest{
+			RoomID:       roomID,
+			DateTimeEnd:  dateTimeEnd,
+			TimeEnd:      timeEnd,
+			IntervalTime: intervalTime,
+		}
+
+		resp, err := service.PublishNotificationToRoom(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, roomID, resp.RoomID)
+		assert.Equal(t, 1, resp.PublishedCount)
+
+		mockRepo.AssertExpectations(t)
+		mockMqtt.AssertExpectations(t)
+	})
+
+	t.Run("Failure - Invalid time_end format", func(t *testing.T) {
+		mockRepo := new(MockTerminalRepository)
+		mockMqtt := new(MockMqttService)
+		service := NewNotificationExternalService(mockRepo, mockMqtt)
+
+		req := terminal_dtos.NotificationPublishRequest{
+			RoomID:       roomID,
+			DateTimeEnd:  "",
+			TimeEnd:      "invalid-time",
+			IntervalTime: intervalTime,
+		}
+
+		resp, err := service.PublishNotificationToRoom(req)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		var apiErr *utils.APIError
+		assert.True(t, errors.As(err, &apiErr))
+		assert.Equal(t, 400, apiErr.StatusCode)
+		assert.Contains(t, apiErr.Message, "Invalid time_end format")
+	})
+
+	t.Run("Failure - Both datetime_end and time_end empty", func(t *testing.T) {
+		mockRepo := new(MockTerminalRepository)
+		mockMqtt := new(MockMqttService)
+		service := NewNotificationExternalService(mockRepo, mockMqtt)
+
+		req := terminal_dtos.NotificationPublishRequest{
+			RoomID:       roomID,
+			DateTimeEnd:  "",
+			TimeEnd:      "",
+			IntervalTime: intervalTime,
+		}
+
+		resp, err := service.PublishNotificationToRoom(req)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		var apiErr *utils.APIError
+		assert.True(t, errors.As(err, &apiErr))
+		assert.Equal(t, 400, apiErr.StatusCode)
+		assert.Contains(t, apiErr.Message, "At least one of datetime_end or time_end must be provided")
 	})
 
 	t.Run("Failure - MQTT Publish Error", func(t *testing.T) {

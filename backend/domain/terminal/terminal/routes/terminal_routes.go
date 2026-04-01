@@ -61,8 +61,8 @@ func SetupTerminalRoutes(
 	// Protected MQTT Routes
 	mqttProtectedAPI := protectedRouter.Group("/api/mqtt")
 	{
-		// GET /api/mqtt/credentials/:username - Get MQTT credentials
-		mqttProtectedAPI.GET("/credentials/:username", getMqttCredentialsController.GetMQTTCredentials)
+		// GET /api/mqtt/users/:username - Get MQTT credentials
+		mqttProtectedAPI.GET("/users/:username", getMqttCredentialsController.GetMQTTCredentials)
 	}
 
 	// Device Routes (Protected)

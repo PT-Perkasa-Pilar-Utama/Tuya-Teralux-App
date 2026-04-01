@@ -26,11 +26,29 @@ func NewNotificationExternalService(terminalRepo repositories.ITerminalRepositor
 
 // PublishNotificationToRoom computes the publish time and sends MQTT messages to all terminals in a room
 func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dtos.NotificationPublishRequest) (*terminal_dtos.NotificationPublishResponse, error) {
-	// 1. Parse DateTimeEnd
-	dateTimeEnd, err := time.Parse(time.RFC3339, req.DateTimeEnd)
-	if err != nil {
-		utils.LogError("NotificationExternalService: Failed to parse DateTimeEnd: %v", err)
-		return nil, utils.NewAPIError(400, "Invalid datetime_end format. Must be RFC3339.")
+	// 1. Resolve DateTimeEnd from either datetime_end or time_end
+	var dateTimeEnd time.Time
+	var err error
+
+	if req.DateTimeEnd != "" {
+		// DateTimeEnd takes priority
+		dateTimeEnd, err = time.Parse(time.RFC3339, req.DateTimeEnd)
+		if err != nil {
+			utils.LogError("NotificationExternalService: Failed to parse DateTimeEnd: %v", err)
+			return nil, utils.NewAPIError(400, "Invalid datetime_end format. Must be RFC3339.")
+		}
+	} else if req.TimeEnd != "" {
+		// Parse time_end and combine with server's current date
+		timeOnly, err := time.Parse("15:04:05", req.TimeEnd)
+		if err != nil {
+			utils.LogError("NotificationExternalService: Failed to parse TimeEnd: %v", err)
+			return nil, utils.NewAPIError(400, "Invalid time_end format. Must be HH:MM:SS.")
+		}
+		now := time.Now()
+		dateTimeEnd = time.Date(now.Year(), now.Month(), now.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, now.Location())
+	} else {
+		// Both are empty - return error
+		return nil, utils.NewAPIError(400, "At least one of datetime_end or time_end must be provided.")
 	}
 
 	// 2. Compute PublishAt
