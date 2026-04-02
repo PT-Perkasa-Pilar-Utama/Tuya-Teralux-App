@@ -675,9 +675,11 @@ func (u *summaryUseCase) buildReducePhasePrompt(notes []IntermediateSummaryNote,
 1. Preserve all decisions, action items, open issues, and risks from the notes
 2. Do NOT invent ownership - if PIC is not specified, leave it blank
 3. Preserve unresolved disagreements
-4. Use meeting-minutes format (not strategic analyst report)
-5. Include explicit sections: Decisions, Action Items, Open Issues, Risks
-6. Write in %s
+4. Synthesize a comprehensive narrative that preserves discussion context and implications
+5. Include important decisions, action items, open issues, and risks when present
+6. Do not over-optimize for terseness - preserve important discussion substance
+7. Balance structured sections with analytical narrative context
+8. Write in %s
 
 **Output**: Meeting summary in Markdown format.`, meetingContext, style, date, location, participants, targetLangName, string(notesJSON), targetLangName)
 }

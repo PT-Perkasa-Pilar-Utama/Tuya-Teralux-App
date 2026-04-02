@@ -6,6 +6,13 @@ import (
 )
 
 // PromptConfig encapsulates parameterized prompt generation for meeting summaries.
+//
+// DEPRECATED: BuildMinutesPrompt and style-family routing (GetStylePrompt) are deprecated
+// for the default meeting-transcriber flow. The default analytical prompt template
+// (summary.md skill definition) should be used instead via placeholder-based expansion.
+//
+// Style-specific prompts (BuildExecutiveMinutesPrompt, BuildActionItemsPrompt) remain
+// available for explicit user-requested variations but are not used in the default path.
 type PromptConfig struct {
 	Assertiveness int
 	Audience      string

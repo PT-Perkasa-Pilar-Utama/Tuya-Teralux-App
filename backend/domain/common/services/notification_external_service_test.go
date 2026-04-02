@@ -117,6 +117,15 @@ func (m *MockMqttService) Close() {
 	m.Called()
 }
 
+func resolveTimeEndWithCurrentDate(now time.Time, timeEnd string) time.Time {
+	timeOnly, _ := time.Parse("15:04:05", timeEnd)
+	dateTimeEnd := time.Date(now.Year(), now.Month(), now.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, now.Location())
+	if dateTimeEnd.Before(now) {
+		dateTimeEnd = dateTimeEnd.Add(24 * time.Hour)
+	}
+	return dateTimeEnd
+}
+
 func TestPublishNotificationToRoom(t *testing.T) {
 	roomID := "room-123"
 	dateTimeEnd := "2026-03-17T14:00:00+07:00"
@@ -218,12 +227,9 @@ func TestPublishNotificationToRoom(t *testing.T) {
 
 		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
 
-		timeEnd := "14:30:45"
-		// Parse time_end and combine with current date to get dateTimeEnd
-		timeOnly, _ := time.Parse("15:04:05", timeEnd)
 		now := time.Now()
-		dateTimeEnd := time.Date(now.Year(), now.Month(), now.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, now.Location())
-		// Compute publish_at = dateTimeEnd - interval_time
+		timeEnd := "14:30:45"
+		dateTimeEnd := resolveTimeEndWithCurrentDate(now, timeEnd)
 		expectedPublishAt := dateTimeEnd.Add(time.Duration(-intervalTime) * time.Minute)
 		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt.Format(time.RFC3339) + `","remaining_minutes":` + strconv.Itoa(intervalTime) + `}`)
 		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
@@ -266,6 +272,41 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		req := terminal_dtos.NotificationPublishRequest{
 			RoomID:       roomID,
 			DateTimeEnd:  dateTimeEnd,
+			TimeEnd:      timeEnd,
+			IntervalTime: intervalTime,
+		}
+
+		resp, err := service.PublishNotificationToRoom(req)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, roomID, resp.RoomID)
+		assert.Equal(t, 1, resp.PublishedCount)
+
+		mockRepo.AssertExpectations(t)
+		mockMqtt.AssertExpectations(t)
+	})
+
+	t.Run("Success - With time_end earlier than now uses next day", func(t *testing.T) {
+		mockRepo := new(MockTerminalRepository)
+		mockMqtt := new(MockMqttService)
+		service := NewNotificationExternalService(mockRepo, mockMqtt)
+
+		terminals := []entities.Terminal{
+			{MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: roomID},
+		}
+
+		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
+
+		now := time.Now()
+		timeEnd := now.Add(-1 * time.Hour).Format("15:04:05")
+		dateTimeEnd := resolveTimeEndWithCurrentDate(now, timeEnd)
+		expectedPublishAt := dateTimeEnd.Add(time.Duration(-intervalTime) * time.Minute)
+		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt.Format(time.RFC3339) + `","remaining_minutes":` + strconv.Itoa(intervalTime) + `}`)
+		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
+
+		req := terminal_dtos.NotificationPublishRequest{
+			RoomID:       roomID,
 			TimeEnd:      timeEnd,
 			IntervalTime: intervalTime,
 		}

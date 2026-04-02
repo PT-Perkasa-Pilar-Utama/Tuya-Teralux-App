@@ -30,8 +30,20 @@ func (o *SummaryOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (
 		Participants:  ctx.Participants,
 	}
 
-	// Use style-aware prompt family instead of single generic prompt
-	finalPrompt := promptConfig.GetStylePrompt(ctx.Prompt)
+	// Use placeholder-based prompt expansion for generic analytical summary
+	// This restores pre-312cf49 behavior: strategic analyst report instead of minutes-by-default
+	finalPrompt := prompt
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{prompt}}", ctx.Prompt)
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{history}}", strings.Join(ctx.History, "\n"))
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{audience_guidance}}", promptConfig.AudienceGuidance())
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{risk_scoring_guidance}}", promptConfig.RiskScoringGuidance())
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{assertiveness_phrasing}}", promptConfig.AssertivenessPhrasing())
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{language}}", targetLangName)
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{context}}", ctx.Context)
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{style}}", ctx.Style)
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{date}}", ctx.Date)
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{location}}", ctx.Location)
+	finalPrompt = strings.ReplaceAll(finalPrompt, "{{participants}}", ctx.Participants)
 
 	res, err := ctx.LLM.CallModel(ctx.Ctx, finalPrompt, "high")
 	if err != nil {

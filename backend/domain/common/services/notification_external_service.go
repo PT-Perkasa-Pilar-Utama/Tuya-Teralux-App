@@ -46,6 +46,9 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 		}
 		now := time.Now()
 		dateTimeEnd = time.Date(now.Year(), now.Month(), now.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, now.Location())
+		if dateTimeEnd.Before(now) {
+			dateTimeEnd = dateTimeEnd.Add(24 * time.Hour)
+		}
 	} else {
 		// Both are empty - return error
 		return nil, utils.NewAPIError(400, "At least one of datetime_end or time_end must be provided.")
