@@ -1,0 +1,301 @@
+- generic [ref=e3]:
+  - generic:
+    - img
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - heading "Full Fill AI Service 1.0.0 OAS 3.1" [level=1] [ref=e9]:
+          - text: Full Fill AI Service
+          - generic [ref=e10]:
+            - generic [ref=e12]: 1.0.0
+            - generic [ref=e14]: OAS 3.1
+        - link "/openapi.json" [ref=e15] [cursor=pointer]:
+          - /url: /openapi.json
+          - generic [ref=e16]: /openapi.json
+      - generic [ref=e18]:
+        - heading "🤖 Fullfill AI Service" [level=2] [ref=e19]
+        - paragraph [ref=e20]: A powerful Retrieval-Augmented Generation (RAG) service that enables intelligent document-based conversations.
+        - heading "✨ Features" [level=3] [ref=e21]
+        - list [ref=e22]:
+          - listitem [ref=e23]:
+            - strong [ref=e24]: 📚 Document Management
+            - text: ": Upload and manage your knowledge base"
+          - listitem [ref=e25]:
+            - strong [ref=e26]: 💬 Intelligent Chat
+            - text: ": RAG-powered conversations with your documents"
+          - listitem [ref=e27]:
+            - strong [ref=e28]: 🌊 Streaming Responses
+            - text: ": Real-time token streaming for better UX"
+          - listitem [ref=e29]:
+            - strong [ref=e30]: 🔍 Semantic Search
+            - text: ": Find relevant information instantly"
+          - listitem [ref=e31]:
+            - strong [ref=e32]: 🎯 Context-Aware
+            - text: ": Responses based on your actual documents"
+        - heading "🚀 Quick Start" [level=3] [ref=e33]
+        - list [ref=e34]:
+          - listitem [ref=e35]:
+            - strong [ref=e36]: Upload Documents
+            - text: ": Use the"
+            - code [ref=e37]: /documents/upload
+            - text: endpoint to add documents to your knowledge base
+          - listitem [ref=e38]:
+            - strong [ref=e39]: Ask Questions
+            - text: ": Use"
+            - code [ref=e40]: /chat
+            - text: or
+            - code [ref=e41]: /chat/stream
+            - text: to query your documents
+          - listitem [ref=e42]:
+            - strong [ref=e43]: Get Answers
+            - text: ": Receive AI-powered responses with source references"
+        - heading "📖 API Endpoints" [level=3] [ref=e44]
+        - heading "Documents" [level=4] [ref=e45]
+        - list [ref=e46]:
+          - listitem [ref=e47]:
+            - code [ref=e48]: POST /documents/upload
+            - text: "- Upload documents (PDF, TXT, DOCX)"
+          - listitem [ref=e49]:
+            - code [ref=e50]: "DELETE /documents/{document_id}"
+            - text: "- Remove documents from knowledge base"
+        - heading "Chat (RAG)" [level=4] [ref=e51]
+        - list [ref=e52]:
+          - listitem [ref=e53]:
+            - code [ref=e54]: POST /chat
+            - text: "- Get AI responses with document context"
+          - listitem [ref=e55]:
+            - code [ref=e56]: POST /chat/stream
+            - text: "- Stream responses in real-time"
+        - heading "Health" [level=4] [ref=e57]
+        - list [ref=e58]:
+          - listitem [ref=e59]:
+            - code [ref=e60]: GET /health
+            - text: "- Check service status"
+        - heading "💡 Tips" [level=3] [ref=e61]
+        - list [ref=e62]:
+          - listitem [ref=e63]: Documents are automatically chunked and embedded for optimal retrieval
+          - listitem [ref=e64]:
+            - text: Use the
+            - code [ref=e65]: /stream
+            - text: endpoint for better UX on long responses
+          - listitem [ref=e66]: Source documents are included in every response for transparency
+          - listitem [ref=e67]: Filter queries using metadata to narrow down results
+        - heading "🔧 Configuration" [level=3] [ref=e68]
+        - paragraph [ref=e69]: The service can be configured through environment variables and settings files. See the documentation for configuration options.
+        - separator [ref=e70]
+        - paragraph [ref=e71]:
+          - strong [ref=e72]: Built with FastAPI + LangGraph + Milvus
+      - link "Contact Fullfill AI Team" [ref=e74] [cursor=pointer]:
+        - /url: mailto:support@fullfill.ai
+      - link "MIT License" [ref=e77] [cursor=pointer]:
+        - /url: https://opensource.org/licenses/MIT
+    - generic [ref=e80]:
+      - generic [ref=e82]:
+        - heading "Health Collapse operation" [level=3] [ref=e83] [cursor=pointer]:
+          - link "Health" [ref=e84]:
+            - /url: "#/Health"
+          - button "Collapse operation" [expanded] [ref=e85]:
+            - img [ref=e86]
+        - generic [ref=e92] [cursor=pointer]:
+          - button "GET /api/v1/health Health check" [ref=e93]:
+            - generic [ref=e94]: GET
+            - generic [ref=e95]:
+              - link "/api/v1/health" [ref=e97]:
+                - /url: "#/Health/health_check_api_v1_health_get"
+                - generic [ref=e98]:
+                  - text: /api
+                  - text: /v1
+                  - text: /health
+              - generic [ref=e99]: Health check
+          - generic "Copy to clipboard"
+          - button "get /api/v1/health" [ref=e102]:
+            - img [ref=e103]
+      - generic [ref=e106]:
+        - heading "Chat Collapse operation" [level=3] [ref=e107] [cursor=pointer]:
+          - link "Chat" [ref=e108]:
+            - /url: "#/Chat"
+          - button "Collapse operation" [expanded] [ref=e109]:
+            - img [ref=e110]
+        - generic [ref=e113]:
+          - generic [ref=e116] [cursor=pointer]:
+            - button "POST /api/v1/chat/chat Chat with AI Agent" [ref=e117]:
+              - generic [ref=e118]: POST
+              - generic [ref=e119]:
+                - link "/api/v1/chat/chat" [ref=e121]:
+                  - /url: "#/Chat/chat_api_v1_chat_chat_post"
+                  - generic [ref=e122]:
+                    - text: /api
+                    - text: /v1
+                    - text: /chat
+                    - text: /chat
+                - generic [ref=e123]: Chat with AI Agent
+            - generic "Copy to clipboard"
+            - button "post /api/v1/chat/chat" [ref=e126]:
+              - img [ref=e127]
+          - generic [ref=e131] [cursor=pointer]:
+            - button "POST /api/v1/chat/chat/stream Stream Chat Response" [ref=e132]:
+              - generic [ref=e133]: POST
+              - generic [ref=e134]:
+                - link "/api/v1/chat/chat/stream" [ref=e136]:
+                  - /url: "#/Chat/chat_stream_api_v1_chat_chat_stream_post"
+                  - generic [ref=e137]:
+                    - text: /api
+                    - text: /v1
+                    - text: /chat
+                    - text: /chat
+                    - text: /stream
+                - generic [ref=e138]: Stream Chat Response
+            - generic "Copy to clipboard"
+            - button "post /api/v1/chat/chat/stream" [ref=e141]:
+              - img [ref=e142]
+      - generic [ref=e145]:
+        - heading "Documents Collapse operation" [level=3] [ref=e146] [cursor=pointer]:
+          - link "Documents" [ref=e147]:
+            - /url: "#/Documents"
+          - button "Collapse operation" [expanded] [ref=e148]:
+            - img [ref=e149]
+        - generic [ref=e152]:
+          - generic [ref=e155] [cursor=pointer]:
+            - button "POST /api/v1/documents/upload Upload and process a document" [ref=e156]:
+              - generic [ref=e157]: POST
+              - generic [ref=e158]:
+                - link "/api/v1/documents/upload" [ref=e160]:
+                  - /url: "#/Documents/upload_document_api_v1_documents_upload_post"
+                  - generic [ref=e161]:
+                    - text: /api
+                    - text: /v1
+                    - text: /documents
+                    - text: /upload
+                - generic [ref=e162]: Upload and process a document
+            - generic "Copy to clipboard"
+            - button "post /api/v1/documents/upload" [ref=e165]:
+              - img [ref=e166]
+          - generic [ref=e170] [cursor=pointer]:
+            - button "POST /api/v1/documents/upload/store-directory Upload store directory JSON" [ref=e171]:
+              - generic [ref=e172]: POST
+              - generic [ref=e173]:
+                - link "/api/v1/documents/upload/store-directory" [ref=e175]:
+                  - /url: "#/Documents/upload_store_directory_api_v1_documents_upload_store_directory_post"
+                  - generic [ref=e176]:
+                    - text: /api
+                    - text: /v1
+                    - text: /documents
+                    - text: /upload
+                    - text: /store-directory
+                - generic [ref=e177]: Upload store directory JSON
+            - generic "Copy to clipboard"
+            - button "post /api/v1/documents/upload/store-directory" [ref=e180]:
+              - img [ref=e181]
+          - generic [ref=e185] [cursor=pointer]:
+            - 'button "DELETE /api/v1/documents/{document_id} Delete a document" [ref=e186]':
+              - generic [ref=e187]: DELETE
+              - generic [ref=e188]:
+                - 'link "/api/v1/documents/{document_id}" [ref=e190]':
+                  - /url: "#/Documents/delete_document_api_v1_documents__document_id__delete"
+                  - generic [ref=e191]:
+                    - text: /api
+                    - text: /v1
+                    - text: /documents
+                    - text: "/{document_id}"
+                - generic [ref=e192]: Delete a document
+            - generic "Copy to clipboard"
+            - 'button "delete /api/v1/documents/{document_id}" [ref=e195]':
+              - img [ref=e196]
+          - generic [ref=e200] [cursor=pointer]:
+            - button "GET /api/v1/documents/search Search documents" [ref=e201]:
+              - generic [ref=e202]: GET
+              - generic [ref=e203]:
+                - link "/api/v1/documents/search" [ref=e205]:
+                  - /url: "#/Documents/search_documents_api_v1_documents_search_get"
+                  - generic [ref=e206]:
+                    - text: /api
+                    - text: /v1
+                    - text: /documents
+                    - text: /search
+                - generic [ref=e207]: Search documents
+            - generic "Copy to clipboard"
+            - button "get /api/v1/documents/search" [ref=e210]:
+              - img [ref=e211]
+    - generic [ref=e215]:
+      - heading "Schemas" [level=4] [ref=e216] [cursor=pointer]:
+        - button "Schemas" [expanded] [ref=e217]:
+          - generic [ref=e218]: Schemas
+          - img [ref=e219]
+      - generic [ref=e221]:
+        - article [ref=e222]:
+          - generic [ref=e223]:
+            - button "Body_upload_document_api_v1_documents_upload_post" [ref=e224] [cursor=pointer]:
+              - generic [ref=e226]: Body_upload_document_api_v1_documents_upload_post
+              - img [ref=e228]
+            - button "Expand all" [ref=e230] [cursor=pointer]
+            - strong [ref=e231]: object
+        - article [ref=e232]:
+          - generic [ref=e233]:
+            - button "Body_upload_store_directory_api_v1_documents_upload_store_directory_post" [ref=e234] [cursor=pointer]:
+              - generic [ref=e236]: Body_upload_store_directory_api_v1_documents_upload_store_directory_post
+              - img [ref=e238]
+            - button "Expand all" [ref=e240] [cursor=pointer]
+            - strong [ref=e241]: object
+        - article [ref=e242]:
+          - generic [ref=e243]:
+            - button "ChatRequest" [ref=e244] [cursor=pointer]:
+              - generic [ref=e246]: ChatRequest
+              - img [ref=e248]
+            - button "Expand all" [ref=e250] [cursor=pointer]
+            - strong [ref=e251]: object
+        - article [ref=e252]:
+          - generic [ref=e253]:
+            - button "ChatResponse" [ref=e254] [cursor=pointer]:
+              - generic [ref=e256]: ChatResponse
+              - img [ref=e258]
+            - button "Expand all" [ref=e260] [cursor=pointer]
+            - strong [ref=e261]: object
+        - article [ref=e262]:
+          - generic [ref=e263]:
+            - button "DocumentResponse" [ref=e264] [cursor=pointer]:
+              - generic [ref=e266]: DocumentResponse
+              - img [ref=e268]
+            - button "Expand all" [ref=e270] [cursor=pointer]
+            - strong [ref=e271]: object
+        - article [ref=e272]:
+          - generic [ref=e273]:
+            - button "HTTPValidationError" [ref=e274] [cursor=pointer]:
+              - generic [ref=e276]: HTTPValidationError
+              - img [ref=e278]
+            - button "Expand all" [ref=e280] [cursor=pointer]
+            - strong [ref=e281]: object
+        - article [ref=e282]:
+          - generic [ref=e283]:
+            - button "HealthResponse" [ref=e284] [cursor=pointer]:
+              - generic [ref=e286]: HealthResponse
+              - img [ref=e288]
+            - button "Expand all" [ref=e290] [cursor=pointer]
+            - strong [ref=e291]: object
+        - article [ref=e292]:
+          - generic [ref=e293]:
+            - button "SearchResponse" [ref=e294] [cursor=pointer]:
+              - generic [ref=e296]: SearchResponse
+              - img [ref=e298]
+            - button "Expand all" [ref=e300] [cursor=pointer]
+            - strong [ref=e301]: object
+        - article [ref=e302]:
+          - generic [ref=e303]:
+            - button "SearchResultItem" [ref=e304] [cursor=pointer]:
+              - generic [ref=e306]: SearchResultItem
+              - img [ref=e308]
+            - button "Expand all" [ref=e310] [cursor=pointer]
+            - strong [ref=e311]: object
+        - article [ref=e312]:
+          - generic [ref=e313]:
+            - button "SourceDocument" [ref=e314] [cursor=pointer]:
+              - generic [ref=e316]: SourceDocument
+              - img [ref=e318]
+            - button "Expand all" [ref=e320] [cursor=pointer]
+            - strong [ref=e321]: object
+        - article [ref=e322]:
+          - generic [ref=e323]:
+            - button "ValidationError" [ref=e324] [cursor=pointer]:
+              - generic [ref=e326]: ValidationError
+              - img [ref=e328]
+            - button "Expand all" [ref=e330] [cursor=pointer]
+            - strong [ref=e331]: object

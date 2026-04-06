@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# cek parameter
+if [ -z "$1" ]; then
+  echo "Usage: $0 <datetime_end>"
+  echo "Example: $0 2026-04-02T09:19:00+07:00"
+  exit 1
+fi
+
+DATETIME_END=$1
+
+# config
+URL="https://teralux.devoutsys.com/api/notification/publish"
+TOKEN="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzU2Mjk4NDksImlhdCI6MTc3NTAyNTA0OSwidWlkIjoic2cxNzY1MDg2MTc2NzQ2SWt3QkQifQ.p6KkSkE_2YU8IKKyWy2G6WiY6-uVKffVPrQwf6ICuuk"
+
+# request
+curl -X POST "$URL" \
+  -H "accept: application/json" \
+  -H "content-type: application/json" \
+  -H "authorization: $TOKEN" \
+  -d "{
+    \"datetime_end\": \"$DATETIME_END\",
+    \"interval_time\": 1,
+    \"room_id\": \"4\"
+  }"

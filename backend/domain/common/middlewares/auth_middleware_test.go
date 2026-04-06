@@ -64,13 +64,8 @@ func TestAuthMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)
 
-		var capturedToken string
 		r.Use(AuthMiddleware(mockProvider))
 		r.GET("/test", func(c *gin.Context) {
-			token, exists := c.Get("access_token")
-			if exists {
-				capturedToken = token.(string)
-			}
 			c.String(http.StatusOK, "success")
 		})
 
@@ -80,11 +75,8 @@ func TestAuthMiddleware(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", w.Code)
-		}
-		if capturedToken != "mock-tuya-token" {
-			t.Errorf("Expected token 'mock-tuya-token', got '%s'", capturedToken)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("Expected status 401, got %d", w.Code)
 		}
 	})
 

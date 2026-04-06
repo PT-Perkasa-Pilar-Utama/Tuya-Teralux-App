@@ -29,7 +29,7 @@ interface TerminalApi {
         @Body request: UpdateTerminalRequestDto
     ): TerminalResponseDto
 
-    @retrofit2.http.GET("/api/mqtt/credentials/{username}")
+    @retrofit2.http.GET("/api/mqtt/users/{username}")
     suspend fun getMqttCredentials(
         @retrofit2.http.Header("Authorization") token: String,
         @retrofit2.http.Path("username") username: String

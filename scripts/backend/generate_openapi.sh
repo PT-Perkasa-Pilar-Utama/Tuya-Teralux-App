@@ -93,7 +93,7 @@ subdomain_rules = [
     (r'/devices/:id/statuses', 'DeviceStatus'),
     (r'/devices/', 'Device'),
     (r'/terminal/', 'Terminal'),
-    
+
     # Models subdomains (check v1 first, then legacy)
     (r'/v1/models/rag/', 'RAG'),
     (r'/v1/models/whisper/', 'Whisper'),
@@ -110,37 +110,49 @@ for path, methods in data.get('paths', {}).items():
     for method, operation in methods.items():
         if method not in ['get', 'post', 'put', 'delete', 'patch']:
             continue
-        
+
         tags = operation.get('tags', [])
         if not tags:
             continue
-        
+
         tag = tags[0]
         domain = domain_map.get(tag)
-        
+
         if not domain:
             continue
-        
+
         # Detect subdomain from path
         subdomain = None
         for pattern, subdomain_name in subdomain_rules:
             if re.search(pattern, path):
                 subdomain = subdomain_name
                 break
-        
+
         # Build prefix
         if subdomain:
             prefix = f'[{domain}] [{subdomain}]'
         else:
             prefix = f'[{domain}]'
-        
+
         # Update summary
         summary = operation.get('summary', '')
         if summary and not summary.startswith(prefix):
             operation['summary'] = f'{prefix} {summary}'
 
+# Fix BearerAuth security scheme to use proper HTTP Bearer format
+if 'components' in data and 'securitySchemes' in data['components']:
+    if 'BearerAuth' in data['components']['securitySchemes']:
+        # Convert from apiKey to http bearer scheme
+        data['components']['securitySchemes']['BearerAuth'] = {
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
+            'description': 'Enter JWT token only (without \"Bearer \" prefix) - Swagger UI will add it automatically'
+        }
+
 with open(OPENAPI_FILE, 'w') as f:
     json.dump(data, f, indent=4)
 
 print('✅ Route summaries updated with domain/subdomain prefixes')
+print('✅ BearerAuth security scheme fixed to use HTTP Bearer format')
 "

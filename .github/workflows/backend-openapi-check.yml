@@ -48,6 +48,9 @@ jobs:
       - name: Validate OpenAPI 3.1
         run: make validate-openapi
 
+      - name: Run Route Contract Tests
+        run: go test ./domain/common/utils/... -run TestOpenAPI -v
+
       - name: Check for Uncommitted Changes
         run: |
           if ! git diff --exit-code -- docs/openapi/; then

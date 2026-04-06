@@ -27,15 +27,13 @@ interface WhisperApi {
         @Part language: MultipartBody.Part,
         @Part macAddress: MultipartBody.Part? = null,
         @Header("Authorization") token: String,
-        @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Idempotency-Key") idempotencyKey: String? = null
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/models/whisper/transcribe/{transcribe_id}")
     suspend fun getTranscriptionStatus(
         @Path("transcribe_id") taskId: String,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<TranscriptionStatusDto>
 
     // --- Chunk Upload Endpoints ---
@@ -43,8 +41,7 @@ interface WhisperApi {
     @POST("/api/models/whisper/uploads/sessions")
     suspend fun createUploadSession(
         @retrofit2.http.Body request: CreateUploadSessionRequestDto,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<UploadSessionResponseDto>
 
     @PUT("/api/models/whisper/uploads/sessions/{id}/chunks/{index}")
@@ -52,21 +49,18 @@ interface WhisperApi {
         @Path("id") sessionId: String,
         @Path("index") chunkIndex: Int,
         @retrofit2.http.Body chunk: okhttp3.RequestBody,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<UploadChunkAckDto>
 
     @GET("/api/models/whisper/uploads/sessions/{id}")
     suspend fun getUploadSessionStatus(
         @Path("id") sessionId: String,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<UploadSessionResponseDto>
 
     @POST("/api/models/whisper/transcribe/by-upload")
     suspend fun transcribeByUpload(
         @retrofit2.http.Body request: SubmitByUploadRequestDto,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
 }

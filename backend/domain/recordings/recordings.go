@@ -50,7 +50,7 @@ func NewRecordingsModule(badger *infrastructure.BadgerService) *RecordingsModule
 }
 
 func (m *RecordingsModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
-	api := router.Group("/api")
+	api := protected.Group("/api")
 	{
 		api.GET("/recordings", m.ListController.ListRecordings)
 		api.GET("/recordings/:id", m.GetByIDController.GetRecordingByID)

@@ -30,6 +30,8 @@ func (o *SummaryOrchestrator) Execute(ctx *skills.SkillContext, prompt string) (
 		Participants:  ctx.Participants,
 	}
 
+	// Use placeholder-based prompt expansion for generic analytical summary
+	// This restores pre-312cf49 behavior: strategic analyst report instead of minutes-by-default
 	finalPrompt := prompt
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{prompt}}", ctx.Prompt)
 	finalPrompt = strings.ReplaceAll(finalPrompt, "{{history}}", strings.Join(ctx.History, "\n"))
