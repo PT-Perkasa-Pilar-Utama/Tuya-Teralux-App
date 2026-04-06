@@ -108,21 +108,33 @@ func removeFillerWords(text string) string {
 
 // fixRepeatedWords fixes common ASR error where words are repeated
 func fixRepeatedWords(text string) string {
-	// Fix repeated words (2-3 times)
-	reRepeat := regexp.MustCompile(`\b(\w+)\s+\1\b`)
-	text = reRepeat.ReplaceAllString(text, "$1")
+	// Go's regexp doesn't support backreferences, so we use a manual approach
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return text
+	}
 
-	// Fix repeated with slight variation (common in Indonesian)
-	reRepeatVar := regexp.MustCompile(`\b(\w+)\s+\1\w*\b`)
-	text = reRepeatVar.ReplaceAllStringFunc(text, func(match string) string {
-		parts := strings.Fields(match)
-		if len(parts) > 0 {
-			return parts[0]
+	result := make([]string, 0, len(words))
+	result = append(result, words[0])
+
+	for i := 1; i < len(words); i++ {
+		prev := strings.ToLower(result[len(result)-1])
+		curr := strings.ToLower(words[i])
+
+		// Skip if current word is same as previous (handles exact repeats)
+		if curr == prev {
+			continue
 		}
-		return match
-	})
 
-	return text
+		// Skip if current word starts with previous word (handles slight variations)
+		if len(curr) > len(prev) && strings.HasPrefix(curr, prev) {
+			continue
+		}
+
+		result = append(result, words[i])
+	}
+
+	return strings.Join(result, " ")
 }
 
 // ShouldPreserveUncertainty checks if a phrase contains uncertainty markers
