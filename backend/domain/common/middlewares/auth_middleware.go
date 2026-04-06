@@ -35,12 +35,7 @@ func AuthMiddleware(tuyaAuthUC TuyaTokenProvider) gin.HandlerFunc {
 
 		fields := strings.Fields(authHeader)
 		var beToken string
-		switch {
-		case len(fields) == 2 && strings.EqualFold(fields[0], "Bearer"):
-			beToken = fields[1]
-		case len(fields) == 1:
-			beToken = fields[0]
-		default:
+		if len(fields) != 2 || !strings.EqualFold(fields[0], "Bearer") {
 			utils.LogWarn("AuthMiddleware: invalid Authorization Header format: %q", authHeader)
 			c.JSON(http.StatusUnauthorized, dtos.StandardResponse{
 				Status:  false,
@@ -49,7 +44,7 @@ func AuthMiddleware(tuyaAuthUC TuyaTokenProvider) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		beToken = strings.TrimSpace(beToken)
+		beToken = strings.TrimSpace(fields[1])
 
 		// Validate BE Token
 		uid, err := utils.ValidateToken(beToken)

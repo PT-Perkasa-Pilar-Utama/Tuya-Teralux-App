@@ -28,7 +28,7 @@ func NewPipelineController(pipelineUC *usecases.PipelineUseCase) *PipelineContro
 	}
 }
 
-// ExecuteJob handles POST /api/v1/models/pipeline/job
+// ExecuteJob handles POST /api/models/v1/pipeline/job
 // @Summary Execute AI pipeline job
 // @Description Execute a full AI pipeline (transcribe, translate, summarize)
 // @Tags 05. Models-v1
@@ -45,7 +45,7 @@ func NewPipelineController(pipelineUC *usecases.PipelineUseCase) *PipelineContro
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
 // @Security BearerAuth
-// @Router /api/v1/models/pipeline/job [post]
+// @Router /api/models/v1/pipeline/job [post]
 func (c *PipelineController) ExecuteJob(ctx *gin.Context) {
 	file, err := ctx.FormFile("audio")
 	if err != nil {
@@ -136,7 +136,7 @@ func (c *PipelineController) ExecuteJobByUpload(ctx *gin.Context) {
 	})
 }
 
-// GetStatus handles GET /api/v1/models/pipeline/status/:task_id
+// GetStatus handles GET /api/models/v1/pipeline/status/:task_id
 // @Summary Get pipeline status
 // @Description Get the status of a pipeline job by ID
 // @Tags 05. Models-v1
@@ -146,7 +146,7 @@ func (c *PipelineController) ExecuteJobByUpload(ctx *gin.Context) {
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      404  {object}  commonDtos.ErrorResponse
 // @Security BearerAuth
-// @Router /api/v1/models/pipeline/status/{task_id} [get]
+// @Router /api/models/v1/pipeline/status/{task_id} [get]
 func (c *PipelineController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("task_id")
 	if taskID == "" {

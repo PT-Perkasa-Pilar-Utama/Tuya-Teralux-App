@@ -6,6 +6,13 @@ import (
 )
 
 // PromptConfig encapsulates parameterized prompt generation for meeting summaries.
+//
+// DEPRECATED: BuildMinutesPrompt and style-family routing (GetStylePrompt) are deprecated
+// for the default meeting-transcriber flow. The default analytical prompt template
+// (summary.md skill definition) should be used instead via placeholder-based expansion.
+//
+// Style-specific prompts (BuildExecutiveMinutesPrompt, BuildActionItemsPrompt) remain
+// available for explicit user-requested variations but are not used in the default path.
 type PromptConfig struct {
 	Assertiveness int
 	Audience      string
@@ -159,4 +166,135 @@ You are a Chief of Staff and Strategic Analyst. Extract strategic value, risks, 
 `, pc.AudienceGuidance(), pc.RiskScoringGuidance(), structural, pc.AssertivenessPhrasing(), pc.Context, pc.Style, pc.Date, pc.Location, pc.Participants, outputStructure, transcript)
 
 	return prompt
+}
+
+// BuildMinutesPrompt builds a meeting-minutes style prompt (default for mobile flow)
+// This is less abstract than the strategic analyst prompt and focuses on factual recording
+func (pc *PromptConfig) BuildMinutesPrompt(transcript string) string {
+	if pc.Language == "" {
+		pc.Language = "Indonesian"
+	}
+
+	targetLangName := pc.Language
+
+	return fmt.Sprintf(`### ROLE & MANDATE
+You are a professional meeting secretary creating official meeting minutes.
+
+**CRITICAL RULES**:
+1. **DO NOT INVENT INFORMATION**: If a name, role, decision, or action item is not explicitly stated in the transcript, DO NOT make it up.
+2. **OMIT EMPTY SECTIONS**: If there are no decisions, action items, or risks in the transcript, COMPLETELY REMOVE those sections from your output. Do NOT write "Tidak ada", "N/A", or placeholders.
+3. **PRESERVE UNCERTAINTY**: If speakers express uncertainty ("might", "possibly", "we should discuss"), preserve these markers. Do not smooth them away.
+4. **PRESERVE DISAGREEMENTS**: If there were unresolved disagreements, document them explicitly in "Open Issues".
+5. **NO INFERRED OWNERSHIP**: Do not assign action items to people unless explicitly stated in the transcript.
+
+### OUTPUT LANGUAGE
+All output must be in %s.
+
+### REQUIRED SECTIONS (omit if no content)
+1. **Meeting Info**: Date, Location, Participants (from metadata or inferred from transcript)
+2. **Agenda**: Brief statement of meeting purpose
+3. **Decisions**: List of decisions made (only if explicitly stated)
+4. **Action Items**: Table with Task, PIC (only if named), Deadline (only if stated), Status
+5. **Open Issues**: Unresolved topics requiring future discussion
+6. **Risks**: Identified risks with mitigation strategies (if discussed)
+
+### FORMAT
+Use clean Markdown formatting. Use tables for Action Items and Risks.
+
+### METADATA
+- Context: %s
+- Style: %s
+- Date: %s
+- Location: %s
+- Participants: %s
+
+### TRANSCRIPT:
+%s
+
+**REMINDER**: Create meeting minutes following the structure above. Omit any section that has no content from the transcript.`, targetLangName, pc.Context, pc.Style, pc.Date, pc.Location, pc.Participants, transcript)
+}
+
+// BuildExecutiveMinutesPrompt builds an executive-summary style prompt for C-level audiences
+func (pc *PromptConfig) BuildExecutiveMinutesPrompt(transcript string) string {
+	if pc.Language == "" {
+		pc.Language = "Indonesian"
+	}
+
+	return fmt.Sprintf(`### ROLE & MANDATE
+You are creating executive meeting minutes for C-level leadership.
+
+**CRITICAL**:
+- **BREVITY**: Executive summary style - concise, actionable, strategic focus
+- **NO INVENTION**: Do not invent names, decisions, or ownership
+- **OMIT EMPTY SECTIONS**: Remove sections with no content entirely
+- **ROI MINDSET**: Emphasize business impact, decisions, and strategic actions
+
+### OUTPUT LANGUAGE
+All output in %s.
+
+### REQUIRED STRUCTURE
+1. **Executive Summary**: 2-3 sentence overview of meeting purpose and key outcomes
+2. **Key Decisions**: Bullet list of strategic decisions (only if explicitly made)
+3. **Strategic Actions**: High-level action items with business impact (PIC only if named)
+4. **Escalations/Blockers**: Issues requiring leadership attention
+5. **Risks**: Strategic risks with business impact (if discussed)
+
+### METADATA
+- Context: %s
+- Date: %s
+- Location: %s
+- Participants: %s
+
+### TRANSCRIPT:
+%s
+
+**OUTPUT**: Executive meeting minutes following the structure above.`, pc.Language, pc.Context, pc.Date, pc.Location, pc.Participants, transcript)
+}
+
+// BuildActionItemsPrompt builds a prompt focused specifically on extracting action items
+func (pc *PromptConfig) BuildActionItemsPrompt(transcript string) string {
+	if pc.Language == "" {
+		pc.Language = "Indonesian"
+	}
+
+	return fmt.Sprintf(`### ROLE & MANDATE
+You are extracting action items and commitments from a meeting transcript.
+
+**CRITICAL RULES**:
+1. **EXPLICIT COMMITMENTS ONLY**: Only extract action items that were explicitly committed to ("I will", "we should", "let's do")
+2. **NO INFERRED OWNERSHIP**: If PIC is not explicitly named, leave it blank or mark as "TBD"
+3. **PRESERVE DEADLINES**: If a deadline was mentioned, include it. Otherwise leave blank.
+4. **INCLUDE CONTEXT**: Briefly note why each action item matters
+
+### OUTPUT LANGUAGE
+All output in %s.
+
+### OUTPUT FORMAT
+Create a Markdown table with these columns:
+| No | Action Item | PIC | Deadline | Context/Notes |
+
+### METADATA
+- Context: %s
+- Date: %s
+
+### TRANSCRIPT:
+%s
+
+**OUTPUT**: Extract all action items into the table format above. If no action items exist, output "No action items identified."`, pc.Language, pc.Context, pc.Date, transcript)
+}
+
+// GetStylePrompt returns the appropriate prompt based on style parameter
+func (pc *PromptConfig) GetStylePrompt(transcript string) string {
+	style := strings.ToLower(pc.Style)
+
+	switch {
+	case style == "executive" || style == "exec":
+		return pc.BuildExecutiveMinutesPrompt(transcript)
+	case style == "action_items" || style == "actions" || style == "tasks":
+		return pc.BuildActionItemsPrompt(transcript)
+	case style == "minutes" || style == "notulensi" || style == "standard":
+		fallthrough
+	default:
+		return pc.BuildMinutesPrompt(transcript)
+	}
 }

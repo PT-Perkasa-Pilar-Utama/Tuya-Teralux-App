@@ -23,7 +23,7 @@ func NewUploadSessionController(grpcService *services.GrpcWhisperService) *Uploa
 	}
 }
 
-// CreateSession handles POST /api/v1/models/whisper/uploads/sessions
+// CreateSession handles POST /api/models/v1/whisper/uploads/sessions
 // @Summary      Create upload session (v1)
 // @Description  Initialize a new chunked upload session for a large audio file
 // @Tags         05. Models-v1
@@ -33,7 +33,7 @@ func NewUploadSessionController(grpcService *services.GrpcWhisperService) *Uploa
 // @Success      201  {object}  commonDtos.StandardResponse{data=whisperDtos.UploadSessionResponseDTO}
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/whisper/uploads/sessions [post]
+// @Router       /api/models/v1/whisper/uploads/sessions [post]
 // @Security     BearerAuth
 func (c *UploadSessionController) CreateSession(ctx *gin.Context) {
 	var req whisperDtos.CreateUploadSessionRequest
@@ -73,7 +73,7 @@ func (c *UploadSessionController) CreateSession(ctx *gin.Context) {
 	})
 }
 
-// UploadChunk handles PUT /api/v1/models/whisper/uploads/sessions/:id/chunks/:index
+// UploadChunk handles PUT /api/models/v1/whisper/uploads/sessions/:id/chunks/:index
 // @Summary      Upload chunk (v1)
 // @Description  Upload a single chunk of an audio file for a session
 // @Tags         05. Models-v1
@@ -85,7 +85,7 @@ func (c *UploadSessionController) CreateSession(ctx *gin.Context) {
 // @Success      200  {object}  commonDtos.StandardResponse{data=whisperDtos.UploadChunkAckDTO}
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/whisper/uploads/sessions/{id}/chunks/{index} [put]
+// @Router       /api/models/v1/whisper/uploads/sessions/{id}/chunks/{index} [put]
 // @Security     BearerAuth
 func (c *UploadSessionController) UploadChunk(ctx *gin.Context) {
 	sessionID := ctx.Param("id")
@@ -142,7 +142,7 @@ func (c *UploadSessionController) UploadChunk(ctx *gin.Context) {
 	})
 }
 
-// GetSessionStatus handles GET /api/v1/models/whisper/uploads/sessions/:id
+// GetSessionStatus handles GET /api/models/v1/whisper/uploads/sessions/:id
 // @Summary      Get upload session status (v1)
 // @Description  Get the current status and progress of an upload session
 // @Tags         05. Models-v1
@@ -150,7 +150,7 @@ func (c *UploadSessionController) UploadChunk(ctx *gin.Context) {
 // @Param        id   path      string  true  "Session ID"
 // @Success      200  {object}  commonDtos.StandardResponse{data=whisperDtos.UploadSessionResponseDTO}
 // @Failure      404  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/whisper/uploads/sessions/{id} [get]
+// @Router       /api/models/v1/whisper/uploads/sessions/{id} [get]
 // @Security     BearerAuth
 func (c *UploadSessionController) GetSessionStatus(ctx *gin.Context) {
 	sessionID := ctx.Param("id")

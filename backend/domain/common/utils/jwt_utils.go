@@ -3,23 +3,41 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// GenerateToken generates a JWT token for a given Tuya UID with no expiration.
-// It uses the JWT_SECRET from the application configuration.
+// DefaultTokenExpiration is the default JWT expiration duration (7 days)
+const DefaultTokenExpiration = 7 * 24 * time.Hour
+
+// GenerateToken generates a JWT token for a given Tuya UID with expiration.
+// The expiration duration is read from JWT_EXPIRATION_HOURS environment variable.
+// If not set, defaults to 7 days.
 func GenerateToken(uid string) (string, error) {
 	config := GetConfig()
 	if config.JWTSecret == "" {
 		return "", errors.New("JWT_SECRET is not set in configuration")
 	}
 
-	// Create claims without 'exp' (expiration) to make it "no-expired"
+	// Read expiration duration from environment variable (in hours)
+	expirationHours := DefaultTokenExpiration
+	if expStr := os.Getenv("JWT_EXPIRATION_HOURS"); expStr != "" {
+		if hours, err := strconv.Atoi(expStr); err == nil && hours > 0 {
+			expirationHours = time.Duration(hours) * time.Hour
+		} else {
+			// Invalid value, use default
+			expirationHours = DefaultTokenExpiration
+		}
+	}
+
+	// Create claims with expiration
 	claims := jwt.MapClaims{
 		"uid": uid,
 		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(expirationHours).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -33,6 +51,7 @@ func GenerateToken(uid string) (string, error) {
 
 // ValidateToken parses and validates a JWT token string.
 // It returns the UID extracted from the token if successful.
+// The validation includes checking token expiration.
 func ValidateToken(tokenString string) (string, error) {
 	config := GetConfig()
 	if config.JWTSecret == "" {

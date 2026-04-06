@@ -35,6 +35,9 @@ type SkillContext struct {
 	Participants string
 	Style        string
 	Context      string
+
+	// Metadata map for additional context (e.g., window_id for structured extraction)
+	Metadata map[string]string
 }
 
 // SkillResult represents the output of a skill execution.

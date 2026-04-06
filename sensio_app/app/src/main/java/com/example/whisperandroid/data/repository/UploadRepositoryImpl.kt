@@ -25,8 +25,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 
 class UploadRepositoryImpl(
-    private val whisperApi: WhisperApi,
-    private val apiKey: String
+    private val whisperApi: WhisperApi
 ) : UploadRepository {
 
     companion object {
@@ -220,7 +219,7 @@ class UploadRepositoryImpl(
 
         // Try to resume existing session
         return try {
-            val status = whisperApi.getUploadSessionStatus(savedSessionId, "Bearer $token", apiKey)
+            val status = whisperApi.getUploadSessionStatus(savedSessionId, "Bearer $token")
 
             // Check if backend returned error response
             if (!status.status || status.data == null) {
@@ -465,8 +464,7 @@ class UploadRepositoryImpl(
                     totalSizeBytes = totalSize,
                     chunkSizeByes = chunkSize.toInt()
                 ),
-                "Bearer $token",
-                apiKey
+                "Bearer $token"
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create probe session: ${e.message}")
@@ -732,8 +730,7 @@ class UploadRepositoryImpl(
                     sessionId = sessionId,
                     chunkIndex = chunkIndex,
                     chunk = requestBody,
-                    token = "Bearer $token",
-                    apiKey = apiKey
+                    token = "Bearer $token"
                 )
 
                 if (ackResponse.status) {
@@ -754,7 +751,7 @@ class UploadRepositoryImpl(
                 if (retry < MAX_RETRIES_PER_CHUNK - 1 && isRetryableError(e)) {
                     try {
                         // Check session status after retryable error (server may have received chunk but response was lost)
-                        val status = whisperApi.getUploadSessionStatus(sessionId, "Bearer $token", apiKey)
+                        val status = whisperApi.getUploadSessionStatus(sessionId, "Bearer $token")
                         if (status.status && status.data != null) {
                             val data = status.data
                             // Check if this chunk is no longer in missing ranges (already received)
@@ -895,7 +892,7 @@ class UploadRepositoryImpl(
         token: String
     ): Resource<UploadSessionResponseDto> {
         return try {
-            val response = whisperApi.getUploadSessionStatus(sessionId, "Bearer $token", apiKey)
+            val response = whisperApi.getUploadSessionStatus(sessionId, "Bearer $token")
             if (response.status && response.data != null) {
                 Resource.Success(response.data)
             } else {

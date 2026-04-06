@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
 	terminal_dtos "sensio/domain/terminal/terminal/dtos"
 	usecases "sensio/domain/terminal/terminal/usecases"
 	"strings"
@@ -36,8 +37,8 @@ func NewGetTerminalByMACController(useCase *usecases.GetTerminalByMACUseCase) *G
 // @Failure      400  {object}  dtos.ValidationErrorResponse
 // @Failure      404  {object}  dtos.ErrorResponse
 // @Failure      500  {object}  dtos.ErrorResponse
+// @Security     ApiKeyAuth
 // @Router       /api/terminal/mac/{mac} [get]
-// @Security     BearerAuth
 func (c *GetTerminalByMACController) GetTerminalByMAC(ctx *gin.Context) {
 	mac := ctx.Param("mac")
 	if strings.TrimSpace(mac) == "" || strings.Contains(mac, "INVALID") {
@@ -56,7 +57,7 @@ func (c *GetTerminalByMACController) GetTerminalByMAC(ctx *gin.Context) {
 		if strings.Contains(strings.ToLower(err.Error()), "invalid mac") || strings.Contains(strings.ToLower(err.Error()), "format") {
 			ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 				Status:  false,
-				Message: err.Error(),
+				Message: "Invalid MAC Address format",
 				Data:    nil,
 			})
 			return
@@ -66,16 +67,17 @@ func (c *GetTerminalByMACController) GetTerminalByMAC(ctx *gin.Context) {
 		if err.Error() == "record not found" || strings.Contains(err.Error(), "not found") {
 			ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 				Status:  false,
-				Message: "Device not found",
+				Message: "Terminal not found",
 				Data:    nil,
 			})
 			return
 		}
 
-		// For any other error, return generic internal server error
+		// For any other error, log internally but return generic message
+		utils.LogError("GetTerminalByMACController.GetTerminalByMAC: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
 			Status:  false,
-			Message: "Internal server error: " + err.Error(),
+			Message: "Failed to retrieve terminal",
 			Data:    nil,
 		})
 		return

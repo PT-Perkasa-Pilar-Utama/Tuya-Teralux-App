@@ -22,12 +22,12 @@ func NewUpdateTerminalUseCase(repository repositories.ITerminalRepository) *Upda
 	}
 }
 
-// Execute updates a terminal
-func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTerminalRequestDTO) error {
+// Execute updates a terminal and returns the updated DTO
+func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTerminalRequestDTO) (*dtos.TerminalResponseDTO, error) {
 	// First check if exists
 	item, err := uc.repository.GetByID(id)
 	if err != nil {
-		return errors.New("Terminal not found")
+		return nil, errors.New("Terminal not found")
 	}
 
 	var details []utils.ValidationErrorDetail
@@ -90,13 +90,29 @@ func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTermi
 	}
 
 	if len(details) > 0 {
-		return utils.NewValidationError("Validation Error", details)
+		return nil, utils.NewValidationError("Validation Error", details)
 	}
 
 	// Save changes
 	if err := uc.repository.Update(item); err != nil {
-		return err
+		return nil, err
 	}
 
-	return uc.repository.InvalidateCache(id)
+	if err := uc.repository.InvalidateCache(id); err != nil {
+		return nil, err
+	}
+
+	// Convert entity to DTO
+	dto := &dtos.TerminalResponseDTO{
+		ID:           item.ID,
+		MacAddress:   item.MacAddress,
+		RoomID:       item.RoomID,
+		Name:         item.Name,
+		DeviceTypeID: item.DeviceTypeID,
+		AiProvider:   item.AiProvider,
+		CreatedAt:    item.CreatedAt,
+		UpdatedAt:    item.UpdatedAt,
+	}
+
+	return dto, nil
 }

@@ -240,6 +240,10 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath string, opts TranscribeOptions) (*whisperdtos.AsyncTranscriptionResultDTO, error) {
 	var rawTranscription string
 	var detectedLang string
+	var resultUtterances []whisperdtos.Utterance
+	var resultSegments []whisperdtos.TranscriptSegment
+	var resultTranscriptFormat whisperdtos.TranscriptFormat
+	var resultConfidenceSummary *whisperdtos.ConfidenceSummary
 
 	// Resolve provider from terminal context (MAC address) if available
 	resolvedProvider := "unknown"
@@ -379,23 +383,73 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 			}
 			wg.Wait()
 
-			// Merge and Dedup
+			// Merge and Dedup - now preserving segment structure
 			var mergedText string
+			var allSegments []whisperdtos.TranscriptSegment
+			var allUtterances []whisperdtos.Utterance
+
+			// Track cumulative offset for segment timing
+			var cumulativeOffsetMs int64 = 0
+
 			for i, r := range results {
 				if r.err != nil {
 					return nil, fmt.Errorf("segment %d failed: %w", r.index, r.err)
 				}
+
 				if i == 0 {
 					mergedText = r.text
 					detectedLang = r.lang
 				} else {
-					mergedText = uc.mergeWithDedup(mergedText, r.text)
+					// Use utility merge function that handles overlap detection
+					overlapChars := utils.FindOverlapLength(mergedText, r.text)
+					if overlapChars > 0 {
+						r.text = r.text[overlapChars:]
+					}
+					mergedText = mergedText + " " + strings.TrimSpace(r.text)
 					if detectedLang == "" && r.lang != "" {
 						detectedLang = r.lang
 					}
 				}
+
+				// Create segment record with timing info (estimated)
+				// WARNING: These are HEURISTIC ESTIMATES based on text length (~10 chars/sec).
+				// They are NOT audio-aligned timestamps. Do NOT treat as precise evidence.
+				segment := whisperdtos.TranscriptSegment{
+					Index:   i,
+					StartMs: cumulativeOffsetMs,
+					EndMs:   cumulativeOffsetMs + int64(len(r.text)*100), // ~10 chars/sec estimate
+					Text:    r.text,
+				}
+				allSegments = append(allSegments, segment)
+
+				// Parse utterances from this segment ONLY if diarization was requested
+				// This prevents false-positive structured output when diarize=false
+				if opts.Diarize {
+					if segmentUtterances := utils.ParseUtterancesFromText(r.text); len(segmentUtterances) > 0 {
+						// Adjust utterance timestamps to global timeline
+						for j := range segmentUtterances {
+							segmentUtterances[j].StartMs += cumulativeOffsetMs
+							segmentUtterances[j].EndMs += cumulativeOffsetMs
+						}
+						segment.Utterances = segmentUtterances
+						allUtterances = append(allUtterances, segmentUtterances...)
+					}
+				}
+
+				cumulativeOffsetMs += int64(len(r.text) * 100)
 			}
+
 			rawTranscription = strings.TrimSpace(mergedText)
+
+			// Store structured results from segmented transcription
+			resultSegments = allSegments
+			resultUtterances = allUtterances
+			if len(allUtterances) > 0 {
+				resultTranscriptFormat = whisperdtos.TranscriptFormatUtteranceList
+				resultConfidenceSummary = utils.BuildConfidenceSummary(allUtterances, len(allSegments))
+			} else {
+				resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
+			}
 		}
 	}
 
@@ -411,6 +465,13 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		}
 		rawTranscription = result.Transcription
 		detectedLang = result.DetectedLanguage
+
+		// Store structured artifacts from provider
+		resultUtterances = result.Utterances
+		resultSegments = result.Segments
+		resultTranscriptFormat = result.TranscriptFormat
+		resultConfidenceSummary = result.ConfidenceSummary
+
 		if opts.ProgressCallback != nil {
 			go opts.ProgressCallback(100)
 		}
@@ -418,6 +479,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 
 	// Refine (Grammar/Spelling) - only if explicitly requested
 	refined := rawTranscription
+	normalizationApplied := false
 	if opts.Refine {
 		refineLang := detectedLang
 		if opts.Language != "" {
@@ -429,12 +491,20 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		} else {
 			refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
 		}
+		// Note: Current refine does full paraphrasing, so we don't mark as normalization
+		// Normalization is reserved for safe punctuation/casing-only fixes
 	}
 
+	// Build structured result with backward-compatible fields
 	return &whisperdtos.AsyncTranscriptionResultDTO{
-		Transcription:    rawTranscription,
-		RefinedText:      refined,
-		DetectedLanguage: detectedLang,
+		Transcription:        rawTranscription,
+		RefinedText:          refined,
+		DetectedLanguage:     detectedLang,
+		Utterances:           resultUtterances,
+		Segments:             resultSegments,
+		TranscriptFormat:     resultTranscriptFormat,
+		ConfidenceSummary:    resultConfidenceSummary,
+		NormalizationApplied: normalizationApplied,
 	}, nil
 }
 

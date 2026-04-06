@@ -280,3 +280,41 @@ func (c *PipelineController) ExecuteJobByUpload(ctx *gin.Context) {
 		},
 	})
 }
+
+// CancelTask handles DELETE /api/models/pipeline/status/:task_id
+// @Summary Cancel a pipeline task
+// @Description Cancels an active pipeline task. Returns 200 if task was cancelled or already terminal, 404 if task not found.
+// @Tags 04. Models
+// @Security BearerAuth
+// @Produce json
+// @Param task_id path string true "Task ID"
+// @Success 200 {object} commonDtos.StandardResponse
+// @Failure 404 {object} commonDtos.StandardResponse
+// @Router /api/models/pipeline/status/{task_id} [delete]
+func (c *PipelineController) CancelTask(ctx *gin.Context) {
+	taskID := ctx.Param("task_id")
+
+	err := c.pipelineUC.CancelTask(taskID)
+	if err != nil {
+		// Check if error indicates not found
+		if err.Error() == "task not found" {
+			ctx.JSON(http.StatusNotFound, commonDtos.StandardResponse{
+				Status:  false,
+				Message: "Task not found",
+			})
+			return
+		}
+
+		// Other errors
+		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to cancel task: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{
+		Status:  true,
+		Message: "Task cancellation requested successfully",
+	})
+}
