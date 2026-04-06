@@ -863,7 +863,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/dtos.MailSendRequestDTO"
+                                "$ref": "#/components/schemas/dtos.SendMailByMacRequestDTO"
                             }
                         }
                     }
@@ -2191,8 +2191,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "description": "Chat request"
+                                "$ref": "#/components/schemas/services.RAGRequest"
                             }
                         }
                     }
@@ -2249,8 +2248,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "description": "Control request"
+                                "$ref": "#/components/schemas/services.RAGRequest"
                             }
                         }
                     }
@@ -2354,8 +2352,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "description": "Summary request"
+                                "$ref": "#/components/schemas/services.RAGRequest"
                             }
                         }
                     }
@@ -2412,7 +2409,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/dtos.RAGRequestDTO"
+                                "$ref": "#/components/schemas/services.RAGRequest"
                             }
                         }
                     }
@@ -2589,8 +2586,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "description": "Upload session configuration"
+                                "$ref": "#/components/schemas/sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest"
                             }
                         }
                     }
@@ -2736,7 +2732,11 @@
                     "description": "Binary chunk data",
                     "required": true,
                     "content": {
-                        "application/octet-stream": {},
+                        "application/octet-stream": {
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
                         "application/json": {
                             "schema": {
                                 "type": "object",
