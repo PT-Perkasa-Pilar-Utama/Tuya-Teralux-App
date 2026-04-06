@@ -29,11 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
 import com.example.whisperandroid.presentation.components.MarkdownTable
-import com.example.whisperandroid.presentation.components.MalformedTableFallback
 import com.example.whisperandroid.util.MarkdownBlock
 import com.example.whisperandroid.util.normalizeMeetingSummaryMarkdown
 import com.example.whisperandroid.util.parseMarkdownIntoBlocks
-import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun MeetingIdleContent() {

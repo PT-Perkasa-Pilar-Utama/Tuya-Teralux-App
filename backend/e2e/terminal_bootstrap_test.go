@@ -171,21 +171,21 @@ func (suite *TerminalBootstrapE2ETestSuite) TestTerminal_UpdateTerminalResponseC
 	w := httptest.NewRecorder()
 	suite.router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
 
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
+	assert.NoError(suite.T(), err)
 
 	// Verify response structure matches contract
-	assert.True(t, response["status"].(bool))
-	assert.Equal(t, "Updated successfully", response["message"])
+	assert.True(suite.T(), response["status"].(bool))
+	assert.Equal(suite.T(), "Updated successfully", response["message"])
 
 	// Data should contain terminal information, not be null
 	data, ok := response["data"].(map[string]interface{})
-	assert.True(t, ok, "Data should be a map, not null")
-	assert.Equal(t, suite.testTerminalID, data["id"])
-	assert.Equal(t, "Updated Terminal Name", data["name"])
+	assert.True(suite.T(), ok, "Data should be a map, not null")
+	assert.Equal(suite.T(), suite.testTerminalID, data["id"])
+	assert.Equal(suite.T(), "Updated Terminal Name", data["name"])
 }
 
 // TestTerminal_ErrorResponses tests that error responses are consistent

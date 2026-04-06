@@ -212,8 +212,8 @@ private fun parseTable(lines: List<String>, startIndex: Int): Pair<Int, Markdown
     
     // Need at least header + 1 data row
     if (rows.size < 2) return null
-    
-    return Pair(i, MarkdownBlock.Table(rows, headerCount = 1))
+
+    return Pair(i, MarkdownBlock.Table(rows, headerCount = headerCells.size))
 }
 
 /**

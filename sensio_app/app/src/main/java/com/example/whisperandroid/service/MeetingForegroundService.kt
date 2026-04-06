@@ -22,7 +22,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
 class MeetingForegroundService : Service() {
@@ -79,7 +78,10 @@ class MeetingForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_CANCEL -> {
-                handleCancel()
+                // Move cancel logic to IO scope to avoid blocking main thread (ANR risk)
+                serviceScope.launch {
+                    handleCancel()
+                }
                 return START_NOT_STICKY
             }
         }
@@ -181,15 +183,12 @@ class MeetingForegroundService : Service() {
         var backendCancelSucceeded = false
         val taskId = MeetingProcessManager.getPipelineTaskId()
         if (taskId != null) {
-            // Block until backend cancel completes (with timeout)
             try {
                 val token = tokenManager.getAccessToken() ?: ""
                 if (token.isNotEmpty()) {
-                    // Run cancel request synchronously in IO scope
-                    val result = runBlocking {
-                        withTimeoutOrNull(5000) {
-                            NetworkModule.pipelineRepository.cancelPipelineTask(taskId, token)
-                        }
+                    // Run cancel request in current coroutine scope (already IO dispatcher)
+                    val result = withTimeoutOrNull(5000) {
+                        NetworkModule.pipelineRepository.cancelPipelineTask(taskId, token)
                     }
                     // Check if result is success
                     backendCancelSucceeded = result?.isSuccess == true

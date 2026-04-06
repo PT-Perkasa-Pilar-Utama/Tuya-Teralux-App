@@ -31,16 +31,18 @@ class ApiContractTest {
 
     @Test
     fun terminalApi_registerTerminal_hasCorrectPath() {
-        val method = TerminalApi::class.java.getMethod("registerTerminal", String::class.java, Any::class.java)
+        val method = TerminalApi::class.java.getMethod("registerTerminal", String::class.java, com.example.whisperandroid.data.remote.dto.TerminalRequestDto::class.java)
         val post = method.getAnnotation(POST::class.java)
         assertEquals("/api/terminal", post?.value)
     }
 
     @Test
     fun terminalApi_registerTerminal_requiresApiKeyHeader() {
-        val method = TerminalApi::class.java.getMethod("registerTerminal", String::class.java, Any::class.java)
-        val headers = method.annotations.filterIsInstance<Header>()
-        assertTrue(headers.any { it.value == "X-API-KEY" })
+        val method = TerminalApi::class.java.getMethod("registerTerminal", String::class.java, com.example.whisperandroid.data.remote.dto.TerminalRequestDto::class.java)
+        val hasHeader = method.parameterAnnotations.any { paramAnnotation ->
+            paramAnnotation.filterIsInstance<Header>().any { it.value == "X-API-KEY" }
+        }
+        assertTrue(hasHeader)
     }
 
     @Test
@@ -52,16 +54,18 @@ class ApiContractTest {
 
     @Test
     fun terminalApi_updateTerminal_hasCorrectPath() {
-        val method = TerminalApi::class.java.getMethod("updateTerminal", String::class.java, String::class.java, Any::class.java)
+        val method = TerminalApi::class.java.getMethod("updateTerminal", String::class.java, String::class.java, com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto::class.java)
         val put = method.getAnnotation(PUT::class.java)
         assertEquals("/api/terminal/{id}", put?.value)
     }
 
     @Test
     fun terminalApi_updateTerminal_requiresAuthHeader() {
-        val method = TerminalApi::class.java.getMethod("updateTerminal", String::class.java, String::class.java, Any::class.java)
-        val headers = method.annotations.filterIsInstance<Header>()
-        assertTrue(headers.any { it.value == "Authorization" })
+        val method = TerminalApi::class.java.getMethod("updateTerminal", String::class.java, String::class.java, com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto::class.java)
+        val hasHeader = method.parameterAnnotations.any { paramAnnotation ->
+            paramAnnotation.filterIsInstance<Header>().any { it.value == "Authorization" }
+        }
+        assertTrue(hasHeader)
     }
 
     @Test
