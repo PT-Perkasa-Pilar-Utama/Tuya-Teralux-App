@@ -130,8 +130,8 @@ install-swagger:
 openapi-tools:
 	@echo "📦 Installing OpenAPI tools..."
 	@mkdir -p bin
-	@cd ../scripts/backend/openapi_convert && go build -o ../../../bin/openapi_convert .
-	@cd ../scripts/backend/openapi_validate && go build -o ../../../bin/openapi_validate .
+	@cd ../scripts/backend/openapi_convert && go build -o ../../../backend/bin/openapi_convert .
+	@cd ../scripts/backend/openapi_validate && go build -o ../../../backend/bin/openapi_validate .
 	@echo "✅ OpenAPI tools installed successfully"
 
 # Generate Swagger documentation (legacy, intermediate step)
