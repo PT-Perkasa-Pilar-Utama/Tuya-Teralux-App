@@ -12,8 +12,7 @@ interface TuyaApi {
 
     @GET("/api/tuya/devices")
     suspend fun getDevices(
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): com.example.whisperandroid.data.remote.dto.StandardResponseDto<
         com.example.whisperandroid.data.remote.dto.TuyaDevicesResponseDto
         >

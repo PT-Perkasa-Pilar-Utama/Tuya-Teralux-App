@@ -115,7 +115,7 @@ func NewTerminalModule(
 
 // RegisterRoutes registers Terminal routes
 func (m *TerminalModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
-	// Public Group with API Key
+	// Public Group with API Key for bootstrap endpoints
 	publicGroup := router.Group("/")
 	publicGroup.Use(middlewares.ApiKeyMiddleware())
 

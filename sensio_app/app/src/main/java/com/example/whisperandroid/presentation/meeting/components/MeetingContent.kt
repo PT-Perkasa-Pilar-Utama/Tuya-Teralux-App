@@ -28,8 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
+import com.example.whisperandroid.presentation.components.MarkdownTable
+import com.example.whisperandroid.util.MarkdownBlock
 import com.example.whisperandroid.util.normalizeMeetingSummaryMarkdown
-import dev.jeziellago.compose.markdowntext.MarkdownText
+import com.example.whisperandroid.util.parseMarkdownIntoBlocks
 
 @Composable
 fun MeetingIdleContent() {
@@ -100,17 +102,94 @@ fun MeetingSuccessContent(state: MeetingProcessState.Success) {
             modifier = Modifier.padding(bottom = 2.dp)
         )
 
-        MarkdownText(
-            markdown = normalizeMeetingSummaryMarkdown(state.summary),
-            style =
-            MaterialTheme.typography.bodyLarge.copy(
-                color = Color.DarkGray,
-                fontSize = 13.sp,
-                lineHeight = 16.sp
-            ),
+        MeetingSummaryRenderer(
+            summary = normalizeMeetingSummaryMarkdown(state.summary),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+/**
+ * Renders a meeting summary with proper table handling.
+ * 
+ * This renderer parses the markdown into blocks and renders tables
+ * using a dedicated TV-safe table component instead of relying on
+ * the markdown library's table rendering.
+ * 
+ * @param summary The normalized markdown summary to render
+ * @param modifier Optional modifier for the container
+ */
+@Composable
+private fun MeetingSummaryRenderer(
+    summary: String,
+    modifier: Modifier = Modifier
+) {
+    val blocks = parseMarkdownIntoBlocks(summary)
+    
+    Column(modifier = modifier) {
+        blocks.forEach { block ->
+            when (block) {
+                is MarkdownBlock.Table -> {
+                    MarkdownTable(
+                        table = block,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                is MarkdownBlock.Heading -> {
+                    Text(
+                        text = block.text,
+                        style = when (block.level) {
+                            1 -> MaterialTheme.typography.titleLarge
+                            2 -> MaterialTheme.typography.titleMedium
+                            else -> MaterialTheme.typography.titleSmall
+                        }.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
+                    )
+                }
+                is MarkdownBlock.ListBlock -> {
+                    Column(
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    ) {
+                        block.items.forEach { item ->
+                            Row(
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "•",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Text(
+                                    text = item,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        color = Color.DarkGray,
+                                        fontSize = 13.sp,
+                                        lineHeight = 20.sp
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+                is MarkdownBlock.Paragraph -> {
+                    Text(
+                        text = block.text,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = Color.DarkGray,
+                            fontSize = 13.sp,
+                            lineHeight = 20.sp
+                        ),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+            }
+        }
     }
 }
 

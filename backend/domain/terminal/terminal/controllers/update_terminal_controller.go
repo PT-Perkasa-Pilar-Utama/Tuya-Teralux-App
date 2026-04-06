@@ -58,7 +58,7 @@ func (c *UpdateTerminalController) UpdateTerminal(ctx *gin.Context) {
 	}
 
 	// Execute use case
-	err := c.useCase.UpdateTerminal(id, &req)
+	dto, err := c.useCase.UpdateTerminal(id, &req)
 	if err != nil {
 		if valErr, ok := err.(*utils.ValidationError); ok {
 			ctx.JSON(http.StatusUnprocessableEntity, dtos.StandardResponse{
@@ -89,6 +89,6 @@ func (c *UpdateTerminalController) UpdateTerminal(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dtos.StandardResponse{
 		Status:  true,
 		Message: "Updated successfully",
-		Data:    nil,
+		Data:    dto,
 	})
 }

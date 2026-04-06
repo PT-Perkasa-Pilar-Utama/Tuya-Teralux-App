@@ -281,10 +281,34 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 		detectedLang = lang
 	}
 
+	transcription := result.Transcription
+
+	// Orion/Outsystems doesn't provide diarization structure, but we can
+	// attempt to parse speaker labels if they exist in the text
+	var utterances []dtos.Utterance
+	var transcriptFormat dtos.TranscriptFormat
+
+	if diarize {
+		utterances = utils.ParseUtterancesFromText(transcription)
+		if len(utterances) > 0 {
+			transcriptFormat = dtos.TranscriptFormatUtteranceList
+		}
+	}
+
+	if len(utterances) == 0 {
+		transcriptFormat = dtos.TranscriptFormatPlainText
+	}
+
+	// Diarized is true ONLY if actual speaker-labeled utterances were extracted
+	diarized := diarize && len(utterances) > 0
+
 	return &dtos.WhisperResult{
-		Transcription:    result.Transcription,
-		DetectedLanguage: detectedLang,
-		Diarized:         false,
-		Source:           "Orion (Outsystems)",
+		Transcription:     transcription,
+		DetectedLanguage:  detectedLang,
+		Diarized:          diarized,
+		Source:            "Orion (Outsystems)",
+		Utterances:        utterances,
+		TranscriptFormat:  transcriptFormat,
+		ConfidenceSummary: utils.BuildConfidenceSummary(utterances, 1),
 	}, nil
 }

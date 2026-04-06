@@ -18,7 +18,7 @@ func NewWhisperController(grpcSvc *services.GrpcWhisperService) *WhisperControll
 	}
 }
 
-// Transcribe handles POST /api/v1/models/whisper/transcribe
+// Transcribe handles POST /api/models/v1/whisper/transcribe
 // @Summary      Transcribe audio (v1)
 // @Description  Transcribe an audio file by providing its local path
 // @Tags         05. Models-v1
@@ -30,7 +30,7 @@ func NewWhisperController(grpcSvc *services.GrpcWhisperService) *WhisperControll
 // @Success      200  {object}  commonDtos.StandardResponse
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/whisper/transcribe [post]
+// @Router       /api/models/v1/whisper/transcribe [post]
 // @Security     BearerAuth
 func (c *WhisperController) Transcribe(ctx *gin.Context) {
 	audioPath := ctx.PostForm("audio_path")
@@ -51,7 +51,7 @@ func (c *WhisperController) Transcribe(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
-// GetStatus handles GET /api/v1/models/whisper/status/:transcribe_id
+// GetStatus handles GET /api/models/v1/whisper/status/:transcribe_id
 // @Summary      Get transcription status (v1)
 // @Description  Get the status of a transcription task by ID
 // @Tags         05. Models-v1
@@ -59,7 +59,7 @@ func (c *WhisperController) Transcribe(ctx *gin.Context) {
 // @Param        transcribe_id  path      string  true  "Transcription Task ID"
 // @Success      200  {object}  commonDtos.StandardResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/whisper/status/{transcribe_id} [get]
+// @Router       /api/models/v1/whisper/status/{transcribe_id} [get]
 // @Security     BearerAuth
 func (c *WhisperController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("transcribe_id")

@@ -13,8 +13,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 
 class PipelineRepositoryImpl(
-    private val api: PipelineApi,
-    private val apiKey: String
+    private val api: PipelineApi
 ) : PipelineRepository {
     override suspend fun executePipeline(
         audioFile: File,
@@ -51,8 +50,7 @@ class PipelineRepositoryImpl(
                 participants = participants,
                 macAddress = macAddress,
                 token = "Bearer $token",
-                idempotencyKey = idempotencyKey,
-                apiKey = apiKey
+                idempotencyKey = idempotencyKey
             )
 
             val taskId = response.data?.taskId
@@ -73,7 +71,7 @@ class PipelineRepositoryImpl(
     ): Flow<Resource<PipelineStatusDto>> = flow {
         emit(Resource.Loading())
         try {
-            val response = api.getPipelineStatus(taskId, "Bearer $token", apiKey)
+            val response = api.getPipelineStatus(taskId, "Bearer $token")
             val statusData = response.data
             if (response.status && statusData != null) {
                 emit(Resource.Success(statusData))
@@ -120,8 +118,7 @@ class PipelineRepositoryImpl(
                     macAddress = macAddress,
                     idempotencyKey = idempotencyKey
                 ),
-                "Bearer $token",
-                apiKey
+                "Bearer $token"
             )
             val taskId = response.data?.taskId
             if (response.status && taskId != null) {
@@ -131,6 +128,19 @@ class PipelineRepositoryImpl(
             }
         } catch (e: Exception) {
             emit(Resource.Error("Pipeline submission failed: ${e.message}"))
+        }
+    }
+
+    override suspend fun cancelPipelineTask(taskId: String, token: String): Result<Unit> {
+        return try {
+            val response = api.cancelPipelineTask(taskId, "Bearer $token")
+            if (response.status) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Cancel failed: ${response.message}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Cancel request failed: ${e.message}"))
         }
     }
 }

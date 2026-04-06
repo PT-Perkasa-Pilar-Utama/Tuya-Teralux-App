@@ -36,7 +36,7 @@ func NewGetMQTTCredentialsController(mqttClient *services.MqttAuthClient) *GetMQ
 // @Failure      404  {object}  dtos.ErrorResponse
 // @Failure      422  {object}  dtos.ValidationErrorResponse
 // @Failure      500  {object}  dtos.ErrorResponse
-// @Router       /api/mqtt/credentials/{username} [get]
+// @Router       /api/mqtt/users/{username} [get]
 // @Security     BearerAuth
 func (c *GetMQTTCredentialsController) GetMQTTCredentials(ctx *gin.Context) {
 	username := ctx.Param("username")

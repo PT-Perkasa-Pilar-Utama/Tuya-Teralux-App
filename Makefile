@@ -1,6 +1,6 @@
 # Sensio App - Root Makefile for Project-Wide Automation
 
-.PHONY: help setup backend-setup dev dev-compose dev-server clean kill kill-compose kill-server test vet push-local adb-reverse
+.PHONY: help setup backend-setup dev dev-compose dev-server clean kill kill-compose kill-server test vet push-local adb-reverse scrcpy install-remote sync-remote
 
 # Default target
 help:
@@ -15,6 +15,8 @@ help:
 	@echo "  make kill-compose   - Kill and cleanup Docker Compose services"
 	@echo "  make adb-reverse    - Expose backend port (8081) to Android device via ADB"
 	@echo "  make install-remote - Pull APK from arch host and install to connected device"
+	@echo "  make sync-remote    - Sync source code to arch host (delta sync)"
+	@echo "  make scrcpy         - Run scrcpy with ADB log capture to tmp/logs/android.log"
 	@echo ""
 
 # Setup everything
@@ -85,3 +87,20 @@ adb-reverse:
 # Pull APK from arch host and install to connected device
 install-remote:
 	@$(MAKE) -C sensio_app install-remote
+
+# Sync source code to arch host
+sync-remote:
+	@$(MAKE) -C sensio_app sync-remote
+
+# Run scrcpy with ADB log capture
+scrcpy:
+	@echo "📱 Starting scrcpy with ADB log capture..."
+	@mkdir -p tmp/logs
+	@ADB_PID=""; \
+	(adb logcat -c 2>/dev/null || true; adb logcat 2>&1 | tee -a tmp/logs/android.log) & ADB_PID=$$!; \
+	trap 'kill $$ADB_PID 2>/dev/null || true; exit' INT TERM EXIT; \
+	scrcpy; \
+	EXIT_CODE=$$?; \
+	kill $$ADB_PID 2>/dev/null || true; \
+	trap - INT TERM EXIT; \
+	exit $$EXIT_CODE

@@ -150,6 +150,7 @@ func InitModule(
 	controlSkill, _ := skillRegistry.Get("Control")
 	guardSkill, _ := skillRegistry.Get("Guard")
 	chunkSkill, _ := skillRegistry.Get("ChunkSummary")
+	structuredExtractionSkill, _ := skillRegistry.Get("StructuredExtraction")
 
 	// Note: fallbackLLM is nil - default flow uses health-aware remote provider chain
 	refineUC := ragUsecases.NewRefineUseCase(ragLlmClient, nil, cfg, refineSkill, providerResolver)
@@ -160,7 +161,7 @@ func InitModule(
 	router := ragOrchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewDeviceInfoExternalService()
-	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill, providerResolver)
+	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
 	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, nil, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)
 	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, nil, cfg, badger, vectorSvc, guardOrch, fastIntentRouter, decisionEngine, providerResolver, controlUC, router)

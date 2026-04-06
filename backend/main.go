@@ -50,7 +50,7 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Type "Bearer" followed by a space and JWT token.
+// @description Enter JWT token only (without "Bearer " prefix)
 
 // @tag.name 01. Tuya
 // @tag.description Tuya authentication and device control endpoints

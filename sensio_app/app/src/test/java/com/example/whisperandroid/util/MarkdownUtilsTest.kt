@@ -1,6 +1,7 @@
 package com.example.whisperandroid.util
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -180,4 +181,201 @@ class MarkdownUtilsTest {
         val result = normalizeMeetingSummaryMarkdown(input)
         assertEquals("", result)
     }
+
+    // region: parseMarkdownIntoBlocks tests
+
+    @Test
+    fun `parseMarkdownIntoBlocks detects valid markdown table`() {
+        val input = """
+            | Column A | Column B |
+            | --- | --- |
+            | Value 1 | Value 2 |
+            | Value 3 | Value 4 |
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(1, blocks.size)
+        assertTrue("Should detect table block", blocks[0] is MarkdownBlock.Table)
+        val table = blocks[0] as MarkdownBlock.Table
+        assertEquals(2, table.headerCount)
+        assertEquals(3, table.rows.size) // header + 2 data rows
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles table with multiple columns`() {
+        val input = """
+            | Name | Age | City | Country |
+            | --- | --- | --- | --- |
+            | John | 30 | NYC | USA |
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(1, blocks.size)
+        val table = blocks[0] as MarkdownBlock.Table
+        assertEquals(4, table.rows[0].size) // 4 columns in header
+        assertEquals("Name", table.rows[0][0])
+        assertEquals("USA", table.rows[1][3])
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles mixed content with table`() {
+        val input = """
+            # Meeting Summary
+
+            Here is the summary.
+
+            | Decision | Owner |
+            | --- | --- |
+            | Feature A | John |
+
+            ## Next Steps
+
+            1. Review code
+            2. Deploy
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(5, blocks.size)
+        assertTrue("First block should be heading", blocks[0] is MarkdownBlock.Heading)
+        assertTrue("Second block should be paragraph", blocks[1] is MarkdownBlock.Paragraph)
+        assertTrue("Third block should be table", blocks[2] is MarkdownBlock.Table)
+        assertTrue("Fourth block should be heading", blocks[3] is MarkdownBlock.Heading)
+        assertTrue("Fifth block should be list", blocks[4] is MarkdownBlock.ListBlock)
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks ignores pipes in regular text`() {
+        val input = "This | is | not | a | table"
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(1, blocks.size)
+        assertTrue("Should be paragraph, not table", blocks[0] is MarkdownBlock.Paragraph)
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles malformed table without separator`() {
+        val input = """
+            | Column A | Column B |
+            | Value 1 | Value 2 |
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        // Without separator row, should not be detected as table
+        assertTrue("Should not detect as table", blocks.none { it is MarkdownBlock.Table })
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles table with empty cells`() {
+        val input = """
+            | A | B | C |
+            | --- | --- | --- |
+            | 1 | | 3 |
+            | | 5 | |
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(1, blocks.size)
+        val table = blocks[0] as MarkdownBlock.Table
+        assertEquals(3, table.rows.size)
+        assertEquals("", table.rows[1][1]) // Empty cell
+        assertEquals("", table.rows[2][0]) // Empty cell
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles unordered list`() {
+        val input = """
+            - Item one
+            - Item two
+            - Item three
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(1, blocks.size)
+        val list = blocks[0] as MarkdownBlock.ListBlock
+        assertFalse("Should be unordered", list.isOrdered)
+        assertEquals(3, list.items.size)
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles ordered list`() {
+        val input = """
+            1. First item
+            2. Second item
+            3. Third item
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(1, blocks.size)
+        val list = blocks[0] as MarkdownBlock.ListBlock
+        assertTrue("Should be ordered", list.isOrdered)
+        assertEquals(3, list.items.size)
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles multiple headings`() {
+        val input = """
+            # H1
+            ## H2
+            ### H3
+        """.trimIndent()
+
+        val blocks = parseMarkdownIntoBlocks(input)
+
+        assertEquals(3, blocks.size)
+        assertEquals(1, (blocks[0] as MarkdownBlock.Heading).level)
+        assertEquals(2, (blocks[1] as MarkdownBlock.Heading).level)
+        assertEquals(3, (blocks[2] as MarkdownBlock.Heading).level)
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles empty input`() {
+        val input = ""
+        val blocks = parseMarkdownIntoBlocks(input)
+        assertEquals(0, blocks.size)
+    }
+
+    @Test
+    fun `parseMarkdownIntoBlocks handles whitespace-only input`() {
+        val input = "   \n\n\n   "
+        val blocks = parseMarkdownIntoBlocks(input)
+        assertEquals(0, blocks.size)
+    }
+
+    @Test
+    fun `containsMarkdownTable returns true for valid table`() {
+        val input = """
+            | A | B |
+            | --- | --- |
+            | 1 | 2 |
+        """.trimIndent()
+
+        assertTrue(containsMarkdownTable(input))
+    }
+
+    @Test
+    fun `containsMarkdownTable returns false for pipes in text`() {
+        val input = "This | is | not | a | table"
+
+        assertFalse(containsMarkdownTable(input))
+    }
+
+    @Test
+    fun `containsMarkdownTable returns false for malformed table`() {
+        val input = """
+            | Column A | Column B |
+            | Value 1 | Value 2 |
+        """.trimIndent()
+
+        assertFalse(containsMarkdownTable(input))
+    }
+
+    // endregion
 }

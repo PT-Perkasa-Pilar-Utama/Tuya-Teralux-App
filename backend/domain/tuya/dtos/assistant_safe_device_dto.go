@@ -2,6 +2,8 @@ package dtos
 
 // AssistantSafeDeviceDTO represents a single device for assistant/vector storage.
 // Excludes sensitive fields: local_key, ip, gateway_id, icon, create_time, update_time
+// NOTE: Online status is intentionally excluded to prevent LLM from making decisions based on stale cache data.
+// Device status is fetched real-time during control execution.
 type AssistantSafeDeviceDTO struct {
 	ID             string                `json:"id"`
 	RemoteID       string                `json:"remote_id,omitempty"`
@@ -9,7 +11,6 @@ type AssistantSafeDeviceDTO struct {
 	Category       string                `json:"category"`
 	RemoteCategory string                `json:"remote_category,omitempty"`
 	ProductName    string                `json:"product_name,omitempty"`
-	Online         bool                  `json:"online"`
 	Status         []TuyaDeviceStatusDTO `json:"status,omitempty"`
 }
 

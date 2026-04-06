@@ -32,42 +32,37 @@ func SetupTerminalRoutes(
 	getDeviceStatusesByDeviceIDController *device_status.GetDeviceStatusesByDeviceIDController,
 	updateDeviceStatusController *device_status.UpdateDeviceStatusController,
 ) {
-	// Public Terminal Routes (Registration and Check)
+	// Public Terminal Routes (Bootstrap: Registration and Check)
 	terminalPublicAPI := publicRouter.Group("/api/terminal")
 	{
-		// POST /api/terminal - Create a new terminal (Public with API Key)
+		// POST /api/terminal - Create a new terminal (API Key for bootstrap)
 		terminalPublicAPI.POST("", createController.CreateTerminal)
 
-		// GET /api/terminal - Get all terminal (Public with API Key for check)
-		terminalPublicAPI.GET("", getAllController.GetAllTerminal)
-
-		// GET /api/terminal/mac/:mac - Get terminal by MAC address (Public with API Key)
+		// GET /api/terminal/mac/:mac - Get terminal by MAC address (API Key for bootstrap)
 		terminalPublicAPI.GET("/mac/:mac", getByMACController.GetTerminalByMAC)
 	}
 
-	// Public MQTT Routes (Kept for future use if needed, but credentials moved)
-	// mqttPublicAPI := publicRouter.Group("/api/mqtt")
-	// {
-	// }
-
-	// Protected Terminal Routes
+	// Protected Terminal Routes (Operational)
 	terminalProtectedAPI := protectedRouter.Group("/api/terminal")
 	{
-		// GET /api/terminal/:id - Get terminal by ID
+		// GET /api/terminal - Get all terminals (Bearer)
+		terminalProtectedAPI.GET("", getAllController.GetAllTerminal)
+
+		// GET /api/terminal/:id - Get terminal by ID (Bearer)
 		terminalProtectedAPI.GET("/:id", getByIDController.GetTerminalByID)
 
-		// PUT /api/terminal/:id - Update terminal
+		// PUT /api/terminal/:id - Update terminal (Bearer)
 		terminalProtectedAPI.PUT("/:id", updateController.UpdateTerminal)
 
-		// DELETE /api/terminal/:id - Delete terminal (soft delete)
+		// DELETE /api/terminal/:id - Delete terminal (Bearer)
 		terminalProtectedAPI.DELETE("/:id", deleteController.DeleteTerminal)
 	}
 
 	// Protected MQTT Routes
 	mqttProtectedAPI := protectedRouter.Group("/api/mqtt")
 	{
-		// GET /api/mqtt/credentials/:username - Get MQTT credentials
-		mqttProtectedAPI.GET("/credentials/:username", getMqttCredentialsController.GetMQTTCredentials)
+		// GET /api/mqtt/users/:username - Get MQTT credentials
+		mqttProtectedAPI.GET("/users/:username", getMqttCredentialsController.GetMQTTCredentials)
 	}
 
 	// Device Routes (Protected)
