@@ -10,9 +10,7 @@ import (
 	"testing"
 
 	"sensio/domain/common/infrastructure"
-	"sensio/domain/common/utils"
 	"sensio/domain/terminal/terminal/entities"
-	"sensio/domain/terminal/terminal/repositories"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -33,17 +31,21 @@ type TerminalBootstrapE2ETestSuite struct {
 // SetupSuite runs once before all tests in the suite.
 func (suite *TerminalBootstrapE2ETestSuite) SetupSuite() {
 	// Initialize test database
-	testDB := infrastructure.InitDB()
+	testDB, err := infrastructure.InitDB()
+	if err != nil {
+		suite.T().Fatalf("Failed to initialize database: %v", err)
+	}
 	suite.db = testDB
 
 	// Auto-migrate test tables
-	err := testDB.AutoMigrate(&entities.Terminal{}, &entities.MQTTUser{})
+	err = testDB.AutoMigrate(&entities.Terminal{}, &entities.MQTTUser{})
 	if err != nil {
 		suite.T().Fatalf("Failed to migrate test tables: %v", err)
 	}
 
 	// Initialize router
-	suite.router = infrastructure.InitRouter()
+	gin.SetMode(gin.TestMode)
+	suite.router = gin.New()
 
 	// Get API key from env
 	suite.apiKey = os.Getenv("SENSIO_API_KEY")
