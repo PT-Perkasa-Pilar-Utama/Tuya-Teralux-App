@@ -3,9 +3,12 @@ package dtos
 import "time"
 
 // NotificationPublishRequest represents the request to publish a notification to a room
+// At least one of DateTimeEnd or TimeEnd must be provided.
+// If both are provided, DateTimeEnd takes priority.
 type NotificationPublishRequest struct {
 	RoomID       string `json:"room_id" validate:"required" example:"123"`
-	DateTimeEnd  string `json:"datetime_end" validate:"required" example:"2026-03-17T14:00:00+07:00"`
+	DateTimeEnd  string `json:"datetime_end" example:"2026-03-17T14:00:00+07:00"`
+	TimeEnd      string `json:"time_end" example:"14:00:00"`
 	IntervalTime int    `json:"interval_time" validate:"min=0" example:"15"`
 }
 

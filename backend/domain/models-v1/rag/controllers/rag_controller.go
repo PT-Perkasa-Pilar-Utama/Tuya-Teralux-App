@@ -18,7 +18,7 @@ func NewRAGController(ragSvc *services.PythonRAGService) *RAGController {
 	}
 }
 
-// Translate handles POST /api/v1/models/rag/translate
+// Translate handles POST /api/models/v1/rag/translate
 // @Summary      Translate text (v1)
 // @Description  Translate text using the legacy Python RAG service
 // @Tags         05. Models-v1
@@ -28,7 +28,7 @@ func NewRAGController(ragSvc *services.PythonRAGService) *RAGController {
 // @Success      200  {object}  commonDtos.StandardResponse
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/rag/translate [post]
+// @Router       /api/models/v1/rag/translate [post]
 // @Security     BearerAuth
 func (c *RAGController) Translate(ctx *gin.Context) {
 	var req services.RAGRequest
@@ -46,7 +46,7 @@ func (c *RAGController) Translate(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
-// Summary handles POST /api/v1/models/rag/summary
+// Summary handles POST /api/models/v1/rag/summary
 // @Summary      Summarize text (v1)
 // @Description  Summarize text using the legacy Python RAG service
 // @Tags         05. Models-v1
@@ -56,7 +56,7 @@ func (c *RAGController) Translate(ctx *gin.Context) {
 // @Success      200  {object}  commonDtos.StandardResponse
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/rag/summary [post]
+// @Router       /api/models/v1/rag/summary [post]
 // @Security     BearerAuth
 func (c *RAGController) Summary(ctx *gin.Context) {
 	var req services.RAGRequest
@@ -74,7 +74,7 @@ func (c *RAGController) Summary(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
-// Chat handles POST /api/v1/models/rag/chat
+// Chat handles POST /api/models/v1/rag/chat
 // @Summary      Chat with model (v1)
 // @Description  Chat using the legacy Python RAG service
 // @Tags         05. Models-v1
@@ -84,7 +84,7 @@ func (c *RAGController) Summary(ctx *gin.Context) {
 // @Success      200  {object}  commonDtos.StandardResponse
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/rag/chat [post]
+// @Router       /api/models/v1/rag/chat [post]
 // @Security     BearerAuth
 func (c *RAGController) Chat(ctx *gin.Context) {
 	var req services.RAGRequest
@@ -102,7 +102,7 @@ func (c *RAGController) Chat(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
-// Control handles POST /api/v1/models/rag/control
+// Control handles POST /api/models/v1/rag/control
 // @Summary      Device control (v1)
 // @Description  Control devices using the legacy Python RAG service
 // @Tags         05. Models-v1
@@ -112,7 +112,7 @@ func (c *RAGController) Chat(ctx *gin.Context) {
 // @Success      200  {object}  commonDtos.StandardResponse
 // @Failure      400  {object}  commonDtos.ValidationErrorResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/rag/control [post]
+// @Router       /api/models/v1/rag/control [post]
 // @Security     BearerAuth
 func (c *RAGController) Control(ctx *gin.Context) {
 	var req services.RAGRequest
@@ -130,7 +130,7 @@ func (c *RAGController) Control(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, commonDtos.StandardResponse{Status: true, Data: resp})
 }
 
-// GetStatus handles GET /api/v1/models/rag/status/:task_id
+// GetStatus handles GET /api/models/v1/rag/status/:task_id
 // @Summary      Get RAG status (v1)
 // @Description  Get the status of a RAG task by ID
 // @Tags         05. Models-v1
@@ -138,7 +138,7 @@ func (c *RAGController) Control(ctx *gin.Context) {
 // @Param        task_id  path      string  true  "Task ID"
 // @Success      200  {object}  commonDtos.StandardResponse
 // @Failure      500  {object}  commonDtos.ErrorResponse
-// @Router       /api/v1/models/rag/status/{task_id} [get]
+// @Router       /api/models/v1/rag/status/{task_id} [get]
 // @Security     BearerAuth
 func (c *RAGController) GetStatus(ctx *gin.Context) {
 	taskID := ctx.Param("task_id")

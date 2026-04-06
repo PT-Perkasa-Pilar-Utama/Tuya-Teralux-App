@@ -124,7 +124,7 @@ func (uc *CreateTerminalUseCase) CreateTerminal(req *dtos.CreateTerminalRequestD
 
 	if alreadyExists {
 		utils.LogDebug("CreateTerminalUseCase: MQTT user already exists for MAC %s (Scenario C)", mqttUsername)
-		mqttPasswordPlain = "" // Auth service owns the credential; client must call GET /mqtt/credentials/{username}
+		mqttPasswordPlain = "" // Auth service owns the credential; client must call GET /mqtt/users/{username}
 	} else {
 		utils.LogDebug("CreateTerminalUseCase: MQTT user created via auth service for MAC: %s", req.MacAddress)
 	}

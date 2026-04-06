@@ -14,8 +14,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 
 class WhisperRepositoryImpl(
-    private val api: WhisperApi,
-    private val apiKey: String
+    private val api: WhisperApi
 ) : WhisperRepository {
     override suspend fun transcribeAudio(
         file: File,
@@ -39,8 +38,7 @@ class WhisperRepositoryImpl(
                     languageBody,
                     macPart,
                     "Bearer $token",
-                    idempotencyKey,
-                    apiKey
+                    idempotencyKey
                 )
                 val taskId = response.data?.taskId
 
@@ -74,7 +72,7 @@ class WhisperRepositoryImpl(
         flow {
             emit(Resource.Loading())
             try {
-                val response = api.getTranscriptionStatus(taskId, "Bearer $token", apiKey)
+                val response = api.getTranscriptionStatus(taskId, "Bearer $token")
                 val statusDto = response.data
                 val status = statusDto?.status?.lowercase()
 
@@ -106,7 +104,7 @@ class WhisperRepositoryImpl(
         }
 
     override suspend fun getTranscriptionStatus(taskId: String, token: String) =
-        api.getTranscriptionStatus(taskId, "Bearer $token", apiKey)
+        api.getTranscriptionStatus(taskId, "Bearer $token")
 
     override suspend fun transcribeByUpload(
         sessionId: String,
@@ -126,8 +124,7 @@ class WhisperRepositoryImpl(
                     diarize = diarize,
                     idempotencyKey = idempotencyKey
                 ),
-                "Bearer $token",
-                apiKey
+                "Bearer $token"
             )
             val taskId = response.data?.taskId
             if (response.status && taskId != null) {

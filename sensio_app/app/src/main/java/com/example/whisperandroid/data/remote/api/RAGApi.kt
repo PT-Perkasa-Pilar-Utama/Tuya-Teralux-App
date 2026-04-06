@@ -19,30 +19,26 @@ interface RAGApi {
     suspend fun translate(
         @Body request: RAGRequestDto,
         @Header("Authorization") token: String,
-        @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Idempotency-Key") idempotencyKey: String? = null
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @POST("/api/models/rag/summary")
     suspend fun summary(
         @Body request: RAGSummaryRequestDto,
         @Header("Authorization") token: String,
-        @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Idempotency-Key") idempotencyKey: String? = null
     ): SpeechResponseDto<TranscriptionSubmissionData>
 
     @GET("/api/models/rag/{task_id}")
     suspend fun getStatus(
         @Path("task_id") taskId: String,
-        @Header("Authorization") token: String,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") token: String
     ): SpeechResponseDto<RAGStatusDto>
 
     @POST("/api/models/rag/chat")
     suspend fun chat(
         @Body request: com.example.whisperandroid.data.remote.dto.RAGChatRequestDto,
         @Header("Authorization") token: String,
-        @Header("Idempotency-Key") idempotencyKey: String? = null,
-        @Header("X-API-KEY") apiKey: String
+        @Header("Idempotency-Key") idempotencyKey: String? = null
     ): SpeechResponseDto<com.example.whisperandroid.data.remote.dto.RAGChatResponseDto>
 }

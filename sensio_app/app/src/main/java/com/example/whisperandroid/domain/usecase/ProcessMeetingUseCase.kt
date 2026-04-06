@@ -226,6 +226,11 @@ class ProcessMeetingUseCase(
                 when (result) {
                     is Resource.Success -> {
                         pipelineTaskId = result.data
+                        // Store task ID in MeetingProcessManager for cancellation
+                        pipelineTaskId?.let { id ->
+                            com.example.whisperandroid.data.manager.MeetingProcessManager.setPipelineTaskId(id)
+                            Log.d("ProcessMeeting", "Stored pipeline task ID for cancellation: $id")
+                        }
                     }
                     is Resource.Error -> {
                         send(MeetingProcessState.Error("Pipeline initiation failed: ${result.message}"))
@@ -278,6 +283,11 @@ class ProcessMeetingUseCase(
                                     send(MeetingProcessState.Error("Pipeline failed at $stage: $error"))
                                     isCompleted = true
                                     // Clear state on terminal failure
+                                    clearSubmissionState(fileKey)
+                                } else if (overallStatus == "cancelled") {
+                                    send(MeetingProcessState.Cancelled)
+                                    isCompleted = true
+                                    // Clear state on user-initiated cancellation
                                     clearSubmissionState(fileKey)
                                 } else if (overallStatus == "completed" || event == "completed") {
                                     // Signal overall completion to trigger final poll
@@ -375,6 +385,11 @@ class ProcessMeetingUseCase(
                                     isCompleted = true
                                     send(MeetingProcessState.Error("Pipeline execution failed"))
                                     // Clear state on terminal failure
+                                    clearSubmissionState(fileKey)
+                                } else if (statusDto.overallStatus == "cancelled") {
+                                    isCompleted = true
+                                    send(MeetingProcessState.Cancelled)
+                                    // Clear state on user-initiated cancellation
                                     clearSubmissionState(fileKey)
                                 } else {
                                     shouldDelay = true

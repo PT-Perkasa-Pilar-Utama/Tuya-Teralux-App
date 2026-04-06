@@ -6,13 +6,23 @@ import (
 	"sensio/domain/common/providers"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/skills"
+	whisperdtos "sensio/domain/models/whisper/dtos"
 	"strings"
 	"time"
 )
 
 type RefineUseCase interface {
 	RefineText(ctx context.Context, text string, lang string, args ...string) (string, error)
+	NormalizeText(text string) string
+	NormalizeUtterances(utterances []whisperdtos.Utterance) []whisperdtos.Utterance
 }
+
+// TODO(#dead-code): NormalizeText and NormalizeUtterances are currently unused.
+// They provide safe punctuation/casing normalization WITHOUT semantic rewriting,
+// which preserves uncertainty markers that full refine may smooth away.
+// Integration path: Add opts.Normalize option to TranscribeOptions and call
+// NormalizeUtterances() when opts.Normalize=true && opts.Refine=false.
+// See: transcript_normalizer.go for implementation.
 
 type refineUseCase struct {
 	llm              skills.LLMClient
@@ -94,4 +104,31 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 	utils.LogDebug("Refine: completed (lang=%s chars=%d duration=%s output_chars=%d)", lang, textChars, time.Since(startTime), len(result))
 	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, result)
 	return result, nil
+}
+
+// NormalizeText performs safe normalization without semantic rewriting
+// This preserves uncertainty markers and original wording while fixing punctuation/casing
+func (u *refineUseCase) NormalizeText(text string) string {
+	return utils.NormalizeTranscript(text)
+}
+
+// NormalizeUtterances applies normalization per-utterance instead of whole-transcript
+// This preserves the structure while cleaning up each utterance
+func (u *refineUseCase) NormalizeUtterances(utterances []whisperdtos.Utterance) []whisperdtos.Utterance {
+	if len(utterances) == 0 {
+		return utterances
+	}
+
+	normalized := make([]whisperdtos.Utterance, len(utterances))
+	for i, u := range utterances {
+		normalized[i] = whisperdtos.Utterance{
+			SpeakerLabel: u.SpeakerLabel,
+			StartMs:      u.StartMs,
+			EndMs:        u.EndMs,
+			Text:         utils.NormalizeTranscript(u.Text),
+			Confidence:   u.Confidence,
+		}
+	}
+
+	return normalized
 }

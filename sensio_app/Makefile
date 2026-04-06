@@ -1,4 +1,4 @@
-.PHONY: build deploy clean logs
+.PHONY: build deploy clean logs sync-remote
 
 # Build DEBUG APK
 ADB := $(shell grep '^sdk.dir' local.properties | cut -d'=' -f2)/platform-tools/adb
@@ -34,16 +34,20 @@ deploy-remote:
 remote-lint-build:
 	@bash ../scripts/sensio_app/remote_lint_build_arch.sh
 
-# Pull built APK from remote host manually
+# Sync source code to arch host (delta sync)
+sync-remote:
+	@SYNC_PROGRESS=1 bash ../scripts/remote/common_arch.sh sync_source_delta
+
+# Pull built APK from remote host manually (with progress)
 remote-pull-apk:
 	@echo "📥 Pulling APK from arch host..."
 	@mkdir -p .remote-build
-	@rsync -az arch:~/Documents/Tuya-Teralux-App/sensio_app/app/build/outputs/apk/debug/app-debug.apk .remote-build/app-debug.apk
+	@rsync -avz --info=progress2 --human-readable -e "ssh -o RequestTTY=no" arch:/home/farismnrr/Documents/shared/teralux_app/sensio_app/app/build/outputs/apk/debug/app-debug.apk .remote-build/app-debug.apk
 	@echo "✅ APK successfully pulled to: .remote-build/app-debug.apk"
 
-# Pull and install APK from remote arch host
+# Pull and install APK from remote arch host (with progress)
 install-remote:
-	@bash ../scripts/sensio_app/install_remote_arch.sh
+	@SYNC_PROGRESS=1 bash ../scripts/sensio_app/install_remote_arch.sh
 
 # Install built APK to device
 install:

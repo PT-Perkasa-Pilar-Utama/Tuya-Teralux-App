@@ -1,7 +1,7 @@
 package dtos
 
 type PipelineStageStatus struct {
-	Status          string      `json:"status" example:"pending"` // pending, processing, completed, failed, skipped
+	Status          string      `json:"status" example:"pending"` // pending, processing, completed, failed, skipped, cancelled
 	Result          interface{} `json:"result,omitempty"`
 	Error           string      `json:"error,omitempty"`
 	StartedAt       string      `json:"started_at,omitempty"`
@@ -10,12 +10,13 @@ type PipelineStageStatus struct {
 
 type PipelineStatusDTO struct {
 	TaskID          string                         `json:"task_id"`
-	OverallStatus   string                         `json:"overall_status" example:"processing"` // pending, processing, completed, failed
+	OverallStatus   string                         `json:"overall_status" example:"processing"` // pending, processing, completed, failed, cancelled
 	Stages          map[string]PipelineStageStatus `json:"stages"`
 	StartedAt       string                         `json:"started_at"`
 	DurationSeconds float64                        `json:"duration_seconds"`
 	ExpiresAt       string                         `json:"expires_at,omitempty"`
 	ExpiresInSecond int64                          `json:"expires_in_seconds,omitempty"`
+	MacAddress      string                         `json:"mac_address,omitempty"`
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface

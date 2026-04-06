@@ -24,7 +24,8 @@ func NewNotificationExternalController(notificationSvc *services.NotificationExt
 
 // PublishToRoom handles POST /api/notification/publish
 // @Summary Publish a notification to all terminals in a room
-// @Description Computes publish_at = datetime_end - interval_time and immediately publishes it to all terminals in the room via MQTT.
+// @Description Computes publish_at = datetime_end (or time_end) - interval_time and immediately publishes it to all terminals in the room via MQTT.
+// @Description At least one of datetime_end or time_end must be provided. If both are provided, datetime_end takes priority.
 // @Tags 08. Common
 // @Accept json
 // @Produce json
@@ -52,10 +53,10 @@ func (c *NotificationExternalController) PublishToRoom(ctx *gin.Context) {
 		})
 		return
 	}
-	if req.DateTimeEnd == "" {
+	if req.DateTimeEnd == "" && req.TimeEnd == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "datetime_end is required",
+			Message: "At least one of datetime_end or time_end must be provided",
 		})
 		return
 	}

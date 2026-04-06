@@ -3,7 +3,7 @@
 
 # Hard defaults, overrideable via env
 REMOTE_HOST=${REMOTE_HOST:-"arch"}
-REMOTE_REPO_DIR=${REMOTE_REPO_DIR:-"~/Documents/Programs/teralux_app"}
+REMOTE_REPO_DIR=${REMOTE_REPO_DIR:-"/home/farismnrr/Documents/shared/teralux_app"}
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -21,10 +21,19 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 run_rsync() {
     local mode="$1"
     shift
-    
-    local rsync_opts=("-az")
 
-    if [ "$mode" = "source" ]; then
+    # Use -a for source sync, -av for artifact (no compression for already-compressed files)
+    local rsync_opts=("-a")
+
+    if [ "$mode" = "artifact" ]; then
+        # APK files are already compressed, skip -z to improve performance
+        rsync_opts+=("-v")
+    else
+        rsync_opts+=("-z")
+    fi
+
+    # Enable progress for both source sync and artifact pulls
+    if [ "$mode" = "source" ] || [ "$mode" = "artifact" ]; then
         if [ "$SYNC_PROGRESS" = "1" ]; then
             rsync_opts+=("--info=progress2" "--human-readable" "--partial")
         fi
@@ -32,22 +41,23 @@ run_rsync() {
             rsync_opts+=("--stats")
         fi
     fi
-    
+
     # Custom SSH with robust transport & keepalives
-    rsync_opts+=("-e" "ssh -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=6")
+    # IMPORTANT: RequestTTY=no overrides the global SSH config to fix rsync hanging issues
+    rsync_opts+=("-e" "ssh -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=6 -o RequestTTY=no")
 
     # Capture original SIGINT handler
     local orig_trap=$(trap -p INT)
-    
+
     # Set controlled exit trap
     trap 'log_warn "Sync dibatalkan oleh user."; eval "$orig_trap"; exit 130' SIGINT
 
     rsync "${rsync_opts[@]}" "$@" || {
         local exit_code=$?
-        
+
         # Restore trap early upon internal crash to not muddy outer scope
         eval "$orig_trap"
-        
+
         if [ $exit_code -eq 255 ]; then
             log_error "Sync failed (Exit Code 255): SSH connection dropped or transport timed out."
         elif [ $exit_code -eq 130 ]; then
@@ -57,13 +67,13 @@ run_rsync() {
         fi
         exit $exit_code
     }
-    
+
     eval "$orig_trap"
 }
 
 preflight_check() {
     log_info "Running preflight checks..."
-    
+
     # Check local binaries
     for cmd in ssh rsync bash; do
         if ! command -v $cmd > /dev/null 2>&1; then
@@ -71,9 +81,9 @@ preflight_check() {
             exit 1
         fi
     done
-    
-    # Check remote connectivity
-    if ! ssh -q "$REMOTE_HOST" 'echo ok' > /dev/null 2>&1; then
+
+    # Check remote connectivity (RequestTTY=no to override global SSH config)
+    if ! ssh -o RequestTTY=no -q "$REMOTE_HOST" 'echo ok' > /dev/null 2>&1; then
         log_error "Cannot connect to remote host: $REMOTE_HOST"
         log_error "Please ensure SSH access is configured and host is reachable."
         exit 1
@@ -94,7 +104,8 @@ ssh_exec() {
     local cmd="$1"
     # Execute the command by piping it to bash on the remote host
     # This prevents complex quoting/injection issues with single quotes inside the command string
-    if ! printf '%s\n' "$cmd" | ssh "$REMOTE_HOST" "bash -se"; then
+    # IMPORTANT: RequestTTY=no overrides the global SSH config for non-interactive commands
+    if ! printf '%s\n' "$cmd" | ssh -o RequestTTY=no "$REMOTE_HOST" "bash -se"; then
         log_error "Remote execution failed for: $cmd"
         exit 1
     fi
@@ -174,16 +185,16 @@ interactive_select() {
 adb_install_apk() {
     local apk_path="$1"
     local package_name="$2"
-    
+
     log_info "Preparing to install APK via ADB..."
-    
+
     if ! command -v adb > /dev/null 2>&1; then
         log_error "ADB not found. Please install Android platform tools."
         exit 1
     fi
 
     local selected_device=""
-    
+
     if [ -n "${DEVICE_ID:-}" ]; then
         selected_device="$DEVICE_ID"
         log_info "Using specified device: $selected_device"
@@ -229,20 +240,20 @@ adb_install_apk() {
 detect_remote_sdk_dir() {
     log_info "Detecting remote Android SDK directory..."
     local sdk_dir=""
-    
-    # Check common paths
-    if ssh -q "$REMOTE_HOST" 'test -d ~/Android/Sdk'; then
+
+    # Check common paths (RequestTTY=no to override global SSH config)
+    if ssh -o RequestTTY=no -q "$REMOTE_HOST" 'test -d ~/Android/Sdk'; then
         sdk_dir="~/Android/Sdk"
-    elif ssh -q "$REMOTE_HOST" 'test -d /opt/android-sdk'; then
+    elif ssh -o RequestTTY=no -q "$REMOTE_HOST" 'test -d /opt/android-sdk'; then
         sdk_dir="/opt/android-sdk"
     else
         log_error "Could not find Android SDK on remote host ($REMOTE_HOST)."
         log_error "Checked: ~/Android/Sdk, /opt/android-sdk"
         exit 1
     fi
-    
-    # Resolve to absolute path
-    sdk_dir=$(ssh -q "$REMOTE_HOST" "bash -lc 'readlink -f $sdk_dir'")
+
+    # Resolve to absolute path (RequestTTY=no to override global SSH config)
+    sdk_dir=$(ssh -o RequestTTY=no -q "$REMOTE_HOST" "bash -lc 'readlink -f $sdk_dir'")
     log_info "Found remote SDK at: $sdk_dir"
     echo "$sdk_dir"
 }
@@ -250,43 +261,43 @@ detect_remote_sdk_dir() {
 sync_remote_configs() {
     local module_name="$1"
     local repo_root=$(resolve_repo_root)
-    
+
     log_info "Syncing configs for module: $module_name"
-    
+
     if [ "$module_name" = "backend" ]; then
         if [ -f "$repo_root/backend/.env" ]; then
             log_info "Copying backend/.env to remote host..."
             run_rsync config "$repo_root/backend/.env" "$REMOTE_HOST:$REMOTE_REPO_DIR/backend/.env"
-            ssh -q "$REMOTE_HOST" "chmod 600 $REMOTE_REPO_DIR/backend/.env"
+            ssh -o RequestTTY=no -q "$REMOTE_HOST" "chmod 600 $REMOTE_REPO_DIR/backend/.env"
         else
             log_warn "Local backend/.env not found, skipping sync."
         fi
-        
+
     elif [ "$module_name" = "sensio_app" ] || [ "$module_name" = "sensio_notification" ]; then
         local remote_sdk=$(detect_remote_sdk_dir)
         local local_props_src="$repo_root/sensio_app/local.properties"
         local remote_props_dest="$REMOTE_REPO_DIR/$module_name/local.properties"
-        
+
         if [ ! -f "$local_props_src" ]; then
             log_error "Local config not found: $local_props_src"
             exit 1
         fi
-        
+
         log_info "Generating $module_name/local.properties for remote host..."
-        
+
         # Create a temporary local.properties with rewritten sdk.dir
         local tmp_props=$(mktemp)
-        
+
         # Copy original but filter out sdk.dir
         grep -v "^sdk.dir=" "$local_props_src" > "$tmp_props" || true
-        
+
         # Append remote sdk.dir
         echo "sdk.dir=$remote_sdk" >> "$tmp_props"
-        
+
         # Sync to remote
         run_rsync config "$tmp_props" "$REMOTE_HOST:$remote_props_dest"
-        ssh -q "$REMOTE_HOST" "chmod 600 $remote_props_dest"
-        
+        ssh -o RequestTTY=no -q "$REMOTE_HOST" "chmod 600 $remote_props_dest"
+
         rm -f "$tmp_props"
         log_info "Config synced to $remote_props_dest successfully."
     else
@@ -297,18 +308,18 @@ sync_remote_configs() {
 
 sync_source_delta() {
     log_info "Running robust delta sync (tracked changes only) to $REMOTE_HOST..."
-    
+
     local repo_root=$(resolve_repo_root)
     local sync_list=$(mktemp)
     local del_list=$(mktemp)
-    
+
     # Use null-terminated porcelain output to handle spaces/renames/special chars
     while IFS= read -r -d $'\0' line; do
         if [ -z "$line" ]; then continue; fi
-        
+
         local status="${line:0:2}"
         local file="${line:3}"
-        
+
         case "$status" in
             [RC]?|?[RC]) # Renames/Copies in either XY column (staged or unstaged)
                 # Both R and C have two NUL-terminated paths in porcelain -z
@@ -316,7 +327,7 @@ sync_source_delta() {
                 if [[ "$status" == *R* ]]; then
                     printf "%s\0" "$file" >> "$del_list"
                 fi
-                
+
                 # Consume the 'to' path for both
                 if IFS= read -r -d $'\0' to_file; then
                     printf "%s\0" "$to_file" >> "$sync_list"
@@ -338,15 +349,16 @@ sync_source_delta() {
                 ;;
         esac
     done < <(git -C "$repo_root" status --porcelain -z)
-    
+
     # 1. Propagate deletions in a single batch (NUL-safe, tilde-safe, and dash-safe)
     if [ -s "$del_list" ]; then
         local count=$(grep -cz . "$del_list")
         log_info "Propagating $count deletions in batch..."
         # Use a shell wrapper to ensure ~ expansion and space-safety in $REMOTE_REPO_DIR
-        ssh -q "$REMOTE_HOST" "bash -c 'target=\"$REMOTE_REPO_DIR\"; cd \"\${target/#~/\$HOME}\" && xargs -0 rm -f --'" < "$del_list"
+        # RequestTTY=no to override global SSH config for non-interactive commands
+        ssh -o RequestTTY=no -q "$REMOTE_HOST" "bash -c 'target=\"$REMOTE_REPO_DIR\"; cd \"\${target/#~/\$HOME}\" && xargs -0 rm -f --'" < "$del_list"
     fi
-    
+
     # 2. Sync modified/new tracked files (NUL-safe via --from0)
     if [ -s "$sync_list" ]; then
         local count=$(grep -cz . "$sync_list")
@@ -357,18 +369,18 @@ sync_source_delta() {
     else
         log_info "No tracked file changes to sync."
     fi
-    
+
     rm -f "$sync_list" "$del_list"
     log_info "Robust delta sync completed."
 }
 
 sync_source() {
     log_info "Syncing source code to $REMOTE_HOST:$REMOTE_REPO_DIR..."
-    
+
     local start_time=$(date +%s)
-    
+
     local repo_root=$(resolve_repo_root)
-    
+
     # Run rsync incrementally
     run_rsync source --delete \
         --exclude=".git/" \
@@ -388,8 +400,37 @@ sync_source() {
         --exclude="sensio_notification/local.properties" \
         --exclude=".DS_Store" \
         "$repo_root/" "$REMOTE_HOST:$REMOTE_REPO_DIR/"
-        
+
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
     log_info "Sync completed in ${duration}s."
 }
+
+# Main entry point for direct script invocation
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [ "$#" -gt 0 ]; then
+        case "$1" in
+            sync_source_delta)
+                sync_source_delta
+                ;;
+            sync_source)
+                sync_source
+                ;;
+            sync_remote_configs)
+                if [ -z "${2:-}" ]; then
+                    log_error "Usage: $0 sync_remote_configs <module_name>"
+                    exit 1
+                fi
+                sync_remote_configs "$2"
+                ;;
+            *)
+                log_error "Unknown command: $1"
+                exit 1
+                ;;
+        esac
+    else
+        log_error "Usage: $0 <command> [args...]"
+        log_error "Commands: sync_source_delta, sync_source, sync_remote_configs"
+        exit 1
+    fi
+fi

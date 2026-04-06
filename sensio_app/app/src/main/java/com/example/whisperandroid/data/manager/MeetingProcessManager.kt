@@ -11,17 +11,22 @@ object MeetingProcessManager {
     // Track the current audio file path for session cleanup
     private var currentAudioPath: String? = null
 
+    // Track the current pipeline task ID for backend cancellation
+    private var currentPipelineTaskId: String? = null
+
     fun updateState(state: MeetingProcessState) {
         _processState.value = state
     }
 
     fun reset() {
         currentAudioPath = null
+        currentPipelineTaskId = null
         _processState.value = MeetingProcessState.Idle
     }
 
     fun cancel() {
         currentAudioPath = null
+        currentPipelineTaskId = null
         _processState.value = MeetingProcessState.Cancelled
     }
 
@@ -30,4 +35,10 @@ object MeetingProcessManager {
     }
 
     fun getCurrentAudioPath(): String? = currentAudioPath
+
+    fun setPipelineTaskId(taskId: String) {
+        currentPipelineTaskId = taskId
+    }
+
+    fun getPipelineTaskId(): String? = currentPipelineTaskId
 }

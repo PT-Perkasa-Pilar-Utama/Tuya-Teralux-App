@@ -16,6 +16,7 @@ func SetupPipelineRoutes(
 		models.POST("/job", pipelineCtrl.ExecuteJob)
 		models.POST("/job/by-upload", pipelineCtrl.ExecuteJobByUpload)
 		models.GET("/status/:task_id", pipelineCtrl.GetStatus)
+		models.DELETE("/status/:task_id", pipelineCtrl.CancelTask)
 	}
 
 	// Legacy support: /api/pipeline/* (backward compatibility)
@@ -24,5 +25,6 @@ func SetupPipelineRoutes(
 		legacy.POST("/job", pipelineCtrl.ExecuteJob)
 		legacy.POST("/job/by-upload", pipelineCtrl.ExecuteJobByUpload)
 		legacy.GET("/status/:task_id", pipelineCtrl.GetStatus)
+		legacy.DELETE("/status/:task_id", pipelineCtrl.CancelTask)
 	}
 }
