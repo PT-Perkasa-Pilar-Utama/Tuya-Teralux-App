@@ -95,7 +95,9 @@ paths:
                 description: Device registration data
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.CreateDeviceRequestDTO'
             responses:
                 "201":
                     description: Created
@@ -177,7 +179,9 @@ paths:
                 description: Updated device data
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.UpdateDeviceRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -232,7 +236,9 @@ paths:
                 description: Updated status data
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.UpdateDeviceStatusRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -452,7 +458,9 @@ paths:
                 description: Mail Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.MailSendRequestDTO'
             responses:
                 "202":
                     description: Accepted
@@ -496,7 +504,9 @@ paths:
                 description: Mail Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.SendMailByMacRequestDTO'
             responses:
                 "202":
                     description: Email task submitted successfully
@@ -578,7 +588,9 @@ paths:
                 description: Prompt Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGRawPromptRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -621,7 +633,9 @@ paths:
                 description: Prompt Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGRawPromptRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -664,7 +678,9 @@ paths:
                 description: Prompt Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGRawPromptRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -707,7 +723,9 @@ paths:
                 description: Prompt Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGRawPromptRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -750,7 +768,9 @@ paths:
                 description: Prompt Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGRawPromptRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -972,7 +992,9 @@ paths:
                 description: Chat Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGChatRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -1003,7 +1025,9 @@ paths:
                 description: Control Request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGControlRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -1046,7 +1070,9 @@ paths:
                 description: Summary request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGSummaryRequestDTO'
             responses:
                 "202":
                     description: Accepted
@@ -1094,7 +1120,9 @@ paths:
                 description: Translation request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.RAGRequestDTO'
             responses:
                 "202":
                     description: Accepted
@@ -1244,7 +1272,9 @@ paths:
                 description: Chat request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/services.RAGRequest'
             responses:
                 "200":
                     description: OK
@@ -1276,7 +1306,9 @@ paths:
                 description: Control request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/services.RAGRequest'
             responses:
                 "200":
                     description: OK
@@ -1336,7 +1368,9 @@ paths:
                 description: Summary request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/services.RAGRequest'
             responses:
                 "200":
                     description: OK
@@ -1368,7 +1402,9 @@ paths:
                 description: Translation request
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/services.RAGRequest'
             responses:
                 "200":
                     description: OK
@@ -1472,7 +1508,9 @@ paths:
                 description: Upload session configuration
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest'
             responses:
                 "201":
                     description: Created
@@ -1555,7 +1593,9 @@ paths:
                 description: Binary chunk data
                 required: true
                 content:
-                    application/octet-stream: {}
+                    application/octet-stream:
+                        schema:
+                            type: string
             responses:
                 "200":
                     description: OK
@@ -1749,7 +1789,9 @@ paths:
                 description: Notification details
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.NotificationPublishRequest'
             responses:
                 "200":
                     description: OK
@@ -2033,7 +2075,9 @@ paths:
                 description: Terminal registration data
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.CreateTerminalRequestDTO'
             responses:
                 "201":
                     description: Created
@@ -2121,7 +2165,9 @@ paths:
                 description: Updated terminal data
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.UpdateTerminalRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -2243,7 +2289,9 @@ paths:
                 description: Scene configuration
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.CreateSceneRequestDTO'
             responses:
                 "201":
                     description: Created
@@ -2293,7 +2341,9 @@ paths:
                 description: Updated scene configuration
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.UpdateSceneRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -2560,7 +2610,9 @@ paths:
                 description: IR Command Payload
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.TuyaIRACCommandDTO'
             responses:
                 "200":
                     description: OK
@@ -2609,7 +2661,9 @@ paths:
                 description: Command Payload
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.TuyaCommandDTO'
             responses:
                 "200":
                     description: OK
