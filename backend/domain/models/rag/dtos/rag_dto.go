@@ -120,6 +120,14 @@ type RAGStatusDTO struct {
 	// Consumers that want structured data should prefer this over parsing the markdown Summary field.
 	// Nil/empty when validation failed or canonical contract is not yet adopted.
 	CanonicalSummary *CanonicalMeetingSummary `json:"canonical_summary,omitempty"`
+
+	// ProviderMode indicates which runtime policy was used for provider selection.
+	// "default" — health-aware fallback across all available providers.
+	// "explicit" — strict use of the user-selected provider only.
+	ProviderMode string `json:"provider_mode,omitempty"`
+
+	// SelectedProvider indicates which AI provider was actually used for summarization.
+	SelectedProvider string `json:"selected_provider,omitempty"`
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface.
@@ -158,6 +166,14 @@ type RAGSummaryResponseDTO struct {
 	// Consumers that want structured data should prefer this over parsing the markdown Summary field.
 	// Nil/empty when validation failed or canonical contract is not yet adopted.
 	CanonicalSummary *CanonicalMeetingSummary `json:"canonical_summary,omitempty"`
+
+	// ProviderMode indicates which runtime policy was used for provider selection.
+	// "default" — health-aware fallback across all available providers.
+	// "explicit" — strict use of the user-selected provider only.
+	ProviderMode string `json:"provider_mode,omitempty"`
+
+	// SelectedProvider indicates which AI provider was actually used for summarization.
+	SelectedProvider string `json:"selected_provider,omitempty"`
 }
 
 type RAGChatRequestDTO struct {
