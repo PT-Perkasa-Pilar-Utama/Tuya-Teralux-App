@@ -63,7 +63,56 @@ data class RAGSummaryRequestDto(
 
 data class RAGSummaryResponseDto(
     @SerializedName("summary") val summary: String,
-    @SerializedName("pdf_url") val pdfUrl: String? = null
+    @SerializedName("pdf_url") val pdfUrl: String? = null,
+    @SerializedName("canonical_summary") val canonicalSummary: CanonicalSummaryDto? = null,
+    @SerializedName("provider_mode") val providerMode: String? = null,
+    @SerializedName("selected_provider") val selectedProvider: String? = null
+)
+
+/**
+ * Canonical meeting summary structured data from the backend.
+ * Prioritized for rendering over raw markdown when available.
+ */
+data class CanonicalSummaryDto(
+    @SerializedName("metadata") val metadata: SummaryMetadataDto? = null,
+    @SerializedName("agenda") val agenda: String? = null,
+    @SerializedName("background_and_objective") val backgroundAndObjective: String? = null,
+    @SerializedName("action_items") val actionItems: List<ActionItemDto>? = null,
+    @SerializedName("decisions_made") val decisionsMade: List<DecisionDto>? = null,
+    @SerializedName("risks_and_mitigation") val risksAndMitigation: List<RiskDto>? = null,
+    @SerializedName("open_issues") val openIssues: List<OpenIssueDto>? = null,
+    @SerializedName("additional_notes") val additionalNotes: String? = null
+)
+
+data class SummaryMetadataDto(
+    @SerializedName("meeting_title") val meetingTitle: String? = null,
+    @SerializedName("date") val date: String? = null,
+    @SerializedName("location") val location: String? = null,
+    @SerializedName("participants") val participants: List<String>? = null,
+    @SerializedName("language") val language: String? = null
+)
+
+data class ActionItemDto(
+    @SerializedName("task") val task: String? = null,
+    @SerializedName("pic") val pic: String? = null,
+    @SerializedName("deadline") val deadline: String? = null,
+    @SerializedName("status") val status: String? = null
+)
+
+data class DecisionDto(
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("rationale") val rationale: String? = null
+)
+
+data class RiskDto(
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("impact") val impact: String? = null,
+    @SerializedName("mitigation") val mitigation: String? = null
+)
+
+data class OpenIssueDto(
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("owner") val owner: String? = null
 )
 
 /**
@@ -83,7 +132,10 @@ data class RAGStatusDto(
     @SerializedName("duration_seconds") val durationSeconds: Double? = null,
     @SerializedName("execution_result") val executionResult: com.google.gson.JsonElement? = null,
     @SerializedName("expires_at") val expiresAt: String? = null,
-    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null
+    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null,
+    @SerializedName("canonical_summary") val canonicalSummary: CanonicalSummaryDto? = null,
+    @SerializedName("provider_mode") val providerMode: String? = null,
+    @SerializedName("selected_provider") val selectedProvider: String? = null
 )
 
 /**

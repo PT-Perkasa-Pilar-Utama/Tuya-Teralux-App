@@ -135,7 +135,10 @@ class RagRepositoryImpl(
                                 Resource.Success(
                                     RAGSummaryResponseDto(
                                         summary = summary,
-                                        pdfUrl = statusData.pdfUrl
+                                        pdfUrl = statusData.pdfUrl,
+                                        canonicalSummary = statusData.canonicalSummary,
+                                        providerMode = statusData.providerMode,
+                                        selectedProvider = statusData.selectedProvider
                                     )
                                 )
                             )
