@@ -31,6 +31,8 @@ type IntermediateSummaryNote struct {
 	SpeakerRefs   []string `json:"speaker_refs,omitempty"` // Speaker labels mentioned
 	TimeRefs      []string `json:"time_refs,omitempty"`    // Timestamp references if available
 	Summary       string   `json:"summary"`                // Brief narrative summary of this window
+	Validated     bool     `json:"validated"`              // Whether this note passed validation
+	ValidationErr string   `json:"validation_err,omitempty"` // Error details if validation failed
 }
 
 // HierarchicalSummaryResult encapsulates the output of hierarchical structured summarization
@@ -609,6 +611,18 @@ func (u *summaryUseCase) summarizeHierarchical(ctx context.Context, text string,
 			}
 			// Include the note with just summary populated (structured fields will be empty)
 			// This preserves coverage even for models that don't follow JSON contract
+			note.Validated = false
+			note.ValidationErr = "JSON parsing failed — using fallback summary only"
+		} else {
+			// Validation Phase: Check the parsed note for minimum quality
+			validationErr := u.validateIntermediateNote(&note)
+			if validationErr != nil {
+				note.Validated = false
+				note.ValidationErr = validationErr.Error()
+				utils.LogWarn("summarizeHierarchical: Window %d validation failed: %v", idx+1, validationErr)
+			} else {
+				note.Validated = true
+			}
 		}
 
 		// Check if note has meaningful content
@@ -680,11 +694,19 @@ func (u *summaryUseCase) summarizeHierarchical(ctx context.Context, text string,
 	}
 
 	// Build coverage stats
+	// Count failed windows (processed but not validated)
+	failedWindows := 0
+	for _, note := range intermediateNotes {
+		if !note.Validated {
+			failedWindows++
+		}
+	}
+
 	coverageStats := &dtos.CoverageStats{
 		TotalWindows:     len(windows),
 		ProcessedWindows: processedWindows,
 		EmptyWindows:     emptyWindows,
-		CoverageRatio:    float64(processedWindows) / float64(len(windows)),
+		CoverageRatio:    float64(processedWindows-failedWindows) / float64(len(windows)),
 		SourceChars:      len(text),
 		SummaryChars:     len(finalResult.Message),
 		CompressionRatio: float64(len(finalResult.Message)) / float64(len(text)),
@@ -823,6 +845,62 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen] + "..."
+}
+
+// validateIntermediateNote validates a window's extracted note for minimum quality.
+// Returns an error if the note doesn meet the structured output contract.
+// This is a lighter validation than the full CanonicalMeetingSummary validation —
+// it checks that the intermediate note has at least some structured content.
+func (u *summaryUseCase) validateIntermediateNote(note *IntermediateSummaryNote) error {
+	// Rule 1: Must have some content (summary or structured fields)
+	if strings.TrimSpace(note.Summary) == "" &&
+		len(note.Decisions) == 0 &&
+		len(note.ActionItems) == 0 &&
+		len(note.Risks) == 0 &&
+		len(note.OpenQuestions) == 0 {
+		return fmt.Errorf("window %d has no meaningful content in any field", note.WindowID)
+	}
+
+	// Rule 2: If summary is present, it must not be just placeholder text
+	if strings.TrimSpace(note.Summary) != "" {
+		summary := strings.TrimSpace(note.Summary)
+		if isPlaceholderText(summary) {
+			return fmt.Errorf("window %d summary contains only placeholder text", note.WindowID)
+		}
+	}
+
+	// Rule 3: Structured fields must not contain empty entries
+	for i, action := range note.ActionItems {
+		if strings.TrimSpace(action) == "" {
+			return fmt.Errorf("window %d has empty action item at index %d", note.WindowID, i)
+		}
+	}
+	for i, decision := range note.Decisions {
+		if strings.TrimSpace(decision) == "" {
+			return fmt.Errorf("window %d has empty decision at index %d", note.WindowID, i)
+		}
+	}
+
+	return nil
+}
+
+// isPlaceholderText checks if a string looks like placeholder text.
+func isPlaceholderText(s string) bool {
+	placeholders := []string{
+		"N/A", "n/a", "TBD", "tbd", "Not Available",
+		"[Insert", "[Add", "[TODO", "[TBD", "[Placeholder",
+		"[Meeting Title]", "[Date]", "[Location]",
+	}
+	for _, p := range placeholders {
+		if strings.Contains(s, p) {
+			return true
+		}
+	}
+	// Check for all-bracket content
+	if strings.HasPrefix(s, "[") && strings.HasSuffix(s, "]") {
+		return true
+	}
+	return false
 }
 
 // extractActionItemsFromNotes converts intermediate notes to structured action items
