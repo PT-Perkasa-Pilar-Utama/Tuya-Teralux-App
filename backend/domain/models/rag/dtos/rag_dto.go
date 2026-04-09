@@ -114,6 +114,12 @@ type RAGStatusDTO struct {
 	SpeakerCoverage        *SpeakerCoverage `json:"speaker_coverage,omitempty"`
 	SourceLanguage         string           `json:"source_language,omitempty"`
 	TranslatedFromLanguage string           `json:"translated_from_language,omitempty"`
+
+	// CanonicalSummary contains the full canonical meeting summary contract data.
+	// Populated when the summary pipeline successfully validates output against the canonical contract.
+	// Consumers that want structured data should prefer this over parsing the markdown Summary field.
+	// Nil/empty when validation failed or canonical contract is not yet adopted.
+	CanonicalSummary *CanonicalMeetingSummary `json:"canonical_summary,omitempty"`
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface.
@@ -146,6 +152,12 @@ type RAGSummaryResponseDTO struct {
 	SpeakerCoverage        *SpeakerCoverage `json:"speaker_coverage,omitempty"`
 	SourceLanguage         string           `json:"source_language,omitempty"`
 	TranslatedFromLanguage string           `json:"translated_from_language,omitempty"`
+
+	// CanonicalSummary contains the full canonical meeting summary contract data.
+	// Populated when the summary pipeline successfully validates output against the canonical contract.
+	// Consumers that want structured data should prefer this over parsing the markdown Summary field.
+	// Nil/empty when validation failed or canonical contract is not yet adopted.
+	CanonicalSummary *CanonicalMeetingSummary `json:"canonical_summary,omitempty"`
 }
 
 type RAGChatRequestDTO struct {
