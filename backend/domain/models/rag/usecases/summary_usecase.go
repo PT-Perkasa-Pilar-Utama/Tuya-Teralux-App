@@ -332,11 +332,30 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		// Phase 2: Validate against contract
 		validationErr := services.ValidateSummary(canonicalSummary)
 		if validationErr != nil {
-			// Validation failed — fall back to raw LLM output
-			// Log warning with validation details for debugging and future repair workflow (#39)
-			utils.LogInfo("SummaryUseCase: Summary validation failed, falling back to raw output: %v", validationErr)
-			canonicalSummary = nil
-			finalMarkdown = trimmedSummary
+			// Phase 2b: Attempt repair before falling back
+			repairer := services.NewSummaryRepairer()
+			repairedSummary, repairs := repairer.RepairSummary(canonicalSummary, validationErr)
+			if len(repairs) > 0 {
+				utils.LogInfo("SummaryUseCase: Applied %d repair(s): %v", len(repairs), repairs)
+				// Re-validate the repaired summary
+				revalidationErr := services.ValidateSummary(repairedSummary)
+				if revalidationErr == nil {
+					// Repair succeeded — use repaired canonical
+					utils.LogInfo("SummaryUseCase: Repair successful, using repaired canonical summary")
+					canonicalSummary = repairedSummary
+					finalMarkdown = services.GenerateMarkdown(canonicalSummary)
+				} else {
+					// Repair didn't fix everything — fall back to raw
+					utils.LogInfo("SummaryUseCase: Repair partially fixed issues, but validation still fails: %v. Falling back to raw output.", revalidationErr)
+					canonicalSummary = nil
+					finalMarkdown = trimmedSummary
+				}
+			} else {
+				// No repairs possible — fall back to raw LLM output
+				utils.LogInfo("SummaryUseCase: No repairs possible, falling back to raw output: %v", validationErr)
+				canonicalSummary = nil
+				finalMarkdown = trimmedSummary
+			}
 		} else {
 			// Phase 3: Validation passed — generate clean markdown from validated canonical
 			finalMarkdown = services.GenerateMarkdown(canonicalSummary)
