@@ -16,24 +16,21 @@ class UploadRepositoryImplTest {
                 language: okhttp3.MultipartBody.Part,
                 macAddress: okhttp3.MultipartBody.Part?,
                 token: String,
-                idempotencyKey: String?,
-                apiKey: String
+                idempotencyKey: String?
             ): com.example.whisperandroid.data.remote.dto.SpeechResponseDto<com.example.whisperandroid.data.remote.dto.TranscriptionSubmissionData> {
                 throw UnsupportedOperationException()
             }
 
             override suspend fun getTranscriptionStatus(
                 taskId: String,
-                token: String,
-                apiKey: String
+                token: String
             ): com.example.whisperandroid.data.remote.dto.SpeechResponseDto<com.example.whisperandroid.data.remote.dto.TranscriptionStatusDto> {
                 throw UnsupportedOperationException()
             }
 
             override suspend fun createUploadSession(
                 request: com.example.whisperandroid.data.remote.dto.CreateUploadSessionRequestDto,
-                token: String,
-                apiKey: String
+                token: String
             ): com.example.whisperandroid.data.remote.dto.SpeechResponseDto<com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto> {
                 throw UnsupportedOperationException()
             }
@@ -42,29 +39,25 @@ class UploadRepositoryImplTest {
                 sessionId: String,
                 chunkIndex: Int,
                 chunk: okhttp3.RequestBody,
-                token: String,
-                apiKey: String
+                token: String
             ): com.example.whisperandroid.data.remote.dto.SpeechResponseDto<com.example.whisperandroid.data.remote.dto.UploadChunkAckDto> {
                 throw UnsupportedOperationException()
             }
 
             override suspend fun getUploadSessionStatus(
                 sessionId: String,
-                token: String,
-                apiKey: String
+                token: String
             ): com.example.whisperandroid.data.remote.dto.SpeechResponseDto<com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto> {
                 throw UnsupportedOperationException()
             }
 
             override suspend fun transcribeByUpload(
                 request: com.example.whisperandroid.data.remote.dto.SubmitByUploadRequestDto,
-                token: String,
-                apiKey: String
+                token: String
             ): com.example.whisperandroid.data.remote.dto.SpeechResponseDto<com.example.whisperandroid.data.remote.dto.TranscriptionSubmissionData> {
                 throw UnsupportedOperationException()
             }
-        },
-        apiKey = "test-api-key"
+        }
     )
 
     @Test

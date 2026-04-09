@@ -81,6 +81,8 @@ android {
 
         resValue("string", "app_name", appName)
 
+        val aiEngineSelectorVisible = localProperties.getProperty("ai_engine_selector_visible", "false").toBoolean()
+
         buildConfigField(
             "String",
             "MQTT_BROKER_URL",
@@ -103,6 +105,7 @@ android {
             "TEST_AUTH_TOKEN",
             "\"${localProperties.getProperty("test.auth_token") ?: ""}\""
         )
+        buildConfigField("boolean", "AI_ENGINE_SELECTOR_VISIBLE", aiEngineSelectorVisible.toString())
     }
 
     testOptions {

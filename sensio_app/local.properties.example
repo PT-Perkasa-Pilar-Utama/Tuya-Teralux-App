@@ -22,3 +22,7 @@ app.name=
 
 # API key used by BuildConfig.SENSIO_API_KEY
 sensio.api_key=
+
+# AI Engine selector visibility (true = show selector, false = hide selector)
+# Default is false (hidden) — backend automatic routing will be used instead.
+ai_engine_selector_visible=false
