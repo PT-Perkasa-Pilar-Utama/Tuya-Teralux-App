@@ -4597,6 +4597,59 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.CanonicalMeetingSummary": {
+            "type": "object",
+            "properties": {
+                "action_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.ActionItem"
+                    }
+                },
+                "additional_notes": {
+                    "type": "string"
+                },
+                "agenda": {
+                    "type": "string"
+                },
+                "background_and_objective": {
+                    "type": "string"
+                },
+                "decisions_made": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.Decision"
+                    }
+                },
+                "main_discussion_sections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.DiscussionSection"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/dtos.SummaryMetadata"
+                },
+                "open_issues": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.OpenIssue"
+                    }
+                },
+                "risks_and_mitigation": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.Risk"
+                    }
+                },
+                "roles_and_responsibilities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.RoleResponsibility"
+                    }
+                }
+            }
+        },
         "dtos.ConfidenceSummary": {
             "type": "object",
             "properties": {
@@ -4850,6 +4903,47 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.DiscussionPoint": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "speaker": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "Optional timestamp reference",
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.DiscussionSection": {
+            "type": "object",
+            "properties": {
+                "action_items": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "decisions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "key_points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.DiscussionPoint"
+                    }
+                },
+                "title": {
                     "type": "string"
                 }
             }
@@ -5237,6 +5331,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "body": {},
+                "canonical_summary": {
+                    "description": "CanonicalSummary contains the full canonical meeting summary contract data.\nPopulated when the summary pipeline successfully validates output against the canonical contract.\nConsumers that want structured data should prefer this over parsing the markdown Summary field.\nNil/empty when validation failed or canonical contract is not yet adopted.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dtos.CanonicalMeetingSummary"
+                        }
+                    ]
+                },
                 "coverage_stats": {
                     "$ref": "#/definitions/dtos.CoverageStats"
                 },
@@ -5415,6 +5517,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.RoleResponsibility": {
+            "type": "object",
+            "properties": {
+                "assigned_to": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.SceneIDResponseDTO": {
             "type": "object",
             "properties": {
@@ -5538,6 +5654,37 @@ const docTemplate = `{
                 "status": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "dtos.SummaryMetadata": {
+            "type": "object",
+            "properties": {
+                "context": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "language": {
+                    "description": "Required: output language of the summary",
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "meeting_title": {
+                    "type": "string"
+                },
+                "participants": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "style": {
+                    "description": "e.g., \"minutes\", \"executive\"",
+                    "type": "string"
                 }
             }
         },
