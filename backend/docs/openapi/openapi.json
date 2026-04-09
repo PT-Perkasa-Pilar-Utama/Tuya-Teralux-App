@@ -5323,6 +5323,59 @@
                     }
                 }
             },
+            "dtos.CanonicalMeetingSummary": {
+                "type": "object",
+                "properties": {
+                    "action_items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.ActionItem"
+                        }
+                    },
+                    "additional_notes": {
+                        "type": "string"
+                    },
+                    "agenda": {
+                        "type": "string"
+                    },
+                    "background_and_objective": {
+                        "type": "string"
+                    },
+                    "decisions_made": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.Decision"
+                        }
+                    },
+                    "main_discussion_sections": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.DiscussionSection"
+                        }
+                    },
+                    "metadata": {
+                        "$ref": "#/components/schemas/dtos.SummaryMetadata"
+                    },
+                    "open_issues": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.OpenIssue"
+                        }
+                    },
+                    "risks_and_mitigation": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.Risk"
+                        }
+                    },
+                    "roles_and_responsibilities": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.RoleResponsibility"
+                        }
+                    }
+                }
+            },
             "dtos.ConfidenceSummary": {
                 "type": "object",
                 "properties": {
@@ -5576,6 +5629,47 @@
                         "type": "string"
                     },
                     "value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "dtos.DiscussionPoint": {
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string"
+                    },
+                    "speaker": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "description": "Optional timestamp reference"
+                    }
+                }
+            },
+            "dtos.DiscussionSection": {
+                "type": "object",
+                "properties": {
+                    "action_items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "decisions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "key_points": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/dtos.DiscussionPoint"
+                        }
+                    },
+                    "title": {
                         "type": "string"
                     }
                 }
@@ -5962,6 +6056,14 @@
                         "type": "string"
                     },
                     "body": {},
+                    "canonical_summary": {
+                        "description": "CanonicalSummary contains the full canonical meeting summary contract data.\nPopulated when the summary pipeline successfully validates output against the canonical contract.\nConsumers that want structured data should prefer this over parsing the markdown Summary field.\nNil/empty when validation failed or canonical contract is not yet adopted.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/dtos.CanonicalMeetingSummary"
+                            }
+                        ]
+                    },
                     "coverage_stats": {
                         "$ref": "#/components/schemas/dtos.CoverageStats"
                     },
@@ -6140,6 +6242,20 @@
                     }
                 }
             },
+            "dtos.RoleResponsibility": {
+                "type": "object",
+                "properties": {
+                    "assigned_to": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            },
             "dtos.SceneIDResponseDTO": {
                 "type": "object",
                 "properties": {
@@ -6263,6 +6379,37 @@
                     "status": {
                         "type": "boolean",
                         "example": true
+                    }
+                }
+            },
+            "dtos.SummaryMetadata": {
+                "type": "object",
+                "properties": {
+                    "context": {
+                        "type": "string"
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Required: output language of the summary"
+                    },
+                    "location": {
+                        "type": "string"
+                    },
+                    "meeting_title": {
+                        "type": "string"
+                    },
+                    "participants": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "style": {
+                        "type": "string",
+                        "description": "e.g., \"minutes\", \"executive\""
                     }
                 }
             },

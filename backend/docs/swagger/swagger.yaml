@@ -83,6 +83,41 @@ definitions:
         example: /api/whisper/models/gemini
         type: string
     type: object
+  dtos.CanonicalMeetingSummary:
+    properties:
+      action_items:
+        items:
+          $ref: '#/definitions/dtos.ActionItem'
+        type: array
+      additional_notes:
+        type: string
+      agenda:
+        type: string
+      background_and_objective:
+        type: string
+      decisions_made:
+        items:
+          $ref: '#/definitions/dtos.Decision'
+        type: array
+      main_discussion_sections:
+        items:
+          $ref: '#/definitions/dtos.DiscussionSection'
+        type: array
+      metadata:
+        $ref: '#/definitions/dtos.SummaryMetadata'
+      open_issues:
+        items:
+          $ref: '#/definitions/dtos.OpenIssue'
+        type: array
+      risks_and_mitigation:
+        items:
+          $ref: '#/definitions/dtos.Risk'
+        type: array
+      roles_and_responsibilities:
+        items:
+          $ref: '#/definitions/dtos.RoleResponsibility'
+        type: array
+    type: object
   dtos.ConfidenceSummary:
     properties:
       average_confidence:
@@ -251,6 +286,33 @@ definitions:
       updated_at:
         type: string
       value:
+        type: string
+    type: object
+  dtos.DiscussionPoint:
+    properties:
+      content:
+        type: string
+      speaker:
+        type: string
+      timestamp:
+        description: Optional timestamp reference
+        type: string
+    type: object
+  dtos.DiscussionSection:
+    properties:
+      action_items:
+        items:
+          type: string
+        type: array
+      decisions:
+        items:
+          type: string
+        type: array
+      key_points:
+        items:
+          $ref: '#/definitions/dtos.DiscussionPoint'
+        type: array
+      title:
         type: string
     type: object
   dtos.ErrorResponse:
@@ -527,6 +589,14 @@ definitions:
       agenda_context:
         type: string
       body: {}
+      canonical_summary:
+        allOf:
+        - $ref: '#/definitions/dtos.CanonicalMeetingSummary'
+        description: |-
+          CanonicalSummary contains the full canonical meeting summary contract data.
+          Populated when the summary pipeline successfully validates output against the canonical contract.
+          Consumers that want structured data should prefer this over parsing the markdown Summary field.
+          Nil/empty when validation failed or canonical contract is not yet adopted.
       coverage_stats:
         $ref: '#/definitions/dtos.CoverageStats'
       decisions:
@@ -652,6 +722,15 @@ definitions:
       mitigation:
         type: string
     type: object
+  dtos.RoleResponsibility:
+    properties:
+      assigned_to:
+        type: string
+      description:
+        type: string
+      role:
+        type: string
+    type: object
   dtos.SceneIDResponseDTO:
     properties:
       scene_id:
@@ -736,6 +815,27 @@ definitions:
       status:
         example: true
         type: boolean
+    type: object
+  dtos.SummaryMetadata:
+    properties:
+      context:
+        type: string
+      date:
+        type: string
+      language:
+        description: 'Required: output language of the summary'
+        type: string
+      location:
+        type: string
+      meeting_title:
+        type: string
+      participants:
+        items:
+          type: string
+        type: array
+      style:
+        description: e.g., "minutes", "executive"
+        type: string
     type: object
   dtos.TaskIDResponseDTO:
     properties:

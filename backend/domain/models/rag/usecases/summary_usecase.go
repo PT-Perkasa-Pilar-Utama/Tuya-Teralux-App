@@ -86,6 +86,7 @@ type summaryUseCase struct {
 	chunkSkill                skills.Skill
 	structuredExtractionSkill skills.Skill // For hierarchical map phase JSON extraction
 	providerResolver          providers.ProviderResolver
+	normalizer                *services.SummaryNormalizer // Phase 2: normalize raw LLM output to canonical
 }
 
 func NewSummaryUseCase(
@@ -117,6 +118,7 @@ func NewSummaryUseCase(
 		chunkSkill:                chunkSkill,
 		structuredExtractionSkill: structuredExtractionSkill,
 		providerResolver:          providerResolver,
+		normalizer:                services.NewSummaryNormalizer(),
 	}
 }
 
@@ -291,6 +293,47 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		meetingContext = inferredAgenda
 	}
 
+	// ============================================================
+	// Phase 2 & 3: Normalize → Validate → Render (Three-Phase Pipeline)
+	// Phase 1 (Generate) already completed above — trimmedSummary holds raw LLM output.
+	// Phase 2: Normalize raw markdown into CanonicalMeetingSummary, then validate.
+	// Phase 3: If validation passes, generate clean markdown from canonical.
+	//          If validation fails, fall back to raw LLM output with a warning.
+	// ============================================================
+	var canonicalSummary *dtos.CanonicalMeetingSummary
+	finalMarkdown := trimmedSummary // Default fallback
+
+	if u.normalizer != nil && trimmedSummary != "" {
+		// Build metadata for normalization
+		meta := dtos.SummaryMetadata{
+			MeetingTitle: inferredAgenda, // Use inferred agenda as title fallback
+			Date:         date,
+			Location:     location,
+			Context:      meetingContext,
+			Style:        style,
+			Language:     language,
+		}
+		if participants != "" {
+			meta.Participants = strings.Split(participants, ",")
+		}
+
+		// Phase 2: Normalize raw LLM output into canonical struct
+		canonicalSummary = u.normalizer.NormalizeToCanonical(trimmedSummary, meta)
+
+		// Phase 2: Validate against contract
+		validationErr := services.ValidateSummary(canonicalSummary)
+		if validationErr != nil {
+			// Validation failed — fall back to raw LLM output
+			// Log warning with validation details for debugging and future repair workflow (#39)
+			utils.LogInfo("SummaryUseCase: Summary validation failed, falling back to raw output: %v", validationErr)
+			canonicalSummary = nil
+			finalMarkdown = trimmedSummary
+		} else {
+			// Phase 3: Validation passed — generate clean markdown from validated canonical
+			finalMarkdown = services.GenerateMarkdown(canonicalSummary)
+		}
+	}
+
 	// PDF Generation
 	uuidStr, _ := uuid.NewV7()
 	pdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
@@ -314,7 +357,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 			CustomerName: "Internal User",
 			CompanyName:  "Sensio",
 		}
-		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
+		if err := u.renderer.Render(finalMarkdown, pdfPath, meta); err != nil {
 			// Log warning but don't fail the entire operation
 			// PDF generation is optional for platforms without Chromium support
 			fmt.Printf("[WARNING] PDF generation skipped: %v\n", err)
@@ -331,10 +374,11 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 
 	// Build response with structured fields (backward compatible)
 	response := &dtos.RAGSummaryResponseDTO{
-		Summary:       trimmedSummary,
-		PDFUrl:        pdfUrl,
-		AgendaContext: meetingContext,
-		SummaryMode:   summaryMode,
+		Summary:          finalMarkdown,
+		PDFUrl:           pdfUrl,
+		AgendaContext:    meetingContext,
+		SummaryMode:      summaryMode,
+		CanonicalSummary: canonicalSummary, // Populated when validation passes, nil on fallback
 	}
 
 	// Populate structured fields if hierarchical summarization was used
@@ -345,6 +389,35 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		response.OpenIssues = hierarchicalResult.OpenIssues
 		response.Risks = hierarchicalResult.Risks
 		response.CoverageStats = hierarchicalResult.CoverageStats
+
+		// If canonicalSummary wasn't populated by the three-phase pipeline,
+		// construct it directly from the structured artifacts (more reliable than parsing markdown)
+		if canonicalSummary == nil && u.normalizer != nil {
+			meta := dtos.SummaryMetadata{
+				MeetingTitle: inferredAgenda,
+				Date:         date,
+				Location:     location,
+				Context:      meetingContext,
+				Style:        style,
+				Language:     language,
+			}
+			if participants != "" {
+				meta.Participants = strings.Split(participants, ",")
+			}
+			canonicalFromArtifacts := u.normalizer.NormalizeFromStructuredArtifacts(
+				meta,
+				inferredAgenda,
+				hierarchicalResult.ActionItems,
+				hierarchicalResult.Decisions,
+				hierarchicalResult.OpenIssues,
+				hierarchicalResult.Risks,
+			)
+			// Validate the artifact-constructed canonical
+			validationErr := services.ValidateSummary(canonicalFromArtifacts)
+			if validationErr == nil {
+				response.CanonicalSummary = canonicalFromArtifacts
+			}
+		}
 	}
 
 	return response, nil
