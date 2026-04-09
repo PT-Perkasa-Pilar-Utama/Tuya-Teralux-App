@@ -9,6 +9,7 @@ import com.example.whisperandroid.domain.repository.TerminalRepository
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
 import com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -128,5 +129,223 @@ class DashboardViewModelTest {
 
         val state = vm.uiState.value
         assertEquals("sync failed", state.error)
+    }
+
+    @Test
+    fun `resetAiProvider_whenFlagFalseAndProviderPresent_callsUpdateWithEmptyString`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>()
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC:DD:EE:FF"
+        io.mockk.every { tokenManager.getTerminalId() } returns "terminal-123"
+
+        val mockRegistration = mockk<com.example.whisperandroid.domain.model.TerminalRegistration>()
+        io.mockk.every { mockRegistration.aiProvider } returns "gemini"
+
+        coEvery { terminalRepository.getTerminalByMac("AA:BB:CC:DD:EE:FF") } returns Result.success(mockRegistration)
+        coEvery { terminalRepository.updateTerminal("terminal-123", "") } returns Result.success(Unit)
+
+        val tuyaSyncReadyFlow = MutableStateFlow(false)
+
+        val vm = DashboardViewModel(
+            authUC,
+            devicesUC,
+            modeStore,
+            terminalRepository,
+            tokenManager,
+            tuyaSyncReadyFlow,
+            isAiEngineSelectorVisible = false
+        )
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { terminalRepository.updateTerminal("terminal-123", "") }
+        assertEquals("", vm.uiState.value.aiProvider)
+    }
+
+    @Test
+    fun `resetAiProvider_whenFlagFalseAndProviderEmpty_doesNotCallUpdate`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>()
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC:DD:EE:FF"
+        io.mockk.every { tokenManager.getTerminalId() } returns "terminal-123"
+
+        val mockRegistration = mockk<com.example.whisperandroid.domain.model.TerminalRegistration>()
+        io.mockk.every { mockRegistration.aiProvider } returns null
+
+        coEvery { terminalRepository.getTerminalByMac("AA:BB:CC:DD:EE:FF") } returns Result.success(mockRegistration)
+
+        val tuyaSyncReadyFlow = MutableStateFlow(false)
+
+        val vm = DashboardViewModel(
+            authUC,
+            devicesUC,
+            modeStore,
+            terminalRepository,
+            tokenManager,
+            tuyaSyncReadyFlow,
+            isAiEngineSelectorVisible = false
+        )
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { terminalRepository.updateTerminal(any(), any()) }
+    }
+
+    @Test
+    fun `resetAiProvider_whenFlagTrue_doesNotCallUpdate`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>()
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC:DD:EE:FF"
+        io.mockk.every { tokenManager.getTerminalId() } returns "terminal-123"
+
+        val mockRegistration = mockk<com.example.whisperandroid.domain.model.TerminalRegistration>()
+        io.mockk.every { mockRegistration.aiProvider } returns "openai"
+
+        coEvery { terminalRepository.getTerminalByMac("AA:BB:CC:DD:EE:FF") } returns Result.success(mockRegistration)
+
+        val tuyaSyncReadyFlow = MutableStateFlow(false)
+
+        val vm = DashboardViewModel(
+            authUC,
+            devicesUC,
+            modeStore,
+            terminalRepository,
+            tokenManager,
+            tuyaSyncReadyFlow,
+            isAiEngineSelectorVisible = true
+        )
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { terminalRepository.updateTerminal(any(), any()) }
+        assertEquals("openai", vm.uiState.value.aiProvider)
+    }
+
+    @Test
+    fun `resetAiProvider_onFailure_doesNotCrashOrShowError`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>()
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC:DD:EE:FF"
+        io.mockk.every { tokenManager.getTerminalId() } returns "terminal-123"
+
+        val mockRegistration = mockk<com.example.whisperandroid.domain.model.TerminalRegistration>()
+        io.mockk.every { mockRegistration.aiProvider } returns "gemini"
+
+        coEvery { terminalRepository.getTerminalByMac("AA:BB:CC:DD:EE:FF") } returns Result.success(mockRegistration)
+        coEvery { terminalRepository.updateTerminal("terminal-123", "") } returns Result.failure(Exception("Network error"))
+
+        val tuyaSyncReadyFlow = MutableStateFlow(false)
+
+        val vm = DashboardViewModel(
+            authUC,
+            devicesUC,
+            modeStore,
+            terminalRepository,
+            tokenManager,
+            tuyaSyncReadyFlow,
+            isAiEngineSelectorVisible = false
+        )
+        advanceUntilIdle()
+
+        // Verify no error in UI state
+        assertEquals(null, vm.uiState.value.error)
+        // Provider remains unchanged
+        assertEquals("gemini", vm.uiState.value.aiProvider)
+    }
+
+    @Test
+    fun `resetAiProvider_calledTwice_onlyExecutesOnce`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>()
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC:DD:EE:FF"
+        io.mockk.every { tokenManager.getTerminalId() } returns "terminal-123"
+
+        val mockRegistration = mockk<com.example.whisperandroid.domain.model.TerminalRegistration>()
+        io.mockk.every { mockRegistration.aiProvider } returns "gemini"
+
+        coEvery { terminalRepository.getTerminalByMac("AA:BB:CC:DD:EE:FF") } returns Result.success(mockRegistration)
+        coEvery { terminalRepository.updateTerminal("terminal-123", "") } returns Result.success(Unit)
+
+        val tuyaSyncReadyFlow = MutableStateFlow(false)
+
+        val vm = DashboardViewModel(
+            authUC,
+            devicesUC,
+            modeStore,
+            terminalRepository,
+            tokenManager,
+            tuyaSyncReadyFlow,
+            isAiEngineSelectorVisible = false
+        )
+        advanceUntilIdle()
+
+        // Manually trigger load again to simulate calling twice
+        vm.loadCurrentAiProvider()
+        advanceUntilIdle()
+
+        // Verify updateTerminal was called exactly once
+        coVerify(exactly = 1) { terminalRepository.updateTerminal("terminal-123", "") }
+    }
+
+    @Test
+    fun `resetAiProvider_afterSuccess_uiStateReflectsClearedProvider`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>()
+        io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC:DD:EE:FF"
+        io.mockk.every { tokenManager.getTerminalId() } returns "terminal-123"
+
+        val mockRegistration = mockk<com.example.whisperandroid.domain.model.TerminalRegistration>()
+        io.mockk.every { mockRegistration.aiProvider } returns "openai"
+
+        coEvery { terminalRepository.getTerminalByMac("AA:BB:CC:DD:EE:FF") } returns Result.success(mockRegistration)
+        coEvery { terminalRepository.updateTerminal("terminal-123", "") } returns Result.success(Unit)
+
+        val tuyaSyncReadyFlow = MutableStateFlow(false)
+
+        val vm = DashboardViewModel(
+            authUC,
+            devicesUC,
+            modeStore,
+            terminalRepository,
+            tokenManager,
+            tuyaSyncReadyFlow,
+            isAiEngineSelectorVisible = false
+        )
+        advanceUntilIdle()
+
+        assertEquals("", vm.uiState.value.aiProvider)
     }
 }

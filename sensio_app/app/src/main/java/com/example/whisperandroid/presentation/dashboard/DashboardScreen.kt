@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.example.whisperandroid.BuildConfig
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
 import com.example.whisperandroid.util.DeviceUtils
@@ -1174,12 +1175,14 @@ private fun DashboardPhoneLayout(
             layoutSpec = layoutSpec
         )
 
-        AiProviderCard(
-            selectedProvider = aiProvider,
-            isSaving = isSavingAiProvider,
-            onProviderSelected = onAiProviderChange,
-            layoutSpec = layoutSpec
-        )
+        if (BuildConfig.AI_ENGINE_SELECTOR_VISIBLE) {
+            AiProviderCard(
+                selectedProvider = aiProvider,
+                isSaving = isSavingAiProvider,
+                onProviderSelected = onAiProviderChange,
+                layoutSpec = layoutSpec
+            )
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing20)) {
             Text(
@@ -1262,12 +1265,14 @@ private fun DashboardTabletLayout(
             layoutSpec = layoutSpec
         )
 
-        AiProviderCard(
-            selectedProvider = aiProvider,
-            isSaving = isSavingAiProvider,
-            onProviderSelected = onAiProviderChange,
-            layoutSpec = layoutSpec
-        )
+        if (BuildConfig.AI_ENGINE_SELECTOR_VISIBLE) {
+            AiProviderCard(
+                selectedProvider = aiProvider,
+                isSaving = isSavingAiProvider,
+                onProviderSelected = onAiProviderChange,
+                layoutSpec = layoutSpec
+            )
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing20)) {
             Text(
@@ -1380,12 +1385,14 @@ private fun DashboardTeraluxLayout(
                 layoutSpec = layoutSpec
             )
 
-            AiProviderCard(
-                selectedProvider = aiProvider,
-                isSaving = isSavingAiProvider,
-                onProviderSelected = onAiProviderChange,
-                layoutSpec = layoutSpec
-            )
+            if (BuildConfig.AI_ENGINE_SELECTOR_VISIBLE) {
+                AiProviderCard(
+                    selectedProvider = aiProvider,
+                    isSaving = isSavingAiProvider,
+                    onProviderSelected = onAiProviderChange,
+                    layoutSpec = layoutSpec
+                )
+            }
 
             // Footer spacer: only effective in non-scrollable layouts
             if (!layoutSpec.isScrollable) {

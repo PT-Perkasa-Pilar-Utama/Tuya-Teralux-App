@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
 class MeetingForegroundService : Service() {
@@ -186,9 +187,11 @@ class MeetingForegroundService : Service() {
             try {
                 val token = tokenManager.getAccessToken() ?: ""
                 if (token.isNotEmpty()) {
-                    // Run cancel request in current coroutine scope (already IO dispatcher)
-                    val result = withTimeoutOrNull(5000) {
-                        NetworkModule.pipelineRepository.cancelPipelineTask(taskId, token)
+                    // Run cancel request in a blocking coroutine scope
+                    val result = runBlocking(Dispatchers.IO) {
+                        withTimeoutOrNull(5000) {
+                            NetworkModule.pipelineRepository.cancelPipelineTask(taskId, token)
+                        }
                     }
                     // Check if result is success
                     backendCancelSucceeded = result?.isSuccess == true

@@ -1,11 +1,19 @@
 package com.example.whisperandroid.presentation.dashboard
 
 import android.content.Context
+import android.content.Intent
 import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.whisperandroid.BuildConfig
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.local.BackgroundAssistantModeStore
+import com.example.whisperandroid.data.local.TokenManager
 import com.example.whisperandroid.domain.repository.TerminalRepository
+import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
+import com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
+import com.example.whisperandroid.service.BackgroundAssistantService
+import com.example.whisperandroid.util.AppLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,14 +30,13 @@ data class DashboardUiState(
 )
 
 class DashboardViewModel(
-    private val authenticateUseCase: com.example.whisperandroid.domain.usecase.AuthenticateUseCase,
-    private val getTuyaDevicesUseCase:
-        com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase,
-    private val backgroundAssistantModeStore:
-        com.example.whisperandroid.data.local.BackgroundAssistantModeStore,
+    private val authenticateUseCase: AuthenticateUseCase,
+    private val getTuyaDevicesUseCase: GetTuyaDevicesUseCase,
+    private val backgroundAssistantModeStore: BackgroundAssistantModeStore,
     private val terminalRepository: TerminalRepository,
-    private val tokenManager: com.example.whisperandroid.data.local.TokenManager,
-    private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady
+    private val tokenManager: TokenManager,
+    private val tuyaSyncReadyFlow: StateFlow<Boolean> = NetworkModule.isTuyaSyncReady,
+    private val isAiEngineSelectorVisible: Boolean = BuildConfig.AI_ENGINE_SELECTOR_VISIBLE
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         DashboardUiState(
@@ -37,6 +44,8 @@ class DashboardViewModel(
         )
     )
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
+
+    private var hasResetAiProvider = false
 
     init {
         observeBackgroundMode()
@@ -75,6 +84,8 @@ class DashboardViewModel(
                 _uiState.value = _uiState.value.copy(
                     aiProvider = registration?.aiProvider
                 )
+                // After loading the current provider, check if we need to reset it
+                resetAiProviderIfNeeded()
             }
         }
     }
@@ -117,13 +128,61 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * Resets the AI provider preference if the selector is hidden via BuildConfig flag.
+     * This is a best-effort, one-shot operation per ViewModel lifecycle.
+     * Errors are logged internally but not exposed to the UI state.
+     */
+    private fun resetAiProviderIfNeeded() {
+        // Only reset if the selector is hidden
+        if (isAiEngineSelectorVisible) {
+            return
+        }
+
+        // Only reset once per ViewModel lifecycle
+        if (hasResetAiProvider) {
+            return
+        }
+
+        // Only reset if there's a provider to clear
+        val currentProvider = _uiState.value.aiProvider
+        if (currentProvider.isNullOrEmpty()) {
+            return
+        }
+
+        // Perform the reset
+        viewModelScope.launch {
+            val terminalId = tokenManager.getTerminalId()
+            if (terminalId.isNullOrEmpty()) {
+                AppLog.w("DashboardViewModel", "Cannot reset AI provider: terminal ID is null/empty")
+                return@launch
+            }
+
+            kotlin.runCatching {
+                terminalRepository.updateTerminal(terminalId, "")
+            }.onSuccess { result ->
+                result.onSuccess {
+                    hasResetAiProvider = true
+                    _uiState.value = _uiState.value.copy(
+                        aiProvider = ""
+                    )
+                    AppLog.d("DashboardViewModel", "AI provider reset successfully")
+                }.onFailure { e ->
+                    AppLog.e("DashboardViewModel", "Failed to reset AI provider: ${e.message}")
+                }
+            }.onFailure { e ->
+                AppLog.e("DashboardViewModel", "Unexpected error during AI provider reset: ${e.message}")
+            }
+        }
+    }
+
     fun setBackgroundMode(context: Context, enabled: Boolean) {
         backgroundAssistantModeStore.setEnabled(enabled)
-        val intent = android.content.`Intent`(context, com.example.whisperandroid.service.BackgroundAssistantService::class.java).apply {
+        val intent = Intent(context, BackgroundAssistantService::class.java).apply {
             action = if (enabled) {
-                com.example.whisperandroid.service.BackgroundAssistantService.ACTION_START_ASSISTANT
+                BackgroundAssistantService.ACTION_START_ASSISTANT
             } else {
-                com.example.whisperandroid.service.BackgroundAssistantService.ACTION_STOP_ASSISTANT
+                BackgroundAssistantService.ACTION_STOP_ASSISTANT
             }
         }
 
