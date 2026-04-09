@@ -181,13 +181,18 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	}
 
 	// Use health-aware fallback chain for summarization with terminal preference
-	executeWithFallback := func(ctx context.Context, prompt string, language string, meetingContext string, style string, date string, location string, participants string) (*skills.SkillResult, error) {
+	// Provider mode policy:
+	// - DefaultMode (no macAddress): health-aware fallback across all available providers
+	// - ExplicitMode (macAddress + terminal has explicit provider): strict use of selected provider only
+	executeWithFallback := func(ctx context.Context, prompt string, language string, meetingContext string, style string, date string, location string, participants string) (*skills.SkillResult, *providers.ResolvedProviderSet, error) {
 		var result *skills.SkillResult
+		var resolvedSet *providers.ResolvedProviderSet
 		var err error
 
 		if macAddress != "" {
-			// Use terminal-specific provider preference
-			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+			// ExplicitMode: resolve by MAC address (may be explicit or default for this terminal)
+			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(rs *providers.ResolvedProviderSet) error {
+				resolvedSet = rs
 				skillCtx := &skills.SkillContext{
 					Ctx:          ctx,
 					Prompt:       prompt,
@@ -207,8 +212,9 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 				return execErr
 			})
 		} else {
-			// Use standard health-aware fallback
-			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			// DefaultMode: standard health-aware fallback
+			err = u.providerResolver.ExecuteWithFallback(func(rs *providers.ResolvedProviderSet) error {
+				resolvedSet = rs
 				skillCtx := &skills.SkillContext{
 					Ctx:          ctx,
 					Prompt:       prompt,
@@ -228,13 +234,14 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 				return execErr
 			})
 		}
-		return result, err
+		return result, resolvedSet, err
 	}
 
 	var trimmedSummary string
 	var inferredAgenda string
 	var res *skills.SkillResult
 	var err error
+	var usedResolvedSet *providers.ResolvedProviderSet // Track which provider was actually used
 
 	// Track summary mode for observability
 	summaryMode := "single_pass"
@@ -259,7 +266,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		utils.LogInfo("SummaryUseCase: Falling back to chunked summarization")
 		chunkedSummary, chunkErr := u.summarizeInChunks(ctx, text, language, meetingContext, macAddress)
 		if chunkErr == nil {
-			res, err = executeWithFallback(ctx, chunkedSummary, language, meetingContext, style, date, location, participants)
+			res, usedResolvedSet, err = executeWithFallback(ctx, chunkedSummary, language, meetingContext, style, date, location, participants)
 			if err == nil {
 				trimmedSummary = res.Message
 			}
@@ -270,7 +277,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 
 	// Single-pass execution for short transcripts or fallback
 	if trimmedSummary == "" {
-		res, err = executeWithFallback(ctx, text, language, meetingContext, style, date, location, participants)
+		res, usedResolvedSet, err = executeWithFallback(ctx, text, language, meetingContext, style, date, location, participants)
 		if err != nil {
 			return nil, err
 		}
@@ -373,12 +380,26 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	}
 
 	// Build response with structured fields (backward compatible)
+	// Populate provider mode and selected provider for observability
+	providerMode := "default"
+	selectedProvider := ""
+	if usedResolvedSet != nil {
+		if usedResolvedSet.IsExplicit {
+			providerMode = "explicit"
+		} else {
+			providerMode = "default"
+		}
+		selectedProvider = usedResolvedSet.ProviderName
+	}
+
 	response := &dtos.RAGSummaryResponseDTO{
 		Summary:          finalMarkdown,
 		PDFUrl:           pdfUrl,
 		AgendaContext:    meetingContext,
 		SummaryMode:      summaryMode,
 		CanonicalSummary: canonicalSummary, // Populated when validation passes, nil on fallback
+		ProviderMode:     providerMode,
+		SelectedProvider: selectedProvider,
 	}
 
 	// Populate structured fields if hierarchical summarization was used
@@ -1060,6 +1081,9 @@ func (u *summaryUseCase) runSummaryAsync(ctx context.Context, taskID string, tex
 		status.SpeakerCoverage = res.SpeakerCoverage
 		status.SourceLanguage = res.SourceLanguage
 		status.TranslatedFromLanguage = res.TranslatedFromLanguage
+		status.CanonicalSummary = res.CanonicalSummary
+		status.ProviderMode = res.ProviderMode
+		status.SelectedProvider = res.SelectedProvider
 
 		if status.MacAddress != "" && u.mqttSvc != nil {
 			topic := fmt.Sprintf("users/%s/%s/task", status.MacAddress, u.config.ApplicationEnvironment)
