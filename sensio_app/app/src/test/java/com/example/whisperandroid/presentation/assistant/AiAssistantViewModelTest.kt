@@ -85,8 +85,8 @@ class AiAssistantViewModelTest {
 
         val cleanMessage = AssistantResponseParser.getCleanMessage(result, "en")
 
-        // Blocked should return identity introduction
-        assertTrue(cleanMessage?.contains("Sensio") == true)
+        // Blocked with null response should return voice not clear message (ASR quality gate)
+        assertTrue(cleanMessage?.contains("not clear") == true)
     }
 
     @Test
@@ -191,7 +191,7 @@ class AiAssistantViewModelTest {
         // This test verifies that when a whisper/answer message arrives with
         // source: MQTT_ACK, it is identified as a non-final acknowledgment
         // that should NOT trigger state transition to Idle.
-        
+
         // Simulate whisper/answer ACK with MQTT_ACK source
         val ackMessage = """
             {
@@ -205,23 +205,23 @@ class AiAssistantViewModelTest {
                 }
             }
         """.trimIndent()
-        
+
         // Parse the ACK message
         val parsedResult = AssistantResponseParser.parseMqttAssistantResult(ackMessage)
-        
+
         // Verify parsing succeeded
         assert(parsedResult != null)
         assertEquals("MQTT_ACK", parsedResult?.source)
         assertEquals(false, parsedResult?.isBlocked)
         assertEquals(false, parsedResult?.isControl)
-        
+
         // CRITICAL: Verify isDupInProgress is false (MQTT_ACK is not an in-progress marker)
         // This means it won't be silently dropped, but also won't trigger completion
         assertEquals(false, parsedResult?.isDupInProgress)
-        
+
         // Verify isDupCached is false (this is not a cached response)
         assertEquals(false, parsedResult?.isDupCached)
-        
+
         // Verify no error flags
         assertEquals(false, parsedResult?.isValidationError)
     }
@@ -232,7 +232,7 @@ class AiAssistantViewModelTest {
         // status: false, it is identified as an error.
         // Note: isValidationError is only true for "Validation Error" message.
         // For other errors, the status field indicates failure.
-        
+
         // Simulate whisper/answer with error status
         val errorMessage = """
             {
@@ -240,15 +240,16 @@ class AiAssistantViewModelTest {
                 "message": "Voice transcription failed: audio too short"
             }
         """.trimIndent()
-        
+
         // Parse the error message
         val parsedResult = AssistantResponseParser.parseMqttAssistantResult(errorMessage)
-        
+
         // Verify parsing succeeded
         assert(parsedResult != null)
-        
-        // Verify the message is extracted (not a validation error)
-        assertEquals("Voice transcription failed: audio too short", parsedResult?.responseText)
+
+        // The envelope-level message is NOT extracted as responseText (by design)
+        // Only data.response is used for assistant text
+        assertEquals(null, parsedResult?.responseText)
         assertEquals(false, parsedResult?.isValidationError) // Only "Validation Error" triggers this
     }
 
@@ -256,7 +257,7 @@ class AiAssistantViewModelTest {
     fun `chat answer with final response is identified for completion`() {
         // This test verifies that when a chat/answer message arrives with
         // a final response, it is identified for state transition to Idle.
-        
+
         // Simulate chat/answer with final response
         val chatResponse = """
             {
@@ -271,20 +272,20 @@ class AiAssistantViewModelTest {
                 }
             }
         """.trimIndent()
-        
+
         // Parse the response
         val parsedResult = AssistantResponseParser.parseMqttAssistantResult(chatResponse)
-        
+
         // Verify parsing succeeded
         assert(parsedResult != null)
         assertEquals("MQTT_SUBSCRIBER", parsedResult?.source)
         assertEquals("Berhasil menyalakan AC", parsedResult?.responseText)
         assertEquals(true, parsedResult?.isControl)
-        
+
         // CRITICAL: Verify duplicate flags are false (this is a fresh response)
         assertEquals(false, parsedResult?.isDupInProgress)
         assertEquals(false, parsedResult?.isDupCached)
-        
+
         // Verify no error flags
         assertEquals(false, parsedResult?.isValidationError)
         assertEquals(false, parsedResult?.isBlocked)
@@ -294,7 +295,7 @@ class AiAssistantViewModelTest {
     fun `chat answer with IDEMPOTENCY_IN_PROGRESS is identified to be ignored`() {
         // This test verifies that in-progress acknowledgments are properly
         // identified and would be ignored in the MQTT flow.
-        
+
         // Simulate chat/answer with IDEMPOTENCY_IN_PROGRESS
         val inProgressMessage = """
             {
@@ -306,17 +307,17 @@ class AiAssistantViewModelTest {
                 }
             }
         """.trimIndent()
-        
+
         // Parse the response
         val parsedResult = AssistantResponseParser.parseMqttAssistantResult(inProgressMessage)
-        
+
         // Verify parsing succeeded
         assert(parsedResult != null)
         assertEquals("IDEMPOTENCY_IN_PROGRESS", parsedResult?.source)
-        
+
         // CRITICAL: isDupInProgress should be true, signaling this should be ignored
         assertEquals(true, parsedResult?.isDupInProgress)
-        
+
         // Verify it's not a cached response
         assertEquals(false, parsedResult?.isDupCached)
     }
@@ -325,7 +326,7 @@ class AiAssistantViewModelTest {
     fun `chat answer with IDEMPOTENCY_CACHED is identified as cached final response`() {
         // This test verifies that cached responses are properly identified
         // and would complete the request silently.
-        
+
         // Simulate chat/answer with IDEMPOTENCY_CACHED
         val cachedMessage = """
             {
@@ -340,15 +341,15 @@ class AiAssistantViewModelTest {
                 }
             }
         """.trimIndent()
-        
+
         // Parse the response
         val parsedResult = AssistantResponseParser.parseMqttAssistantResult(cachedMessage)
-        
+
         // Verify parsing succeeded
         assert(parsedResult != null)
         assertEquals("IDEMPOTENCY_CACHED", parsedResult?.source)
         assertEquals("Berhasil mematikan lampu (cached)", parsedResult?.responseText)
-        
+
         // CRITICAL: isDupCached should be true, signaling this is a cached final response
         assertEquals(true, parsedResult?.isDupCached)
         assertEquals(false, parsedResult?.isDupInProgress)
@@ -357,7 +358,7 @@ class AiAssistantViewModelTest {
     @Test
     fun `request_id mismatch is detected in MQTT response`() {
         // This test verifies that request_id mismatch is properly detected.
-        
+
         // Simulate response with different request_id
         val mismatchedResponse = """
             {
@@ -370,23 +371,25 @@ class AiAssistantViewModelTest {
                 }
             }
         """.trimIndent()
-        
+
         // Parse the response
         val parsedResult = AssistantResponseParser.parseMqttAssistantResult(mismatchedResponse)
-        
+
         // Verify parsing succeeded
         assert(parsedResult != null)
-        
+
         // The actual request_id from data
         val json = com.google.gson.JsonParser.parseString(mismatchedResponse).asJsonObject
         val data = json.getAsJsonObject("data")
         val responseRequestId = if (data.has("request_id") && !data.get("request_id").isJsonNull) {
             data.get("request_id").asString
-        } else null
-        
+        } else {
+            null
+        }
+
         // Verify request_id is present in response
         assertEquals("different-request-id-444", responseRequestId)
-        
+
         // Test would detect mismatch in actual flow by comparing with activeRequestId
         assertNotEquals("test-original-request-333", responseRequestId)
     }

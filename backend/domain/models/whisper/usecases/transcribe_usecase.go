@@ -56,13 +56,15 @@ type TranscribeUseCase interface {
 }
 
 type transcribeUseCase struct {
-	whisperClient    WhisperClient
-	refineUC         ragUsecases.RefineUseCase
-	store            *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
-	cache            *tasks.BadgerTaskCache
-	config           *utils.Config
-	mqttSvc          mqttPublisher
-	providerResolver providers.ProviderResolver
+	whisperClient       WhisperClient
+	refineUC            ragUsecases.RefineUseCase
+	store               *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
+	cache               *tasks.BadgerTaskCache
+	config              *utils.Config
+	mqttSvc             mqttPublisher
+	providerResolver    providers.ProviderResolver
+	audioAnalyzer       utils.AudioAnalyzer
+	transcriptValidator utils.TranscriptValidator
 }
 
 func NewTranscribeUseCase(
@@ -73,21 +75,27 @@ func NewTranscribeUseCase(
 	config *utils.Config,
 	mqttSvc mqttPublisher,
 	providerResolver providers.ProviderResolver,
+	audioAnalyzer utils.AudioAnalyzer,
+	transcriptValidator utils.TranscriptValidator,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
-		whisperClient:    whisperClient,
-		refineUC:         refineUC,
-		store:            store,
-		cache:            cache,
-		config:           config,
-		mqttSvc:          mqttSvc,
-		providerResolver: providerResolver,
+		whisperClient:       whisperClient,
+		refineUC:            refineUC,
+		store:               store,
+		cache:               cache,
+		config:              config,
+		mqttSvc:             mqttSvc,
+		providerResolver:    providerResolver,
+		audioAnalyzer:       audioAnalyzer,
+		transcriptValidator: transcriptValidator,
 	}
 }
 
 // transcribeWithFallback attempts transcription respecting terminal AI preferences first, then gracefully failing over to remote provider candidates
-func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, processingPath string, language string, diarize bool, disableFallback bool, isPipeline bool, resolvedProvider string, macAddress string) (*whisperdtos.WhisperResult, error) {
+// Returns both the result and the actual provider name used (may differ from resolvedProvider due to fallback)
+func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, processingPath string, language string, diarize bool, disableFallback bool, isPipeline bool, resolvedProvider string, macAddress string) (*whisperdtos.WhisperResult, string, error) {
 	var finalResult *whisperdtos.WhisperResult
+	var actualProvider string
 
 	executable := func(resolvedSet *providers.ResolvedProviderSet) error {
 		if resolvedSet.WhisperClient == nil {
@@ -96,6 +104,7 @@ func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, process
 		res, err := resolvedSet.WhisperClient.Transcribe(ctx, processingPath, language, diarize)
 		if err == nil {
 			finalResult = res
+			actualProvider = resolvedSet.ProviderName // Track actual provider used
 		}
 		return err
 	}
@@ -106,6 +115,9 @@ func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, process
 		providerSet := uc.providerResolver.ResolveProvider(resolvedProvider)
 		if providerSet != nil && providerSet.ProviderName == resolvedProvider && providerSet.WhisperClient != nil {
 			finalResult, err = providerSet.WhisperClient.Transcribe(ctx, processingPath, language, diarize)
+			if err == nil {
+				actualProvider = resolvedProvider
+			}
 		} else {
 			err = fmt.Errorf("provider %s not available", resolvedProvider)
 		}
@@ -115,7 +127,7 @@ func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, process
 		err = uc.providerResolver.ExecuteWithFallback(executable)
 	}
 
-	return finalResult, err
+	return finalResult, actualProvider, err
 }
 
 func (uc *transcribeUseCase) CheckIdempotency(idempotencyKey string, audioHash string, language string, terminalID string) (string, bool) {
@@ -244,6 +256,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	var resultSegments []whisperdtos.TranscriptSegment
 	var resultTranscriptFormat whisperdtos.TranscriptFormat
 	var resultConfidenceSummary *whisperdtos.ConfidenceSummary
+	var actualProvider string // Track actual provider used (may differ from resolvedProvider due to fallback)
 
 	// Resolve provider from terminal context (MAC address) if available
 	resolvedProvider := "unknown"
@@ -284,6 +297,34 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 
 	normalizedSize := fileInfo.Size()
 
+	// ASR Quality Gate: Pre-transcribe audio analysis
+	// Analyze audio for silence/low-signal detection before calling provider
+	audioClass := "active" // Default to active if analyzer is not available
+	providerSkipped := false
+	if uc.audioAnalyzer != nil {
+		audioResult, analyzeErr := uc.audioAnalyzer.Analyze(processingPath)
+		if analyzeErr != nil {
+			utils.LogWarn("TranscribeSync: Audio analysis failed: %v, proceeding with transcription", analyzeErr)
+		} else {
+			audioClass = string(audioResult.Class)
+			utils.LogInfo("TranscribeSync: Audio gate analysis | audio_class=%s | duration_sec=%.2f | mean_vol_db=%.1f | max_vol_db=%.1f | silence_pct=%.1f | longest_silence_sec=%.2f",
+				audioClass,
+				audioResult.Metrics.DurationSec,
+				audioResult.Metrics.MeanVolumeDB,
+				audioResult.Metrics.MaxVolumeDB,
+				audioResult.Metrics.SilencePercentage,
+				audioResult.Metrics.LongestSilenceSec)
+
+			// Gate decision: skip provider for silent audio
+			if audioResult.Class == utils.AudioClassSilent {
+				utils.LogInfo("TranscribeSync: Audio gate REJECT - silent audio detected, skipping provider call")
+				providerSkipped = true
+			} else if audioResult.Class == utils.AudioClassNearSilent {
+				utils.LogInfo("TranscribeSync: Audio gate WARNING - near-silent audio detected, will apply stricter post-gate validation")
+			}
+		}
+	}
+
 	// 2. Provider-aware segmentation decision
 	// Segmentation is MANDATORY for oversized files regardless of AUDIO_SEGMENT_ENABLED flag.
 	// The flag only controls segmentation for medium-sized files.
@@ -291,164 +332,175 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	segmentationIsRequired := normalizedSize > uc.getProviderDirectLimit(resolvedProvider)
 
 	if useSegment {
-		segmentSec := uc.config.AudioSegmentSec
-		if opts.ForceSegmentSec > 0 {
-			segmentSec = opts.ForceSegmentSec
-		} else if opts.IsPipeline && resolvedProvider == "orion" {
-			segmentSec = 180
-		} else if segmentSec < 60 {
-			segmentSec = 60
-		}
-		overlapSec := uc.config.AudioSegmentOverlapSec
-
-		utils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
-		segments, splitErr := utils.SplitAudioSegments(processingPath, segmentSec, overlapSec)
-		if splitErr != nil {
-			// CRITICAL: If segmentation is mandatory (file exceeds provider limit), DO NOT fallback to full file.
-			// This would send an oversized file to the provider and cause failure.
-			if segmentationIsRequired {
-				utils.LogError("TranscribeSync: Failed to split audio and segmentation is mandatory (size=%d bytes, provider=%s, limit=%d bytes). Aborting transcription.", normalizedSize, resolvedProvider, uc.getProviderDirectLimit(resolvedProvider))
-				return nil, fmt.Errorf("failed to split oversized audio for segmented transcription: %w; cannot fallback to full-file as it exceeds provider limit", splitErr)
-			}
-			// Segmentation was optional (flag-based), safe to fallback
-			utils.LogWarn("TranscribeSync: Failed to split audio, falling back to full file (segmentation was optional): %v", splitErr)
-			useSegment = false
+		// ASR Quality Gate: Skip segmentation entirely for silent audio
+		if providerSkipped {
+			utils.LogInfo("TranscribeSync: Audio gate REJECT - silent audio detected, skipping segmented transcription")
+			rawTranscription = ""
+			detectedLang = opts.Language
+			resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
 		} else {
-			defer utils.CleanupSegments(segments)
-
-			type segResult struct {
-				index int
-				text  string
-				lang  string
-				err   error
-			}
-
-			results := make([]segResult, len(segments))
-			concurrency := utils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency)
-			if opts.ForceSegmentConcurrency > 0 {
-				concurrency = opts.ForceSegmentConcurrency
+			segmentSec := uc.config.AudioSegmentSec
+			if opts.ForceSegmentSec > 0 {
+				segmentSec = opts.ForceSegmentSec
 			} else if opts.IsPipeline && resolvedProvider == "orion" {
-				concurrency = 1
+				segmentSec = 180
+			} else if segmentSec < 60 {
+				segmentSec = 60
 			}
-			sem := make(chan struct{}, concurrency)
-			var wg sync.WaitGroup
+			overlapSec := uc.config.AudioSegmentOverlapSec
 
-			var completed int
-			var lastProgress int
-			var mu sync.Mutex
-
-			for i, seg := range segments {
-				wg.Add(1)
-				go func(idx int, path string) {
-					defer wg.Done()
-
-					// Check context before starting
-					select {
-					case <-ctx.Done():
-						mu.Lock()
-						results[idx] = segResult{index: idx, err: ctx.Err()}
-						mu.Unlock()
-						return
-					case sem <- struct{}{}:
-						defer func() { <-sem }()
-					}
-
-					var res *whisperdtos.WhisperResult
-					var transErr error
-
-					var macAddress string
-					if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
-						macAddress = opts.TerminalContext[0]
-					}
-					// Use health-aware fallback chain for each segment
-					res, transErr = uc.transcribeWithFallback(ctx, path, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
-
-					mu.Lock()
-					defer mu.Unlock()
-					if transErr != nil {
-						results[idx] = segResult{index: idx, err: transErr}
-					} else {
-						results[idx] = segResult{index: idx, text: res.Transcription, lang: res.DetectedLanguage}
-					}
-
-					completed++
-					if opts.ProgressCallback != nil {
-						progress := int((float64(completed) / float64(len(segments))) * 100)
-						if progress > lastProgress {
-							lastProgress = progress
-							go opts.ProgressCallback(progress)
-						}
-					}
-				}(i, seg.Path)
-			}
-			wg.Wait()
-
-			// Merge and Dedup - now preserving segment structure
-			var mergedText string
-			var allSegments []whisperdtos.TranscriptSegment
-			var allUtterances []whisperdtos.Utterance
-
-			// Track cumulative offset for segment timing
-			var cumulativeOffsetMs int64 = 0
-
-			for i, r := range results {
-				if r.err != nil {
-					return nil, fmt.Errorf("segment %d failed: %w", r.index, r.err)
+			utils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
+			segments, splitErr := utils.SplitAudioSegments(processingPath, segmentSec, overlapSec)
+			if splitErr != nil {
+				// CRITICAL: If segmentation is mandatory (file exceeds provider limit), DO NOT fallback to full file.
+				// This would send an oversized file to the provider and cause failure.
+				if segmentationIsRequired {
+					utils.LogError("TranscribeSync: Failed to split audio and segmentation is mandatory (size=%d bytes, provider=%s, limit=%d bytes). Aborting transcription.", normalizedSize, resolvedProvider, uc.getProviderDirectLimit(resolvedProvider))
+					return nil, fmt.Errorf("failed to split oversized audio for segmented transcription: %w; cannot fallback to full-file as it exceeds provider limit", splitErr)
 				}
-
-				if i == 0 {
-					mergedText = r.text
-					detectedLang = r.lang
-				} else {
-					// Use utility merge function that handles overlap detection
-					overlapChars := utils.FindOverlapLength(mergedText, r.text)
-					if overlapChars > 0 {
-						r.text = r.text[overlapChars:]
-					}
-					mergedText = mergedText + " " + strings.TrimSpace(r.text)
-					if detectedLang == "" && r.lang != "" {
-						detectedLang = r.lang
-					}
-				}
-
-				// Create segment record with timing info (estimated)
-				// WARNING: These are HEURISTIC ESTIMATES based on text length (~10 chars/sec).
-				// They are NOT audio-aligned timestamps. Do NOT treat as precise evidence.
-				segment := whisperdtos.TranscriptSegment{
-					Index:   i,
-					StartMs: cumulativeOffsetMs,
-					EndMs:   cumulativeOffsetMs + int64(len(r.text)*100), // ~10 chars/sec estimate
-					Text:    r.text,
-				}
-				allSegments = append(allSegments, segment)
-
-				// Parse utterances from this segment ONLY if diarization was requested
-				// This prevents false-positive structured output when diarize=false
-				if opts.Diarize {
-					if segmentUtterances := utils.ParseUtterancesFromText(r.text); len(segmentUtterances) > 0 {
-						// Adjust utterance timestamps to global timeline
-						for j := range segmentUtterances {
-							segmentUtterances[j].StartMs += cumulativeOffsetMs
-							segmentUtterances[j].EndMs += cumulativeOffsetMs
-						}
-						segment.Utterances = segmentUtterances
-						allUtterances = append(allUtterances, segmentUtterances...)
-					}
-				}
-
-				cumulativeOffsetMs += int64(len(r.text) * 100)
-			}
-
-			rawTranscription = strings.TrimSpace(mergedText)
-
-			// Store structured results from segmented transcription
-			resultSegments = allSegments
-			resultUtterances = allUtterances
-			if len(allUtterances) > 0 {
-				resultTranscriptFormat = whisperdtos.TranscriptFormatUtteranceList
-				resultConfidenceSummary = utils.BuildConfidenceSummary(allUtterances, len(allSegments))
+				// Segmentation was optional (flag-based), safe to fallback
+				utils.LogWarn("TranscribeSync: Failed to split audio, falling back to full file (segmentation was optional): %v", splitErr)
+				useSegment = false
 			} else {
-				resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
+				defer utils.CleanupSegments(segments)
+
+				type segResult struct {
+					index int
+					text  string
+					lang  string
+					err   error
+				}
+
+				results := make([]segResult, len(segments))
+				concurrency := utils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency)
+				if opts.ForceSegmentConcurrency > 0 {
+					concurrency = opts.ForceSegmentConcurrency
+				} else if opts.IsPipeline && resolvedProvider == "orion" {
+					concurrency = 1
+				}
+				sem := make(chan struct{}, concurrency)
+				var wg sync.WaitGroup
+
+				var completed int
+				var lastProgress int
+				var mu sync.Mutex
+
+				for i, seg := range segments {
+					wg.Add(1)
+					go func(idx int, path string) {
+						defer wg.Done()
+
+						// Check context before starting
+						select {
+						case <-ctx.Done():
+							mu.Lock()
+							results[idx] = segResult{index: idx, err: ctx.Err()}
+							mu.Unlock()
+							return
+						case sem <- struct{}{}:
+							defer func() { <-sem }()
+						}
+
+						var res *whisperdtos.WhisperResult
+						var transErr error
+
+						var macAddress string
+						if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
+							macAddress = opts.TerminalContext[0]
+						}
+						// Use health-aware fallback chain for each segment
+						res, segmentProvider, transErr := uc.transcribeWithFallback(ctx, path, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
+						if transErr == nil && actualProvider == "" {
+							actualProvider = segmentProvider // Track first successful provider
+						}
+
+						mu.Lock()
+						defer mu.Unlock()
+						if transErr != nil {
+							results[idx] = segResult{index: idx, err: transErr}
+						} else {
+							results[idx] = segResult{index: idx, text: res.Transcription, lang: res.DetectedLanguage}
+						}
+
+						completed++
+						if opts.ProgressCallback != nil {
+							progress := int((float64(completed) / float64(len(segments))) * 100)
+							if progress > lastProgress {
+								lastProgress = progress
+								go opts.ProgressCallback(progress)
+							}
+						}
+					}(i, seg.Path)
+				}
+				wg.Wait()
+
+				// Merge and Dedup - now preserving segment structure
+				var mergedText string
+				var allSegments []whisperdtos.TranscriptSegment
+				var allUtterances []whisperdtos.Utterance
+
+				// Track cumulative offset for segment timing
+				var cumulativeOffsetMs int64 = 0
+
+				for i, r := range results {
+					if r.err != nil {
+						return nil, fmt.Errorf("segment %d failed: %w", r.index, r.err)
+					}
+
+					if i == 0 {
+						mergedText = r.text
+						detectedLang = r.lang
+					} else {
+						// Use utility merge function that handles overlap detection
+						overlapChars := utils.FindOverlapLength(mergedText, r.text)
+						if overlapChars > 0 {
+							r.text = r.text[overlapChars:]
+						}
+						mergedText = mergedText + " " + strings.TrimSpace(r.text)
+						if detectedLang == "" && r.lang != "" {
+							detectedLang = r.lang
+						}
+					}
+
+					// Create segment record with timing info (estimated)
+					// WARNING: These are HEURISTIC ESTIMATES based on text length (~10 chars/sec).
+					// They are NOT audio-aligned timestamps. Do NOT treat as precise evidence.
+					segment := whisperdtos.TranscriptSegment{
+						Index:   i,
+						StartMs: cumulativeOffsetMs,
+						EndMs:   cumulativeOffsetMs + int64(len(r.text)*100), // ~10 chars/sec estimate
+						Text:    r.text,
+					}
+					allSegments = append(allSegments, segment)
+
+					// Parse utterances from this segment ONLY if diarization was requested
+					// This prevents false-positive structured output when diarize=false
+					if opts.Diarize {
+						if segmentUtterances := utils.ParseUtterancesFromText(r.text); len(segmentUtterances) > 0 {
+							// Adjust utterance timestamps to global timeline
+							for j := range segmentUtterances {
+								segmentUtterances[j].StartMs += cumulativeOffsetMs
+								segmentUtterances[j].EndMs += cumulativeOffsetMs
+							}
+							segment.Utterances = segmentUtterances
+							allUtterances = append(allUtterances, segmentUtterances...)
+						}
+					}
+
+					cumulativeOffsetMs += int64(len(r.text) * 100)
+				}
+
+				rawTranscription = strings.TrimSpace(mergedText)
+
+				// Store structured results from segmented transcription
+				resultSegments = allSegments
+				resultUtterances = allUtterances
+				if len(allUtterances) > 0 {
+					resultTranscriptFormat = whisperdtos.TranscriptFormatUtteranceList
+					resultConfidenceSummary = utils.BuildConfidenceSummary(allUtterances, len(allSegments))
+				} else {
+					resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
+				}
 			}
 		}
 	}
@@ -458,22 +510,33 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
 			macAddress = opts.TerminalContext[0]
 		}
-		// Use health-aware fallback chain for full-file transcription
-		result, err := uc.transcribeWithFallback(ctx, processingPath, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
-		if err != nil {
-			return nil, err
-		}
-		rawTranscription = result.Transcription
-		detectedLang = result.DetectedLanguage
 
-		// Store structured artifacts from provider
-		resultUtterances = result.Utterances
-		resultSegments = result.Segments
-		resultTranscriptFormat = result.TranscriptFormat
-		resultConfidenceSummary = result.ConfidenceSummary
+		// ASR Quality Gate: Skip provider for silent audio
+		if providerSkipped {
+			utils.LogInfo("TranscribeSync: Provider call skipped due to silent audio (audio_class=%s)", audioClass)
+			rawTranscription = ""
+			detectedLang = opts.Language
+			resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
+			actualProvider = "" // No provider used
+		} else {
+			// Use health-aware fallback chain for full-file transcription
+			result, actualProviderUsed, err := uc.transcribeWithFallback(ctx, processingPath, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
+			if err != nil {
+				return nil, err
+			}
+			rawTranscription = result.Transcription
+			detectedLang = result.DetectedLanguage
+			actualProvider = actualProviderUsed // Track actual provider used
 
-		if opts.ProgressCallback != nil {
-			go opts.ProgressCallback(100)
+			// Store structured artifacts from provider
+			resultUtterances = result.Utterances
+			resultSegments = result.Segments
+			resultTranscriptFormat = result.TranscriptFormat
+			resultConfidenceSummary = result.ConfidenceSummary
+
+			if opts.ProgressCallback != nil {
+				go opts.ProgressCallback(100)
+			}
 		}
 	}
 
@@ -495,16 +558,48 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		// Normalization is reserved for safe punctuation/casing-only fixes
 	}
 
+	// ASR Quality Gate: Post-transcribe transcript validation
+	// Validate transcript for hallucinations and low-quality output
+	transcriptValid := true
+	transcriptRejectionReason := ""
+	finalTranscript := refined
+
+	// If provider was skipped due to silence, transcript is invalid (no actual transcription occurred)
+	if providerSkipped {
+		transcriptValid = false
+		transcriptRejectionReason = "audio_silent"
+		finalTranscript = ""
+		rawTranscription = ""
+	} else if uc.transcriptValidator != nil && refined != "" {
+		validationResult := uc.transcriptValidator.Validate(refined, audioClass)
+		transcriptValid = validationResult.IsValid
+		transcriptRejectionReason = validationResult.RejectionReason
+
+		if !transcriptValid {
+			utils.LogInfo("TranscribeSync: Transcript gate REJECT | audio_class=%s | rejection_reason=%s",
+				audioClass, transcriptRejectionReason)
+			finalTranscript = ""  // Blank the transcript
+			rawTranscription = "" // Also blank raw to prevent HTTP fallback leak
+		} else {
+			utils.LogDebug("TranscribeSync: Transcript gate PASS | audio_class=%s | text=%q", audioClass, refined)
+		}
+	}
+
 	// Build structured result with backward-compatible fields
 	return &whisperdtos.AsyncTranscriptionResultDTO{
-		Transcription:        rawTranscription,
-		RefinedText:          refined,
-		DetectedLanguage:     detectedLang,
-		Utterances:           resultUtterances,
-		Segments:             resultSegments,
-		TranscriptFormat:     resultTranscriptFormat,
-		ConfidenceSummary:    resultConfidenceSummary,
-		NormalizationApplied: normalizationApplied,
+		Transcription:             rawTranscription,
+		RefinedText:               finalTranscript,
+		DetectedLanguage:          detectedLang,
+		Utterances:                resultUtterances,
+		Segments:                  resultSegments,
+		TranscriptFormat:          resultTranscriptFormat,
+		ConfidenceSummary:         resultConfidenceSummary,
+		NormalizationApplied:      normalizationApplied,
+		AudioClass:                audioClass,
+		TranscriptValid:           transcriptValid,
+		TranscriptRejectionReason: transcriptRejectionReason,
+		ProviderSkipped:           providerSkipped,
+		ProviderName:              actualProvider, // Use actual provider, not resolved
 	}, nil
 }
 
@@ -566,26 +661,63 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 		utils.ActiveTranscriptions.Delete(metadata.TerminalID)
 	}
 
-	// Chaining to /chat ONLY if initiated via MQTT
+	// ASR Quality Gate: Stop empty/rejected transcripts from entering chat chain
+	// This prevents hallucinated or silent audio from triggering chat responses
 	if metadata != nil && metadata.Source == "mqtt" && metadata.MacAddress != "" && uc.mqttSvc != nil {
-		chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.MacAddress, uc.config.ApplicationEnvironment)
-		prompt := finalResult.RefinedText
-		if prompt == "" {
-			prompt = finalResult.Transcription
+		// Get the final transcript (prefer refined, fallback to raw)
+		finalTranscript := finalResult.RefinedText
+		if finalTranscript == "" {
+			finalTranscript = finalResult.Transcription
 		}
 
-		chatReq := map[string]string{
-			"prompt":      prompt,
-			"terminal_id": metadata.TerminalID,
-			"language":    finalResult.DetectedLanguage,
-			"uid":         metadata.UID,
-			"request_id":  metadata.RequestID,
+		// Check if transcript was rejected or empty
+		if finalTranscript == "" || !finalResult.TranscriptValid {
+			utils.LogInfo("Transcribe Task %s: ASR gate BLOCKED chat chaining | transcript_valid=%v | rejection_reason=%s | audio_class=%s",
+				taskID, finalResult.TranscriptValid, finalResult.TranscriptRejectionReason, finalResult.AudioClass)
+
+			// NEW: Publish terminal completion via MQTT for rejected results
+			// This ensures frontend receives explicit terminal state without waiting for HTTP fallback
+			answerTopic := fmt.Sprintf("users/%s/%s/chat/answer", metadata.MacAddress, uc.config.ApplicationEnvironment)
+
+			// Build rejection payload shaped like assistant final responses
+			answerPayload := map[string]interface{}{
+				"request_id": metadata.RequestID,
+				"response":   nil,                // No assistant text for rejection
+				"is_blocked": true,               // Signal terminal completion
+				"source":     "WHISPER_REJECTED", // Canonical source for rejection
+				"data": map[string]interface{}{
+					"rejection_reason": finalResult.TranscriptRejectionReason,
+					"audio_class":      finalResult.AudioClass,
+					"provider_skipped": finalResult.ProviderSkipped,
+				},
+			}
+
+			payload, marshalErr := json.Marshal(answerPayload)
+			if marshalErr != nil {
+				utils.LogError("Transcribe Task %s: Failed to marshal rejection payload: %v", taskID, marshalErr)
+			} else if err := uc.mqttSvc.Publish(answerTopic, 0, false, payload); err != nil {
+				utils.LogError("Transcribe Task %s: Failed to publish rejection to MQTT: %v", taskID, err)
+			} else {
+				utils.LogInfo("Transcribe Task %s: Published rejection completion to %s", taskID, answerTopic)
+			}
+			// Do NOT chain to /chat
+		} else {
+			// Chain to /chat with validated transcript
+			chatTopic := fmt.Sprintf("users/%s/%s/chat", metadata.MacAddress, uc.config.ApplicationEnvironment)
+
+			chatReq := map[string]string{
+				"prompt":      finalTranscript,
+				"terminal_id": metadata.TerminalID,
+				"language":    finalResult.DetectedLanguage,
+				"uid":         metadata.UID,
+				"request_id":  metadata.RequestID,
+			}
+			payload, _ := json.Marshal(chatReq)
+			if err := uc.mqttSvc.Publish(chatTopic, 0, false, payload); err != nil {
+				utils.LogError("TranscribeUseCase: Failed to publish transcript to MQTT: %v", err)
+			}
+			utils.LogInfo("Transcribe Task %s: Chained result to %s", taskID, chatTopic)
 		}
-		payload, _ := json.Marshal(chatReq)
-		if err := uc.mqttSvc.Publish(chatTopic, 0, false, payload); err != nil {
-			utils.LogError("TranscribeUseCase: Failed to publish transcript to MQTT: %v", err)
-		}
-		utils.LogInfo("Transcribe Task %s: Chained result to %s", taskID, chatTopic)
 	}
 }
 

@@ -17,7 +17,7 @@ import json
 CLIENT_ID = "nnwar5dvq7fsdqpdtkjf"
 SECRET = "051708689fc7401f84aaee88bfce9dda"
 BASE_URL = "https://openapi-sg.iotbing.com"
-DEVICE_ID = "a3621a5ad61e644d91aaa2"
+DEVICE_ID = "a390e0bd34ca4fb129k8aq"
 
 # SHA256 constants
 EMPTY_BODY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
