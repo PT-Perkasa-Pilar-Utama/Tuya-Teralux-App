@@ -2,6 +2,9 @@
 """
 Tuya Smart Lock - Create Temporary Password
 Generate encrypted temporary passwords for Tuya smart door locks
+
+Credentials must be set via environment variables or .env file:
+  TUYA_CLIENT_ID, TUYA_SECRET, TUYA_DEVICE_ID
 """
 import requests
 import hmac
@@ -12,12 +15,20 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 import binascii
 import json
+import os
 
 # ============= CONFIGURATION =============
-CLIENT_ID = "nnwar5dvq7fsdqpdtkjf"
-SECRET = "051708689fc7401f84aaee88bfce9dda"
+CLIENT_ID = os.environ.get("TUYA_CLIENT_ID")
+SECRET = os.environ.get("TUYA_SECRET")
 BASE_URL = "https://openapi-sg.iotbing.com"
-DEVICE_ID = "a390e0bd34ca4fb129k8aq"
+DEVICE_ID = os.environ.get("TUYA_DEVICE_ID")
+
+if not CLIENT_ID or not SECRET or not DEVICE_ID:
+    print("❌ Missing required environment variables:")
+    print("   TUYA_CLIENT_ID, TUYA_SECRET, TUYA_DEVICE_ID")
+    print("\nSet them via: export TUYA_CLIENT_ID=xxx")
+    print("Or create a .env file (see .env.example)")
+    exit(1)
 
 # SHA256 constants
 EMPTY_BODY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"

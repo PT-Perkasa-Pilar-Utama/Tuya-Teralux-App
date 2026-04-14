@@ -1,19 +1,36 @@
 #!/bin/bash
 
-# cek parameter
+# Notification publisher script
+# Usage: ./notification <datetime_end>
+# Example: ./notification 2026-04-02T09:19:00+07:00
+#
+# Required environment variables:
+#   API_TOKEN - Bearer token for authentication
+#
+# Optional environment variables:
+#   API_URL - API base URL (default: https://teralux.devoutsys.com)
+#   ROOM_ID - Room ID (default: 4)
+
+# Check parameters
 if [ -z "$1" ]; then
   echo "Usage: $0 <datetime_end>"
   echo "Example: $0 2026-04-02T09:19:00+07:00"
   exit 1
 fi
 
+# Check for required credentials
+if [ -z "$API_TOKEN" ]; then
+  echo "❌ Missing required environment variable: API_TOKEN"
+  echo "Set it via: export API_TOKEN='your-token-here'"
+  exit 1
+fi
+
 DATETIME_END=$1
+URL="${API_URL:-https://teralux.devoutsys.com}/api/notification/publish"
+TOKEN="Bearer $API_TOKEN"
+ROOM_ID="${ROOM_ID:-4}"
 
-# config
-URL="https://teralux.devoutsys.com/api/notification/publish"
-TOKEN="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzU2Mjk4NDksImlhdCI6MTc3NTAyNTA0OSwidWlkIjoic2cxNzY1MDg2MTc2NzQ2SWt3QkQifQ.p6KkSkE_2YU8IKKyWy2G6WiY6-uVKffVPrQwf6ICuuk"
-
-# request
+# Request
 curl -X POST "$URL" \
   -H "accept: application/json" \
   -H "content-type: application/json" \
@@ -21,5 +38,5 @@ curl -X POST "$URL" \
   -d "{
     \"datetime_end\": \"$DATETIME_END\",
     \"interval_time\": 1,
-    \"room_id\": \"4\"
+    \"room_id\": \"$ROOM_ID\"
   }"
