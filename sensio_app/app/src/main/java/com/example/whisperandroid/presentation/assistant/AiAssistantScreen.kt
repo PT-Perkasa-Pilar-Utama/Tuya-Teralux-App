@@ -57,7 +57,6 @@ import com.example.whisperandroid.presentation.components.SensioFeatureLayout
 import com.example.whisperandroid.presentation.components.TranscriptionMessage
 import com.example.whisperandroid.util.MqttHelper
 import java.io.File
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

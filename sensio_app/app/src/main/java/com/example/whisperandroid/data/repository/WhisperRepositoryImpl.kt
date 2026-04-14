@@ -3,7 +3,7 @@ package com.example.whisperandroid.data.repository
 import android.util.Log
 import com.example.whisperandroid.common.util.getErrorMessage
 import com.example.whisperandroid.data.remote.api.WhisperApi
-import com.example.whisperandroid.data.remote.dto.TranscriptionResultText
+import com.example.whisperandroid.data.remote.dto.TranscriptionStatusDto
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.domain.repository.WhisperRepository
 import java.io.File
@@ -68,7 +68,7 @@ class WhisperRepositoryImpl(
     override suspend fun pollTranscription(
         taskId: String,
         token: String
-    ): Flow<Resource<TranscriptionResultText>> =
+    ): Flow<Resource<TranscriptionStatusDto>> =
         flow {
             emit(Resource.Loading())
             try {
@@ -80,12 +80,7 @@ class WhisperRepositoryImpl(
 
                 when (status) {
                     "completed" -> {
-                        val result = statusDto.result
-                        if (result != null) {
-                            emit(Resource.Success(result))
-                        } else {
-                            emit(Resource.Error("Completed but no result found"))
-                        }
+                        emit(Resource.Success(statusDto))
                     }
 
                     "failed" -> {
