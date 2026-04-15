@@ -137,6 +137,22 @@ func (suite *TerminalE2ETestSuite) TestTerminal_NotFoundErrors() {
 	})
 }
 
+func (suite *TerminalE2ETestSuite) TestTerminal_UpdateAIEngineProfile() {
+	payload := map[string]interface{}{
+		"profile": "fast",
+	}
+
+	req, _ := http.NewRequest(http.MethodPut, "/api/terminal/test-id/ai-engine-profile", bytes.NewBufferString(mustMarshal(payload)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer test-token")
+
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert := assert.New(suite.T())
+	assert.NotEqual(http.StatusInternalServerError, w.Code)
+}
+
 func TestTerminalE2ETestSuite(t *testing.T) {
 	suite.Run(t, new(TerminalE2ETestSuite))
 }
