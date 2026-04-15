@@ -544,7 +544,7 @@ func (r *providerResolverImpl) ExecuteWithCandidateFallback(candidates []string,
 			utils.LogDebug("ProviderResolver: ExecuteWithCandidateFallback skipping unconfigured candidate %s", c)
 		}
 	}
-	
+
 	if len(configured) == 0 {
 		return fmt.Errorf("no configured providers available for requested engine profile")
 	}
