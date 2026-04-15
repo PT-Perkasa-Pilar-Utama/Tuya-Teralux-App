@@ -36,4 +36,7 @@
 *.apk
 bin/
 
+screenshoots/sensio_app/local.properties
+sensio_app/local.properties.example
 screenshoots/
+backend/services/plaud/
