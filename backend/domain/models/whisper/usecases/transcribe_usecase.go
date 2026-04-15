@@ -256,6 +256,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	var resultSegments []whisperdtos.TranscriptSegment
 	var resultTranscriptFormat whisperdtos.TranscriptFormat
 	var resultConfidenceSummary *whisperdtos.ConfidenceSummary
+	var actualProvider string // Track actual provider used (may differ from resolvedProvider due to fallback)
 
 	// Resolve provider from terminal context (MAC address) if available
 	resolvedProvider := "unknown"
@@ -461,31 +462,14 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 						}
 					}
 
-			// Merge and Dedup - now preserving segment structure
-			var mergedText string
-			var allSegments []whisperdtos.TranscriptSegment
-			var allUtterances []whisperdtos.Utterance
-
-			// Track cumulative offset for segment timing
-			var cumulativeOffsetMs int64 = 0
-
-			for i, r := range results {
-				if r.err != nil {
-					return nil, fmt.Errorf("segment %d failed: %w", r.index, r.err)
-				}
-
-				if i == 0 {
-					mergedText = r.text
-					detectedLang = r.lang
-				} else {
-					// Use utility merge function that handles overlap detection
-					overlapChars := utils.FindOverlapLength(mergedText, r.text)
-					if overlapChars > 0 {
-						r.text = r.text[overlapChars:]
-					}
-					mergedText = mergedText + " " + strings.TrimSpace(r.text)
-					if detectedLang == "" && r.lang != "" {
-						detectedLang = r.lang
+					// Create segment record with timing info (estimated)
+					// WARNING: These are HEURISTIC ESTIMATES based on text length (~10 chars/sec).
+					// They are NOT audio-aligned timestamps. Do NOT treat as precise evidence.
+					segment := whisperdtos.TranscriptSegment{
+						Index:   i,
+						StartMs: cumulativeOffsetMs,
+						EndMs:   cumulativeOffsetMs + int64(len(r.text)*100), // ~10 chars/sec estimate
+						Text:    r.text,
 					}
 					allSegments = append(allSegments, segment)
 
@@ -517,45 +501,6 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 				} else {
 					resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
 				}
-
-				// Create segment record with timing info (estimated)
-				// WARNING: These are HEURISTIC ESTIMATES based on text length (~10 chars/sec).
-				// They are NOT audio-aligned timestamps. Do NOT treat as precise evidence.
-				segment := whisperdtos.TranscriptSegment{
-					Index:   i,
-					StartMs: cumulativeOffsetMs,
-					EndMs:   cumulativeOffsetMs + int64(len(r.text)*100), // ~10 chars/sec estimate
-					Text:    r.text,
-				}
-				allSegments = append(allSegments, segment)
-
-				// Parse utterances from this segment ONLY if diarization was requested
-				// This prevents false-positive structured output when diarize=false
-				if opts.Diarize {
-					if segmentUtterances := utils.ParseUtterancesFromText(r.text); len(segmentUtterances) > 0 {
-						// Adjust utterance timestamps to global timeline
-						for j := range segmentUtterances {
-							segmentUtterances[j].StartMs += cumulativeOffsetMs
-							segmentUtterances[j].EndMs += cumulativeOffsetMs
-						}
-						segment.Utterances = segmentUtterances
-						allUtterances = append(allUtterances, segmentUtterances...)
-					}
-				}
-
-				cumulativeOffsetMs += int64(len(r.text) * 100)
-			}
-
-			rawTranscription = strings.TrimSpace(mergedText)
-
-			// Store structured results from segmented transcription
-			resultSegments = allSegments
-			resultUtterances = allUtterances
-			if len(allUtterances) > 0 {
-				resultTranscriptFormat = whisperdtos.TranscriptFormatUtteranceList
-				resultConfidenceSummary = utils.BuildConfidenceSummary(allUtterances, len(allSegments))
-			} else {
-				resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
 			}
 		}
 	}
@@ -566,9 +511,12 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 			macAddress = opts.TerminalContext[0]
 		}
 		// Use health-aware fallback chain for full-file transcription
-		result, err := uc.transcribeWithFallback(ctx, processingPath, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
+		result, actualTranscriptionProvider, err := uc.transcribeWithFallback(ctx, processingPath, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
 		if err != nil {
 			return nil, err
+		}
+		if actualProvider == "" {
+			actualProvider = actualTranscriptionProvider
 		}
 		rawTranscription = result.Transcription
 		detectedLang = result.DetectedLanguage
