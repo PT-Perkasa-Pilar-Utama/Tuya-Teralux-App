@@ -43,3 +43,5 @@ backend/services/plaud/
 notification
 backend/services/plaud/
 .playwright-mcp/
+backend/sensio
+*.exe
