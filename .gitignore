@@ -40,3 +40,6 @@ screenshoots/sensio_app/local.properties
 sensio_app/local.properties.example
 screenshoots/
 backend/services/plaud/
+notification
+backend/services/plaud/
+.playwright-mcp/
