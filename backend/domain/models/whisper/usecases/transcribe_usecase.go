@@ -256,7 +256,6 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	var resultSegments []whisperdtos.TranscriptSegment
 	var resultTranscriptFormat whisperdtos.TranscriptFormat
 	var resultConfidenceSummary *whisperdtos.ConfidenceSummary
-	var actualProvider string // Track actual provider used (may differ from resolvedProvider due to fallback)
 
 	// Resolve provider from terminal context (MAC address) if available
 	resolvedProvider := "unknown"
@@ -462,14 +461,31 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 						}
 					}
 
-					// Create segment record with timing info (estimated)
-					// WARNING: These are HEURISTIC ESTIMATES based on text length (~10 chars/sec).
-					// They are NOT audio-aligned timestamps. Do NOT treat as precise evidence.
-					segment := whisperdtos.TranscriptSegment{
-						Index:   i,
-						StartMs: cumulativeOffsetMs,
-						EndMs:   cumulativeOffsetMs + int64(len(r.text)*100), // ~10 chars/sec estimate
-						Text:    r.text,
+			// Merge and Dedup - now preserving segment structure
+			var mergedText string
+			var allSegments []whisperdtos.TranscriptSegment
+			var allUtterances []whisperdtos.Utterance
+
+			// Track cumulative offset for segment timing
+			var cumulativeOffsetMs int64 = 0
+
+			for i, r := range results {
+				if r.err != nil {
+					return nil, fmt.Errorf("segment %d failed: %w", r.index, r.err)
+				}
+
+				if i == 0 {
+					mergedText = r.text
+					detectedLang = r.lang
+				} else {
+					// Use utility merge function that handles overlap detection
+					overlapChars := utils.FindOverlapLength(mergedText, r.text)
+					if overlapChars > 0 {
+						r.text = r.text[overlapChars:]
+					}
+					mergedText = mergedText + " " + strings.TrimSpace(r.text)
+					if detectedLang == "" && r.lang != "" {
+						detectedLang = r.lang
 					}
 					allSegments = append(allSegments, segment)
 
@@ -501,6 +517,45 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 				} else {
 					resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
 				}
+
+				// Create segment record with timing info (estimated)
+				// WARNING: These are HEURISTIC ESTIMATES based on text length (~10 chars/sec).
+				// They are NOT audio-aligned timestamps. Do NOT treat as precise evidence.
+				segment := whisperdtos.TranscriptSegment{
+					Index:   i,
+					StartMs: cumulativeOffsetMs,
+					EndMs:   cumulativeOffsetMs + int64(len(r.text)*100), // ~10 chars/sec estimate
+					Text:    r.text,
+				}
+				allSegments = append(allSegments, segment)
+
+				// Parse utterances from this segment ONLY if diarization was requested
+				// This prevents false-positive structured output when diarize=false
+				if opts.Diarize {
+					if segmentUtterances := utils.ParseUtterancesFromText(r.text); len(segmentUtterances) > 0 {
+						// Adjust utterance timestamps to global timeline
+						for j := range segmentUtterances {
+							segmentUtterances[j].StartMs += cumulativeOffsetMs
+							segmentUtterances[j].EndMs += cumulativeOffsetMs
+						}
+						segment.Utterances = segmentUtterances
+						allUtterances = append(allUtterances, segmentUtterances...)
+					}
+				}
+
+				cumulativeOffsetMs += int64(len(r.text) * 100)
+			}
+
+			rawTranscription = strings.TrimSpace(mergedText)
+
+			// Store structured results from segmented transcription
+			resultSegments = allSegments
+			resultUtterances = allUtterances
+			if len(allUtterances) > 0 {
+				resultTranscriptFormat = whisperdtos.TranscriptFormatUtteranceList
+				resultConfidenceSummary = utils.BuildConfidenceSummary(allUtterances, len(allSegments))
+			} else {
+				resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
 			}
 		}
 	}
@@ -510,33 +565,22 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
 			macAddress = opts.TerminalContext[0]
 		}
+		// Use health-aware fallback chain for full-file transcription
+		result, err := uc.transcribeWithFallback(ctx, processingPath, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
+		if err != nil {
+			return nil, err
+		}
+		rawTranscription = result.Transcription
+		detectedLang = result.DetectedLanguage
 
-		// ASR Quality Gate: Skip provider for silent audio
-		if providerSkipped {
-			utils.LogInfo("TranscribeSync: Provider call skipped due to silent audio (audio_class=%s)", audioClass)
-			rawTranscription = ""
-			detectedLang = opts.Language
-			resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
-			actualProvider = "" // No provider used
-		} else {
-			// Use health-aware fallback chain for full-file transcription
-			result, actualProviderUsed, err := uc.transcribeWithFallback(ctx, processingPath, opts.Language, opts.Diarize, opts.DisableFallback, opts.IsPipeline, resolvedProvider, macAddress)
-			if err != nil {
-				return nil, err
-			}
-			rawTranscription = result.Transcription
-			detectedLang = result.DetectedLanguage
-			actualProvider = actualProviderUsed // Track actual provider used
+		// Store structured artifacts from provider
+		resultUtterances = result.Utterances
+		resultSegments = result.Segments
+		resultTranscriptFormat = result.TranscriptFormat
+		resultConfidenceSummary = result.ConfidenceSummary
 
-			// Store structured artifacts from provider
-			resultUtterances = result.Utterances
-			resultSegments = result.Segments
-			resultTranscriptFormat = result.TranscriptFormat
-			resultConfidenceSummary = result.ConfidenceSummary
-
-			if opts.ProgressCallback != nil {
-				go opts.ProgressCallback(100)
-			}
+		if opts.ProgressCallback != nil {
+			go opts.ProgressCallback(100)
 		}
 	}
 
@@ -558,48 +602,16 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		// Normalization is reserved for safe punctuation/casing-only fixes
 	}
 
-	// ASR Quality Gate: Post-transcribe transcript validation
-	// Validate transcript for hallucinations and low-quality output
-	transcriptValid := true
-	transcriptRejectionReason := ""
-	finalTranscript := refined
-
-	// If provider was skipped due to silence, transcript is invalid (no actual transcription occurred)
-	if providerSkipped {
-		transcriptValid = false
-		transcriptRejectionReason = "audio_silent"
-		finalTranscript = ""
-		rawTranscription = ""
-	} else if uc.transcriptValidator != nil && refined != "" {
-		validationResult := uc.transcriptValidator.Validate(refined, audioClass)
-		transcriptValid = validationResult.IsValid
-		transcriptRejectionReason = validationResult.RejectionReason
-
-		if !transcriptValid {
-			utils.LogInfo("TranscribeSync: Transcript gate REJECT | audio_class=%s | rejection_reason=%s",
-				audioClass, transcriptRejectionReason)
-			finalTranscript = ""  // Blank the transcript
-			rawTranscription = "" // Also blank raw to prevent HTTP fallback leak
-		} else {
-			utils.LogDebug("TranscribeSync: Transcript gate PASS | audio_class=%s | text=%q", audioClass, refined)
-		}
-	}
-
 	// Build structured result with backward-compatible fields
 	return &whisperdtos.AsyncTranscriptionResultDTO{
-		Transcription:             rawTranscription,
-		RefinedText:               finalTranscript,
-		DetectedLanguage:          detectedLang,
-		Utterances:                resultUtterances,
-		Segments:                  resultSegments,
-		TranscriptFormat:          resultTranscriptFormat,
-		ConfidenceSummary:         resultConfidenceSummary,
-		NormalizationApplied:      normalizationApplied,
-		AudioClass:                audioClass,
-		TranscriptValid:           transcriptValid,
-		TranscriptRejectionReason: transcriptRejectionReason,
-		ProviderSkipped:           providerSkipped,
-		ProviderName:              actualProvider, // Use actual provider, not resolved
+		Transcription:        rawTranscription,
+		RefinedText:          refined,
+		DetectedLanguage:     detectedLang,
+		Utterances:           resultUtterances,
+		Segments:             resultSegments,
+		TranscriptFormat:     resultTranscriptFormat,
+		ConfidenceSummary:    resultConfidenceSummary,
+		NormalizationApplied: normalizationApplied,
 	}, nil
 }
 

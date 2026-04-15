@@ -4615,10 +4615,6 @@
         "dtos.AsyncTranscriptionResultDTO": {
             "type": "object",
             "properties": {
-                "audio_class": {
-                    "description": "ASR Quality Gate Metadata (internal use for tuning and observability)\nCRITICAL: These fields MUST always be present (no omitempty) for completed transcription results\nto ensure frontend can reliably detect rejection states.",
-                    "type": "string"
-                },
                 "confidence_summary": {
                     "$ref": "#/definitions/dtos.ConfidenceSummary"
                 },
@@ -4628,14 +4624,6 @@
                 },
                 "normalization_applied": {
                     "description": "Whether safe normalization was applied",
-                    "type": "boolean"
-                },
-                "provider_name": {
-                    "description": "Which provider was used",
-                    "type": "string"
-                },
-                "provider_skipped": {
-                    "description": "ALWAYS present when audio analysis ran (no omitempty)",
                     "type": "boolean"
                 },
                 "refined_text": {
@@ -4650,14 +4638,6 @@
                 },
                 "transcript_format": {
                     "$ref": "#/definitions/dtos.TranscriptFormat"
-                },
-                "transcript_rejection_reason": {
-                    "description": "Present when transcript_valid=false",
-                    "type": "string"
-                },
-                "transcript_valid": {
-                    "description": "ALWAYS present for completed results (no omitempty)",
-                    "type": "boolean"
                 },
                 "transcription": {
                     "type": "string",

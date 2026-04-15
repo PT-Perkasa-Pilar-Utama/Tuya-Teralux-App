@@ -100,15 +100,6 @@ type AsyncTranscriptionResultDTO struct {
 	TranscriptFormat     TranscriptFormat    `json:"transcript_format,omitempty"`
 	ConfidenceSummary    *ConfidenceSummary  `json:"confidence_summary,omitempty"`
 	NormalizationApplied bool                `json:"normalization_applied,omitempty"` // Whether safe normalization was applied
-
-	// ASR Quality Gate Metadata (internal use for tuning and observability)
-	// CRITICAL: These fields MUST always be present (no omitempty) for completed transcription results
-	// to ensure frontend can reliably detect rejection states.
-	AudioClass                string `json:"audio_class"`                 // "silent", "near_silent", "active" - always present when analysis ran
-	TranscriptValid           bool   `json:"transcript_valid"`            // ALWAYS present for completed results (no omitempty)
-	TranscriptRejectionReason string `json:"transcript_rejection_reason"` // Present when transcript_valid=false
-	ProviderSkipped           bool   `json:"provider_skipped"`            // ALWAYS present when audio analysis ran (no omitempty)
-	ProviderName              string `json:"provider_name,omitempty"`     // Which provider was used
 }
 
 type AsyncTranscriptionStatusDTO struct {

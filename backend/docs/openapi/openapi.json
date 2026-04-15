@@ -3711,53 +3711,6 @@
                 ]
             }
         },
-        "/api/terminal/mac/{mac}/ai-engine-profile": {
-            "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
-                "summary": "[Terminal] [Terminal] Get AI engine profile by MAC",
-                "description": "Returns the AI engine profile (fast, standard) for a terminal identified by MAC address",
-                "parameters": [
-                    {
-                        "name": "mac",
-                        "in": "path",
-                        "description": "Terminal MAC address",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/dtos.StandardResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/dtos.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
-            }
-        },
         "/api/terminal/{id}": {
             "get": {
                 "tags": [
@@ -5362,10 +5315,6 @@
             "dtos.AsyncTranscriptionResultDTO": {
                 "type": "object",
                 "properties": {
-                    "audio_class": {
-                        "type": "string",
-                        "description": "ASR Quality Gate Metadata (internal use for tuning and observability)\nCRITICAL: These fields MUST always be present (no omitempty) for completed transcription results\nto ensure frontend can reliably detect rejection states."
-                    },
                     "confidence_summary": {
                         "$ref": "#/components/schemas/dtos.ConfidenceSummary"
                     },
@@ -5376,14 +5325,6 @@
                     "normalization_applied": {
                         "type": "boolean",
                         "description": "Whether safe normalization was applied"
-                    },
-                    "provider_name": {
-                        "type": "string",
-                        "description": "Which provider was used"
-                    },
-                    "provider_skipped": {
-                        "type": "boolean",
-                        "description": "ALWAYS present when audio analysis ran (no omitempty)"
                     },
                     "refined_text": {
                         "type": "string",
@@ -5397,14 +5338,6 @@
                     },
                     "transcript_format": {
                         "$ref": "#/components/schemas/dtos.TranscriptFormat"
-                    },
-                    "transcript_rejection_reason": {
-                        "type": "string",
-                        "description": "Present when transcript_valid=false"
-                    },
-                    "transcript_valid": {
-                        "type": "boolean",
-                        "description": "ALWAYS present for completed results (no omitempty)"
                     },
                     "transcription": {
                         "type": "string",
