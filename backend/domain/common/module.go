@@ -3,6 +3,7 @@ package common
 import (
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/repositories"
 	"sensio/domain/common/routes"
 	"sensio/domain/common/services"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
@@ -23,9 +24,9 @@ type CommonModule struct {
 // NewCommonModule initializes the common domain components
 func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService, terminalRepo terminal_repositories.ITerminalRepository) *CommonModule {
 	bigSvc := services.NewDeviceInfoExternalService()
+	scheduledRepo := repositories.NewScheduledNotificationRepository()
 
-	// Initialize notification service
-	notificationSvc := services.NewNotificationExternalService(terminalRepo, mqttSvc)
+	notificationSvc := services.NewNotificationExternalServiceWithWA(terminalRepo, scheduledRepo, bigSvc, mqttSvc)
 
 	return &CommonModule{
 		HealthController:               controllers.NewHealthController(),

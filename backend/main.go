@@ -6,13 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"sensio/domain/common"
+	common_entities "sensio/domain/common/entities"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/middlewares"
+	"sensio/domain/common/services"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail"
 	"sensio/domain/models"
@@ -115,6 +119,7 @@ func run() error {
 		&device_entities.Device{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
+		&common_entities.ScheduledNotification{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate entities: %w", err)
 	}
@@ -249,6 +254,22 @@ func run() error {
 
 	// Register Health at the end so it appears last in Swagger
 	router.GET("/api/health", commonModule.HealthController.CheckHealth)
+
+	// Start notification scheduler worker for WA notifications
+	notificationWorker := services.NewNotificationSchedulerWorker(scfg.WANotificationBaseURL)
+	notificationWorker.Start()
+	utils.LogInfo("Notification scheduler worker started with WA endpoint: %s", scfg.WANotificationBaseURL)
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		utils.LogInfo("Shutting down server...")
+		notificationWorker.Stop()
+		os.Exit(0)
+	}()
 
 	port := scfg.Port
 	if port == "" {

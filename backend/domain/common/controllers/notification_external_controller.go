@@ -23,13 +23,14 @@ func NewNotificationExternalController(notificationSvc *services.NotificationExt
 }
 
 // PublishToRoom handles POST /api/notification/publish
-// @Summary Publish a notification to all terminals in a room
+// @Summary Publish a notification to all terminals in a room (with optional WhatsApp)
 // @Description Computes publish_at = datetime_end (or time_end) - interval_time and immediately publishes it to all terminals in the room via MQTT.
+// @Description If phone_numbers is provided, a WhatsApp notification will be scheduled to be sent at publish_at time.
 // @Description At least one of datetime_end or time_end must be provided. If both are provided, datetime_end takes priority.
 // @Tags 08. Common
 // @Accept json
 // @Produce json
-// @Param        request body      terminal_dtos.NotificationPublishRequest true "Notification details"
+// @Param        request body      terminal_dtos.NotificationPublishRequest true "Notification details (phone_numbers is optional)"
 // @Success 200 {object} dtos.StandardResponse{data=terminal_dtos.NotificationPublishResponse}
 // @Failure      400  {object}  dtos.ValidationErrorResponse
 // @Failure      404  {object}  dtos.ErrorResponse

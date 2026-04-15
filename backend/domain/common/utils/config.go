@@ -76,6 +76,9 @@ type Config struct {
 	SMTPPassword string
 	SMTPFrom     string
 
+	// WhatsApp Notification
+	WANotificationBaseURL string
+
 	// Runtime & Networking
 	LogLevel string
 
@@ -218,6 +221,9 @@ func LoadConfig() {
 		SMTPUsername: os.Getenv("SMTP_USERNAME"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
+
+		// WhatsApp Notification
+		WANotificationBaseURL: getEnvAsDefault("WA_NOTIFICATION_BASE_URL", "http://10.10.3.24:3000/api/v1/send"),
 
 		// Runtime
 
