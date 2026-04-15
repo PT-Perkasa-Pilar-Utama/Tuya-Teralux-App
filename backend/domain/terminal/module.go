@@ -33,6 +33,10 @@ type TerminalModule struct {
 	UpdateController             *terminal.UpdateTerminalController
 	DeleteController             *terminal.DeleteTerminalController
 
+	// AI Engine Profile Controllers
+	GetAIEngineProfileByMACController *terminal.GetTerminalAIEngineProfileByMACController
+	UpdateAIEngineProfileController   *terminal.UpdateTerminalAIEngineProfileController
+
 	// Device Controllers
 	CreateDeviceController           *device.CreateDeviceController
 	GetAllDevicesController          *device.GetAllDevicesController
@@ -75,6 +79,10 @@ func NewTerminalModule(
 	updateTerminalUseCase := terminal_usecases.NewUpdateTerminalUseCase(terminalRepository)
 	deleteTerminalUseCase := terminal_usecases.NewDeleteTerminalUseCase(terminalRepository, mqttAuthClient)
 
+	// AI Engine Profile Use Cases
+	getAIEngineProfileUseCase := terminal_usecases.NewGetTerminalAIEngineProfileUseCase(terminalRepository)
+	updateAIEngineProfileUseCase := terminal_usecases.NewUpdateTerminalAIEngineProfileUseCase(terminalRepository, cfg)
+
 	// Device Use Cases
 	createDeviceUseCase := device_usecases.NewCreateDeviceUseCase(deviceRepository, deviceStatusRepository, tuyaAuthUC, tuyaGetDeviceUC, terminalRepository)
 	getAllDevicesUseCase := device_usecases.NewGetAllDevicesUseCase(deviceRepository)
@@ -98,6 +106,9 @@ func NewTerminalModule(
 		GetMQTTCredentialsController: terminal.NewGetMQTTCredentialsController(mqttAuthClient),
 		UpdateController:             terminal.NewUpdateTerminalController(updateTerminalUseCase),
 		DeleteController:             terminal.NewDeleteTerminalController(deleteTerminalUseCase),
+
+		GetAIEngineProfileByMACController: terminal.NewGetTerminalAIEngineProfileByMACController(getAIEngineProfileUseCase),
+		UpdateAIEngineProfileController:   terminal.NewUpdateTerminalAIEngineProfileController(updateAIEngineProfileUseCase),
 
 		CreateDeviceController:           device.NewCreateDeviceController(createDeviceUseCase),
 		GetAllDevicesController:          device.NewGetAllDevicesController(getAllDevicesUseCase),
@@ -129,6 +140,8 @@ func (m *TerminalModule) RegisterRoutes(router *gin.Engine, protected *gin.Route
 		m.GetMQTTCredentialsController,
 		m.UpdateController,
 		m.DeleteController,
+		m.GetAIEngineProfileByMACController,
+		m.UpdateAIEngineProfileController,
 
 		m.CreateDeviceController,
 		m.GetAllDevicesController,

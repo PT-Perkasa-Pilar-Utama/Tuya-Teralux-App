@@ -19,6 +19,8 @@ func SetupTerminalRoutes(
 	getMqttCredentialsController *terminal.GetMQTTCredentialsController,
 	updateController *terminal.UpdateTerminalController,
 	deleteController *terminal.DeleteTerminalController,
+	getAIEngineProfileByMACController *terminal.GetTerminalAIEngineProfileByMACController,
+	updateAIEngineProfileController *terminal.UpdateTerminalAIEngineProfileController,
 
 	createDeviceController *device.CreateDeviceController,
 	getAllDevicesController *device.GetAllDevicesController,
@@ -40,6 +42,9 @@ func SetupTerminalRoutes(
 
 		// GET /api/terminal/mac/:mac - Get terminal by MAC address (API Key for bootstrap)
 		terminalPublicAPI.GET("/mac/:mac", getByMACController.GetTerminalByMAC)
+
+		// GET /api/terminal/mac/:mac/ai-engine-profile - Get AI engine profile by MAC (Public with API Key)
+		terminalPublicAPI.GET("/mac/:mac/ai-engine-profile", getAIEngineProfileByMACController.GetAIEngineProfile)
 	}
 
 	// Protected Terminal Routes (Operational)
@@ -56,6 +61,9 @@ func SetupTerminalRoutes(
 
 		// DELETE /api/terminal/:id - Delete terminal (Bearer)
 		terminalProtectedAPI.DELETE("/:id", deleteController.DeleteTerminal)
+
+		// PUT /api/terminal/:id/ai-engine-profile - Update AI engine profile (Protected)
+		terminalProtectedAPI.PUT("/:id/ai-engine-profile", updateAIEngineProfileController.UpdateAIEngineProfile)
 	}
 
 	// Protected MQTT Routes

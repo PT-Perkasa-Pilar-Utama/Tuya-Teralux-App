@@ -8,10 +8,19 @@
 set -e
 
 # ============= CONFIGURATION =============
-CLIENT_ID="nnwar5dvq7fsdqpdtkjf"
-SECRET="051708689fc7401f84aaee88bfce9dda"
-BASE_URL="https://openapi-sg.iotbing.com"
-DEVICE_ID="a3621a5ad61e644d91aaa2"
+CLIENT_ID="${TUYA_CLIENT_ID}"
+SECRET="${TUYA_SECRET}"
+BASE_URL="${TUYA_BASE_URL:-https://openapi-sg.iotbing.com}"
+DEVICE_ID="${TUYA_DEVICE_ID}"
+
+if [ -z "$CLIENT_ID" ] || [ -z "$SECRET" ] || [ -z "$DEVICE_ID" ]; then
+    echo "❌ Missing required environment variables:"
+    echo "   TUYA_CLIENT_ID, TUYA_SECRET, TUYA_DEVICE_ID"
+    echo ""
+    echo "Set them via: export TUYA_CLIENT_ID=xxx"
+    echo "Or create a .env file (see .env.example)"
+    exit 1
+fi
 
 # SHA256 constants
 EMPTY_BODY_SHA256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"

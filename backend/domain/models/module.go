@@ -41,7 +41,8 @@ func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*providers.Ter
 		return nil, err
 	}
 	return &providers.Terminal{
-		AiProvider: term.AiProvider,
+		AiProvider:      term.AiProvider,
+		AiEngineProfile: term.AiEngineProfile,
 	}, nil
 }
 
@@ -51,7 +52,8 @@ func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string)
 		return nil, err
 	}
 	return &providers.Terminal{
-		AiProvider: term.AiProvider,
+		AiProvider:      term.AiProvider,
+		AiEngineProfile: term.AiEngineProfile,
 	}, nil
 }
 
@@ -197,7 +199,11 @@ func InitModule(
 	whisperCache := tasks.NewBadgerTaskCacheFromService(badger, "cache:transcribe:task:")
 	whisperStore := tasks.NewStatusStore[whisperDtos.AsyncTranscriptionStatusDTO]()
 
-	transcribeUC := whisperUsecases.NewTranscribeUseCase(defaultWhisperClient, refineUC, whisperStore, whisperCache, cfg, mqttSvc, providerResolver)
+	// Initialize ASR Quality Gate components
+	audioAnalyzer := utils.NewAudioAnalyzer()
+	transcriptValidator := utils.NewTranscriptValidator()
+
+	transcribeUC := whisperUsecases.NewTranscribeUseCase(defaultWhisperClient, refineUC, whisperStore, whisperCache, cfg, mqttSvc, providerResolver, audioAnalyzer, transcriptValidator)
 	// Inject all provider services for health-aware fallback chain
 	geminiWhisperModelUC := whisperUsecases.NewTranscribeGeminiModelUseCase(geminiService, whisperStore, whisperCache, cfg)
 	openaiWhisperModelUC := whisperUsecases.NewTranscribeOpenAIModelUseCase(openaiService, whisperStore, whisperCache, cfg)

@@ -3203,6 +3203,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/terminal/mac/{mac}/ai-engine-profile": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the AI engine profile (fast, standard) for a terminal identified by MAC address",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Get AI engine profile by MAC",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal MAC address",
+                        "name": "mac",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/terminal/{id}": {
             "get": {
                 "security": [
@@ -3402,6 +3442,64 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/terminal/{id}/ai-engine-profile": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets or clears the AI engine profile (fast, standard) for a terminal. plaud is rejected as not yet available.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "02. Terminal"
+                ],
+                "summary": "Update AI engine profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Terminal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Profile update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.UpdateTerminalAIEngineProfileRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.StandardResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/dtos.ErrorResponse"
                         }
@@ -5911,6 +6009,15 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Evening Mode"
+                }
+            }
+        },
+        "dtos.UpdateTerminalAIEngineProfileRequestDTO": {
+            "type": "object",
+            "properties": {
+                "profile": {
+                    "description": "\"fast\", \"standard\", or null/empty to clear",
+                    "type": "string"
                 }
             }
         },

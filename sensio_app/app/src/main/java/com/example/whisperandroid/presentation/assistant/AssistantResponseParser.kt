@@ -47,12 +47,11 @@ object AssistantResponseParser {
             null
         }
 
+        // CRITICAL: Only use data.response for assistant text.
+        // Do NOT fall back to envelope-level "message" field - that is transport status only.
+        // This prevents "Chat processed successfully" from appearing as assistant response.
         val responseText = if (data != null && data.has("response") && !data.get("response").isJsonNull) {
             data.get("response").asString
-        } else if (json.has("message") && !json.get("message").isJsonNull) {
-            json.get("message").asString
-        } else if (raw.contains("Response: \"")) {
-            raw.substringAfter("Response: \"").substringBeforeLast("\"")
         } else {
             null
         }
@@ -126,6 +125,15 @@ object AssistantResponseParser {
 
     fun getCleanMessage(result: ParsedAssistantChatResult, language: String): String? {
         return when {
+            // ASR Quality Gate: Empty transcript from silent/invalid audio
+            // When response is empty/null AND transcript was blocked/invalid, show voice fallback
+            result.isBlocked && (result.responseText == null || result.responseText.isBlank()) -> {
+                if (language == "en") {
+                    "Sorry, voice was not clear. Please try again."
+                } else {
+                    "Maaf, suara tidak terdengar jelas. Silakan coba lagi."
+                }
+            }
             result.isValidationError -> if (language == "en") {
                 "Sorry, the voice was not clear. Please try again."
             } else {

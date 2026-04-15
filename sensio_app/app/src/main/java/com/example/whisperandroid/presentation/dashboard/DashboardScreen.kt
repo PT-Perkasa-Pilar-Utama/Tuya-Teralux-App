@@ -397,10 +397,11 @@ fun DashboardScreen(
                                 )
                             }
                         },
-                        aiProvider = uiState.aiProvider,
-                        isSavingAiProvider = uiState.isSavingAiProvider,
-                        onAiProviderChange = { provider ->
-                            viewModel.updateAiProvider(provider)
+                        aiEngineProfile = uiState.aiEngineProfile,
+                        isSavingAiEngineProfile = uiState.isSavingAiEngineProfile,
+                        legacyMigrationWarning = uiState.legacyMigrationWarning,
+                        onAiEngineProfileChange = { profile ->
+                            viewModel.updateAiEngineProfile(profile)
                         }
                     )
                 }
@@ -895,19 +896,18 @@ private fun FeatureCard(
 }
 
 @Composable
-private fun AiProviderCard(
-    selectedProvider: String?,
+private fun AiEngineProfileCard(
+    selectedProfile: String?,
     isSaving: Boolean,
-    onProviderSelected: (String) -> Unit,
+    legacyMigrationWarning: String?,
+    onProfileSelected: (String) -> Unit,
     layoutSpec: DashboardLayoutSpec
 ) {
-    // User-selectable providers only (excludes 'local' which is fallback-only)
-    val providers = listOf("gemini", "openai", "groq", "orion")
-    val providerLabels = mapOf(
-        "gemini" to "Gemini",
-        "openai" to "OpenAI",
-        "groq" to "Groq",
-        "orion" to "Orion"
+    val profiles = listOf("fast", "standard", "plaud")
+    val profileLabels = mapOf(
+        "fast" to "Fast",
+        "standard" to "Standard",
+        "plaud" to "Plaud"
     )
 
     androidx.compose.material3.Surface(
@@ -957,8 +957,42 @@ private fun AiProviderCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = DashboardLayoutTokens.Spacing4)
             )
+            Text(
+                text = "Fast auto-optimizes between providers. Standard prioritizes consistency.",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(top = 2.dp)
+            )
 
-            // Provider selector - stretched chips for balanced width distribution
+            // Show migration warning if present
+            if (legacyMigrationWarning != null) {
+                Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing8))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = legacyMigrationWarning,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
+            // Profile selector - stretched chips for balanced width distribution
             when (layoutSpec.providerSelectorMode) {
                 ProviderSelectorMode.SINGLE_ROW -> {
                     // Stretched row layout for wider screens
@@ -968,23 +1002,32 @@ private fun AiProviderCard(
                             .padding(top = DashboardLayoutTokens.Spacing12),
                         horizontalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing8)
                     ) {
-                        providers.forEach { provider ->
+                        profiles.forEach { profile ->
+                            val isDisabled = profile == "plaud"
                             FilterChip(
-                                selected = selectedProvider == provider,
+                                selected = selectedProfile == profile,
                                 onClick = {
-                                    if (!isSaving) {
-                                        onProviderSelected(provider)
+                                    if (!isSaving && !isDisabled) {
+                                        onProfileSelected(profile)
                                     }
                                 },
                                 label = {
-                                    Text(
-                                        text = providerLabels[provider] ?: provider,
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            text = profileLabels[profile] ?: profile,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        if (isDisabled) {
+                                            Text(
+                                                text = "Coming soon",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
                                 },
-                                leadingIcon = if (selectedProvider == provider) {
+                                leadingIcon = if (selectedProfile == profile) {
                                     {
                                         Icon(
                                             imageVector = Icons.Filled.Check,
@@ -996,7 +1039,7 @@ private fun AiProviderCard(
                                 } else {
                                     null
                                 },
-                                enabled = !isSaving,
+                                enabled = !isSaving && !isDisabled,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -1010,29 +1053,38 @@ private fun AiProviderCard(
                             .padding(top = DashboardLayoutTokens.Spacing12),
                         verticalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing8)
                     ) {
-                        // Split providers into rows of 2
-                        providers.chunked(2).forEach { rowProviders ->
+                        // Split profiles into rows of 2
+                        profiles.chunked(2).forEach { rowProfiles ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(DashboardLayoutTokens.Spacing8)
                             ) {
-                                rowProviders.forEach { provider ->
+                                rowProfiles.forEach { profile ->
+                                    val isDisabled = profile == "plaud"
                                     FilterChip(
-                                        selected = selectedProvider == provider,
+                                        selected = selectedProfile == profile,
                                         onClick = {
-                                            if (!isSaving) {
-                                                onProviderSelected(provider)
+                                            if (!isSaving && !isDisabled) {
+                                                onProfileSelected(profile)
                                             }
                                         },
                                         label = {
-                                            Text(
-                                                text = providerLabels[provider] ?: provider,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                                fontWeight = FontWeight.Medium,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                                Text(
+                                                    text = profileLabels[profile] ?: profile,
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                                if (isDisabled) {
+                                                    Text(
+                                                        text = "Coming soon",
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                    )
+                                                }
+                                            }
                                         },
-                                        leadingIcon = if (selectedProvider == provider) {
+                                        leadingIcon = if (selectedProfile == profile) {
                                             {
                                                 Icon(
                                                     imageVector = Icons.Filled.Check,
@@ -1044,12 +1096,12 @@ private fun AiProviderCard(
                                         } else {
                                             null
                                         },
-                                        enabled = !isSaving,
+                                        enabled = !isSaving && !isDisabled,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
-                                // Add spacer if odd number of providers in last row
-                                if (rowProviders.size < 2) {
+                                // Add spacer if odd number of profiles in last row
+                                if (rowProfiles.size < 2) {
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
@@ -1059,7 +1111,7 @@ private fun AiProviderCard(
             }
 
             // Clear selection option
-            if (!selectedProvider.isNullOrEmpty()) {
+            if (!selectedProfile.isNullOrEmpty()) {
                 Text(
                     text = "Reset to system default",
                     style = MaterialTheme.typography.labelSmall,
@@ -1068,7 +1120,7 @@ private fun AiProviderCard(
                         .padding(top = DashboardLayoutTokens.Spacing8)
                         .clickable {
                             if (!isSaving) {
-                                onProviderSelected("")
+                                onProfileSelected("")
                             }
                         }
                 )
@@ -1089,9 +1141,10 @@ fun DashboardContent(
     onBackgroundModeChange: (Boolean) -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onShowDisabledMessage: () -> Unit,
-    aiProvider: String? = null,
-    isSavingAiProvider: Boolean = false,
-    onAiProviderChange: (String?) -> Unit = {}
+    aiEngineProfile: String? = null,
+    isSavingAiEngineProfile: Boolean = false,
+    legacyMigrationWarning: String? = null,
+    onAiEngineProfileChange: (String?) -> Unit = {}
 ) {
     val layoutSpec = rememberDashboardLayoutSpec()
 
@@ -1105,9 +1158,10 @@ fun DashboardContent(
             onBackgroundModeChange = onBackgroundModeChange,
             onRequestOverlayPermission = onRequestOverlayPermission,
             onShowDisabledMessage = onShowDisabledMessage,
-            aiProvider = aiProvider,
-            isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            aiEngineProfile = aiEngineProfile,
+            isSavingAiEngineProfile = isSavingAiEngineProfile,
+            legacyMigrationWarning = legacyMigrationWarning,
+            onAiEngineProfileChange = onAiEngineProfileChange
         )
         DashboardDeviceClass.TABLET -> DashboardTabletLayout(
             layoutSpec = layoutSpec,
@@ -1118,9 +1172,10 @@ fun DashboardContent(
             onBackgroundModeChange = onBackgroundModeChange,
             onRequestOverlayPermission = onRequestOverlayPermission,
             onShowDisabledMessage = onShowDisabledMessage,
-            aiProvider = aiProvider,
-            isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            aiEngineProfile = aiEngineProfile,
+            isSavingAiEngineProfile = isSavingAiEngineProfile,
+            legacyMigrationWarning = legacyMigrationWarning,
+            onAiEngineProfileChange = onAiEngineProfileChange
         )
         DashboardDeviceClass.TERALUX -> DashboardTeraluxLayout(
             layoutSpec = layoutSpec,
@@ -1131,9 +1186,10 @@ fun DashboardContent(
             onBackgroundModeChange = onBackgroundModeChange,
             onRequestOverlayPermission = onRequestOverlayPermission,
             onShowDisabledMessage = onShowDisabledMessage,
-            aiProvider = aiProvider,
-            isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            aiEngineProfile = aiEngineProfile,
+            isSavingAiEngineProfile = isSavingAiEngineProfile,
+            legacyMigrationWarning = legacyMigrationWarning,
+            onAiEngineProfileChange = onAiEngineProfileChange
         )
     }
 }
@@ -1151,9 +1207,10 @@ private fun DashboardPhoneLayout(
     onBackgroundModeChange: (Boolean) -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onShowDisabledMessage: () -> Unit,
-    aiProvider: String?,
-    isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    aiEngineProfile: String?,
+    isSavingAiEngineProfile: Boolean,
+    legacyMigrationWarning: String?,
+    onAiEngineProfileChange: (String?) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -1174,10 +1231,11 @@ private fun DashboardPhoneLayout(
             layoutSpec = layoutSpec
         )
 
-        AiProviderCard(
-            selectedProvider = aiProvider,
-            isSaving = isSavingAiProvider,
-            onProviderSelected = onAiProviderChange,
+        AiEngineProfileCard(
+            selectedProfile = aiEngineProfile,
+            isSaving = isSavingAiEngineProfile,
+            legacyMigrationWarning = legacyMigrationWarning,
+            onProfileSelected = onAiEngineProfileChange,
             layoutSpec = layoutSpec
         )
 
@@ -1233,9 +1291,10 @@ private fun DashboardTabletLayout(
     onBackgroundModeChange: (Boolean) -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onShowDisabledMessage: () -> Unit,
-    aiProvider: String?,
-    isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    aiEngineProfile: String?,
+    isSavingAiEngineProfile: Boolean,
+    legacyMigrationWarning: String?,
+    onAiEngineProfileChange: (String?) -> Unit
 ) {
     val contentModifier =
         if (layoutSpec.isScrollable) {
@@ -1262,10 +1321,11 @@ private fun DashboardTabletLayout(
             layoutSpec = layoutSpec
         )
 
-        AiProviderCard(
-            selectedProvider = aiProvider,
-            isSaving = isSavingAiProvider,
-            onProviderSelected = onAiProviderChange,
+        AiEngineProfileCard(
+            selectedProfile = aiEngineProfile,
+            isSaving = isSavingAiEngineProfile,
+            legacyMigrationWarning = legacyMigrationWarning,
+            onProfileSelected = onAiEngineProfileChange,
             layoutSpec = layoutSpec
         )
 
@@ -1327,9 +1387,10 @@ private fun DashboardTeraluxLayout(
     onBackgroundModeChange: (Boolean) -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onShowDisabledMessage: () -> Unit,
-    aiProvider: String?,
-    isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    aiEngineProfile: String?,
+    isSavingAiEngineProfile: Boolean,
+    legacyMigrationWarning: String?,
+    onAiEngineProfileChange: (String?) -> Unit
 ) {
     // Fallback to stacked layout for portrait or narrow width
     if (!layoutSpec.isLandscape || layoutSpec.availableWidth < 800.dp) {
@@ -1342,9 +1403,10 @@ private fun DashboardTeraluxLayout(
             onBackgroundModeChange = onBackgroundModeChange,
             onRequestOverlayPermission = onRequestOverlayPermission,
             onShowDisabledMessage = onShowDisabledMessage,
-            aiProvider = aiProvider,
-            isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            aiEngineProfile = aiEngineProfile,
+            isSavingAiEngineProfile = isSavingAiEngineProfile,
+            legacyMigrationWarning = legacyMigrationWarning,
+            onAiEngineProfileChange = onAiEngineProfileChange
         )
         return
     }
@@ -1380,10 +1442,11 @@ private fun DashboardTeraluxLayout(
                 layoutSpec = layoutSpec
             )
 
-            AiProviderCard(
-                selectedProvider = aiProvider,
-                isSaving = isSavingAiProvider,
-                onProviderSelected = onAiProviderChange,
+            AiEngineProfileCard(
+                selectedProfile = aiEngineProfile,
+                isSaving = isSavingAiEngineProfile,
+                legacyMigrationWarning = legacyMigrationWarning,
+                onProfileSelected = onAiEngineProfileChange,
                 layoutSpec = layoutSpec
             )
 
@@ -1481,9 +1544,10 @@ private fun PreviewDashboardPhone() {
             onBackgroundModeChange = {},
             onRequestOverlayPermission = {},
             onShowDisabledMessage = {},
-            aiProvider = "gemini",
-            isSavingAiProvider = false,
-            onAiProviderChange = {}
+            aiEngineProfile = "fast",
+            isSavingAiEngineProfile = false,
+            legacyMigrationWarning = null,
+            onAiEngineProfileChange = {}
         )
     }
 }
@@ -1512,9 +1576,10 @@ private fun PreviewDashboardTablet() {
             onBackgroundModeChange = {},
             onRequestOverlayPermission = {},
             onShowDisabledMessage = {},
-            aiProvider = "openai",
-            isSavingAiProvider = false,
-            onAiProviderChange = {}
+            aiEngineProfile = "standard",
+            isSavingAiEngineProfile = false,
+            legacyMigrationWarning = null,
+            onAiEngineProfileChange = {}
         )
     }
 }
@@ -1543,9 +1608,10 @@ private fun PreviewDashboardTeralux() {
             onBackgroundModeChange = {},
             onRequestOverlayPermission = {},
             onShowDisabledMessage = {},
-            aiProvider = "gemini",
-            isSavingAiProvider = false,
-            onAiProviderChange = {}
+            aiEngineProfile = "fast",
+            isSavingAiEngineProfile = false,
+            legacyMigrationWarning = null,
+            onAiEngineProfileChange = {}
         )
     }
 }
@@ -1574,9 +1640,10 @@ private fun PreviewDashboardPhoneNarrow() {
             onBackgroundModeChange = {},
             onRequestOverlayPermission = {},
             onShowDisabledMessage = {},
-            aiProvider = null,
-            isSavingAiProvider = false,
-            onAiProviderChange = {}
+            aiEngineProfile = null,
+            isSavingAiEngineProfile = false,
+            legacyMigrationWarning = "This terminal is still using a legacy AI provider setting. Choose Fast or Standard to migrate.",
+            onAiEngineProfileChange = {}
         )
     }
 }
