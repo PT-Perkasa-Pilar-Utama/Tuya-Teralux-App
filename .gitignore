@@ -29,7 +29,6 @@
 # Environment files (do not commit secrets)
 /.env
 /backend/.env
-/backend/services/smart-door-lock-test/.env
 
 .kotlin/
 .vscode/
