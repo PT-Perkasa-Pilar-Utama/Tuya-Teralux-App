@@ -1,7 +1,6 @@
 package com.example.whisperandroid.domain.repository
 
 import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
-import com.example.whisperandroid.data.remote.dto.TranscriptionResultText
 import com.example.whisperandroid.data.remote.dto.TranscriptionStatusDto
 import java.io.File
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +17,7 @@ interface WhisperRepository {
     suspend fun pollTranscription(
         taskId: String,
         token: String
-    ): Flow<Resource<TranscriptionResultText>>
+    ): Flow<Resource<TranscriptionStatusDto>>
 
     suspend fun getTranscriptionStatus(
         taskId: String,

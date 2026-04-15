@@ -988,6 +988,12 @@ definitions:
     required:
     - name
     type: object
+  dtos.UpdateTerminalAIEngineProfileRequestDTO:
+    properties:
+      profile:
+        description: '"fast", "standard", or null/empty to clear'
+        type: string
+    type: object
   dtos.UpdateTerminalRequestDTO:
     properties:
       ai_provider:
@@ -3178,6 +3184,44 @@ paths:
       summary: Update a terminal
       tags:
       - 02. Terminal
+  /api/terminal/{id}/ai-engine-profile:
+    put:
+      consumes:
+      - application/json
+      description: Sets or clears the AI engine profile (fast, standard) for a terminal.
+        plaud is rejected as not yet available.
+      parameters:
+      - description: Terminal ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Profile update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateTerminalAIEngineProfileRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update AI engine profile
+      tags:
+      - 02. Terminal
   /api/terminal/{id}/scenes:
     get:
       description: Retrieve a list of all configured scenes for a specific Terminal
@@ -3388,6 +3432,32 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get terminal by MAC address
+      tags:
+      - 02. Terminal
+  /api/terminal/mac/{mac}/ai-engine-profile:
+    get:
+      description: Returns the AI engine profile (fast, standard) for a terminal identified
+        by MAC address
+      parameters:
+      - description: Terminal MAC address
+        in: path
+        name: mac
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.StandardResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dtos.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get AI engine profile by MAC
       tags:
       - 02. Terminal
   /api/tuya/auth:

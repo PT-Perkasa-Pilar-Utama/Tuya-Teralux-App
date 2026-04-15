@@ -2244,6 +2244,45 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
+    /api/terminal/{id}/ai-engine-profile:
+        put:
+            tags:
+                - 02. Terminal
+            summary: Update AI engine profile
+            description: Sets or clears the AI engine profile (fast, standard) for a terminal. plaud is rejected as not yet available.
+            parameters:
+                - name: id
+                  in: path
+                  description: Terminal ID
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                description: Profile update
+                required: true
+                content:
+                    application/json: {}
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.StandardResponse'
+                "404":
+                    description: Not Found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
     /api/terminal/{id}/scenes:
         get:
             tags:
@@ -4018,6 +4057,12 @@ components:
                     example: Evening Mode
             required:
                 - name
+        dtos.UpdateTerminalAIEngineProfileRequestDTO:
+            type: object
+            properties:
+                profile:
+                    type: string
+                    description: '"fast", "standard", or null/empty to clear'
         dtos.UpdateTerminalRequestDTO:
             type: object
             properties:

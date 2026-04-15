@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.whisperandroid.domain.model.TranscriptionPollingOutcome
 import com.example.whisperandroid.presentation.components.MessageRole
 import com.example.whisperandroid.presentation.components.TranscriptionMessage
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
@@ -161,7 +162,6 @@ class AiAssistantViewModel(
             activeRequestText = null
         }
     }
-
 
     // Helper to track request ID for recent request matching
     private fun trackRequestId(requestId: String) {
@@ -340,7 +340,7 @@ class AiAssistantViewModel(
                                     )
                                     // Re-trigger the request state
                                     activeRequestId = responseRequestId
-                                    activeRequestType = RequestType.Audio  // Default to audio for whisper flow
+                                    activeRequestType = RequestType.Audio // Default to audio for whisper flow
                                     transitionTo(AssistantState.Processing, "late_response_recovery")
                                 } else {
                                     android.util.Log.w(
@@ -485,7 +485,7 @@ class AiAssistantViewModel(
                                     )
                                     // Re-trigger the request state
                                     activeRequestId = responseRequestId
-                                    activeRequestType = RequestType.Audio  // Default to audio for whisper flow
+                                    activeRequestType = RequestType.Audio // Default to audio for whisper flow
                                     transitionTo(AssistantState.Processing, "late_response_recovery")
                                 } else {
                                     android.util.Log.w(
@@ -499,6 +499,27 @@ class AiAssistantViewModel(
                             val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
                             if (parsedResult == null) {
                                 activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "parse_failed"))
+                                return@collect
+                            }
+
+                            // Check for WHISPER_REJECTED source (terminal completion from backend ASR gate)
+                            if (parsedResult.source == "WHISPER_REJECTED" && parsedResult.isBlocked) {
+                                activeTimingLogger?.markStep("whisper_rejected_terminal", mapOf("source" to "WHISPER_REJECTED"))
+                                android.util.Log.d("AiAssistantViewModel", "Whisper rejected by ASR gate, showing voice-not-clear message")
+
+                                val elapsed = currentRequestId?.let { rid ->
+                                    requestStartedAtMs[rid]?.let { start ->
+                                        System.currentTimeMillis() - start
+                                    }
+                                }
+
+                                // User-friendly voice rejection message (matches ASR gate rejection scenarios)
+                                val voiceNotClearMessage = when (selectedLanguage) {
+                                    "en" -> "I couldn't hear you clearly. Please try speaking again."
+                                    else -> "Suara kurang jelas. Coba bicara lagi ya."
+                                }
+
+                                completeRequest(currentRequestId, voiceNotClearMessage, elapsed, "whisper_rejected")
                                 return@collect
                             }
 
@@ -585,7 +606,7 @@ class AiAssistantViewModel(
             appendUserMessageIfNeeded(text)
 
             activeRequestId = java.util.UUID.randomUUID().toString()
-            trackRequestId(activeRequestId!!)  // Track for recent request matching
+            trackRequestId(activeRequestId!!) // Track for recent request matching
             activeRequestType = RequestType.Chat
             activeRequestText = text
             transitionTo(AssistantState.Processing, "sendChat")
@@ -627,7 +648,7 @@ class AiAssistantViewModel(
         lastAssistantError = null
         val requestId = java.util.UUID.randomUUID().toString()
         activeRequestId = requestId
-        trackRequestId(requestId)  // Track for recent request matching
+        trackRequestId(requestId) // Track for recent request matching
         activeRequestType = RequestType.Audio
         activeRequestText = null
         transitionTo(AssistantState.Recording, "startRecording")
@@ -874,88 +895,126 @@ class AiAssistantViewModel(
             var attempts = 0
             while (!isCompleted && attempts < 10) {
                 if (activeRequestId != requestId) return@launch
-                var currentSuccessText: String? = null
-                var hasError = false
+                var transcriptionOutcome: TranscriptionPollingOutcome? = null
 
                 com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase.getResult(
                     taskId = taskId,
                     token = token
-                ).collect { result ->
-                    when (result) {
-                        is com.example.whisperandroid.domain.repository.Resource.Success -> {
-                            currentSuccessText = result.data
+                ).collect { outcome ->
+                    when (outcome) {
+                        is TranscriptionPollingOutcome.Completed -> {
+                            transcriptionOutcome = outcome
                             isCompleted = true
                         }
-                        is com.example.whisperandroid.domain.repository.Resource.Error -> {
-                            hasError = true
+                        is TranscriptionPollingOutcome.Rejected -> {
+                            transcriptionOutcome = outcome
+                            isCompleted = true
                         }
-                        is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                        is TranscriptionPollingOutcome.Failed -> {
+                            transcriptionOutcome = outcome
+                            isCompleted = true
+                        }
+                        is TranscriptionPollingOutcome.Pending -> {
+                            // Continue polling
+                        }
                     }
                 }
 
-                if (isCompleted && currentSuccessText != null) {
-                    val pollDurationMs = System.currentTimeMillis() - pollStartMs
-                    val transcribedText = currentSuccessText!!
-                    activeTimingLogger?.markStep("http_poll_transcription_completed", mapOf("poll_duration_ms" to pollDurationMs.toString(), "attempts" to attempts.toString()))
+                when (val outcome = transcriptionOutcome) {
+                    is TranscriptionPollingOutcome.Completed -> {
+                        val pollDurationMs = System.currentTimeMillis() - pollStartMs
+                        val transcribedText = outcome.text
+                        activeTimingLogger?.markStep("http_poll_transcription_completed", mapOf("poll_duration_ms" to pollDurationMs.toString(), "attempts" to attempts.toString()))
 
-                    appendUserMessageIfNeeded(transcribedText)
+                        appendUserMessageIfNeeded(transcribedText)
 
-                    val httpPollChatStartMs = System.currentTimeMillis()
-                    com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
-                        prompt = transcribedText,
-                        language = selectedLanguage,
-                        terminalId = terminalId,
-                        uid = username,
-                        token = token,
-                        requestId = requestId,
-                        idempotencyKey = fallbackIdempotencyKey + "_chat"
-                    ).collect { chatResult ->
-                        if (activeRequestId != requestId) return@collect
-                        val httpPollChatDurationMs = System.currentTimeMillis() - httpPollChatStartMs
-                        when (chatResult) {
-                            is com.example.whisperandroid.domain.repository.Resource.Success -> {
-                                val data = chatResult.data
-                                if (data != null) {
-                                    val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
-                                    if (parsedResult.isDupInProgress) {
-                                        // IDEMPOTENCY_IN_PROGRESS: First request still processing, continue waiting
-                                        activeTimingLogger?.markStep("http_poll_chat_in_progress", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
-                                        android.util.Log.d("AiAssistantViewModel", "Poll: Request in progress, continue waiting")
-                                        // Do NOT completeRequest - continue polling for real result
-                                    } else if (parsedResult.isDupCached) {
-                                        // IDEMPOTENCY_CACHED: Duplicate with completed response, silent finish
-                                        activeTimingLogger?.markStep("http_poll_chat_dup_drop", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
-                                        android.util.Log.d("AiAssistantViewModel", "Poll: Silent completion for cached duplicate")
-                                        completeRequest(requestId, null, null, "http_dup")
+                        val httpPollChatStartMs = System.currentTimeMillis()
+                        com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
+                            prompt = transcribedText,
+                            language = selectedLanguage,
+                            terminalId = terminalId,
+                            uid = username,
+                            token = token,
+                            requestId = requestId,
+                            idempotencyKey = fallbackIdempotencyKey + "_chat"
+                        ).collect { chatResult ->
+                            if (activeRequestId != requestId) return@collect
+                            val httpPollChatDurationMs = System.currentTimeMillis() - httpPollChatStartMs
+                            when (chatResult) {
+                                is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                                    val data = chatResult.data
+                                    if (data != null) {
+                                        val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
+                                        if (parsedResult.isDupInProgress) {
+                                            // IDEMPOTENCY_IN_PROGRESS: First request still processing, continue waiting
+                                            activeTimingLogger?.markStep("http_poll_chat_in_progress", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
+                                            android.util.Log.d("AiAssistantViewModel", "Poll: Request in progress, continue waiting")
+                                            // Do NOT completeRequest - continue polling for real result
+                                        } else if (parsedResult.isDupCached) {
+                                            // IDEMPOTENCY_CACHED: Duplicate with completed response, silent finish
+                                            activeTimingLogger?.markStep("http_poll_chat_dup_drop", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
+                                            android.util.Log.d("AiAssistantViewModel", "Poll: Silent completion for cached duplicate")
+                                            completeRequest(requestId, null, null, "http_dup")
+                                        } else {
+                                            activeTimingLogger?.markStep("http_poll_chat_success", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
+                                            handleHttpChatResponse(parsedResult, requestId)
+                                        }
                                     } else {
-                                        activeTimingLogger?.markStep("http_poll_chat_success", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
-                                        handleHttpChatResponse(parsedResult, requestId)
+                                        activeTimingLogger?.markStep("http_poll_chat_failed", mapOf("reason" to "null_data", "http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
+                                        failRequest(requestId, "Invalid poll response")
                                     }
-                                } else {
-                                    activeTimingLogger?.markStep("http_poll_chat_failed", mapOf("reason" to "null_data", "http_poll_chat_duration_ms" to httpPollChatDurationMs.toString()))
-                                    failRequest(requestId, "Invalid poll response")
                                 }
-                            }
-                            is com.example.whisperandroid.domain.repository.Resource.Error -> {
-                                activeTimingLogger?.markStep("http_poll_chat_error", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString(), "error" to (chatResult.message ?: "unknown")))
-                                // Preserve backend error message
-                                val errorMsg = chatResult.message
-                                if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
-                                    completeRequest(requestId, errorMsg, null, "http_poll_error_msg")
-                                } else {
-                                    completeWithServiceIssue(requestId, "http_poll_error")
+                                is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                    activeTimingLogger?.markStep("http_poll_chat_error", mapOf("http_poll_chat_duration_ms" to httpPollChatDurationMs.toString(), "error" to (chatResult.message ?: "unknown")))
+                                    // Preserve backend error message
+                                    val errorMsg = chatResult.message
+                                    if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
+                                        completeRequest(requestId, errorMsg, null, "http_poll_error_msg")
+                                    } else {
+                                        completeWithServiceIssue(requestId, "http_poll_error")
+                                    }
                                 }
+                                is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
                             }
-                            is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
                         }
                     }
-                } else if (hasError) {
-                    activeTimingLogger?.markStep("http_poll_error")
-                    completeWithServiceIssue(requestId, "transcription_poll_fail")
-                    return@launch
-                } else {
-                    attempts++
-                    kotlinx.coroutines.delay(1500L) // 1.5s delay between polls
+                    is TranscriptionPollingOutcome.Rejected -> {
+                        // ASR Quality Gate rejected the audio (silent, hallucination, etc.)
+                        // This is a user-recoverable error, not a service issue
+                        activeTimingLogger?.markStep(
+                            "transcription_rejected",
+                            mapOf(
+                                "reason" to outcome.reason,
+                                "audio_class" to (outcome.audioClass ?: "unknown"),
+                                "provider_skipped" to (outcome.providerSkipped?.toString() ?: "unknown")
+                            )
+                        )
+                        activeTimingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "transcription_rejected"))
+
+                        // Show user-friendly "voice not clear" message
+                        val userMessage = if (selectedLanguage == "en") {
+                            "Sorry, voice was not clear. Please try again."
+                        } else {
+                            "Maaf, suara tidak terdengar jelas. Silakan coba lagi."
+                        }
+                        completeRequest(requestId, userMessage, null, "transcription_rejected")
+                        return@launch
+                    }
+                    is TranscriptionPollingOutcome.Failed -> {
+                        // Technical failure (backend error, network issue, etc.)
+                        activeTimingLogger?.markStep("transcription_poll_error", mapOf("error" to outcome.message))
+                        activeTimingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "transcription_poll_error"))
+                        completeWithServiceIssue(requestId, "transcription_poll_error")
+                        return@launch
+                    }
+                    is TranscriptionPollingOutcome.Pending -> {
+                        // Should not reach here since we set isCompleted=true for all terminal states
+                    }
+                    null -> {
+                        // Still pending, increment attempts and continue polling
+                        attempts++
+                        kotlinx.coroutines.delay(1500L) // 1.5s delay between polls
+                    }
                 }
             }
             if (!isCompleted) {

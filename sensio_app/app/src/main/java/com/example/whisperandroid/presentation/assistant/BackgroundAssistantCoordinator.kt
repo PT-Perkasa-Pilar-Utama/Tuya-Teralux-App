@@ -4,6 +4,7 @@ import android.app.Application
 import android.media.MediaPlayer
 import com.example.whisperandroid.R
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.domain.model.TranscriptionPollingOutcome
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
 import com.example.whisperandroid.util.AppLog
@@ -274,7 +275,8 @@ class BackgroundAssistantCoordinator(
                 val topic = rawTopic as String
                 val message = rawMessage as String
 
-                if (topic.endsWith("chat/answer") || topic.endsWith("chat")) {
+                // NEW: Also handle whisper/answer in background flow to match foreground behavior
+                if (topic.endsWith("whisper/answer") || topic.endsWith("chat/answer") || topic.endsWith("chat")) {
                     handleMqttMessage(topic, message, requestId)
                 }
             }
@@ -292,6 +294,47 @@ class BackgroundAssistantCoordinator(
                 if (responseRequestId == currentRequestId) {
                     _uiState.value = _uiState.value.copy(recognizedText = prompt.trim().removeSurrounding("\""))
                 }
+                return
+            }
+
+            // NEW: whisper/answer handling (matches foreground AiAssistantViewModel behavior)
+            if (topic.endsWith("whisper/answer")) {
+                timingLogger?.markStep("whisper_answer_received")
+
+                val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
+                if (parsedResult == null) {
+                    timingLogger?.markStep("response_dropped", mapOf("reason" to "parse_failed"))
+                    return
+                }
+
+                // Need to manually check RID because parser doesn't extract it (generic)
+                val json = JsonParser.parseString(message).asJsonObject
+                val responseRequestId = parseRequestId(json)
+
+                if (responseRequestId != null && responseRequestId != currentRequestId) {
+                    timingLogger?.markStep("response_dropped", mapOf("reason" to "stale_rid"))
+                    AppLog.d(TAG, "Ignored response for foreign/stale RID: $responseRequestId (Current: $currentRequestId)")
+                    return
+                }
+
+                // Drop non-final in-progress acks
+                if (parsedResult.isDupInProgress) {
+                    timingLogger?.markStep("response_dropped", mapOf("reason" to "in_progress_ack", "source" to (parsedResult.source ?: "null")))
+                    AppLog.d(TAG, "Ignored in-progress ack from ${parsedResult.source} for RID: $currentRequestId")
+                    return
+                }
+
+                // Check for WHISPER_REJECTED source (terminal completion from backend ASR gate)
+                if (parsedResult.source == "WHISPER_REJECTED" && parsedResult.isBlocked) {
+                    timingLogger?.markStep("whisper_rejected_terminal", mapOf("source" to "WHISPER_REJECTED"))
+                    AppLog.d(TAG, "Whisper rejected by ASR gate, showing voice-not-clear message")
+                    showVoiceNotClear(currentRequestId)
+                    return
+                }
+
+                // Standard ACK - wait for chat/answer
+                timingLogger?.markStep("whisper_ack_received", mapOf("source" to (parsedResult.source ?: "mqtt")))
+                AppLog.d(TAG, "Whisper ACK received for RID: $currentRequestId. Waiting for chat/answer...")
                 return
             }
 
@@ -402,6 +445,36 @@ class BackgroundAssistantCoordinator(
         scheduleAutoDismiss(requestId)
     }
 
+    /**
+     * Shows a friendly voice-not-clear message for ASR gate rejections.
+     * Used when backend rejects transcription due to silent audio or hallucination detection.
+     * This is a user-recoverable state (NOT a service issue).
+     */
+    private fun showVoiceNotClear(requestId: String) {
+        if (activeRequestId != requestId) return
+        timeoutJob?.cancel()
+        fallbackJob?.cancel()
+
+        timingLogger?.markStep("voice_not_clear_shown")
+        timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "rejected"))
+
+        transitionTo(BackgroundAssistantUiState.State.Result, "showVoiceNotClear")
+
+        // Reset fallback gate on terminal completion
+        if (requestId == fallbackRunningForRequestId) {
+            fallbackRunningForRequestId = null
+        }
+
+        // User-friendly voice rejection message (matches ASR gate rejection scenarios)
+        val voiceNotClearMessage = when (selectedLanguage) {
+            "en" -> "I couldn't hear you clearly. Please try speaking again."
+            else -> "Suara kurang jelas. Coba bicara lagi ya."
+        }
+
+        _uiState.value = _uiState.value.copy(assistantText = voiceNotClearMessage)
+        scheduleAutoDismiss(requestId)
+    }
+
     private fun startProcessingTimeout(requestId: String) {
         timeoutJob?.cancel()
         timeoutJob = scope?.launch {
@@ -492,99 +565,137 @@ class BackgroundAssistantCoordinator(
             while (!isCompleted && attempts < 10) {
                 if (activeRequestId != requestId) return@launch
 
-                var currentSuccessText: String? = null
-                var hasError = false
+                var transcriptionOutcome: TranscriptionPollingOutcome? = null
 
-                NetworkModule.transcribeAudioUseCase.getResult(taskId, token).collect { result ->
-                    when (result) {
-                        is Resource.Success -> {
-                            currentSuccessText = result.data
+                NetworkModule.transcribeAudioUseCase.getResult(taskId, token).collect { outcome ->
+                    when (outcome) {
+                        is TranscriptionPollingOutcome.Completed -> {
+                            transcriptionOutcome = outcome
                             isCompleted = true
                         }
-                        is Resource.Error -> {
-                            hasError = true
+                        is TranscriptionPollingOutcome.Rejected -> {
+                            transcriptionOutcome = outcome
+                            isCompleted = true
                         }
-                        is Resource.Loading -> {}
+                        is TranscriptionPollingOutcome.Failed -> {
+                            transcriptionOutcome = outcome
+                            isCompleted = true
+                        }
+                        is TranscriptionPollingOutcome.Pending -> {
+                            // Continue polling
+                        }
                     }
                 }
 
-                if (isCompleted && currentSuccessText != null) {
-                    val transcribedText = currentSuccessText!!
-                    val pollDurationMs = System.currentTimeMillis() - pollStartMs
-                    timingLogger?.markStep("http_transcription_completed", mapOf("poll_duration_ms" to pollDurationMs.toString()))
-                    _uiState.value = _uiState.value.copy(recognizedText = transcribedText)
+                when (val outcome = transcriptionOutcome) {
+                    is TranscriptionPollingOutcome.Completed -> {
+                        val transcribedText = outcome.text
+                        val pollDurationMs = System.currentTimeMillis() - pollStartMs
+                        timingLogger?.markStep("http_transcription_completed", mapOf("poll_duration_ms" to pollDurationMs.toString()))
+                        _uiState.value = _uiState.value.copy(recognizedText = transcribedText)
 
-                    timingLogger?.markStep("http_chat_started")
-                    NetworkModule.ragRepository.chat(
-                        prompt = transcribedText,
-                        language = selectedLanguage,
-                        terminalId = terminalId,
-                        uid = username,
-                        token = token,
-                        requestId = requestId,
-                        idempotencyKey = fallbackIdempotencyKey + "_chat"
-                    ).collect { chatResult ->
-                        if (activeRequestId != requestId) return@collect
-                        when (chatResult) {
-                            is Resource.Success -> {
-                                val data = chatResult.data
-                                if (data != null) {
-                                    val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
-                                    if (parsedResult.isDupCached) {
-                                        timingLogger?.markStep("http_chat_cached_finalized", mapOf("source" to (parsedResult.source ?: "null")))
-                                        AppLog.d(TAG, "Fallback: Processing cached final response")
-                                        val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
-                                        if (cleanMessage != null) {
-                                            showResult(requestId, cleanMessage)
+                        timingLogger?.markStep("http_chat_started")
+                        NetworkModule.ragRepository.chat(
+                            prompt = transcribedText,
+                            language = selectedLanguage,
+                            terminalId = terminalId,
+                            uid = username,
+                            token = token,
+                            requestId = requestId,
+                            idempotencyKey = fallbackIdempotencyKey + "_chat"
+                        ).collect { chatResult ->
+                            if (activeRequestId != requestId) return@collect
+                            when (chatResult) {
+                                is Resource.Success -> {
+                                    val data = chatResult.data
+                                    if (data != null) {
+                                        val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
+                                        if (parsedResult.isDupCached) {
+                                            timingLogger?.markStep("http_chat_cached_finalized", mapOf("source" to (parsedResult.source ?: "null")))
+                                            AppLog.d(TAG, "Fallback: Processing cached final response")
+                                            val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
+                                            if (cleanMessage != null) {
+                                                showResult(requestId, cleanMessage)
+                                            } else {
+                                                showServiceIssue(requestId, "http_cached_no_payload")
+                                            }
+                                            return@collect
+                                        } else if (parsedResult.isDupInProgress) {
+                                            // IDEMPOTENCY_IN_PROGRESS: First request still processing
+                                            // Launch bounded retry loop to re-check HTTP chat status
+                                            timingLogger?.markStep("http_chat_in_progress")
+                                            AppLog.d(TAG, "Fallback: Request in progress, starting bounded retry")
+                                            launchBoundedRetryForInProgress(
+                                                requestId = requestId,
+                                                transcribedText = transcribedText,
+                                                selectedLanguage = selectedLanguage,
+                                                terminalId = terminalId,
+                                                username = username,
+                                                token = token,
+                                                fallbackIdempotencyKey = fallbackIdempotencyKey + "_chat"
+                                            )
                                         } else {
-                                            showServiceIssue(requestId, "http_cached_no_payload")
+                                            timingLogger?.markStep("http_chat_success")
+                                            val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
+                                            showResult(requestId, cleanMessage ?: "")
                                         }
-                                        return@collect
-                                    } else if (parsedResult.isDupInProgress) {
-                                        // IDEMPOTENCY_IN_PROGRESS: First request still processing
-                                        // Launch bounded retry loop to re-check HTTP chat status
-                                        timingLogger?.markStep("http_chat_in_progress")
-                                        AppLog.d(TAG, "Fallback: Request in progress, starting bounded retry")
-                                        launchBoundedRetryForInProgress(
-                                            requestId = requestId,
-                                            transcribedText = transcribedText,
-                                            selectedLanguage = selectedLanguage,
-                                            terminalId = terminalId,
-                                            username = username,
-                                            token = token,
-                                            fallbackIdempotencyKey = fallbackIdempotencyKey + "_chat"
-                                        )
                                     } else {
-                                        timingLogger?.markStep("http_chat_success")
-                                        val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
-                                        showResult(requestId, cleanMessage ?: "")
+                                        timingLogger?.markStep("http_chat_failed", mapOf("reason" to "invalid_response"))
+                                        failSession(requestId, "Gagal memproses (Invalid chat response)")
                                     }
-                                } else {
-                                    timingLogger?.markStep("http_chat_failed", mapOf("reason" to "invalid_response"))
-                                    failSession(requestId, "Gagal memproses (Invalid chat response)")
                                 }
-                            }
-                            is Resource.Error -> {
-                                timingLogger?.markStep("http_chat_error", mapOf("error" to (chatResult.message ?: "unknown")))
-                                // Preserve backend error message
-                                val errorMsg = chatResult.message
-                                if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
-                                    showServiceIssue(requestId, "http_chat_error_msg", errorMsg)
-                                } else {
-                                    showServiceIssue(requestId, "http_chat_error")
+                                is Resource.Error -> {
+                                    timingLogger?.markStep("http_chat_error", mapOf("error" to (chatResult.message ?: "unknown")))
+                                    // Preserve backend error message
+                                    val errorMsg = chatResult.message
+                                    if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
+                                        showServiceIssue(requestId, "http_chat_error_msg", errorMsg)
+                                    } else {
+                                        showServiceIssue(requestId, "http_chat_error")
+                                    }
                                 }
+                                is Resource.Loading -> {}
                             }
-                            is Resource.Loading -> {}
                         }
                     }
-                } else if (hasError) {
-                    timingLogger?.markStep("transcription_poll_error")
-                    timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "transcription_poll_error"))
-                    showServiceIssue(requestId, "transcription_poll_error")
-                    return@launch
-                } else {
-                    attempts++
-                    delay(1500L)
+                    is TranscriptionPollingOutcome.Rejected -> {
+                        // ASR Quality Gate rejected the audio (silent, hallucination, etc.)
+                        // This is a user-recoverable error, not a service issue
+                        timingLogger?.markStep(
+                            "transcription_rejected",
+                            mapOf(
+                                "reason" to outcome.reason,
+                                "audio_class" to (outcome.audioClass ?: "unknown"),
+                                "provider_skipped" to (outcome.providerSkipped?.toString() ?: "unknown")
+                            )
+                        )
+                        timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "transcription_rejected"))
+
+                        // Show user-friendly "voice not clear" message
+                        val userMessage = if (selectedLanguage == "en") {
+                            "Sorry, voice was not clear. Please try again."
+                        } else {
+                            "Maaf, suara tidak terdengar jelas. Silakan coba lagi."
+                        }
+                        showServiceIssue(requestId, "transcription_rejected", userMessage)
+                        return@launch
+                    }
+                    is TranscriptionPollingOutcome.Failed -> {
+                        // Technical failure (backend error, network issue, etc.)
+                        timingLogger?.markStep("transcription_poll_error", mapOf("error" to outcome.message))
+                        timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "transcription_poll_error"))
+                        showServiceIssue(requestId, "transcription_poll_error")
+                        return@launch
+                    }
+                    is TranscriptionPollingOutcome.Pending -> {
+                        // Should not reach here since we set isCompleted=true for all terminal states
+                        // but kept for safety
+                    }
+                    null -> {
+                        // Still pending, increment attempts and continue polling
+                        attempts++
+                        delay(1500L)
+                    }
                 }
             }
             if (!isCompleted && activeRequestId == requestId) {

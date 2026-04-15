@@ -38,7 +38,14 @@ data class TranscriptionStatusDto(
 data class TranscriptionResultText(
     @SerializedName("transcription") val transcription: String,
     @SerializedName("refined_text") val refinedText: String? = null,
-    @SerializedName("detected_language") val detectedLanguage: String? = null
+    @SerializedName("detected_language") val detectedLanguage: String? = null,
+
+    // ASR Quality Gate Metadata
+    @SerializedName("transcript_valid") val transcriptValid: Boolean? = null,
+    @SerializedName("transcript_rejection_reason") val transcriptRejectionReason: String? = null,
+    @SerializedName("audio_class") val audioClass: String? = null,
+    @SerializedName("provider_skipped") val providerSkipped: Boolean? = null,
+    @SerializedName("provider_name") val providerName: String? = null
 )
 
 /**
