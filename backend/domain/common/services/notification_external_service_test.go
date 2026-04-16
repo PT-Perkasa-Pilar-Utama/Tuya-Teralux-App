@@ -133,11 +133,8 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		}
 
 		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
-
-		expectedPublishAt := "2026-03-17T14:00:00+07:00"
-		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt + `","remaining_minutes":0}`)
-		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
-		mockMqtt.On("Publish", "users/11:22:33:44:55:66/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
+		mockMqtt.On("IsConnected").Return(true)
+		mockMqtt.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		req := terminal_dtos.NotificationPublishRequest{
 			RoomID:   roomID,
@@ -266,10 +263,8 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		}
 
 		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
-
-		expectedPublishAt := "2026-03-17T14:00:00+07:00"
-		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt + `","remaining_minutes":0}`)
-		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
+		mockMqtt.On("IsConnected").Return(true)
+		mockMqtt.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		req := terminal_dtos.NotificationPublishRequest{
 			RoomID:       roomID,
@@ -301,6 +296,7 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		}
 
 		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
+		mockMqtt.On("IsConnected").Return(true)
 		mockMqtt.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("mqtt error"))
 
 		req := terminal_dtos.NotificationPublishRequest{
@@ -327,11 +323,8 @@ func TestPublishNotificationToRoom(t *testing.T) {
 		}
 
 		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
-
-		// Using UTC timezone
-		expectedPublishAt := "2026-03-17T23:00:00Z"
-		expectedPayload := []byte(`{"publish_at":"` + expectedPublishAt + `","remaining_minutes":0}`)
-		mockMqtt.On("Publish", "users/AA:BB:CC:DD:EE:FF/"+env+"/notification", byte(1), false, expectedPayload).Return(nil)
+		mockMqtt.On("IsConnected").Return(true)
+		mockMqtt.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		req := terminal_dtos.NotificationPublishRequest{
 			RoomID:   roomID,

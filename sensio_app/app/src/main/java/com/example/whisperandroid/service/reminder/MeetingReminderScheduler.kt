@@ -145,8 +145,6 @@ class MeetingReminderScheduler(private val context: Context) {
         val intent = Intent(context, MeetingReminderAlarmReceiver::class.java).apply {
             action = ACTION_IMMEDIATE_TRIGGER
             putExtra(EXTRA_REMINDER_ID, entity.id)
-            putExtra(EXTRA_PUBLISH_AT, entity.publishAtEpochMillis)
-            putExtra(EXTRA_REMAINING_MINUTES, entity.remainingMinutes)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -228,8 +226,6 @@ class MeetingReminderScheduler(private val context: Context) {
     companion object {
         const val ACTION_IMMEDIATE_TRIGGER = "com.example.whisperandroid.action.IMMEDIATE_TRIGGER"
         const val EXTRA_REMINDER_ID = "reminder_id"
-        const val EXTRA_PUBLISH_AT = "publish_at"
-        const val EXTRA_REMAINING_MINUTES = "remaining_minutes"
 
         private val GRACE_WINDOW_MILLIS = 2 * 60 * 1000L // 2 minutes
     }

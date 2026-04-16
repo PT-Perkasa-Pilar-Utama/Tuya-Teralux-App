@@ -24,7 +24,15 @@ type NotificationPublishResponse struct {
 }
 
 // NotificationMQTTPayload represents the JSON payload sent via MQTT
+// New contract: single source of truth from backend publisher
 type NotificationMQTTPayload struct {
-	PublishAt        string `json:"publish_at" example:"2026-03-17T13:45:00+07:00"`
-	RemainingMinutes int    `json:"remaining_minutes" example:"15"`
+	ID         string `json:"id" example:"uuid-here"`
+	PublishAt  string `json:"publish_at" example:"2026-03-17T13:45:00+07:00"`
+	Title      string `json:"title" example:"Meeting Reminder"`
+	Message    string `json:"message" example:"Your meeting will start in 15 minutes"`
+	EventType  string `json:"event_type" example:"meeting_start"`
+	MeetingID  string `json:"meeting_id,omitempty" example:"meeting-123"`
+	RoomID     string `json:"room_id,omitempty" example:"room-456"`
+	Severity   string `json:"severity,omitempty" example:"normal"`
+	TTLSeconds int    `json:"ttl_seconds,omitempty" example:"3600"`
 }

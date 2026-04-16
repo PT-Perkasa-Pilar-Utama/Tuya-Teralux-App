@@ -2,6 +2,7 @@ package com.example.whisperandroid.domain.model.reminder
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -11,35 +12,18 @@ class MeetingReminderEntityTest {
 
     @Test
     fun generateId_sameInputs_returnsSameId() {
-        val publishAt = 1710655500000L
-        val remainingMinutes = 15
+        val backendId = "rem-123-abc"
 
-        val id1 = MeetingReminderEntity.generateId(publishAt, remainingMinutes)
-        val id2 = MeetingReminderEntity.generateId(publishAt, remainingMinutes)
+        val id1 = MeetingReminderEntity.generateId(backendId)
+        val id2 = MeetingReminderEntity.generateId(backendId)
 
         assertEquals(id1, id2)
     }
 
     @Test
-    fun generateId_differentPublishAt_returnsDifferentId() {
-        val publishAt1 = 1710655500000L
-        val publishAt2 = 1710655800000L
-        val remainingMinutes = 15
-
-        val id1 = MeetingReminderEntity.generateId(publishAt1, remainingMinutes)
-        val id2 = MeetingReminderEntity.generateId(publishAt2, remainingMinutes)
-
-        assertNotEquals(id1, id2)
-    }
-
-    @Test
-    fun generateId_differentRemainingMinutes_returnsDifferentId() {
-        val publishAt = 1710655500000L
-        val remainingMinutes1 = 15
-        val remainingMinutes2 = 30
-
-        val id1 = MeetingReminderEntity.generateId(publishAt, remainingMinutes1)
-        val id2 = MeetingReminderEntity.generateId(publishAt, remainingMinutes2)
+    fun generateId_differentInputs_returnsDifferentId() {
+        val id1 = MeetingReminderEntity.generateId("rem-123-abc")
+        val id2 = MeetingReminderEntity.generateId("rem-456-def")
 
         assertNotEquals(id1, id2)
     }
@@ -49,7 +33,9 @@ class MeetingReminderEntityTest {
         val entity = MeetingReminderEntity(
             id = "test_id",
             publishAtEpochMillis = 1710655500000L,
-            remainingMinutes = 15,
+            title = "Meeting Reminder",
+            message = "Your meeting will start soon",
+            eventType = "meeting_start",
             createdAtEpochMillis = System.currentTimeMillis()
         )
 
@@ -57,18 +43,39 @@ class MeetingReminderEntityTest {
     }
 
     @Test
-    fun uiModel_fromEntity_correctMessageFormat() {
+    fun entity_withOptionalFields() {
         val entity = MeetingReminderEntity(
             id = "test_id",
             publishAtEpochMillis = 1710655500000L,
-            remainingMinutes = 15,
+            title = "Meeting Ending",
+            message = "Your meeting is ending",
+            eventType = "meeting_end",
+            meetingId = "meet-123",
+            roomId = "room-456",
+            severity = "high",
+            createdAtEpochMillis = System.currentTimeMillis()
+        )
+
+        assertEquals("meet-123", entity.meetingId)
+        assertEquals("room-456", entity.roomId)
+        assertEquals("high", entity.severity)
+    }
+
+    @Test
+    fun uiModel_fromEntity_usesDynamicTitleMessage() {
+        val entity = MeetingReminderEntity(
+            id = "test_id",
+            publishAtEpochMillis = 1710655500000L,
+            title = "Custom Title",
+            message = "Custom message from backend",
+            eventType = "meeting_start",
             createdAtEpochMillis = System.currentTimeMillis()
         )
 
         val uiModel = MeetingReminderUiModel.fromEntity(entity)
 
-        assertEquals("Meeting Reminder", uiModel.title)
-        assertEquals("Waktu meeting anda sisa 15 menit lagi", uiModel.message)
-        assertEquals(15, uiModel.remainingMinutes)
+        assertEquals("Custom Title", uiModel.title)
+        assertEquals("Custom message from backend", uiModel.message)
+        assertEquals("meeting_start", uiModel.eventType)
     }
 }

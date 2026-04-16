@@ -81,28 +81,82 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 		return nil, utils.NewAPIError(404, fmt.Sprintf("No terminals found for RoomID %s", req.RoomID))
 	}
 
-	payload := terminal_dtos.NotificationMQTTPayload{
-		PublishAt:        publishAtStr,
-		RemainingMinutes: 0,
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal MQTT payload: %w", err)
+	eventType := "meeting_start"
+	if req.Template == "end_meeting" {
+		eventType = "meeting_end"
 	}
 
 	publishedTopics := make([]string, 0, len(terminals))
 	for _, t := range terminals {
+		terminal := t
+		macAddress := terminal.MacAddress
+
+		var title, message string
+		var meetingID, roomID string
+
+		if s.deviceInfoSvc != nil {
+			bookingInfo, err := s.deviceInfoSvc.GetDeviceInfoByMac(macAddress)
+			if err != nil {
+				utils.LogWarn("NotificationExternalService: Failed to fetch booking info for MAC %s: %v", macAddress, err)
+				bookingInfo = make(map[string]interface{})
+			}
+
+			customerName := s.getStringValue(bookingInfo, "SDTGetRoomTeraluxCustomerName")
+			roomName := s.getStringValue(bookingInfo, "SDTGetRoomTeraluxRoomName")
+			meetingID = s.getStringValue(bookingInfo, "SDTGetRoomTeraluxBookingID")
+			roomID = req.RoomID
+
+			if customerName == "" {
+				customerName = "Bapak/Ibu"
+			}
+			if roomName == "" {
+				roomName = "the room"
+			}
+
+			if eventType == "meeting_start" {
+				title = "Meeting Reminder"
+				message = fmt.Sprintf("%s, your meeting at %s will start soon", customerName, roomName)
+			} else {
+				title = "Meeting Ending"
+				message = fmt.Sprintf("%s, your meeting at %s is ending soon", customerName, roomName)
+			}
+		} else {
+			if eventType == "meeting_start" {
+				title = "Meeting Reminder"
+				message = "Your meeting will start soon"
+			} else {
+				title = "Meeting Ending"
+				message = "Your meeting is ending soon"
+			}
+		}
+
+		payload := terminal_dtos.NotificationMQTTPayload{
+			ID:        uuid.New().String(),
+			PublishAt: publishAtStr,
+			Title:     title,
+			Message:   message,
+			EventType: eventType,
+			MeetingID: meetingID,
+			RoomID:    roomID,
+		}
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal MQTT payload: %w", err)
+		}
+
 		topic := fmt.Sprintf("users/%s/%s/notification", t.MacAddress, utils.GetConfig().ApplicationEnvironment)
 
 		utils.LogDebug("NotificationExternalService: MQTT connected=%v, publishing to topic: %s", s.mqttSvc.IsConnected(), topic)
 
-		err := s.mqttSvc.Publish(topic, 1, false, payloadBytes)
+		err = s.mqttSvc.Publish(topic, 1, false, payloadBytes)
 		if err != nil {
 			utils.LogError("NotificationExternalService: Failed to publish to %s: %v", topic, err)
 			return nil, fmt.Errorf("failed to publish to topic %s: %w", topic, err)
 		}
 
 		publishedTopics = append(publishedTopics, topic)
+
+		_ = terminal
 	}
 
 	var wanNotificationID string
@@ -178,4 +232,13 @@ func normalizeMacAddress(mac string) string {
 	mac = strings.ReplaceAll(mac, ":", "-")
 	mac = strings.ReplaceAll(mac, ":", "")
 	return strings.ToLower(mac)
+}
+
+func (s *NotificationExternalService) getStringValue(data map[string]interface{}, key string) string {
+	if val, ok := data[key]; ok {
+		if str, ok := val.(string); ok {
+			return strings.TrimSpace(str)
+		}
+	}
+	return ""
 }
