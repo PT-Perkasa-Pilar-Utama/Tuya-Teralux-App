@@ -2,31 +2,24 @@
     "openapi": "3.1.0",
     "info": {
         "title": "Sensio API",
-        "description": "This is the API server for Sensio App. <br> For full documentation, visit <a href=\"/docs\">/docs</a>.",
+        "description": 'This is the API server for Sensio App. <br> For full documentation, visit <a href="/docs">/docs</a>.',
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",
             "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
+            "email": "support@swagger.io",
         },
         "license": {
             "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
         },
-        "version": "1.0"
+        "version": "1.0",
     },
-    "servers": [
-        {
-            "url": "/",
-            "description": "Current server (auto-detected)"
-        }
-    ],
+    "servers": [{"url": "/", "description": "Current server (auto-detected)"}],
     "paths": {
         "/api/big/device/{mac_address}": {
             "get": {
-                "tags": [
-                    "08. Common"
-                ],
+                "tags": ["08. Common"],
                 "summary": "[Common] Fetch device and booking info by MAC address",
                 "description": "Fetches specific device information including booking_id, time_start, and time_stop directly from the Big API.",
                 "parameters": [
@@ -35,9 +28,7 @@
                         "in": "path",
                         "description": "MAC Address",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -55,14 +46,14 @@
                                             "properties": {
                                                 "data": {
                                                     "type": "object",
-                                                    "additionalProperties": true
+                                                    "additionalProperties": true,
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -72,7 +63,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -82,7 +73,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -92,16 +83,14 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             }
         },
         "/api/cache/flush": {
             "delete": {
-                "tags": [
-                    "08. Common"
-                ],
+                "tags": ["08. Common"],
                 "summary": "[Common] Flush all cache",
                 "description": "Remove all data from the cache storage",
                 "responses": {
@@ -113,7 +102,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -123,21 +112,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/devices": {
             "post": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] Create a new device",
                 "description": "Register a new device under a terminal",
                 "requestBody": {
@@ -149,7 +132,7 @@
                                 "$ref": "#/components/schemas/dtos.CreateDeviceRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "201": {
@@ -167,12 +150,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.DeviceResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "422": {
                         "description": "Unprocessable Entity",
@@ -182,7 +165,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -192,21 +175,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/devices/statuses": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Device] Get all device statuses",
                 "description": "Retrieve a list of all device statuses",
                 "parameters": [
@@ -214,18 +191,14 @@
                         "name": "page",
                         "in": "query",
                         "description": "Page number",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "limit",
                         "in": "query",
                         "description": "Items per page",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
+                        "schema": {"type": "integer"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -243,12 +216,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.DeviceStatusListResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -258,21 +231,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/devices/terminal/{terminal_id}": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Device] Get devices by terminal ID",
                 "description": "Retrieve all devices associated with a specific terminal",
                 "parameters": [
@@ -281,26 +248,20 @@
                         "in": "path",
                         "description": "Terminal ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "page",
                         "in": "query",
                         "description": "Page number",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "limit",
                         "in": "query",
                         "description": "Items per page",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
+                        "schema": {"type": "integer"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -318,12 +279,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.DeviceListResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -333,7 +294,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -343,7 +304,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -353,21 +314,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/devices/{id}": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Device] Get device by ID",
                 "description": "Retrieve device information by device ID",
                 "parameters": [
@@ -376,9 +331,7 @@
                         "in": "path",
                         "description": "Device ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -397,12 +350,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.DeviceResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -412,7 +365,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -422,19 +375,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "put": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Device] Update a device",
                 "description": "Update an existing device's details by ID",
                 "parameters": [
@@ -443,9 +390,7 @@
                         "in": "path",
                         "description": "Device ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -457,7 +402,7 @@
                                 "$ref": "#/components/schemas/dtos.UpdateDeviceRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -475,12 +420,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.DeviceResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -490,7 +435,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "422": {
                         "description": "Unprocessable Entity",
@@ -507,12 +452,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.UpdateDeviceRequestDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -522,21 +467,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
+                "security": [{"BearerAuth": []}],
+            },
         },
         "/api/devices/{id}/status": {
             "put": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Device] Update device status",
                 "description": "Update the status value for a specific device by ID",
                 "parameters": [
@@ -545,9 +484,7 @@
                         "in": "path",
                         "description": "Device ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -559,7 +496,7 @@
                                 "$ref": "#/components/schemas/dtos.UpdateDeviceStatusRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -577,12 +514,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.DeviceStatusResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -599,12 +536,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.UpdateDeviceStatusRequestDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -614,7 +551,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "422": {
                         "description": "Unprocessable Entity",
@@ -624,7 +561,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -634,21 +571,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/devices/{id}/statuses": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Device] Get device statuses by device ID",
                 "description": "Retrieve all statuses for a specific device",
                 "parameters": [
@@ -657,26 +588,20 @@
                         "in": "path",
                         "description": "Device ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "page",
                         "in": "query",
                         "description": "Page number",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "limit",
                         "in": "query",
                         "description": "Items per page",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
+                        "schema": {"type": "integer"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -694,12 +619,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.DeviceStatusListResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -709,7 +634,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -719,7 +644,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -729,52 +654,32 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/health": {
             "get": {
-                "tags": [
-                    "08. Common"
-                ],
+                "tags": ["08. Common"],
                 "summary": "[Common] Health check endpoint",
                 "description": "Check if the application and database are healthy",
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
+                        "content": {"application/json": {"schema": {"type": "string"}}},
                     },
                     "503": {
                         "description": "Service Unavailable",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
+                        "content": {"application/json": {"schema": {"type": "string"}}},
+                    },
+                },
             }
         },
         "/api/mail/send": {
             "post": {
-                "tags": [
-                    "07. Mail"
-                ],
+                "tags": ["07. Mail"],
                 "summary": "[Mail] Send an email using a template",
                 "description": "Send an email using a server-side template and specified recipients",
                 "requestBody": {
@@ -786,7 +691,7 @@
                                 "$ref": "#/components/schemas/dtos.MailSendRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "202": {
@@ -804,12 +709,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.MailTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -819,7 +724,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -829,21 +734,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/mail/send/mac/{mac_address}": {
             "post": {
-                "tags": [
-                    "07. Mail"
-                ],
+                "tags": ["07. Mail"],
                 "summary": "[Mail] Send an email by Terminal MAC Address",
                 "description": "Looks up customer email by MAC address and sends an email using a template",
                 "parameters": [
@@ -852,9 +751,7 @@
                         "in": "path",
                         "description": "Terminal MAC Address",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -866,7 +763,7 @@
                                 "$ref": "#/components/schemas/dtos.MailSendRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "202": {
@@ -884,12 +781,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.MailTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -899,7 +796,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -909,7 +806,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -919,21 +816,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/mail/status/{task_id}": {
             "get": {
-                "tags": [
-                    "07. Mail"
-                ],
+                "tags": ["07. Mail"],
                 "summary": "[Mail] Get email task status",
                 "description": "Get the status and result of an email sending task.",
                 "parameters": [
@@ -942,9 +833,7 @@
                         "in": "path",
                         "description": "Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -963,12 +852,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.MailStatusDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -978,7 +867,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -988,21 +877,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/gemini": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Raw prompt query to Gemini model",
                 "description": "Send a raw prompt directly to the Gemini LLM model without RAG orchestration.",
                 "requestBody": {
@@ -1014,7 +897,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGRawPromptRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -1032,12 +915,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.RAGRawPromptResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1047,7 +930,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -1057,7 +940,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1067,21 +950,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/groq": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Raw prompt query to Groq model",
                 "description": "Send a raw prompt directly to the Groq LLM model without RAG orchestration.",
                 "requestBody": {
@@ -1093,7 +970,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGRawPromptRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -1111,12 +988,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.RAGRawPromptResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1126,7 +1003,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -1136,7 +1013,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1146,21 +1023,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/llama/cpp": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Raw prompt query to local Llama.cpp model",
                 "description": "Send a raw prompt directly to the local Llama.cpp LLM model without RAG orchestration.",
                 "requestBody": {
@@ -1172,7 +1043,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGRawPromptRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -1190,12 +1061,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.RAGRawPromptResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1205,7 +1076,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -1215,7 +1086,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1225,21 +1096,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/openai": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Raw prompt query to OpenAI model",
                 "description": "Send a raw prompt directly to the OpenAI LLM model without RAG orchestration.",
                 "requestBody": {
@@ -1251,7 +1116,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGRawPromptRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -1269,12 +1134,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.RAGRawPromptResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1284,7 +1149,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -1294,7 +1159,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1304,21 +1169,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/orion": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Raw prompt query to Orion model",
                 "description": "Send a raw prompt directly to the Orion LLM model without RAG orchestration.",
                 "requestBody": {
@@ -1330,7 +1189,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGRawPromptRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -1348,12 +1207,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.RAGRawPromptResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1363,7 +1222,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -1373,7 +1232,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1383,21 +1242,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/pipeline/job": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [Pipeline] Run unified AI pipeline (Transcribe -> Refine -> Translate -> Summarize)",
                 "description": "Submits a single job that orchestrates multiple AI stages.",
                 "parameters": [
@@ -1406,106 +1259,80 @@
                         "in": "formData",
                         "description": "Audio file",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Source language (e.g. id, en)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "target_language",
                         "in": "formData",
                         "description": "Target language for translation/summary",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "summarize",
                         "in": "formData",
                         "description": "Whether to generate a summary",
-                        "schema": {
-                            "type": "boolean"
-                        }
+                        "schema": {"type": "boolean"},
                     },
                     {
                         "name": "refine",
                         "in": "formData",
                         "description": "Whether to refine text (grammar/spelling)",
-                        "schema": {
-                            "type": "boolean"
-                        }
+                        "schema": {"type": "boolean"},
                     },
                     {
                         "name": "diarize",
                         "in": "formData",
                         "description": "Whether to diarize speakers",
-                        "schema": {
-                            "type": "boolean"
-                        }
+                        "schema": {"type": "boolean"},
                     },
                     {
                         "name": "context",
                         "in": "formData",
                         "description": "Meeting context (for summary)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "style",
                         "in": "formData",
                         "description": "Summary style",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "date",
                         "in": "formData",
                         "description": "Meeting date",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "location",
                         "in": "formData",
                         "description": "Meeting location",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "participants",
                         "in": "formData",
                         "description": "Comma-separated participants",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "mac_address",
                         "in": "formData",
                         "description": "Device MAC Address",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "Idempotency-Key",
                         "in": "header",
                         "description": "Idempotency key",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -1523,26 +1350,20 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.PipelineResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     }
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/pipeline/status/{task_id}": {
             "get": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [Pipeline] Get unified pipeline job status",
                 "description": "Poll for status and results of a unified pipeline job.",
                 "parameters": [
@@ -1551,9 +1372,7 @@
                         "in": "path",
                         "description": "Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -1572,12 +1391,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.PipelineStatusDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -1587,19 +1406,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "delete": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [Pipeline] Cancel a pipeline task",
                 "description": "Cancels an active pipeline task. Returns 200 if task was cancelled or already terminal, 404 if task not found.",
                 "parameters": [
@@ -1608,9 +1421,7 @@
                         "in": "path",
                         "description": "Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -1622,7 +1433,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -1632,21 +1443,15 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
+                "security": [{"BearerAuth": []}],
+            },
         },
         "/api/models/rag/chat": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [RAG] AI Assistant Chat",
                 "description": "Classifies user prompt into Chat or Control and returns appropriate response or redirection. Infrastructure failures (network, timeout, backend processing) return a graceful service-issue response, not an error.",
                 "requestBody": {
@@ -1658,7 +1463,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGChatRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -1676,12 +1481,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.RAGChatResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1691,21 +1496,15 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/rag/control": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [RAG] AI Assistant Control",
                 "description": "Processes natural language device control commands.",
                 "requestBody": {
@@ -1717,7 +1516,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGControlRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -1731,16 +1530,12 @@
                                         },
                                         {
                                             "type": "object",
-                                            "properties": {
-                                                "data": {
-                                                    "type": "string"
-                                                }
-                                            }
-                                        }
+                                            "properties": {"data": {"type": "string"}},
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1750,7 +1545,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1760,21 +1555,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/rag/summary": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [RAG] Generate meeting minutes summary",
                 "description": "Generate meeting minutes summary asynchronously. Returns a Task ID for polling.",
                 "parameters": [
@@ -1782,9 +1571,7 @@
                         "name": "Idempotency-Key",
                         "in": "header",
                         "description": "Idempotency key to deduplicate requests",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -1796,7 +1583,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGSummaryRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "202": {
@@ -1815,14 +1602,14 @@
                                                     "type": "object",
                                                     "additionalProperties": {
                                                         "type": "string"
-                                                    }
+                                                    },
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1832,7 +1619,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1842,21 +1629,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/rag/translate": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [RAG] Translate text to specified language",
                 "description": "Translate text to a target language asynchronously. Returns a Task ID for polling.",
                 "parameters": [
@@ -1864,9 +1645,7 @@
                         "name": "Idempotency-Key",
                         "in": "header",
                         "description": "Idempotency key to deduplicate requests",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -1878,7 +1657,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "202": {
@@ -1897,14 +1676,14 @@
                                                     "type": "object",
                                                     "additionalProperties": {
                                                         "type": "string"
-                                                    }
+                                                    },
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1914,7 +1693,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -1924,21 +1703,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/rag/{task_id}": {
             "get": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [RAG] Get RAG task status",
                 "parameters": [
                     {
@@ -1946,9 +1719,7 @@
                         "in": "path",
                         "description": "Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -1967,12 +1738,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.RAGStatusDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -1982,21 +1753,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/pipeline/job": {
             "post": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Execute AI pipeline job",
                 "description": "Execute a full AI pipeline (transcribe, translate, summarize)",
                 "parameters": [
@@ -2005,58 +1770,44 @@
                         "in": "formData",
                         "description": "Audio file",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Source language (default: id)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "target_language",
                         "in": "formData",
                         "description": "Target language (default: en)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "summarize",
                         "in": "formData",
                         "description": "Enable summarization (true/false)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "diarize",
                         "in": "formData",
                         "description": "Enable speaker diarization (true/false)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "refine",
                         "in": "formData",
                         "description": "Enable refinement (true/false)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "participants",
                         "in": "formData",
                         "description": "Comma-separated participant names",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -2074,12 +1825,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TaskIDResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2089,7 +1840,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2099,21 +1850,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/pipeline/status/{task_id}": {
             "get": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Get pipeline status",
                 "description": "Get the status of a pipeline job by ID",
                 "parameters": [
@@ -2122,9 +1867,7 @@
                         "in": "path",
                         "description": "Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -2143,12 +1886,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.V1PipelineStatusResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2158,7 +1901,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -2168,21 +1911,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/rag/chat": {
             "post": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Chat with model (v1)",
                 "description": "Chat using the legacy Python RAG service",
                 "requestBody": {
@@ -2190,12 +1927,9 @@
                     "required": true,
                     "content": {
                         "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "description": "Chat request"
-                            }
+                            "schema": {"type": "object", "description": "Chat request"}
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -2206,7 +1940,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2216,7 +1950,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2226,21 +1960,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/rag/control": {
             "post": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Device control (v1)",
                 "description": "Control devices using the legacy Python RAG service",
                 "requestBody": {
@@ -2250,10 +1978,10 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "description": "Control request"
+                                "description": "Control request",
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -2264,7 +1992,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2274,7 +2002,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2284,21 +2012,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/rag/status/{task_id}": {
             "get": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Get RAG status (v1)",
                 "description": "Get the status of a RAG task by ID",
                 "parameters": [
@@ -2307,9 +2029,7 @@
                         "in": "path",
                         "description": "Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -2321,7 +2041,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2331,21 +2051,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/rag/summary": {
             "post": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Summarize text (v1)",
                 "description": "Summarize text using the legacy Python RAG service",
                 "requestBody": {
@@ -2355,10 +2069,10 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "description": "Summary request"
+                                "description": "Summary request",
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -2369,7 +2083,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2379,7 +2093,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2389,21 +2103,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/rag/translate": {
             "post": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Translate text (v1)",
                 "description": "Translate text using the legacy Python RAG service",
                 "requestBody": {
@@ -2415,7 +2123,7 @@
                                 "$ref": "#/components/schemas/dtos.RAGRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -2426,7 +2134,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2436,7 +2144,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2446,21 +2154,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/whisper/status/{transcribe_id}": {
             "get": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Get transcription status (v1)",
                 "description": "Get the status of a transcription task by ID",
                 "parameters": [
@@ -2469,9 +2171,7 @@
                         "in": "path",
                         "description": "Transcription Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -2483,7 +2183,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2493,21 +2193,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/whisper/transcribe": {
             "post": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Transcribe audio (v1)",
                 "description": "Transcribe an audio file by providing its local path",
                 "parameters": [
@@ -2516,26 +2210,20 @@
                         "in": "formData",
                         "description": "Local path to audio file",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Audio language",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "diarize",
                         "in": "formData",
                         "description": "Enable speaker diarization",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    }
+                        "schema": {"type": "boolean"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -2546,7 +2234,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2556,7 +2244,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2566,21 +2254,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/whisper/uploads/sessions": {
             "post": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Create upload session (v1)",
                 "description": "Initialize a new chunked upload session for a large audio file",
                 "requestBody": {
@@ -2590,10 +2272,10 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "description": "Upload session configuration"
+                                "description": "Upload session configuration",
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "201": {
@@ -2611,12 +2293,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2626,7 +2308,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2636,21 +2318,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/whisper/uploads/sessions/{id}": {
             "get": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Get upload session status (v1)",
                 "description": "Get the current status and progress of an upload session",
                 "parameters": [
@@ -2659,9 +2335,7 @@
                         "in": "path",
                         "description": "Session ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -2680,12 +2354,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -2695,21 +2369,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/v1/whisper/uploads/sessions/{id}/chunks/{index}": {
             "put": {
-                "tags": [
-                    "05. Models-v1"
-                ],
+                "tags": ["05. Models-v1"],
                 "summary": "[Models-v1] Upload chunk (v1)",
                 "description": "Upload a single chunk of an audio file for a session",
                 "parameters": [
@@ -2718,19 +2386,15 @@
                         "in": "path",
                         "description": "Session ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "index",
                         "in": "path",
                         "description": "Chunk index",
                         "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
+                        "schema": {"type": "integer"},
+                    },
                 ],
                 "requestBody": {
                     "description": "Binary chunk data",
@@ -2740,10 +2404,10 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "description": "Binary chunk data"
+                                "description": "Binary chunk data",
                             }
-                        }
-                    }
+                        },
+                    },
                 },
                 "responses": {
                     "200": {
@@ -2761,12 +2425,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2776,7 +2440,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2786,21 +2450,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/whisper/transcribe": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [Whisper] Transcribe audio file (Unified)",
                 "description": "Start transcription of audio file using the configured LLM provider (LLM_PROVIDER). Asynchronous processing. Supports: .mp3, .wav, .m4a, .aac, .ogg, .flac.",
                 "parameters": [
@@ -2809,42 +2467,32 @@
                         "in": "formData",
                         "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Language code (e.g. id, en)",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "mac_address",
                         "in": "formData",
                         "description": "Device MAC Address",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "diarize",
                         "in": "formData",
                         "description": "Identify speakers in transcription",
-                        "schema": {
-                            "type": "boolean"
-                        }
+                        "schema": {"type": "boolean"},
                     },
                     {
                         "name": "Idempotency-Key",
                         "in": "header",
                         "description": "Idempotency key to deduplicate requests",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -2862,12 +2510,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TranscriptionTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2877,7 +2525,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "413": {
                         "description": "Request Entity Too Large",
@@ -2887,7 +2535,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "415": {
                         "description": "Unsupported Media Type",
@@ -2897,7 +2545,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2907,21 +2555,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/models/whisper/transcribe/{transcribe_id}": {
             "get": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [Whisper] Get transcription status (Consolidated)",
                 "description": "Get the status and result of any transcription task (Short, Long, or Orion).",
                 "parameters": [
@@ -2930,9 +2572,7 @@
                         "in": "path",
                         "description": "Task ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -2951,12 +2591,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.AsyncTranscriptionStatusDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -2966,7 +2606,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -2976,21 +2616,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/mqtt/users/{username}": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] Get MQTT credentials",
                 "description": "Get MQTT credentials by username for device authentication",
                 "parameters": [
@@ -2999,9 +2633,7 @@
                         "in": "path",
                         "description": "MQTT Username",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -3020,12 +2652,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.MQTTCredentialsResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -3035,7 +2667,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "422": {
                         "description": "Unprocessable Entity",
@@ -3045,7 +2677,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3055,23 +2687,17 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/notification/publish": {
             "post": {
-                "tags": [
-                    "08. Common"
-                ],
+                "tags": ["08. Common"],
                 "summary": "[Common] Publish a notification to all terminals in a room",
-                "description": "Computes publish_at = datetime_end (or time_end) - interval_time and immediately publishes it to all terminals in the room via MQTT.\nAt least one of datetime_end or time_end must be provided. If both are provided, datetime_end takes priority.",
+                "description": "Publishes a notification to all terminals in the room via MQTT.\nRequires date, time, timezone, phone_number array, and template (start_meeting or end_meeting).",
                 "requestBody": {
                     "description": "Notification details",
                     "required": true,
@@ -3081,7 +2707,7 @@
                                 "$ref": "#/components/schemas/dtos.NotificationPublishRequest"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -3099,12 +2725,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.NotificationPublishResponse"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -3114,7 +2740,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -3124,7 +2750,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3134,16 +2760,14 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             }
         },
         "/api/recordings": {
             "get": {
-                "tags": [
-                    "06. Recordings"
-                ],
+                "tags": ["06. Recordings"],
                 "summary": "[Recordings] List all recordings",
                 "description": "Get a paginated list of all recordings.",
                 "parameters": [
@@ -3151,18 +2775,14 @@
                         "name": "page",
                         "in": "query",
                         "description": "Page number (default 1)",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "limit",
                         "in": "query",
                         "description": "Items per page (default 10)",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
+                        "schema": {"type": "integer"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -3180,12 +2800,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/recordings_dtos.GetAllRecordingsResponseDto"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -3195,7 +2815,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3205,19 +2825,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "post": {
-                "tags": [
-                    "06. Recordings"
-                ],
+                "tags": ["06. Recordings"],
                 "summary": "[Recordings] Save a new recording",
                 "description": "Upload an audio file and save its metadata.",
                 "parameters": [
@@ -3226,18 +2840,14 @@
                         "in": "formData",
                         "description": "Audio file",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "mac_address",
                         "in": "formData",
                         "description": "Device MAC Address",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "201": {
@@ -3255,12 +2865,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/recordings_dtos.RecordingResponseDto"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -3270,7 +2880,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -3280,7 +2890,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3290,21 +2900,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
+                "security": [{"BearerAuth": []}],
+            },
         },
         "/api/recordings/{id}": {
             "get": {
-                "tags": [
-                    "06. Recordings"
-                ],
+                "tags": ["06. Recordings"],
                 "summary": "[Recordings] Get recording by ID",
                 "description": "Retrieve metadata for a specific recording.",
                 "parameters": [
@@ -3313,9 +2917,7 @@
                         "in": "path",
                         "description": "Recording ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -3334,12 +2936,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/recordings_dtos.RecordingResponseDto"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -3349,7 +2951,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -3359,7 +2961,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3369,19 +2971,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "delete": {
-                "tags": [
-                    "06. Recordings"
-                ],
+                "tags": ["06. Recordings"],
                 "summary": "[Recordings] Delete a recording",
                 "description": "Remove a recording and its associated file from the system.",
                 "parameters": [
@@ -3390,9 +2986,7 @@
                         "in": "path",
                         "description": "Recording ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -3404,7 +2998,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -3414,7 +3008,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3424,21 +3018,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
+                "security": [{"BearerAuth": []}],
+            },
         },
         "/api/scenes": {
             "get": {
-                "tags": [
-                    "03. Scenes"
-                ],
+                "tags": ["03. Scenes"],
                 "summary": "[Scenes] List all scenes across all Terminal devices",
                 "description": "Retrieve all configured scenes grouped under each Terminal device",
                 "responses": {
@@ -3458,28 +3046,22 @@
                                                     "type": "array",
                                                     "items": {
                                                         "$ref": "#/components/schemas/dtos.TerminalScenesWrapperDTO"
-                                                    }
+                                                    },
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     }
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/terminal": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] Get all terminals",
                 "description": "Retrieve a list of all registered terminals with optional filtering",
                 "parameters": [
@@ -3487,42 +3069,32 @@
                         "name": "mac_address",
                         "in": "query",
                         "description": "Filter by MAC address",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "name",
                         "in": "query",
                         "description": "Filter by terminal name",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "room_id",
                         "in": "query",
                         "description": "Filter by room ID",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "page",
                         "in": "query",
                         "description": "Page number",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "limit",
                         "in": "query",
                         "description": "Items per page",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
+                        "schema": {"type": "integer"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -3540,12 +3112,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TerminalListResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3555,19 +3127,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "post": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] Create a new terminal",
                 "description": "Register a new terminal device with MAC address and metadata",
                 "requestBody": {
@@ -3579,7 +3145,7 @@
                                 "$ref": "#/components/schemas/dtos.CreateTerminalRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "201": {
@@ -3597,12 +3163,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.CreateTerminalResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "422": {
                         "description": "Unprocessable Entity",
@@ -3612,7 +3178,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3622,21 +3188,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
-            }
+                "security": [{"ApiKeyAuth": []}],
+            },
         },
         "/api/terminal/mac/{mac}": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Terminal] Get terminal by MAC address",
                 "description": "Retrieve terminal information by MAC address",
                 "parameters": [
@@ -3645,9 +3205,7 @@
                         "in": "path",
                         "description": "Terminal MAC Address",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -3666,12 +3224,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TerminalSingleResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -3681,7 +3239,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -3691,7 +3249,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3701,21 +3259,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                "security": [{"ApiKeyAuth": []}],
             }
         },
         "/api/terminal/{id}": {
             "get": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Terminal] Get terminal by ID",
                 "description": "Retrieve terminal information by terminal ID",
                 "parameters": [
@@ -3724,9 +3276,7 @@
                         "in": "path",
                         "description": "Terminal ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -3745,12 +3295,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TerminalSingleResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -3760,7 +3310,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -3770,7 +3320,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3780,19 +3330,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "put": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Terminal] Update a terminal",
                 "description": "Update an existing terminal record's metadata by ID",
                 "parameters": [
@@ -3801,9 +3345,7 @@
                         "in": "path",
                         "description": "Terminal ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -3815,7 +3357,7 @@
                                 "$ref": "#/components/schemas/dtos.UpdateTerminalRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -3833,12 +3375,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TerminalResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -3848,7 +3390,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "409": {
                         "description": "Conflict",
@@ -3858,7 +3400,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "422": {
                         "description": "Unprocessable Entity",
@@ -3875,12 +3417,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.UpdateTerminalRequestDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3890,19 +3432,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "delete": {
-                "tags": [
-                    "02. Terminal"
-                ],
+                "tags": ["02. Terminal"],
                 "summary": "[Terminal] [Terminal] Delete a terminal",
                 "description": "Soft delete a terminal by ID",
                 "parameters": [
@@ -3911,9 +3447,7 @@
                         "in": "path",
                         "description": "Terminal ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -3925,7 +3459,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -3935,7 +3469,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -3945,21 +3479,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
+                "security": [{"BearerAuth": []}],
+            },
         },
         "/api/terminal/{id}/scenes": {
             "get": {
-                "tags": [
-                    "03. Scenes"
-                ],
+                "tags": ["03. Scenes"],
                 "summary": "[Scenes] [Terminal] List all scenes for a Terminal device",
                 "description": "Retrieve a list of all configured scenes for a specific Terminal device, including all actions for each scene.",
                 "parameters": [
@@ -3968,9 +3496,7 @@
                         "in": "path",
                         "description": "Terminal UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -3990,26 +3516,20 @@
                                                     "type": "array",
                                                     "items": {
                                                         "$ref": "#/components/schemas/dtos.SceneResponseDTO"
-                                                    }
+                                                    },
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     }
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "post": {
-                "tags": [
-                    "03. Scenes"
-                ],
+                "tags": ["03. Scenes"],
                 "summary": "[Scenes] [Terminal] Create a new scene",
                 "description": "Create a scene with a name and a list of actions (Tuya/MQTT)",
                 "parameters": [
@@ -4018,9 +3538,7 @@
                         "in": "path",
                         "description": "Terminal UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -4032,7 +3550,7 @@
                                 "$ref": "#/components/schemas/dtos.CreateSceneRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "201": {
@@ -4050,12 +3568,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.SceneIDResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4065,7 +3583,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4075,21 +3593,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
+                "security": [{"BearerAuth": []}],
+            },
         },
         "/api/terminal/{id}/scenes/{scene_id}": {
             "put": {
-                "tags": [
-                    "03. Scenes"
-                ],
+                "tags": ["03. Scenes"],
                 "summary": "[Scenes] [Terminal] Update an existing scene",
                 "description": "Update the configuration of a specific scene",
                 "parameters": [
@@ -4098,19 +3610,15 @@
                         "in": "path",
                         "description": "Terminal UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "scene_id",
                         "in": "path",
                         "description": "Scene UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "requestBody": {
                     "description": "Updated scene configuration",
@@ -4121,7 +3629,7 @@
                                 "$ref": "#/components/schemas/dtos.UpdateSceneRequestDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -4139,12 +3647,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.SceneIDResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4154,7 +3662,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "404": {
                         "description": "Not Found",
@@ -4164,7 +3672,7 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4174,19 +3682,13 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             },
             "delete": {
-                "tags": [
-                    "03. Scenes"
-                ],
+                "tags": ["03. Scenes"],
                 "summary": "[Scenes] [Terminal] Delete a scene",
                 "description": "Remove a specific scene configuration",
                 "parameters": [
@@ -4195,19 +3697,15 @@
                         "in": "path",
                         "description": "Terminal UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "scene_id",
                         "in": "path",
                         "description": "Scene UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -4218,21 +3716,15 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     }
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
+                "security": [{"BearerAuth": []}],
+            },
         },
         "/api/terminal/{id}/scenes/{scene_id}/control": {
             "get": {
-                "tags": [
-                    "03. Scenes"
-                ],
+                "tags": ["03. Scenes"],
                 "summary": "[Scenes] [Terminal] Apply/Trigger a scene",
                 "description": "Trigger all actions defined in a specific scene",
                 "parameters": [
@@ -4241,19 +3733,15 @@
                         "in": "path",
                         "description": "Terminal UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "scene_id",
                         "in": "path",
                         "description": "Scene UUID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -4264,21 +3752,15 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     }
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/tuya/auth": {
             "get": {
-                "tags": [
-                    "01. Tuya"
-                ],
+                "tags": ["01. Tuya"],
                 "summary": "[Tuya] Authenticate with Tuya",
                 "description": "Authenticates the user and retrieves a Tuya access token",
                 "responses": {
@@ -4297,12 +3779,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TuyaAuthResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4312,21 +3794,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                "security": [{"ApiKeyAuth": []}],
             }
         },
         "/api/tuya/devices": {
             "get": {
-                "tags": [
-                    "01. Tuya"
-                ],
+                "tags": ["01. Tuya"],
                 "summary": "[Tuya] Get All Devices",
                 "description": "Retrieves a list of all devices in a Merged View (Smart IR remotes merged with Hubs). Sorted alphabetically by Name. For infrared_ac devices, the status array is populated with saved device state (power, temp, mode, wind) or default values if no state exists.",
                 "parameters": [
@@ -4334,34 +3810,26 @@
                         "name": "page",
                         "in": "query",
                         "description": "Page number",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "limit",
                         "in": "query",
                         "description": "Items per page",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "per_page",
                         "in": "query",
                         "description": "Items per page (alias for limit)",
-                        "schema": {
-                            "type": "integer"
-                        }
+                        "schema": {"type": "integer"},
                     },
                     {
                         "name": "category",
                         "in": "query",
                         "description": "Filter by category",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -4379,12 +3847,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TuyaDevicesResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4394,21 +3862,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/tuya/devices/{id}": {
             "get": {
-                "tags": [
-                    "01. Tuya"
-                ],
+                "tags": ["01. Tuya"],
                 "summary": "[Tuya] [Device] Get Device by ID",
                 "description": "Retrieves details of a specific device by its ID",
                 "parameters": [
@@ -4417,18 +3879,14 @@
                         "in": "path",
                         "description": "Device ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     },
                     {
                         "name": "remote_id",
                         "in": "query",
                         "description": "Optional Remote sub-device ID",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -4446,12 +3904,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TuyaDeviceResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4461,7 +3919,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4471,21 +3929,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/tuya/devices/{id}/commands/ir": {
             "post": {
-                "tags": [
-                    "01. Tuya"
-                ],
+                "tags": ["01. Tuya"],
                 "summary": "[Tuya] [Device] Send IR AC Command",
                 "description": "Sends an infrared command (e.g., AC control) to an IR-enabled Tuya device.",
                 "parameters": [
@@ -4494,9 +3946,7 @@
                         "in": "path",
                         "description": "Infrared Device ID (Hub/Remote)",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -4508,7 +3958,7 @@
                                 "$ref": "#/components/schemas/dtos.TuyaIRACCommandDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -4527,14 +3977,14 @@
                                                     "type": "object",
                                                     "additionalProperties": {
                                                         "type": "boolean"
-                                                    }
+                                                    },
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4544,7 +3994,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4554,21 +4004,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/tuya/devices/{id}/commands/switch": {
             "post": {
-                "tags": [
-                    "01. Tuya"
-                ],
+                "tags": ["01. Tuya"],
                 "summary": "[Tuya] [Device] Send Switch Command",
                 "description": "Sends a standard switch command (e.g., toggle power) to a specific Tuya device.",
                 "parameters": [
@@ -4577,9 +4021,7 @@
                         "in": "path",
                         "description": "Device ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "requestBody": {
@@ -4591,7 +4033,7 @@
                                 "$ref": "#/components/schemas/dtos.TuyaCommandDTO"
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -4610,14 +4052,14 @@
                                                     "type": "object",
                                                     "additionalProperties": {
                                                         "type": "boolean"
-                                                    }
+                                                    },
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4627,7 +4069,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4637,21 +4079,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/tuya/devices/{id}/sensor": {
             "get": {
-                "tags": [
-                    "01. Tuya"
-                ],
+                "tags": ["01. Tuya"],
                 "summary": "[Tuya] [Device] Get Sensor Data",
                 "description": "Retrieves sensor data (temperature, humidity, etc.) for a specific device",
                 "parameters": [
@@ -4660,9 +4096,7 @@
                         "in": "path",
                         "description": "Device ID",
                         "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "schema": {"type": "string"},
                     }
                 ],
                 "responses": {
@@ -4681,12 +4115,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.SensorDataDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4696,7 +4130,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4706,21 +4140,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/whisper/models/gemini": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Transcribe audio file (Gemini)",
                 "description": "Submit audio file for transcription via Gemini. Processing is asynchronous.",
                 "parameters": [
@@ -4729,18 +4157,14 @@
                         "in": "formData",
                         "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Language code (e.g. id, en)",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -4758,12 +4182,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TranscriptionTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4773,7 +4197,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "413": {
                         "description": "Request Entity Too Large",
@@ -4783,7 +4207,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "415": {
                         "description": "Unsupported Media Type",
@@ -4793,7 +4217,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4803,21 +4227,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/whisper/models/groq": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Transcribe audio file (Groq)",
                 "description": "Submit audio file for transcription via Groq. Processing is asynchronous.",
                 "parameters": [
@@ -4826,18 +4244,14 @@
                         "in": "formData",
                         "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Language code (e.g. id, en)",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -4855,12 +4269,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TranscriptionTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4870,7 +4284,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "413": {
                         "description": "Request Entity Too Large",
@@ -4880,7 +4294,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "415": {
                         "description": "Unsupported Media Type",
@@ -4890,7 +4304,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4900,21 +4314,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/whisper/models/openai": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Transcribe audio file (OpenAI)",
                 "description": "Submit audio file for transcription via OpenAI. Processing is asynchronous.",
                 "parameters": [
@@ -4923,18 +4331,14 @@
                         "in": "formData",
                         "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Language code (e.g. id, en)",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -4952,12 +4356,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TranscriptionTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -4967,7 +4371,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "413": {
                         "description": "Request Entity Too Large",
@@ -4977,7 +4381,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "415": {
                         "description": "Unsupported Media Type",
@@ -4987,7 +4391,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -4997,21 +4401,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/whisper/models/orion": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] Transcribe audio file (Orion)",
                 "description": "Submit audio file for transcription via Orion. Processing is asynchronous.",
                 "parameters": [
@@ -5020,18 +4418,14 @@
                         "in": "formData",
                         "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Language code (e.g. id, en)",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -5049,12 +4443,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TranscriptionTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -5064,7 +4458,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "413": {
                         "description": "Request Entity Too Large",
@@ -5074,7 +4468,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "415": {
                         "description": "Unsupported Media Type",
@@ -5084,7 +4478,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -5094,21 +4488,15 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
         },
         "/api/whisper/models/whisper/cpp": {
             "post": {
-                "tags": [
-                    "04. Models"
-                ],
+                "tags": ["04. Models"],
                 "summary": "[Models] [Whisper] Transcribe audio file (Whisper.cpp)",
                 "description": "Submit audio file for transcription via Whisper.cpp. Processing is asynchronous.",
                 "parameters": [
@@ -5117,18 +4505,14 @@
                         "in": "formData",
                         "description": "Audio file (.mp3, .wav, .m4a, .aac, .ogg, .flac)",
                         "required": true,
-                        "schema": {
-                            "type": "file"
-                        }
+                        "schema": {"type": "file"},
                     },
                     {
                         "name": "language",
                         "in": "formData",
                         "description": "Language code (e.g. id, en)",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
+                        "schema": {"type": "string"},
+                    },
                 ],
                 "responses": {
                     "202": {
@@ -5146,12 +4530,12 @@
                                                 "data": {
                                                     "$ref": "#/components/schemas/dtos.TranscriptionTaskResponseDTO"
                                                 }
-                                            }
-                                        }
+                                            },
+                                        },
                                     ]
                                 }
                             }
-                        }
+                        },
                     },
                     "400": {
                         "description": "Bad Request",
@@ -5161,7 +4545,7 @@
                                     "$ref": "#/components/schemas/dtos.ValidationErrorResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "413": {
                         "description": "Request Entity Too Large",
@@ -5171,7 +4555,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "415": {
                         "description": "Unsupported Media Type",
@@ -5181,7 +4565,7 @@
                                     "$ref": "#/components/schemas/dtos.StandardResponse"
                                 }
                             }
-                        }
+                        },
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -5191,57 +4575,37 @@
                                     "$ref": "#/components/schemas/dtos.ErrorResponse"
                                 }
                             }
-                        }
-                    }
+                        },
+                    },
                 },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                "security": [{"BearerAuth": []}],
             }
-        }
+        },
     },
     "components": {
         "schemas": {
             "dtos.ActionDTO": {
                 "type": "object",
                 "properties": {
-                    "code": {
-                        "type": "string"
-                    },
-                    "device_id": {
-                        "type": "string"
-                    },
-                    "remote_id": {
-                        "type": "string"
-                    },
-                    "topic": {
-                        "type": "string"
-                    },
-                    "value": {}
-                }
+                    "code": {"type": "string"},
+                    "device_id": {"type": "string"},
+                    "remote_id": {"type": "string"},
+                    "topic": {"type": "string"},
+                    "value": {},
+                },
             },
             "dtos.ActionItem": {
                 "type": "object",
                 "properties": {
-                    "deadline": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "integer"
-                    },
+                    "deadline": {"type": "string"},
+                    "id": {"type": "integer"},
                     "pic": {
                         "type": "string",
-                        "description": "Person in charge (may be empty if not specified)"
+                        "description": "Person in charge (may be empty if not specified)",
                     },
-                    "status": {
-                        "type": "string"
-                    },
-                    "task": {
-                        "type": "string"
-                    }
-                }
+                    "status": {"type": "string"},
+                    "task": {"type": "string"},
+                },
             },
             "dtos.AsyncTranscriptionResultDTO": {
                 "type": "object",
@@ -5249,214 +4613,122 @@
                     "confidence_summary": {
                         "$ref": "#/components/schemas/dtos.ConfidenceSummary"
                     },
-                    "detected_language": {
-                        "type": "string",
-                        "example": "id"
-                    },
+                    "detected_language": {"type": "string", "example": "id"},
                     "normalization_applied": {
                         "type": "boolean",
-                        "description": "Whether safe normalization was applied"
+                        "description": "Whether safe normalization was applied",
                     },
-                    "refined_text": {
-                        "type": "string",
-                        "example": "Hello world"
-                    },
+                    "refined_text": {"type": "string", "example": "Hello world"},
                     "segments": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/dtos.TranscriptSegment"
-                        }
+                        },
                     },
                     "transcript_format": {
                         "$ref": "#/components/schemas/dtos.TranscriptFormat"
                     },
-                    "transcription": {
-                        "type": "string",
-                        "example": "Halo dunia"
-                    },
+                    "transcription": {"type": "string", "example": "Halo dunia"},
                     "utterances": {
                         "type": "array",
                         "description": "Optional structured artifacts (backward compatible - empty when not available)",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.Utterance"
-                        }
-                    }
-                }
+                        "items": {"$ref": "#/components/schemas/dtos.Utterance"},
+                    },
+                },
             },
             "dtos.AsyncTranscriptionStatusDTO": {
                 "type": "object",
                 "properties": {
-                    "duration_seconds": {
-                        "type": "number",
-                        "example": 1.5
-                    },
-                    "error": {
-                        "type": "string",
-                        "example": "service unavailable"
-                    },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "expires_in_seconds": {
-                        "type": "integer"
-                    },
-                    "mac_address": {
-                        "type": "string"
-                    },
+                    "duration_seconds": {"type": "number", "example": 1.5},
+                    "error": {"type": "string", "example": "service unavailable"},
+                    "expires_at": {"type": "string"},
+                    "expires_in_seconds": {"type": "integer"},
+                    "mac_address": {"type": "string"},
                     "result": {
                         "$ref": "#/components/schemas/dtos.AsyncTranscriptionResultDTO"
                     },
-                    "started_at": {
-                        "type": "string",
-                        "example": "2026-02-21T11:00:00Z"
-                    },
-                    "status": {
-                        "type": "string",
-                        "example": "completed"
-                    },
-                    "terminal_id": {
-                        "type": "string"
-                    },
+                    "started_at": {"type": "string", "example": "2026-02-21T11:00:00Z"},
+                    "status": {"type": "string", "example": "completed"},
+                    "terminal_id": {"type": "string"},
                     "trigger": {
                         "type": "string",
-                        "example": "/api/whisper/models/gemini"
-                    }
-                }
+                        "example": "/api/whisper/models/gemini",
+                    },
+                },
             },
             "dtos.ConfidenceSummary": {
                 "type": "object",
                 "properties": {
-                    "average_confidence": {
-                        "type": "number"
-                    },
-                    "max_confidence": {
-                        "type": "number"
-                    },
-                    "min_confidence": {
-                        "type": "number"
-                    },
-                    "segments_count": {
-                        "type": "integer"
-                    },
-                    "utterances_count": {
-                        "type": "integer"
-                    }
-                }
+                    "average_confidence": {"type": "number"},
+                    "max_confidence": {"type": "number"},
+                    "min_confidence": {"type": "number"},
+                    "segments_count": {"type": "integer"},
+                    "utterances_count": {"type": "integer"},
+                },
             },
             "dtos.CoverageStats": {
                 "type": "object",
                 "properties": {
-                    "compression_ratio": {
-                        "type": "number"
-                    },
+                    "compression_ratio": {"type": "number"},
                     "coverage_ratio": {
                         "type": "number",
-                        "description": "processed_windows / total_windows"
+                        "description": "processed_windows / total_windows",
                     },
                     "empty_windows": {
                         "type": "integer",
-                        "description": "Windows with no extractable content"
+                        "description": "Windows with no extractable content",
                     },
-                    "processed_windows": {
-                        "type": "integer"
-                    },
-                    "source_chars": {
-                        "type": "integer"
-                    },
-                    "summary_chars": {
-                        "type": "integer"
-                    },
-                    "total_windows": {
-                        "type": "integer"
-                    }
-                }
+                    "processed_windows": {"type": "integer"},
+                    "source_chars": {"type": "integer"},
+                    "summary_chars": {"type": "integer"},
+                    "total_windows": {"type": "integer"},
+                },
             },
             "dtos.CreateDeviceRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "terminal_id": {
-                        "type": "string"
-                    }
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "terminal_id": {"type": "string"},
                 },
-                "required": [
-                    "id",
-                    "name",
-                    "terminal_id"
-                ]
+                "required": ["id", "name", "terminal_id"],
             },
             "dtos.CreateSceneRequestDTO": {
                 "type": "object",
                 "properties": {
                     "actions": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.ActionDTO"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.ActionDTO"},
                     },
-                    "name": {
-                        "type": "string"
-                    }
+                    "name": {"type": "string"},
                 },
-                "required": [
-                    "name"
-                ]
+                "required": ["name"],
             },
             "dtos.CreateTerminalRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "device_type_id": {
-                        "type": "string"
-                    },
-                    "mac_address": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "room_id": {
-                        "type": "string"
-                    }
+                    "device_type_id": {"type": "string"},
+                    "mac_address": {"type": "string"},
+                    "name": {"type": "string"},
+                    "room_id": {"type": "string"},
                 },
-                "required": [
-                    "device_type_id",
-                    "mac_address",
-                    "name",
-                    "room_id"
-                ]
+                "required": ["device_type_id", "mac_address", "name", "room_id"],
             },
             "dtos.CreateTerminalResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "mqtt_password": {
-                        "type": "string"
-                    },
-                    "mqtt_username": {
-                        "type": "string"
-                    },
-                    "terminal_id": {
-                        "type": "string"
-                    }
-                }
+                    "mqtt_password": {"type": "string"},
+                    "mqtt_username": {"type": "string"},
+                    "terminal_id": {"type": "string"},
+                },
             },
             "dtos.Decision": {
                 "type": "object",
                 "properties": {
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "integer"
-                    },
-                    "rationale": {
-                        "type": "string"
-                    }
-                }
+                    "description": {"type": "string"},
+                    "id": {"type": "integer"},
+                    "rationale": {"type": "string"},
+                },
             },
             "dtos.DeviceListResponseDTO": {
                 "type": "object",
@@ -5465,80 +4737,36 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/dtos.DeviceResponseDTO"
-                        }
+                        },
                     },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "per_page": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
+                    "page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
+                    "total": {"type": "integer"},
+                },
             },
             "dtos.DeviceResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "category": {
-                        "type": "string"
-                    },
-                    "collections": {
-                        "type": "string"
-                    },
-                    "create_time": {
-                        "type": "integer"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "custom_name": {
-                        "type": "string"
-                    },
-                    "gateway_id": {
-                        "type": "string"
-                    },
-                    "icon": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "ip": {
-                        "type": "string"
-                    },
-                    "local_key": {
-                        "type": "string"
-                    },
-                    "model": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "product_name": {
-                        "type": "string"
-                    },
-                    "remote_category": {
-                        "type": "string"
-                    },
-                    "remote_id": {
-                        "type": "string"
-                    },
-                    "remote_product_name": {
-                        "type": "string"
-                    },
-                    "terminal_id": {
-                        "type": "string"
-                    },
-                    "update_time": {
-                        "type": "integer"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                }
+                    "category": {"type": "string"},
+                    "collections": {"type": "string"},
+                    "create_time": {"type": "integer"},
+                    "created_at": {"type": "string"},
+                    "custom_name": {"type": "string"},
+                    "gateway_id": {"type": "string"},
+                    "icon": {"type": "string"},
+                    "id": {"type": "string"},
+                    "ip": {"type": "string"},
+                    "local_key": {"type": "string"},
+                    "model": {"type": "string"},
+                    "name": {"type": "string"},
+                    "product_name": {"type": "string"},
+                    "remote_category": {"type": "string"},
+                    "remote_id": {"type": "string"},
+                    "remote_product_name": {"type": "string"},
+                    "terminal_id": {"type": "string"},
+                    "update_time": {"type": "integer"},
+                    "updated_at": {"type": "string"},
+                },
             },
             "dtos.DeviceStatusListResponseDTO": {
                 "type": "object",
@@ -5547,687 +4775,421 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/dtos.DeviceStatusResponseDTO"
-                        }
+                        },
                     },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "per_page": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
+                    "page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
+                    "total": {"type": "integer"},
+                },
             },
             "dtos.DeviceStatusResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "code": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "device_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "value": {
-                        "type": "string"
-                    }
-                }
+                    "code": {"type": "string"},
+                    "created_at": {"type": "string"},
+                    "device_id": {"type": "string"},
+                    "updated_at": {"type": "string"},
+                    "value": {"type": "string"},
+                },
             },
             "dtos.ErrorResponse": {
                 "type": "object",
                 "properties": {
                     "data": {},
-                    "message": {
-                        "type": "string",
-                        "example": "An error occurred"
-                    },
-                    "status": {
-                        "type": "boolean",
-                        "example": false
-                    }
-                }
+                    "message": {"type": "string", "example": "An error occurred"},
+                    "status": {"type": "boolean", "example": false},
+                },
             },
             "dtos.MQTTCredentialsResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "password": {
-                        "type": "string",
-                        "example": "secret_password"
-                    },
-                    "username": {
-                        "type": "string",
-                        "example": "device_001"
-                    }
-                }
+                    "password": {"type": "string", "example": "secret_password"},
+                    "username": {"type": "string", "example": "device_001"},
+                },
             },
             "dtos.MailSendRequestDTO": {
                 "type": "object",
                 "properties": {
                     "attachment_path": {
                         "type": "string",
-                        "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
+                        "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf",
                     },
-                    "data": {
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "subject": {
-                        "type": "string",
-                        "example": "Notification"
-                    },
-                    "template": {
-                        "type": "string",
-                        "example": "test"
-                    },
+                    "data": {"type": "object", "additionalProperties": true},
+                    "subject": {"type": "string", "example": "Notification"},
+                    "template": {"type": "string", "example": "test"},
                     "to": {
                         "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "example": [
-                            "user@example.com"
-                        ]
-                    }
+                        "items": {"type": "string"},
+                        "example": ["user@example.com"],
+                    },
                 },
-                "required": [
-                    "subject",
-                    "to"
-                ]
+                "required": ["subject", "to"],
             },
             "dtos.MailStatusDTO": {
                 "type": "object",
                 "properties": {
-                    "duration_seconds": {
-                        "type": "number"
-                    },
-                    "error": {
-                        "type": "string",
-                        "example": "smtp auth failed"
-                    },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "expires_in_seconds": {
-                        "type": "integer"
-                    },
+                    "duration_seconds": {"type": "number"},
+                    "error": {"type": "string", "example": "smtp auth failed"},
+                    "expires_at": {"type": "string"},
+                    "expires_in_seconds": {"type": "integer"},
                     "result": {
                         "type": "string",
-                        "example": "Email sent to user@example.com"
+                        "example": "Email sent to user@example.com",
                     },
-                    "started_at": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string",
-                        "example": "completed"
-                    },
-                    "trigger": {
-                        "type": "string"
-                    }
-                }
+                    "started_at": {"type": "string"},
+                    "status": {"type": "string", "example": "completed"},
+                    "trigger": {"type": "string"},
+                },
             },
             "dtos.MailTaskResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "task_id": {
-                        "type": "string",
-                        "example": "mail-abc-123"
-                    },
-                    "task_status": {
-                        "type": "string",
-                        "example": "pending"
-                    }
-                }
+                    "task_id": {"type": "string", "example": "mail-abc-123"},
+                    "task_status": {"type": "string", "example": "pending"},
+                },
             },
             "dtos.NotificationPublishRequest": {
                 "type": "object",
                 "properties": {
-                    "datetime_end": {
-                        "type": "string",
-                        "example": "2026-03-17T14:00:00+07:00"
+                    "date": {"type": "string", "example": "2026-03-17"},
+                    "room_id": {"type": "string", "example": "123"},
+                    "phone_number": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "example": ["+6281234567890", "+6289876543210"],
                     },
-                    "interval_time": {
-                        "type": "integer",
-                        "example": 15
-                    },
-                    "room_id": {
+                    "template": {
                         "type": "string",
-                        "example": "123"
+                        "enum": ["start_meeting", "end_meeting"],
+                        "example": "start_meeting",
                     },
-                    "time_end": {
-                        "type": "string",
-                        "example": "14:00:00"
-                    }
+                    "time": {"type": "string", "example": "14:00:00"},
+                    "timezone": {"type": "string", "example": "Asia/Jakarta"},
                 },
                 "required": [
-                    "room_id"
-                ]
+                    "room_id",
+                    "phone_number",
+                    "template",
+                    "time",
+                    "date",
+                    "timezone",
+                ],
             },
             "dtos.NotificationPublishResponse": {
                 "type": "object",
                 "properties": {
                     "publish_at": {
                         "type": "string",
-                        "example": "2026-03-17T13:45:00+07:00"
+                        "example": "2026-03-17T13:45:00+07:00",
                     },
-                    "published_count": {
-                        "type": "integer",
-                        "example": 2
-                    },
+                    "published_count": {"type": "integer", "example": 2},
                     "published_topics": {
                         "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "example": [
-                            "[\"users/AA:BB:CC:DD:EE:FF/dev/notification\"]"
-                        ]
+                        "items": {"type": "string"},
+                        "example": ['["users/AA:BB:CC:DD:EE:FF/dev/notification"]'],
                     },
-                    "room_id": {
-                        "type": "string",
-                        "example": "123"
-                    }
-                }
+                    "room_id": {"type": "string", "example": "123"},
+                },
             },
             "dtos.OpenIssue": {
                 "type": "object",
                 "properties": {
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "integer"
-                    },
+                    "description": {"type": "string"},
+                    "id": {"type": "integer"},
                     "owner": {
                         "type": "string",
-                        "description": "May be empty if not assigned"
-                    }
-                }
+                        "description": "May be empty if not assigned",
+                    },
+                },
             },
             "dtos.PipelineResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "task_id": {
-                        "type": "string"
-                    },
+                    "task_id": {"type": "string"},
                     "task_status": {
                         "$ref": "#/components/schemas/dtos.PipelineStatusDTO"
-                    }
-                }
+                    },
+                },
             },
             "dtos.PipelineStageStatus": {
                 "type": "object",
                 "properties": {
-                    "duration_seconds": {
-                        "type": "number"
-                    },
-                    "error": {
-                        "type": "string"
-                    },
+                    "duration_seconds": {"type": "number"},
+                    "error": {"type": "string"},
                     "result": {},
-                    "started_at": {
-                        "type": "string"
-                    },
+                    "started_at": {"type": "string"},
                     "status": {
                         "type": "string",
                         "description": "pending, processing, completed, failed, skipped, cancelled",
-                        "example": "pending"
-                    }
-                }
+                        "example": "pending",
+                    },
+                },
             },
             "dtos.PipelineStatusDTO": {
                 "type": "object",
                 "properties": {
-                    "duration_seconds": {
-                        "type": "number"
-                    },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "expires_in_seconds": {
-                        "type": "integer"
-                    },
-                    "mac_address": {
-                        "type": "string"
-                    },
+                    "duration_seconds": {"type": "number"},
+                    "expires_at": {"type": "string"},
+                    "expires_in_seconds": {"type": "integer"},
+                    "mac_address": {"type": "string"},
                     "overall_status": {
                         "type": "string",
                         "description": "pending, processing, completed, failed, cancelled",
-                        "example": "processing"
+                        "example": "processing",
                     },
                     "stages": {
                         "type": "object",
                         "additionalProperties": {
                             "$ref": "#/components/schemas/dtos.PipelineStageStatus"
-                        }
+                        },
                     },
-                    "started_at": {
-                        "type": "string"
-                    },
-                    "task_id": {
-                        "type": "string"
-                    }
-                }
+                    "started_at": {"type": "string"},
+                    "task_id": {"type": "string"},
+                },
             },
             "dtos.RAGChatRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "language": {
-                        "type": "string",
-                        "example": "id"
-                    },
-                    "prompt": {
-                        "type": "string",
-                        "example": "Nyalakan AC"
-                    },
+                    "language": {"type": "string", "example": "id"},
+                    "prompt": {"type": "string", "example": "Nyalakan AC"},
                     "request_id": {
                         "type": "string",
-                        "description": "RequestID is a unique identifier for cross-channel idempotency.\nWhen the same request_id is sent via both HTTP and MQTT channels,\nonly ONE Tuya command execution will occur. The second channel will\nreturn either a \"processing\" acknowledgment (if first request is still\nin progress) or the cached response (if first request completed).\nClient should generate a UUID per user interaction and use it for both\nHTTP and MQTT dispatch to prevent duplicate device control.",
-                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                        "description": 'RequestID is a unique identifier for cross-channel idempotency.\nWhen the same request_id is sent via both HTTP and MQTT channels,\nonly ONE Tuya command execution will occur. The second channel will\nreturn either a "processing" acknowledgment (if first request is still\nin progress) or the cached response (if first request completed).\nClient should generate a UUID per user interaction and use it for both\nHTTP and MQTT dispatch to prevent duplicate device control.',
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
                     },
-                    "terminal_id": {
-                        "type": "string",
-                        "example": "tx-1"
-                    },
+                    "terminal_id": {"type": "string", "example": "tx-1"},
                     "uid": {
                         "type": "string",
                         "description": "Must be Tuya UID (never MAC/terminal identity)",
-                        "example": "sg1765..."
-                    }
+                        "example": "sg1765...",
+                    },
                 },
-                "required": [
-                    "prompt",
-                    "terminal_id"
-                ]
+                "required": ["prompt", "terminal_id"],
             },
             "dtos.RAGChatResponseDTO": {
                 "type": "object",
                 "properties": {
                     "instance_id": {
                         "type": "string",
-                        "description": "Server start time"
+                        "description": "Server start time",
                     },
-                    "is_blocked": {
-                        "type": "boolean"
-                    },
-                    "is_control": {
-                        "type": "boolean"
-                    },
-                    "redirect": {
-                        "$ref": "#/components/schemas/dtos.RedirectDTO"
-                    },
+                    "is_blocked": {"type": "boolean"},
+                    "is_control": {"type": "boolean"},
+                    "redirect": {"$ref": "#/components/schemas/dtos.RedirectDTO"},
                     "request_id": {
                         "type": "string",
-                        "description": "Tracking ID (echoes request_id from request)"
+                        "description": "Tracking ID (echoes request_id from request)",
                     },
-                    "response": {
-                        "type": "string"
-                    },
+                    "response": {"type": "string"},
                     "source": {
                         "type": "string",
-                        "description": "Response source: \"HTTP_HANDLER\", \"MQTT_SUBSCRIBER\", \"IDEMPOTENCY_CACHED\", \"IDEMPOTENCY_IN_PROGRESS\", \"MQTT_SYNC_DROP\""
-                    }
-                }
+                        "description": 'Response source: "HTTP_HANDLER", "MQTT_SUBSCRIBER", "IDEMPOTENCY_CACHED", "IDEMPOTENCY_IN_PROGRESS", "MQTT_SYNC_DROP"',
+                    },
+                },
             },
             "dtos.RAGControlRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "prompt": {
-                        "type": "string",
-                        "example": "Nyalakan AC"
-                    },
-                    "terminal_id": {
-                        "type": "string",
-                        "example": "tx-1"
-                    }
+                    "prompt": {"type": "string", "example": "Nyalakan AC"},
+                    "terminal_id": {"type": "string", "example": "tx-1"},
                 },
-                "required": [
-                    "prompt",
-                    "terminal_id"
-                ]
+                "required": ["prompt", "terminal_id"],
             },
             "dtos.RAGRawPromptRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "prompt": {
-                        "type": "string",
-                        "example": "Hello, how are you?"
-                    }
+                    "prompt": {"type": "string", "example": "Hello, how are you?"}
                 },
-                "required": [
-                    "prompt"
-                ]
+                "required": ["prompt"],
             },
             "dtos.RAGRawPromptResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "duration_seconds": {
-                        "type": "number"
-                    },
-                    "error": {
-                        "type": "string"
-                    },
-                    "result": {
-                        "type": "string"
-                    },
-                    "started_at": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string",
-                        "example": "completed"
-                    },
-                    "trigger": {
-                        "type": "string"
-                    }
-                }
+                    "duration_seconds": {"type": "number"},
+                    "error": {"type": "string"},
+                    "result": {"type": "string"},
+                    "started_at": {"type": "string"},
+                    "status": {"type": "string", "example": "completed"},
+                    "trigger": {"type": "string"},
+                },
             },
             "dtos.RAGRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "language": {
-                        "type": "string",
-                        "example": "id"
-                    },
-                    "mac_address": {
-                        "type": "string",
-                        "example": "AA:BB:CC:DD:EE:FF"
-                    },
+                    "language": {"type": "string", "example": "id"},
+                    "mac_address": {"type": "string", "example": "AA:BB:CC:DD:EE:FF"},
                     "text": {
                         "type": "string",
-                        "example": "Ini adalah transkrip panjang dari rapat teknis..."
-                    }
+                        "example": "Ini adalah transkrip panjang dari rapat teknis...",
+                    },
                 },
-                "required": [
-                    "text"
-                ]
+                "required": ["text"],
             },
             "dtos.RAGStatusDTO": {
                 "type": "object",
                 "properties": {
                     "action_items": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.ActionItem"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.ActionItem"},
                     },
-                    "agenda_context": {
-                        "type": "string"
-                    },
+                    "agenda_context": {"type": "string"},
                     "body": {},
                     "coverage_stats": {
                         "$ref": "#/components/schemas/dtos.CoverageStats"
                     },
                     "decisions": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.Decision"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.Decision"},
                     },
-                    "duration_seconds": {
-                        "type": "number",
-                        "example": 2.5
-                    },
-                    "endpoint": {
-                        "type": "string"
-                    },
+                    "duration_seconds": {"type": "number", "example": 2.5},
+                    "endpoint": {"type": "string"},
                     "error": {
                         "type": "string",
-                        "example": "gemini api returned status 503"
+                        "example": "gemini api returned status 503",
                     },
                     "execution_result": {
                         "description": "holds the response from the fetched endpoint"
                     },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "expires_in_seconds": {
-                        "type": "integer"
-                    },
+                    "expires_at": {"type": "string"},
+                    "expires_in_seconds": {"type": "integer"},
                     "headers": {
                         "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
+                        "additionalProperties": {"type": "string"},
                     },
-                    "language": {
-                        "type": "string"
-                    },
-                    "mac_address": {
-                        "type": "string"
-                    },
-                    "meeting_context": {
-                        "type": "string"
-                    },
-                    "method": {
-                        "type": "string"
-                    },
+                    "language": {"type": "string"},
+                    "mac_address": {"type": "string"},
+                    "meeting_context": {"type": "string"},
+                    "method": {"type": "string"},
                     "open_issues": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.OpenIssue"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.OpenIssue"},
                     },
-                    "pdf_url": {
-                        "type": "string"
-                    },
-                    "result": {
-                        "type": "string",
-                        "example": "The meeting discussed..."
-                    },
+                    "pdf_url": {"type": "string"},
+                    "result": {"type": "string", "example": "The meeting discussed..."},
                     "risks": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.Risk"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.Risk"},
                     },
-                    "source_language": {
-                        "type": "string"
-                    },
+                    "source_language": {"type": "string"},
                     "speaker_coverage": {
                         "$ref": "#/components/schemas/dtos.SpeakerCoverage"
                     },
-                    "started_at": {
-                        "type": "string",
-                        "example": "2026-02-21T11:00:00Z"
-                    },
-                    "status": {
-                        "type": "string",
-                        "example": "completed"
-                    },
+                    "started_at": {"type": "string", "example": "2026-02-21T11:00:00Z"},
+                    "status": {"type": "string", "example": "completed"},
                     "summary": {
                         "type": "string",
-                        "description": "Alias for Result in summary tasks"
+                        "description": "Alias for Result in summary tasks",
                     },
                     "summary_mode": {
                         "type": "string",
-                        "description": "\"single_pass\" or \"hierarchical_structured\""
+                        "description": '"single_pass" or "hierarchical_structured"',
                     },
                     "summary_version": {
                         "type": "string",
-                        "description": "Optional structured summary artifacts (backward compatible - empty when not available)"
+                        "description": "Optional structured summary artifacts (backward compatible - empty when not available)",
                     },
-                    "translated_from_language": {
-                        "type": "string"
-                    },
-                    "trigger": {
-                        "type": "string",
-                        "example": "/api/rag/summary"
-                    }
-                }
+                    "translated_from_language": {"type": "string"},
+                    "trigger": {"type": "string", "example": "/api/rag/summary"},
+                },
             },
             "dtos.RAGSummaryRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "context": {
-                        "type": "string",
-                        "example": "technical meeting"
-                    },
-                    "date": {
-                        "type": "string"
-                    },
+                    "context": {"type": "string", "example": "technical meeting"},
+                    "date": {"type": "string"},
                     "language": {
                         "type": "string",
-                        "description": "\"id\" or \"en\"",
-                        "example": "id"
+                        "description": '"id" or "en"',
+                        "example": "id",
                     },
-                    "location": {
-                        "type": "string",
-                        "example": "Meeting Room A"
-                    },
-                    "mac_address": {
-                        "type": "string",
-                        "example": "AA:BB:CC:DD:EE:FF"
-                    },
+                    "location": {"type": "string", "example": "Meeting Room A"},
+                    "mac_address": {"type": "string", "example": "AA:BB:CC:DD:EE:FF"},
                     "participants": {
                         "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "example": [
-                            "[\"Alice\"",
-                            " \"Bob\"]"
-                        ]
+                        "items": {"type": "string"},
+                        "example": ['["Alice"', ' "Bob"]'],
                     },
                     "style": {
                         "type": "string",
-                        "description": "e.g., \"minutes\", \"executive\"",
-                        "example": "minutes"
+                        "description": 'e.g., "minutes", "executive"',
+                        "example": "minutes",
                     },
                     "text": {
                         "type": "string",
-                        "example": "This is a long transcript of a technical meeting..."
-                    }
+                        "example": "This is a long transcript of a technical meeting...",
+                    },
                 },
-                "required": [
-                    "text"
-                ]
+                "required": ["text"],
             },
             "dtos.RedirectDTO": {
                 "type": "object",
                 "properties": {
                     "body": {},
-                    "endpoint": {
-                        "type": "string"
-                    },
-                    "method": {
-                        "type": "string"
-                    }
-                }
+                    "endpoint": {"type": "string"},
+                    "method": {"type": "string"},
+                },
             },
             "dtos.Risk": {
                 "type": "object",
                 "properties": {
-                    "description": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "integer"
-                    },
+                    "description": {"type": "string"},
+                    "id": {"type": "integer"},
                     "impact": {
                         "type": "string",
-                        "description": "Low/Medium/High or 1-10 score"
+                        "description": "Low/Medium/High or 1-10 score",
                     },
-                    "mitigation": {
-                        "type": "string"
-                    }
-                }
+                    "mitigation": {"type": "string"},
+                },
             },
             "dtos.SceneIDResponseDTO": {
                 "type": "object",
-                "properties": {
-                    "scene_id": {
-                        "type": "string"
-                    }
-                }
+                "properties": {"scene_id": {"type": "string"}},
             },
             "dtos.SceneItemDTO": {
                 "type": "object",
                 "properties": {
                     "actions": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.ActionDTO"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.ActionDTO"},
                     },
-                    "id": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                }
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                },
             },
             "dtos.SceneResponseDTO": {
                 "type": "object",
                 "properties": {
                     "actions": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.ActionDTO"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.ActionDTO"},
                     },
-                    "id": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "terminal_id": {
-                        "type": "string"
-                    }
-                }
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "terminal_id": {"type": "string"},
+                },
             },
             "dtos.SendMailByMacRequestDTO": {
                 "type": "object",
                 "properties": {
                     "attachment_path": {
                         "type": "string",
-                        "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"
+                        "example": "/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf",
                     },
-                    "data": {
-                        "type": "object",
-                        "additionalProperties": true
-                    },
-                    "subject": {
-                        "type": "string",
-                        "example": "Booking Confirmation"
-                    },
-                    "template": {
-                        "type": "string",
-                        "example": "test"
-                    }
+                    "data": {"type": "object", "additionalProperties": true},
+                    "subject": {"type": "string", "example": "Booking Confirmation"},
+                    "template": {"type": "string", "example": "test"},
                 },
-                "required": [
-                    "subject"
-                ]
+                "required": ["subject"],
             },
             "dtos.SensorDataDTO": {
                 "type": "object",
                 "properties": {
-                    "battery_percentage": {
-                        "type": "integer"
-                    },
-                    "humidity": {
-                        "type": "integer"
-                    },
-                    "status_text": {
-                        "type": "string"
-                    },
-                    "temp_unit": {
-                        "type": "string"
-                    },
-                    "temperature": {
-                        "type": "number"
-                    }
-                }
+                    "battery_percentage": {"type": "integer"},
+                    "humidity": {"type": "integer"},
+                    "status_text": {"type": "string"},
+                    "temp_unit": {"type": "string"},
+                    "temperature": {"type": "number"},
+                },
             },
             "dtos.SpeakerCoverage": {
                 "type": "object",
@@ -6235,122 +5197,73 @@
                     "speaker_breakdown": {
                         "type": "object",
                         "description": "Speaker label -> utterance count",
-                        "additionalProperties": {
-                            "type": "integer"
-                        }
+                        "additionalProperties": {"type": "integer"},
                     },
                     "speakers_with_names": {
                         "type": "integer",
-                        "description": "Speakers with identified names vs \"Speaker 1\""
+                        "description": 'Speakers with identified names vs "Speaker 1"',
                     },
-                    "total_speakers": {
-                        "type": "integer"
-                    },
-                    "utterance_count": {
-                        "type": "integer"
-                    }
-                }
+                    "total_speakers": {"type": "integer"},
+                    "utterance_count": {"type": "integer"},
+                },
             },
             "dtos.StandardResponse": {
                 "type": "object",
                 "properties": {
                     "data": {},
                     "details": {},
-                    "message": {
-                        "type": "string",
-                        "example": "Success"
-                    },
-                    "status": {
-                        "type": "boolean",
-                        "example": true
-                    }
-                }
+                    "message": {"type": "string", "example": "Success"},
+                    "status": {"type": "boolean", "example": true},
+                },
             },
             "dtos.TaskIDResponseDTO": {
                 "type": "object",
-                "properties": {
-                    "task_id": {
-                        "type": "string",
-                        "example": "task-123"
-                    }
-                }
+                "properties": {"task_id": {"type": "string", "example": "task-123"}},
             },
             "dtos.TerminalListResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "page": {
-                        "type": "integer"
-                    },
-                    "per_page": {
-                        "type": "integer"
-                    },
+                    "page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
                     "terminal": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/dtos.TerminalResponseDTO"
-                        }
+                        },
                     },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
+                    "total": {"type": "integer"},
+                },
             },
             "dtos.TerminalResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "ai_provider": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "device_type_id": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "mac_address": {
-                        "type": "string"
-                    },
-                    "mqtt_password": {
-                        "type": "string"
-                    },
-                    "mqtt_username": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "room_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                }
+                    "ai_provider": {"type": "string"},
+                    "created_at": {"type": "string"},
+                    "device_type_id": {"type": "string"},
+                    "id": {"type": "string"},
+                    "mac_address": {"type": "string"},
+                    "mqtt_password": {"type": "string"},
+                    "mqtt_username": {"type": "string"},
+                    "name": {"type": "string"},
+                    "room_id": {"type": "string"},
+                    "updated_at": {"type": "string"},
+                },
             },
             "dtos.TerminalScenesDTO": {
                 "type": "object",
                 "properties": {
                     "scenes": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.SceneItemDTO"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.SceneItemDTO"},
                     },
-                    "terminal_id": {
-                        "type": "string"
-                    }
-                }
+                    "terminal_id": {"type": "string"},
+                },
             },
             "dtos.TerminalScenesWrapperDTO": {
                 "type": "object",
                 "properties": {
-                    "terminal": {
-                        "$ref": "#/components/schemas/dtos.TerminalScenesDTO"
-                    }
-                }
+                    "terminal": {"$ref": "#/components/schemas/dtos.TerminalScenesDTO"}
+                },
             },
             "dtos.TerminalSingleResponseDTO": {
                 "type": "object",
@@ -6358,377 +5271,221 @@
                     "terminal": {
                         "$ref": "#/components/schemas/dtos.TerminalResponseDTO"
                     }
-                }
+                },
             },
             "dtos.TranscriptFormat": {
                 "type": "string",
-                "enum": [
-                    "plain_text",
-                    "utterance_list"
-                ]
+                "enum": ["plain_text", "utterance_list"],
             },
             "dtos.TranscriptSegment": {
                 "type": "object",
                 "properties": {
                     "end_ms": {
                         "type": "integer",
-                        "description": "Segment end time in milliseconds (ESTIMATE)"
+                        "description": "Segment end time in milliseconds (ESTIMATE)",
                     },
                     "index": {
                         "type": "integer",
-                        "description": "Segment index (0, 1, 2, ...)"
+                        "description": "Segment index (0, 1, 2, ...)",
                     },
                     "start_ms": {
                         "type": "integer",
-                        "description": "Segment start time in milliseconds (ESTIMATE)"
+                        "description": "Segment start time in milliseconds (ESTIMATE)",
                     },
                     "text": {
                         "type": "string",
-                        "description": "Transcribed text for this segment"
+                        "description": "Transcribed text for this segment",
                     },
                     "utterances": {
                         "type": "array",
                         "description": "Utterances within this segment, if available",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.Utterance"
-                        }
-                    }
-                }
+                        "items": {"$ref": "#/components/schemas/dtos.Utterance"},
+                    },
+                },
             },
             "dtos.TranscriptionTaskResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "recording_id": {
-                        "type": "string",
-                        "example": "uuid-v4"
-                    },
-                    "request_id": {
-                        "type": "string",
-                        "example": "req-uuid"
-                    },
-                    "source": {
-                        "type": "string",
-                        "example": "MQTT_ACK"
-                    },
-                    "task_id": {
-                        "type": "string",
-                        "example": "abc-123"
-                    },
-                    "task_status": {
-                        "type": "string",
-                        "example": "pending"
-                    }
-                }
+                    "recording_id": {"type": "string", "example": "uuid-v4"},
+                    "request_id": {"type": "string", "example": "req-uuid"},
+                    "source": {"type": "string", "example": "MQTT_ACK"},
+                    "task_id": {"type": "string", "example": "abc-123"},
+                    "task_status": {"type": "string", "example": "pending"},
+                },
             },
             "dtos.TuyaAuthResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "access_token": {
-                        "type": "string"
-                    },
-                    "expire_time": {
-                        "type": "integer"
-                    },
-                    "refresh_token": {
-                        "type": "string"
-                    },
-                    "uid": {
-                        "type": "string"
-                    }
-                }
+                    "access_token": {"type": "string"},
+                    "expire_time": {"type": "integer"},
+                    "refresh_token": {"type": "string"},
+                    "uid": {"type": "string"},
+                },
             },
             "dtos.TuyaCommandDTO": {
                 "type": "object",
                 "properties": {
-                    "code": {
-                        "type": "string",
-                        "example": "switch_1"
-                    },
+                    "code": {"type": "string", "example": "switch_1"},
                     "value": {
                         "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    }
+                        "additionalProperties": {"type": "string"},
+                    },
                 },
-                "required": [
-                    "code",
-                    "value"
-                ]
+                "required": ["code", "value"],
             },
             "dtos.TuyaDeviceDTO": {
                 "type": "object",
                 "properties": {
-                    "category": {
-                        "type": "string"
-                    },
+                    "category": {"type": "string"},
                     "collections": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.TuyaDeviceDTO"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.TuyaDeviceDTO"},
                     },
-                    "create_time": {
-                        "type": "integer"
-                    },
-                    "custom_name": {
-                        "type": "string"
-                    },
-                    "gateway_id": {
-                        "type": "string"
-                    },
-                    "icon": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "ip": {
-                        "type": "string"
-                    },
-                    "local_key": {
-                        "type": "string"
-                    },
-                    "model": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "online": {
-                        "type": "boolean"
-                    },
-                    "product_name": {
-                        "type": "string"
-                    },
-                    "remote_category": {
-                        "type": "string"
-                    },
-                    "remote_id": {
-                        "type": "string"
-                    },
-                    "remote_product_name": {
-                        "type": "string"
-                    },
+                    "create_time": {"type": "integer"},
+                    "custom_name": {"type": "string"},
+                    "gateway_id": {"type": "string"},
+                    "icon": {"type": "string"},
+                    "id": {"type": "string"},
+                    "ip": {"type": "string"},
+                    "local_key": {"type": "string"},
+                    "model": {"type": "string"},
+                    "name": {"type": "string"},
+                    "online": {"type": "boolean"},
+                    "product_name": {"type": "string"},
+                    "remote_category": {"type": "string"},
+                    "remote_id": {"type": "string"},
+                    "remote_product_name": {"type": "string"},
                     "status": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/dtos.TuyaDeviceStatusDTO"
-                        }
+                        },
                     },
-                    "update_time": {
-                        "type": "integer"
-                    }
-                }
+                    "update_time": {"type": "integer"},
+                },
             },
             "dtos.TuyaDeviceResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "device": {
-                        "$ref": "#/components/schemas/dtos.TuyaDeviceDTO"
-                    }
-                }
+                    "device": {"$ref": "#/components/schemas/dtos.TuyaDeviceDTO"}
+                },
             },
             "dtos.TuyaDeviceStatusDTO": {
                 "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string"
-                    },
-                    "value": {}
-                }
+                "properties": {"code": {"type": "string"}, "value": {}},
             },
             "dtos.TuyaDevicesResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "current_page_count": {
-                        "type": "integer"
-                    },
+                    "current_page_count": {"type": "integer"},
                     "devices": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.TuyaDeviceDTO"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.TuyaDeviceDTO"},
                     },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "per_page": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    },
-                    "total_devices": {
-                        "type": "integer"
-                    }
-                }
+                    "page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
+                    "total": {"type": "integer"},
+                    "total_devices": {"type": "integer"},
+                },
             },
             "dtos.TuyaIRACCommandDTO": {
                 "type": "object",
                 "properties": {
-                    "code": {
-                        "type": "string",
-                        "example": "temp"
-                    },
-                    "remote_id": {
-                        "type": "string",
-                        "example": "ir-remote-001"
-                    },
-                    "value": {
-                        "type": "integer",
-                        "example": 24
-                    }
+                    "code": {"type": "string", "example": "temp"},
+                    "remote_id": {"type": "string", "example": "ir-remote-001"},
+                    "value": {"type": "integer", "example": 24},
                 },
-                "required": [
-                    "code",
-                    "remote_id"
-                ]
+                "required": ["code", "remote_id"],
             },
             "dtos.UpdateDeviceRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "example": "Updated Device Name"
-                    }
-                }
+                    "name": {"type": "string", "example": "Updated Device Name"}
+                },
             },
             "dtos.UpdateDeviceStatusRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "code": {
-                        "type": "string",
-                        "example": "switch_1"
-                    },
+                    "code": {"type": "string", "example": "switch_1"},
                     "remote_id": {
                         "type": "string",
                         "description": "Optional, for IR devices",
-                        "example": "ir-remote-001"
+                        "example": "ir-remote-001",
                     },
                     "value": {
                         "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    }
+                        "additionalProperties": {"type": "string"},
+                    },
                 },
-                "required": [
-                    "code"
-                ]
+                "required": ["code"],
             },
             "dtos.UpdateSceneRequestDTO": {
                 "type": "object",
                 "properties": {
                     "actions": {
                         "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/dtos.ActionDTO"
-                        }
+                        "items": {"$ref": "#/components/schemas/dtos.ActionDTO"},
                     },
-                    "name": {
-                        "type": "string",
-                        "example": "Evening Mode"
-                    }
+                    "name": {"type": "string", "example": "Evening Mode"},
                 },
-                "required": [
-                    "name"
-                ]
+                "required": ["name"],
             },
             "dtos.UpdateTerminalRequestDTO": {
                 "type": "object",
                 "properties": {
-                    "ai_provider": {
-                        "type": "string",
-                        "example": "openai"
-                    },
-                    "device_type_id": {
-                        "type": "string",
-                        "example": "hub-type-002"
-                    },
-                    "mac_address": {
-                        "type": "string",
-                        "example": "AA:BB:CC:DD:EE:FF"
-                    },
-                    "name": {
-                        "type": "string",
-                        "example": "Updated Hub Name"
-                    },
-                    "room_id": {
-                        "type": "string",
-                        "example": "room-456"
-                    }
-                }
+                    "ai_provider": {"type": "string", "example": "openai"},
+                    "device_type_id": {"type": "string", "example": "hub-type-002"},
+                    "mac_address": {"type": "string", "example": "AA:BB:CC:DD:EE:FF"},
+                    "name": {"type": "string", "example": "Updated Hub Name"},
+                    "room_id": {"type": "string", "example": "room-456"},
+                },
             },
             "dtos.Utterance": {
                 "type": "object",
                 "properties": {
                     "confidence": {
                         "type": "number",
-                        "description": "Confidence score (0.0-1.0) if available"
+                        "description": "Confidence score (0.0-1.0) if available",
                     },
                     "end_ms": {
                         "type": "integer",
-                        "description": "End time in milliseconds (ESTIMATE if provider doesn't supply)"
+                        "description": "End time in milliseconds (ESTIMATE if provider doesn't supply)",
                     },
                     "speaker_label": {
                         "type": "string",
-                        "description": "e.g., \"Speaker 1\", \"John Doe\""
+                        "description": 'e.g., "Speaker 1", "John Doe"',
                     },
                     "start_ms": {
                         "type": "integer",
-                        "description": "Start time in milliseconds (ESTIMATE if provider doesn't supply)"
+                        "description": "Start time in milliseconds (ESTIMATE if provider doesn't supply)",
                     },
                     "text": {
                         "type": "string",
-                        "description": "Transcribed text for this utterance"
-                    }
-                }
+                        "description": "Transcribed text for this utterance",
+                    },
+                },
             },
             "dtos.V1PipelineStatusResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "error": {
-                        "type": "string"
-                    },
-                    "refined_text": {
-                        "type": "string",
-                        "example": "Hello, world."
-                    },
-                    "status": {
-                        "type": "string",
-                        "example": "completed"
-                    },
+                    "error": {"type": "string"},
+                    "refined_text": {"type": "string", "example": "Hello, world."},
+                    "status": {"type": "string", "example": "completed"},
                     "summary": {
                         "type": "string",
-                        "example": "A greeting to the world."
+                        "example": "A greeting to the world.",
                     },
-                    "task_id": {
-                        "type": "string",
-                        "example": "pipeline_task_123"
-                    },
-                    "transcript": {
-                        "type": "string",
-                        "example": "Hello world"
-                    },
-                    "translated": {
-                        "type": "string",
-                        "example": "Halo dunia"
-                    }
-                }
+                    "task_id": {"type": "string", "example": "pipeline_task_123"},
+                    "transcript": {"type": "string", "example": "Hello world"},
+                    "translated": {"type": "string", "example": "Halo dunia"},
+                },
             },
             "dtos.ValidationErrorDetailDTO": {
                 "type": "object",
                 "properties": {
-                    "field": {
-                        "type": "string",
-                        "example": "username"
-                    },
-                    "message": {
-                        "type": "string",
-                        "example": "is required"
-                    }
-                }
+                    "field": {"type": "string", "example": "username"},
+                    "message": {"type": "string", "example": "is required"},
+                },
             },
             "dtos.ValidationErrorResponse": {
                 "type": "object",
@@ -6738,192 +5495,122 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/dtos.ValidationErrorDetailDTO"
-                        }
+                        },
                     },
-                    "message": {
-                        "type": "string",
-                        "example": "Validation Error"
-                    },
-                    "status": {
-                        "type": "boolean",
-                        "example": false
-                    }
-                }
+                    "message": {"type": "string", "example": "Validation Error"},
+                    "status": {"type": "boolean", "example": false},
+                },
             },
             "recordings_dtos.GetAllRecordingsResponseDto": {
                 "type": "object",
                 "properties": {
-                    "limit": {
-                        "type": "integer"
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
+                    "limit": {"type": "integer"},
+                    "page": {"type": "integer"},
                     "recordings": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/recordings_dtos.RecordingResponseDto"
-                        }
+                        },
                     },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
+                    "total": {"type": "integer"},
+                },
             },
             "recordings_dtos.RecordingResponseDto": {
                 "type": "object",
                 "properties": {
-                    "audio_url": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "filename": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "original_name": {
-                        "type": "string"
-                    }
-                }
+                    "audio_url": {"type": "string"},
+                    "created_at": {"type": "string"},
+                    "filename": {"type": "string"},
+                    "id": {"type": "string"},
+                    "original_name": {"type": "string"},
+                },
             },
             "sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest": {
                 "type": "object",
                 "properties": {
-                    "chunk_size_bytes": {
-                        "type": "integer"
-                    },
-                    "file_name": {
-                        "type": "string"
-                    },
-                    "mime_type": {
-                        "type": "string"
-                    },
-                    "total_size_bytes": {
-                        "type": "integer"
-                    }
+                    "chunk_size_bytes": {"type": "integer"},
+                    "file_name": {"type": "string"},
+                    "mime_type": {"type": "string"},
+                    "total_size_bytes": {"type": "integer"},
                 },
-                "required": [
-                    "file_name",
-                    "total_size_bytes"
-                ]
+                "required": ["file_name", "total_size_bytes"],
             },
             "sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO": {
                 "type": "object",
                 "properties": {
-                    "is_duplicate": {
-                        "type": "boolean"
-                    },
-                    "received_bytes": {
-                        "type": "integer"
-                    },
-                    "received_chunks": {
-                        "type": "integer"
-                    },
-                    "state": {
-                        "type": "string"
-                    }
-                }
+                    "is_duplicate": {"type": "boolean"},
+                    "received_bytes": {"type": "integer"},
+                    "received_chunks": {"type": "integer"},
+                    "state": {"type": "string"},
+                },
             },
             "sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO": {
                 "type": "object",
                 "properties": {
-                    "chunk_size_bytes": {
-                        "type": "integer"
-                    },
-                    "expires_at": {
-                        "type": "integer"
-                    },
+                    "chunk_size_bytes": {"type": "integer"},
+                    "expires_at": {"type": "integer"},
                     "missing_ranges": {
                         "type": "array",
-                        "description": "e.g. [\"0-2\", \"5\"]",
-                        "items": {
-                            "type": "string"
-                        }
+                        "description": 'e.g. ["0-2", "5"]',
+                        "items": {"type": "string"},
                     },
-                    "received_bytes": {
-                        "type": "integer"
-                    },
-                    "session_id": {
-                        "type": "string"
-                    },
+                    "received_bytes": {"type": "integer"},
+                    "session_id": {"type": "string"},
                     "state": {
                         "type": "string",
-                        "description": "uploading, ready, consumed, aborted, expired"
+                        "description": "uploading, ready, consumed, aborted, expired",
                     },
-                    "total_chunks": {
-                        "type": "integer"
-                    },
-                    "total_size_bytes": {
-                        "type": "integer"
-                    }
-                }
+                    "total_chunks": {"type": "integer"},
+                    "total_size_bytes": {"type": "integer"},
+                },
             },
             "services.RAGRequest": {
                 "type": "object",
                 "properties": {
-                    "language": {
-                        "type": "string"
-                    },
-                    "mac_address": {
-                        "type": "string"
-                    },
-                    "text": {
-                        "type": "string"
-                    }
-                }
-            }
+                    "language": {"type": "string"},
+                    "mac_address": {"type": "string"},
+                    "text": {"type": "string"},
+                },
+            },
         },
         "securitySchemes": {
             "ApiKeyAuth": {
                 "type": "apiKey",
                 "name": "X-API-KEY",
                 "in": "header",
-                "scheme": "apiKey"
+                "scheme": "apiKey",
             },
             "BearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "Enter JWT token only (without \"Bearer \" prefix) - Swagger UI will add it automatically"
-            }
-        }
+                "description": 'Enter JWT token only (without "Bearer " prefix) - Swagger UI will add it automatically',
+            },
+        },
     },
     "tags": [
         {
             "name": "01. Tuya",
-            "description": "Tuya authentication and device control endpoints"
+            "description": "Tuya authentication and device control endpoints",
         },
         {
             "name": "02. Terminal",
-            "description": "Terminal and device management endpoints"
+            "description": "Terminal and device management endpoints",
         },
-        {
-            "name": "03. Scenes",
-            "description": "Scene management and control endpoints"
-        },
+        {"name": "03. Scenes", "description": "Scene management and control endpoints"},
         {
             "name": "04. Models",
-            "description": "AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain"
+            "description": "AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain",
         },
         {
             "name": "05. Models-v1",
-            "description": "New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API"
+            "description": "New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API",
         },
-        {
-            "name": "06. Recordings",
-            "description": "Recordings management endpoints"
-        },
-        {
-            "name": "07. Mail",
-            "description": "Mail service endpoints"
-        },
+        {"name": "06. Recordings", "description": "Recordings management endpoints"},
+        {"name": "07. Mail", "description": "Mail service endpoints"},
         {
             "name": "08. Common",
-            "description": "Common endpoints (Health, Cache, External APIs)"
-        }
-    ]
+            "description": "Common endpoints (Health, Cache, External APIs)",
+        },
+    ],
 }

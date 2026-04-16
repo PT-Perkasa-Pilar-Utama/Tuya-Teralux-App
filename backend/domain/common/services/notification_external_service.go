@@ -48,32 +48,27 @@ func NewNotificationExternalServiceWithWA(
 }
 
 func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dtos.NotificationPublishRequest) (*terminal_dtos.NotificationPublishResponse, error) {
-	var dateTimeEnd time.Time
-	var err error
-
-	if req.DateTimeEnd != "" {
-		dateTimeEnd, err = time.Parse(time.RFC3339, req.DateTimeEnd)
-		if err != nil {
-			utils.LogError("NotificationExternalService: Failed to parse DateTimeEnd: %v", err)
-			return nil, utils.NewAPIError(400, "Invalid datetime_end format. Must be RFC3339.")
-		}
-	} else if req.TimeEnd != "" {
-		timeOnly, err := time.Parse("15:04:05", req.TimeEnd)
-		if err != nil {
-			utils.LogError("NotificationExternalService: Failed to parse TimeEnd: %v", err)
-			return nil, utils.NewAPIError(400, "Invalid time_end format. Must be HH:MM:SS.")
-		}
-		now := time.Now()
-		dateTimeEnd = time.Date(now.Year(), now.Month(), now.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, now.Location())
-		if dateTimeEnd.Before(now) {
-			dateTimeEnd = dateTimeEnd.Add(24 * time.Hour)
-		}
-	} else {
-		return nil, utils.NewAPIError(400, "At least one of datetime_end or time_end must be provided.")
+	loc, err := time.LoadLocation(req.Timezone)
+	if err != nil {
+		utils.LogError("NotificationExternalService: Failed to load timezone %s: %v", req.Timezone, err)
+		return nil, utils.NewAPIError(400, "Invalid timezone. Must be a valid IANA timezone.")
 	}
 
-	publishAt := dateTimeEnd.Add(time.Duration(-req.IntervalTime) * time.Minute)
-	publishAtStr := publishAt.Format(time.RFC3339)
+	dateOnly, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		utils.LogError("NotificationExternalService: Failed to parse date: %v", err)
+		return nil, utils.NewAPIError(400, "Invalid date format. Must be YYYY-MM-DD.")
+	}
+
+	timeOnly, err := time.Parse("15:04:05", req.Time)
+	if err != nil {
+		utils.LogError("NotificationExternalService: Failed to parse time: %v", err)
+		return nil, utils.NewAPIError(400, "Invalid time format. Must be HH:MM:SS.")
+	}
+
+	dateTimeEnd := time.Date(dateOnly.Year(), dateOnly.Month(), dateOnly.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, loc)
+
+	publishAtStr := dateTimeEnd.Format(time.RFC3339)
 
 	terminals, err := s.terminalRepo.GetByRoomID(req.RoomID)
 	if err != nil {
@@ -88,7 +83,7 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 
 	payload := terminal_dtos.NotificationMQTTPayload{
 		PublishAt:        publishAtStr,
-		RemainingMinutes: req.IntervalTime,
+		RemainingMinutes: 0,
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -121,7 +116,7 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 
 	return &terminal_dtos.NotificationPublishResponse{
 		RoomID:           req.RoomID,
-		PublishAt:        publishAt,
+		PublishAt:        dateTimeEnd,
 		PublishedCount:   len(publishedTopics),
 		PublishedTopics:  publishedTopics,
 		WANotificationID: wanNotificationID,
@@ -156,7 +151,7 @@ func (s *NotificationExternalService) scheduleWANotification(req terminal_dtos.N
 		return "", fmt.Errorf("failed to marshal phone numbers: %w", err)
 	}
 
-	scheduledAt := bookingTimeEnd.Add(time.Duration(-req.IntervalTime) * time.Minute)
+	scheduledAt := bookingTimeEnd
 
 	notification := &entities.ScheduledNotification{
 		ID:             uuid.New().String(),
@@ -167,6 +162,7 @@ func (s *NotificationExternalService) scheduleWANotification(req terminal_dtos.N
 		BookingTimeEnd: bookingTimeEnd.Format(time.RFC3339),
 		ScheduledAt:    scheduledAt,
 		Status:         entities.NotificationStatusPending,
+		Template:       req.Template,
 	}
 
 	if err := s.scheduledRepo.Create(notification); err != nil {

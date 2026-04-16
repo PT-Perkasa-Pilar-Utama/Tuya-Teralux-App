@@ -23,6 +23,7 @@ type ScheduledNotification struct {
 	BookingTimeEnd string             `gorm:"type:varchar(50)" json:"booking_time_end"`
 	ScheduledAt    time.Time          `gorm:"not null;index" json:"scheduled_at"`
 	Status         NotificationStatus `gorm:"type:varchar(20);not null;default:'pending';index" json:"status"`
+	Template       string             `gorm:"type:varchar(50)" json:"template"`
 	CreatedAt      time.Time          `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt      time.Time          `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt     `gorm:"index" json:"deleted_at,omitempty"`

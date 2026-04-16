@@ -3,15 +3,15 @@ package dtos
 import "time"
 
 // NotificationPublishRequest represents the request to publish a notification to a room
-// At least one of DateTimeEnd or TimeEnd must be provided.
-// If both are provided, DateTimeEnd takes priority.
+// Requires date, time, timezone, phone_numbers array, and template (start_meeting or end_meeting).
 // If PhoneNumbers is provided, WhatsApp notifications will be scheduled to be sent at publish_at.
 type NotificationPublishRequest struct {
 	RoomID       string   `json:"room_id" validate:"required" example:"123"`
-	DateTimeEnd  string   `json:"datetime_end" example:"2026-03-17T14:00:00+07:00"`
-	TimeEnd      string   `json:"time_end" example:"14:00:00"`
-	IntervalTime int      `json:"interval_time" validate:"min=0" example:"15"`
-	PhoneNumbers []string `json:"phone_numbers" example:"[\"6281234567890\", \"6289876543210\"]"`
+	Date         string   `json:"date" example:"2026-03-17"`
+	Time         string   `json:"time" example:"14:00:00"`
+	Timezone     string   `json:"timezone" example:"Asia/Jakarta"`
+	PhoneNumbers []string `json:"phone_number" example:"[\"+6281234567890\", \"+6289876543210\"]`
+	Template     string   `json:"template" example:"start_meeting"`
 }
 
 // NotificationPublishResponse represents the response after publishing notifications
