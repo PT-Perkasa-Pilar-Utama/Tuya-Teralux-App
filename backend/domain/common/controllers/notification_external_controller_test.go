@@ -71,8 +71,6 @@ func TestPublishToRoom(t *testing.T) {
 		controller := NewNotificationExternalController(service)
 
 		roomID := "room-123"
-		dateTimeEnd := "2026-03-17T14:00:00+07:00"
-		intervalTime := 15
 
 		terminals := []entities.Terminal{
 			{MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: roomID},
@@ -85,9 +83,11 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       roomID,
-			DateTimeEnd:  dateTimeEnd,
-			IntervalTime: intervalTime,
+			RoomID:   roomID,
+			Date:     "2026-03-17",
+			Time:     "14:00:00",
+			Timezone: "Asia/Jakarta",
+			Template: "start_meeting",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -111,9 +111,10 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       "",
-			DateTimeEnd:  "2026-03-17T14:00:00+07:00",
-			IntervalTime: 15,
+			RoomID:   "",
+			Date:     "2026-03-17",
+			Time:     "14:00:00",
+			Timezone: "Asia/Jakarta",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -129,17 +130,17 @@ func TestPublishToRoom(t *testing.T) {
 		assert.Contains(t, resp.Message, "room_id is required")
 	})
 
-	t.Run("Validation Error - Both datetime_end and time_end empty", func(t *testing.T) {
+	t.Run("Validation Error - Missing Date", func(t *testing.T) {
 		controller := NewNotificationExternalController(nil)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       "room-123",
-			DateTimeEnd:  "",
-			TimeEnd:      "",
-			IntervalTime: 15,
+			RoomID:   "room-123",
+			Date:     "",
+			Time:     "14:00:00",
+			Timezone: "Asia/Jakarta",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -152,19 +153,20 @@ func TestPublishToRoom(t *testing.T) {
 		var resp dtos.StandardResponse
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.False(t, resp.Status)
-		assert.Contains(t, resp.Message, "At least one of datetime_end or time_end must be provided")
+		assert.Contains(t, resp.Message, "date is required")
 	})
 
-	t.Run("Validation Error - Negative interval_time", func(t *testing.T) {
+	t.Run("Validation Error - Missing Time", func(t *testing.T) {
 		controller := NewNotificationExternalController(nil)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       "room-123",
-			DateTimeEnd:  "2026-03-17T14:00:00+07:00",
-			IntervalTime: -5,
+			RoomID:   "room-123",
+			Date:     "2026-03-17",
+			Time:     "",
+			Timezone: "Asia/Jakarta",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -177,34 +179,20 @@ func TestPublishToRoom(t *testing.T) {
 		var resp dtos.StandardResponse
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.False(t, resp.Status)
-		assert.Contains(t, resp.Message, "interval_time must be non-negative")
+		assert.Contains(t, resp.Message, "time is required")
 	})
 
-	t.Run("Success - With time_end only", func(t *testing.T) {
-		mockRepo := new(MockTerminalRepository)
-		mockMqtt := new(MockMqttService)
-		service := services.NewNotificationExternalService(mockRepo, mockMqtt)
-		controller := NewNotificationExternalController(service)
-
-		roomID := "room-123"
-		timeEnd := "14:00:00"
-		intervalTime := 15
-
-		terminals := []entities.Terminal{
-			{MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: roomID},
-		}
-
-		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
-		mockMqtt.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	t.Run("Validation Error - Missing Timezone", func(t *testing.T) {
+		controller := NewNotificationExternalController(nil)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       roomID,
-			DateTimeEnd:  "",
-			TimeEnd:      timeEnd,
-			IntervalTime: intervalTime,
+			RoomID:   "room-123",
+			Date:     "2026-03-17",
+			Time:     "14:00:00",
+			Timezone: "",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -212,13 +200,39 @@ func TestPublishToRoom(t *testing.T) {
 
 		controller.PublishToRoom(c)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 
 		var resp dtos.StandardResponse
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.NoError(t, err)
-		assert.True(t, resp.Status)
-		assert.Equal(t, "Notification published successfully", resp.Message)
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.False(t, resp.Status)
+		assert.Contains(t, resp.Message, "timezone is required")
+	})
+
+	t.Run("Validation Error - Invalid Template", func(t *testing.T) {
+		controller := NewNotificationExternalController(nil)
+
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		reqBody := terminal_dtos.NotificationPublishRequest{
+			RoomID:   "room-123",
+			Date:     "2026-03-17",
+			Time:     "14:00:00",
+			Timezone: "Asia/Jakarta",
+			Template: "invalid",
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
+		c.Request.Header.Set("Content-Type", "application/json")
+
+		controller.PublishToRoom(c)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var resp dtos.StandardResponse
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.False(t, resp.Status)
+		assert.Contains(t, resp.Message, "template must be either")
 	})
 
 	t.Run("Service Error - Not Found", func(t *testing.T) {
@@ -234,9 +248,11 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       roomID,
-			DateTimeEnd:  "2026-03-17T14:00:00+07:00",
-			IntervalTime: 15,
+			RoomID:   roomID,
+			Date:     "2026-03-17",
+			Time:     "14:00:00",
+			Timezone: "Asia/Jakarta",
+			Template: "start_meeting",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -245,6 +261,10 @@ func TestPublishToRoom(t *testing.T) {
 		controller.PublishToRoom(c)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var resp dtos.StandardResponse
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Contains(t, resp.Message, "No terminals found")
 	})
 
 	t.Run("Service Error - Internal", func(t *testing.T) {
@@ -260,9 +280,11 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       roomID,
-			DateTimeEnd:  "2026-03-17T14:00:00+07:00",
-			IntervalTime: 15,
+			RoomID:   roomID,
+			Date:     "2026-03-17",
+			Time:     "14:00:00",
+			Timezone: "Asia/Jakarta",
+			Template: "start_meeting",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))

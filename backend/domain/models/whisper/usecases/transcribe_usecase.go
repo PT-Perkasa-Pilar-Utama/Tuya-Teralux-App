@@ -551,6 +551,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	}
 
 	// Build structured result with backward-compatible fields
+	// Include ASR Quality Gate metadata
 	return &whisperdtos.AsyncTranscriptionResultDTO{
 		Transcription:        rawTranscription,
 		RefinedText:          refined,
@@ -560,6 +561,9 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		TranscriptFormat:     resultTranscriptFormat,
 		ConfidenceSummary:    resultConfidenceSummary,
 		NormalizationApplied: normalizationApplied,
+		AudioClass:           audioClass,
+		ProviderSkipped:      providerSkipped,
+		ProviderName:         resolvedProvider,
 	}, nil
 }
 
@@ -628,6 +632,19 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 		finalTranscript := finalResult.RefinedText
 		if finalTranscript == "" {
 			finalTranscript = finalResult.Transcription
+		}
+
+		// Run validation to determine TranscriptValid and TranscriptRejectionReason
+		if uc.transcriptValidator != nil {
+			validationResult := uc.transcriptValidator.Validate(finalTranscript, finalResult.AudioClass)
+			finalResult.TranscriptValid = validationResult.IsValid
+			finalResult.TranscriptRejectionReason = validationResult.RejectionReason
+		} else {
+			// Fallback: if no validator, only empty transcript is invalid
+			finalResult.TranscriptValid = finalTranscript != ""
+			if !finalResult.TranscriptValid {
+				finalResult.TranscriptRejectionReason = "empty_transcript"
+			}
 		}
 
 		// Check if transcript was rejected or empty
@@ -704,6 +721,14 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 	if err != nil {
 		status.Error = err.Error()
 		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+		// Extract structured error for Orion transcription failures
+		if structuredErr := utils.GetOrionStructuredError(err); structuredErr != nil {
+			status.StructuredError = &whisperdtos.StructuredErrorDTO{
+				ErrorCode: structuredErr.ErrorCode,
+				Message:   structuredErr.Message,
+				Details:   structuredErr.Details,
+			}
+		}
 	} else if statusStr == "completed" {
 		status.HTTPStatusCode = 200
 	}

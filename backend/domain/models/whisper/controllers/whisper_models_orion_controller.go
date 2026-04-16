@@ -101,6 +101,17 @@ func (c *WhisperModelsOrionController) Transcribe(ctx *gin.Context) {
 	taskID, err := c.usecase.TranscribeAsync(finalPath, file.Filename, language, ctx.Request.URL.Path)
 	if err != nil {
 		utils.LogError("Orion.TranscribeAsync: %v", err)
+		// Use structured error for Orion transcription failures
+		if structuredErr := utils.GetOrionStructuredError(err); structuredErr != nil {
+			ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
+				Status:  false,
+				Message: structuredErr.Message,
+				Details: map[string]interface{}{
+					"error_code": structuredErr.ErrorCode,
+				},
+			})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, commonDtos.StandardResponse{
 			Status:  false,
 			Message: "Internal Server Error",

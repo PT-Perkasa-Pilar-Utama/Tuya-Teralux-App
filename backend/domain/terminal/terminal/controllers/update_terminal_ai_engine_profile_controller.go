@@ -60,14 +60,16 @@ func (c *UpdateTerminalAIEngineProfileController) UpdateAIEngineProfile(ctx *gin
 		}
 
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "Terminal not found" {
+		errorMessage := err.Error()
+		if errorMessage == "Terminal not found" {
 			statusCode = http.StatusNotFound
+			errorMessage = "Terminal not found"
 		}
 
 		utils.LogError("UpdateTerminalAIEngineProfileController: %v", err)
 		ctx.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
-			Message: http.StatusText(statusCode),
+			Message: errorMessage,
 		})
 		return
 	}

@@ -110,6 +110,14 @@ func (u *transcribeOrionModelUseCase) updateStatus(taskID, statusStr string, res
 	if err != nil {
 		status.Error = err.Error()
 		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+		// Extract structured error for Orion transcription failures
+		if structuredErr := utils.GetOrionStructuredError(err); structuredErr != nil {
+			status.StructuredError = &dtos.StructuredErrorDTO{
+				ErrorCode: structuredErr.ErrorCode,
+				Message:   structuredErr.Message,
+				Details:   structuredErr.Details,
+			}
+		}
 	} else if statusStr == "completed" {
 		status.HTTPStatusCode = 200
 	}

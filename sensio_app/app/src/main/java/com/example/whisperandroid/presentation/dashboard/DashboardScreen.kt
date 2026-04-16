@@ -903,11 +903,10 @@ private fun AiEngineProfileCard(
     onProfileSelected: (String) -> Unit,
     layoutSpec: DashboardLayoutSpec
 ) {
-    val profiles = listOf("fast", "standard", "plaud")
+    val profiles = listOf("premium", "standard")
     val profileLabels = mapOf(
-        "fast" to "Fast",
-        "standard" to "Standard",
-        "plaud" to "Plaud"
+        "premium" to "Premium",
+        "standard" to "Standard"
     )
 
     androidx.compose.material3.Surface(

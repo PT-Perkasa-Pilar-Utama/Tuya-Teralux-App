@@ -94,6 +94,8 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 	for _, t := range terminals {
 		topic := fmt.Sprintf("users/%s/%s/notification", t.MacAddress, utils.GetConfig().ApplicationEnvironment)
 
+		utils.LogDebug("NotificationExternalService: MQTT connected=%v, publishing to topic: %s", s.mqttSvc.IsConnected(), topic)
+
 		err := s.mqttSvc.Publish(topic, 1, false, payloadBytes)
 		if err != nil {
 			utils.LogError("NotificationExternalService: Failed to publish to %s: %v", topic, err)

@@ -134,6 +134,10 @@ func LoadConfig() {
 		} else {
 			isTest := os.Getenv("GO_TEST") == "true"
 			for k, v := range m {
+				// APPLICATION_ENVIRONMENT: always preserve if already set in environment (e.g., via docker-compose)
+				if k == "APPLICATION_ENVIRONMENT" && os.Getenv("APPLICATION_ENVIRONMENT") != "" {
+					continue
+				}
 				// In production/dev, we overwrite OS vars with .env values (previous behavior)
 				// In tests, we preserve what the test setup (e.g. TestApiKeyMiddleware) has configured
 				if !isTest {

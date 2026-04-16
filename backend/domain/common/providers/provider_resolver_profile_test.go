@@ -12,9 +12,8 @@ func TestNormalizeEngineProfile(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"Fast", "fast"},
+		{"Premium", "premium"},
 		{"  STANDARD  ", "standard"},
-		{"plaud", "plaud"},
 		{"", ""},
 	}
 	for _, tt := range tests {
@@ -27,13 +26,13 @@ func TestNormalizeEngineProfile(t *testing.T) {
 
 // TestIsValidEngineProfile verifies the vocabulary lookup
 func TestIsValidEngineProfile(t *testing.T) {
-	valid := []string{"fast", "standard", "plaud"}
+	valid := []string{"premium", "standard"}
 	for _, p := range valid {
 		if !IsValidEngineProfile(p) {
 			t.Errorf("IsValidEngineProfile(%q) should be true", p)
 		}
 	}
-	invalid := []string{"openai", "gemini", "", "turbo", "ultra"}
+	invalid := []string{"openai", "gemini", "", "turbo", "ultra", "plaud", "fast"}
 	for _, p := range invalid {
 		if IsValidEngineProfile(p) {
 			t.Errorf("IsValidEngineProfile(%q) should be false", p)
@@ -51,21 +50,21 @@ func newTerminalWithProfile(profile, provider *string) *Terminal {
 
 func strPtr(s string) *string { return &s }
 
-// TestResolveFromTerminal_FastProfile verifies that fast profile returns profile_fast selection mode
-func TestResolveFromTerminal_FastProfile(t *testing.T) {
+// TestResolveFromTerminal_PremiumProfile verifies that premium profile returns profile_premium selection mode
+func TestResolveFromTerminal_PremiumProfile(t *testing.T) {
 	cfg := makeMinimalConfig()
 	r := newMinimalResolver(cfg)
 
-	terminal := newTerminalWithProfile(strPtr("fast"), nil)
+	terminal := newTerminalWithProfile(strPtr("premium"), nil)
 	result, err := r.resolveFromTerminal(terminal)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.SelectionMode != "profile_fast" {
-		t.Errorf("expected SelectionMode=profile_fast, got %s", result.SelectionMode)
+	if result.SelectionMode != "profile_premium" {
+		t.Errorf("expected SelectionMode=profile_premium, got %s", result.SelectionMode)
 	}
 	if !result.IsExplicit {
-		t.Error("expected IsExplicit=true for fast profile")
+		t.Error("expected IsExplicit=true for premium profile")
 	}
 }
 
@@ -87,35 +86,19 @@ func TestResolveFromTerminal_StandardProfile(t *testing.T) {
 	}
 }
 
-// TestResolveFromTerminal_PlaudFallsToLegacy verifies that plaud falls back to legacy behavior
-func TestResolveFromTerminal_PlaudFallsToLegacy(t *testing.T) {
-	cfg := makeMinimalConfig()
-	r := newMinimalResolver(cfg)
-
-	terminal := newTerminalWithProfile(strPtr("plaud"), nil)
-	result, err := r.resolveFromTerminal(terminal)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	// plaud must NOT produce a profile selection mode
-	if result.SelectionMode == "profile_fast" || result.SelectionMode == "profile_standard" {
-		t.Errorf("plaud should fall back to legacy, got SelectionMode=%s", result.SelectionMode)
-	}
-}
-
 // TestResolveFromTerminal_ProfileWinsOverProvider verifies profile takes precedence over ai_provider
 func TestResolveFromTerminal_ProfileWinsOverProvider(t *testing.T) {
 	cfg := makeMinimalConfig()
 	r := newMinimalResolver(cfg)
 
-	// fast profile + ai_provider=orion → fast must win
-	terminal := newTerminalWithProfile(strPtr("fast"), strPtr("orion"))
+	// premium profile + ai_provider=orion → premium must win
+	terminal := newTerminalWithProfile(strPtr("premium"), strPtr("orion"))
 	result, err := r.resolveFromTerminal(terminal)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.SelectionMode != "profile_fast" {
-		t.Errorf("expected profile_fast to win over ai_provider; got SelectionMode=%s", result.SelectionMode)
+	if result.SelectionMode != "profile_premium" {
+		t.Errorf("expected profile_premium to win over ai_provider; got SelectionMode=%s", result.SelectionMode)
 	}
 }
 
@@ -217,13 +200,13 @@ func TestExecuteWithCandidateFallback_FailsIfNoneConfigured(t *testing.T) {
 	}
 }
 
-// TestExecuteWithFallbackByTerminal_FastProfile verifies that fast profile uses fast candidates
-func TestExecuteWithFallbackByTerminal_FastProfile(t *testing.T) {
+// TestExecuteWithFallbackByTerminal_PremiumProfile verifies that premium profile uses premium candidates
+func TestExecuteWithFallbackByTerminal_PremiumProfile(t *testing.T) {
 	cfg := &utils.Config{OpenAIApiKey: "present"}
 	r := newMinimalResolver(cfg)
 
-	// Mock repo that returns a terminal with fast profile
-	profile := "fast"
+	// Mock repo that returns a terminal with premium profile
+	profile := "premium"
 	repo := &stubTerminalRepoWithData{terminal: &Terminal{AiEngineProfile: &profile}}
 	r.terminalRepo = repo
 
@@ -239,7 +222,7 @@ func TestExecuteWithFallbackByTerminal_FastProfile(t *testing.T) {
 	}
 
 	if !tried["openai"] {
-		t.Error("expected openai (fast candidate) to be tried")
+		t.Error("expected openai (premium candidate) to be tried")
 	}
 }
 

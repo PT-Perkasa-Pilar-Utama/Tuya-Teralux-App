@@ -37,6 +37,9 @@ type HealthAwareResolver interface {
 
 	// GetProviderStats returns stats for a specific provider (for debugging)
 	GetProviderStats(provider string) *ProviderStats
+
+	// SortByHealthScore sorts candidates in-place by health score (highest first)
+	SortByHealthScore(candidates []string)
 }
 
 type healthAwareResolverImpl struct {
@@ -91,7 +94,7 @@ func (r *healthAwareResolverImpl) GetRemoteCandidates() []string {
 	}
 
 	// Sort by health score
-	r.sortByHealthScore(candidates)
+	r.SortByHealthScore(candidates)
 
 	utils.LogDebug("HealthAwareResolver: GetRemoteCandidates | candidates=%v", candidates)
 	return candidates
@@ -192,10 +195,10 @@ func (r *healthAwareResolverImpl) GetProviderStats(provider string) *ProviderSta
 	}
 }
 
-// sortByHealthScore sorts candidates by health score (higher is better)
+// SortByHealthScore sorts candidates in-place by health score (highest first)
 // Score = (1000 / ewma_latency) - (failure_streak * 100)
 // Tie-break: LLM_PROVIDER preference, then alphabetical
-func (r *healthAwareResolverImpl) sortByHealthScore(candidates []string) {
+func (r *healthAwareResolverImpl) SortByHealthScore(candidates []string) {
 	preferredProvider := NormalizeProvider(r.config.LLMProvider)
 
 	// Simple bubble sort (small list, performance not critical)

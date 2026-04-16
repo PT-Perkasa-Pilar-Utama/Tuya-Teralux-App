@@ -20,15 +20,13 @@ var SupportedProviders = map[string]bool{
 }
 
 // SupportedEngineProfiles defines product-facing profile names, separate from SupportedProviders.
-// "plaud" is listed here for vocabulary completeness but rejected at the write endpoint in this phase.
 var SupportedEngineProfiles = map[string]bool{
-	"fast":     true,
+	"premium":  true,
 	"standard": true,
-	"plaud":    true,
 }
 
-// fastProfileCandidates are the bounded provider set for the 'fast' engine profile.
-var fastProfileCandidates = []string{"openai", "groq"}
+// premiumProfileCandidates are the bounded provider set for the 'premium' engine profile.
+var premiumProfileCandidates = []string{"openai", "groq"}
 
 // standardProfileCandidates are the bounded provider set for the 'standard' engine profile.
 var standardProfileCandidates = []string{"orion"}
@@ -65,7 +63,7 @@ type ResolvedProviderSet struct {
 	WhisperClient WhisperProvider
 	ProviderName  string
 	IsExplicit    bool   // True if provider was explicitly selected by user, false if using default/fallback
-	SelectionMode string // "profile_fast" | "profile_standard" | "provider_explicit" | "default"
+	SelectionMode string // "profile_premium" | "profile_standard" | "provider_explicit" | "default"
 }
 
 // WhisperProvider is the interface for whisper transcription services
@@ -216,15 +214,15 @@ func (r *providerResolverImpl) resolveFromTerminal(terminal *Terminal) (*Resolve
 		profile := NormalizeEngineProfile(*terminal.AiEngineProfile)
 
 		switch profile {
-		case "fast":
-			utils.LogInfo("ProviderResolver: resolveFromTerminal | engine_profile=fast | candidates=%v | selection_mode=profile_fast | duration_ms=%d",
-				fastProfileCandidates, time.Since(start).Milliseconds())
+		case "premium":
+			utils.LogInfo("ProviderResolver: resolveFromTerminal | engine_profile=premium | candidates=%v | selection_mode=profile_premium | duration_ms=%d",
+				premiumProfileCandidates, time.Since(start).Milliseconds())
 			return &ResolvedProviderSet{
 				LLM:           nil,
 				WhisperClient: nil,
-				ProviderName:  "profile_fast",
+				ProviderName:  "profile_premium",
 				IsExplicit:    true,
-				SelectionMode: "profile_fast",
+				SelectionMode: "profile_premium",
 			}, nil
 
 		case "standard":
@@ -238,15 +236,9 @@ func (r *providerResolverImpl) resolveFromTerminal(terminal *Terminal) (*Resolve
 				SelectionMode: "profile_standard",
 			}, nil
 
-		case "plaud":
-			utils.LogWarn("ProviderResolver: terminal has unsupported profile 'plaud'; falling back to legacy behavior | duration_ms=%d",
-				time.Since(start).Milliseconds())
-			// Fall through to legacy path
-
 		default:
 			utils.LogWarn("ProviderResolver: unknown engine_profile '%s'; falling back to legacy behavior | duration_ms=%d",
 				*terminal.AiEngineProfile, time.Since(start).Milliseconds())
-			// Fall through to legacy path
 		}
 	}
 
@@ -443,9 +435,9 @@ func (r *providerResolverImpl) ExecuteWithFallbackByTerminal(terminalID string, 
 	resolved, err := r.ResolveByTerminalID(terminalID)
 	if err == nil && resolved != nil && resolved.ProviderName != "" {
 		// Handle engine profile selection modes
-		if resolved.SelectionMode == "profile_fast" {
-			utils.LogDebug("ProviderResolver: Executing with fast profile candidates for terminal %s", terminalID)
-			return r.ExecuteWithCandidateFallback(fastProfileCandidates, executable)
+		if resolved.SelectionMode == "profile_premium" {
+			utils.LogDebug("ProviderResolver: Executing with premium profile candidates for terminal %s", terminalID)
+			return r.ExecuteWithCandidateFallback(premiumProfileCandidates, executable)
 		}
 		if resolved.SelectionMode == "profile_standard" {
 			utils.LogDebug("ProviderResolver: Executing with standard profile candidates for terminal %s", terminalID)
@@ -486,9 +478,9 @@ func (r *providerResolverImpl) ExecuteWithFallbackByMac(macAddress string, execu
 	resolved, err := r.ResolveByMacAddress(macAddress)
 	if err == nil && resolved != nil && resolved.ProviderName != "" {
 		// Handle engine profile selection modes
-		if resolved.SelectionMode == "profile_fast" {
-			utils.LogDebug("ProviderResolver: Executing with fast profile candidates for MAC %s", macAddress)
-			return r.ExecuteWithCandidateFallback(fastProfileCandidates, executable)
+		if resolved.SelectionMode == "profile_premium" {
+			utils.LogDebug("ProviderResolver: Executing with premium profile candidates for MAC %s", macAddress)
+			return r.ExecuteWithCandidateFallback(premiumProfileCandidates, executable)
 		}
 		if resolved.SelectionMode == "profile_standard" {
 			utils.LogDebug("ProviderResolver: Executing with standard profile candidates for MAC %s", macAddress)
@@ -562,6 +554,12 @@ func (r *providerResolverImpl) ExecuteWithCandidateFallback(candidates []string,
 		// All configured candidates in cooldown — retry with full configured list rather than silently failing
 		utils.LogWarn("ProviderResolver: All configured bounded candidates unhealthy, retrying with full configured list: %v", configured)
 		eligible = configured
+	}
+
+	// Sort eligible candidates by health score (highest first)
+	if healthResolver != nil && len(eligible) > 1 {
+		healthResolver.SortByHealthScore(eligible)
+		utils.LogDebug("ProviderResolver: ExecuteWithCandidateFallback sorted candidates by health: %v", eligible)
 	}
 
 	var lastErr error

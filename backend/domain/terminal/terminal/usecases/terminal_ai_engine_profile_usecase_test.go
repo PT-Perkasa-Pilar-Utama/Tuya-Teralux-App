@@ -52,16 +52,16 @@ var validTestConfig = &utils.Config{
 
 // --- Update use case tests ---
 
-func TestUpdateAIEngineProfile_AcceptsFast(t *testing.T) {
+func TestUpdateAIEngineProfile_AcceptsPremium(t *testing.T) {
 	repo := &stubAIProfileRepo{terminal: &entities.Terminal{ID: "t1"}}
 	uc := NewUpdateTerminalAIEngineProfileUseCase(repo, validTestConfig)
 
-	result, err := uc.Update("t1", &dtos.UpdateTerminalAIEngineProfileRequestDTO{Profile: strPtr("fast")})
+	result, err := uc.Update("t1", &dtos.UpdateTerminalAIEngineProfileRequestDTO{Profile: strPtr("premium")})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.Profile == nil || *result.Profile != "fast" {
-		t.Errorf("expected profile=fast, got %v", result.Profile)
+	if result.Profile == nil || *result.Profile != "premium" {
+		t.Errorf("expected profile=premium, got %v", result.Profile)
 	}
 }
 
@@ -78,16 +78,6 @@ func TestUpdateAIEngineProfile_AcceptsStandard(t *testing.T) {
 	}
 }
 
-func TestUpdateAIEngineProfile_RejectsPlaud(t *testing.T) {
-	repo := &stubAIProfileRepo{terminal: &entities.Terminal{ID: "t1"}}
-	uc := NewUpdateTerminalAIEngineProfileUseCase(repo, validTestConfig)
-
-	_, err := uc.Update("t1", &dtos.UpdateTerminalAIEngineProfileRequestDTO{Profile: strPtr("plaud")})
-	if err == nil {
-		t.Fatal("expected validation error for plaud")
-	}
-}
-
 func TestUpdateAIEngineProfile_RejectsUnknownValue(t *testing.T) {
 	repo := &stubAIProfileRepo{terminal: &entities.Terminal{ID: "t1"}}
 	uc := NewUpdateTerminalAIEngineProfileUseCase(repo, validTestConfig)
@@ -99,7 +89,7 @@ func TestUpdateAIEngineProfile_RejectsUnknownValue(t *testing.T) {
 }
 
 func TestUpdateAIEngineProfile_ClearsOnEmpty(t *testing.T) {
-	existing := "fast"
+	existing := "premium"
 	repo := &stubAIProfileRepo{terminal: &entities.Terminal{ID: "t1", AiEngineProfile: &existing}}
 	uc := NewUpdateTerminalAIEngineProfileUseCase(repo, validTestConfig)
 
@@ -131,7 +121,7 @@ func TestUpdateAIEngineProfile_NotFound(t *testing.T) {
 	repo := &stubAIProfileRepo{notFound: true}
 	uc := NewUpdateTerminalAIEngineProfileUseCase(repo, validTestConfig)
 
-	_, err := uc.Update("no-such-id", &dtos.UpdateTerminalAIEngineProfileRequestDTO{Profile: strPtr("fast")})
+	_, err := uc.Update("no-such-id", &dtos.UpdateTerminalAIEngineProfileRequestDTO{Profile: strPtr("premium")})
 	if err == nil {
 		t.Fatal("expected not-found error")
 	}
@@ -140,13 +130,13 @@ func TestUpdateAIEngineProfile_NotFound(t *testing.T) {
 	}
 }
 
-func TestUpdateAIEngineProfile_RejectsFastWhenNotConfigured(t *testing.T) {
+func TestUpdateAIEngineProfile_RejectsPremiumWhenNotConfigured(t *testing.T) {
 	repo := &stubAIProfileRepo{terminal: &entities.Terminal{ID: "t1"}}
 	uc := NewUpdateTerminalAIEngineProfileUseCase(repo, &utils.Config{}) // empty config
 
-	_, err := uc.Update("t1", &dtos.UpdateTerminalAIEngineProfileRequestDTO{Profile: strPtr("fast")})
+	_, err := uc.Update("t1", &dtos.UpdateTerminalAIEngineProfileRequestDTO{Profile: strPtr("premium")})
 	if err == nil {
-		t.Fatal("expected validation error for fast without config")
+		t.Fatal("expected validation error for premium without config")
 	}
 }
 
@@ -163,7 +153,7 @@ func TestUpdateAIEngineProfile_RejectsStandardWhenNotConfigured(t *testing.T) {
 // --- Get use case tests ---
 
 func TestGetAIEngineProfile_ReturnsProfile(t *testing.T) {
-	profile := "fast"
+	profile := "premium"
 	repo := &stubAIProfileRepo{terminal: &entities.Terminal{
 		ID:              "t1",
 		AiEngineProfile: &profile,
@@ -175,14 +165,14 @@ func TestGetAIEngineProfile_ReturnsProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.Profile == nil || *result.Profile != "fast" {
-		t.Errorf("expected profile=fast, got %v", result.Profile)
+	if result.Profile == nil || *result.Profile != "premium" {
+		t.Errorf("expected profile=premium, got %v", result.Profile)
 	}
 	if result.Source != "engine_profile" {
 		t.Errorf("expected source=engine_profile, got %s", result.Source)
 	}
-	if result.EffectiveMode != "fast" {
-		t.Errorf("expected effective_mode=fast, got %s", result.EffectiveMode)
+	if result.EffectiveMode != "premium" {
+		t.Errorf("expected effective_mode=premium, got %s", result.EffectiveMode)
 	}
 }
 

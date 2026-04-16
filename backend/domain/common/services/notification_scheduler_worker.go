@@ -12,19 +12,21 @@ import (
 )
 
 type NotificationSchedulerWorker struct {
-	scheduledRepo *repositories.ScheduledNotificationRepository
-	waSvc         *WANotificationService
-	stopCh        chan struct{}
-	wg            sync.WaitGroup
-	running       bool
-	mu            sync.Mutex
+	scheduledRepo   *repositories.ScheduledNotificationRepository
+	waSvc           *WANotificationService
+	templateService *WATemplateService
+	stopCh          chan struct{}
+	wg              sync.WaitGroup
+	running         bool
+	mu              sync.Mutex
 }
 
 func NewNotificationSchedulerWorker(waBaseURL string) *NotificationSchedulerWorker {
 	return &NotificationSchedulerWorker{
-		scheduledRepo: repositories.NewScheduledNotificationRepository(),
-		waSvc:         NewWANotificationService(waBaseURL),
-		stopCh:        make(chan struct{}),
+		scheduledRepo:   repositories.NewScheduledNotificationRepository(),
+		waSvc:           NewWANotificationService(waBaseURL),
+		templateService: NewWATemplateService(),
+		stopCh:          make(chan struct{}),
 	}
 }
 
@@ -123,10 +125,6 @@ func (w *NotificationSchedulerWorker) processNotification(notification *entities
 
 func (w *NotificationSchedulerWorker) buildWAMessage(bookingInfo map[string]interface{}, notification *entities.ScheduledNotification) string {
 	customerName := w.getStringValue(bookingInfo, "SDTGetRoomTeraluxCustomerName")
-	if customerName == "" {
-		customerName = "Bapak/Ibu"
-	}
-
 	buildingName := w.getStringValue(bookingInfo, "SDTGetRoomTeraluxBuildingsName")
 	roomName := w.getStringValue(bookingInfo, "SDTGetRoomTeraluxRoomName")
 	password := w.getStringValue(bookingInfo, "SDTGetRoomTeraluxItemRoomPassword")
@@ -145,7 +143,33 @@ func (w *NotificationSchedulerWorker) buildWAMessage(bookingInfo map[string]inte
 		dateStr = notification.ScheduledAt.Format("02 January 2006")
 	}
 
-	message := fmt.Sprintf(`[PENGINGAT JADWAL PERTEMUAN]
+	templateData := &WATemplateData{
+		CustomerName:     customerName,
+		BuildingName:     buildingName,
+		RoomName:         roomName,
+		DateStr:          dateStr,
+		BookingTime:      bookingTime,
+		Password:         password,
+		RemainingMinutes: remainingMinutes,
+		CompanyName:      "Teralux Team",
+	}
+
+	templateName := notification.Template
+	if templateName == "" {
+		templateName = "start_meeting"
+	}
+
+	message, err := w.templateService.RenderTemplate(templateName, templateData)
+	if err != nil {
+		utils.LogWarn("NotificationSchedulerWorker: Failed to render template %s, using fallback: %v", templateName, err)
+		return w.buildFallbackMessage(templateData)
+	}
+
+	return message
+}
+
+func (w *NotificationSchedulerWorker) buildFallbackMessage(data *WATemplateData) string {
+	return fmt.Sprintf(`[PENGINGAT JADWAL PERTEMUAN]
 
 Yth. %s,
 
@@ -155,23 +179,21 @@ Melalui pesan ini, kami ingin mengingatkan bahwa jadwal pertemuan Anda akan dimu
 🚪 Ruang: %s
 📅 Tanggal: %s
 ⏰ Waktu: %s
-🔐 Kata Sandi (Password): %s
+🔐 Password: %s
 
 Kami mohon kesediaan %s untuk bersiap sebelum waktu pertemuan dimulai. Terima kasih atas perhatian dan kerja samanya.
 
 Salam hangat,
-[Nama Perusahaan/Tim Anda]`,
-		customerName,
-		remainingMinutes,
-		buildingName,
-		roomName,
-		dateStr,
-		bookingTime,
-		password,
-		customerName,
+Teralux Team`,
+		data.CustomerName,
+		data.RemainingMinutes,
+		data.BuildingName,
+		data.RoomName,
+		data.DateStr,
+		data.BookingTime,
+		data.Password,
+		data.CustomerName,
 	)
-
-	return message
 }
 
 func (w *NotificationSchedulerWorker) getStringValue(data map[string]interface{}, key string) string {
