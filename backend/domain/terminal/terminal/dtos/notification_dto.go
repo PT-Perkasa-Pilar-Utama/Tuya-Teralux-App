@@ -3,12 +3,12 @@ package dtos
 import "time"
 
 // NotificationPublishRequest represents the request to publish a notification to a room
-// Requires room_id, phone_numbers array (non-empty), and optional scheduled_at (ISO 8601) and template (start_meeting or end_meeting).
+// Requires room_id; phone_numbers optional. Optional scheduled_at (ISO 8601) and template (start_meeting or end_meeting).
 // If PhoneNumbers is provided and device info is available, WhatsApp notifications will be scheduled.
 type NotificationPublishRequest struct {
 	RoomID       string   `json:"room_id" validate:"required" example:"123"`
 	ScheduledAt  *string  `json:"scheduled_at,omitempty" example:"2026-03-17T14:00:00+07:00"`
-	PhoneNumbers []string `json:"phone_numbers" validate:"required,min=1" example:"See phone_numbers array for values"`
+	PhoneNumbers []string `json:"phone_numbers,omitempty" validate:"min=1" example:"See phone_numbers array for values"`
 	Template     string   `json:"template,omitempty" example:"start_meeting"`
 }
 

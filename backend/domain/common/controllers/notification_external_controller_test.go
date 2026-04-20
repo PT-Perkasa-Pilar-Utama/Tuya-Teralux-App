@@ -129,16 +129,28 @@ func TestPublishToRoom(t *testing.T) {
 		assert.Contains(t, resp.Message, "room_id is required")
 	})
 
-	t.Run("Validation Error - Empty PhoneNumbers", func(t *testing.T) {
-		controller := NewNotificationExternalController(nil)
+	t.Run("Success with empty phone_numbers", func(t *testing.T) {
+		mockRepo := new(MockTerminalRepository)
+		mockMqtt := new(MockMqttService)
+		service := services.NewNotificationExternalService(mockRepo, mockMqtt)
+		controller := NewNotificationExternalController(service)
+
+		roomID := "room-123"
+		terminals := []entities.Terminal{
+			{MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: roomID},
+		}
+
+		mockRepo.On("GetByRoomID", roomID).Return(terminals, nil)
+		mockMqtt.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:       "room-123",
+			RoomID:       roomID,
 			ScheduledAt:  ptr("2026-03-17T14:00:00+07:00"),
 			PhoneNumbers: []string{},
+			Template:     "start_meeting",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -146,12 +158,13 @@ func TestPublishToRoom(t *testing.T) {
 
 		controller.PublishToRoom(c)
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusOK, w.Code)
 
 		var resp dtos.StandardResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.False(t, resp.Status)
-		assert.Contains(t, resp.Message, "phone_numbers is required and must not be empty")
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+		assert.True(t, resp.Status)
+		assert.Equal(t, "Notification published successfully", resp.Message)
 	})
 
 	t.Run("Validation Error - Invalid Template", func(t *testing.T) {

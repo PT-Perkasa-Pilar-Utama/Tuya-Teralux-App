@@ -26,12 +26,12 @@ func NewNotificationExternalController(notificationSvc *services.NotificationExt
 // @Summary Publish a notification to all terminals in a room (with optional WhatsApp)
 // @Description Publishes a notification to all terminals in the room via MQTT.
 // @Description If phone_numbers is provided and device info is available, WhatsApp notifications are scheduled.
-// @Description Requires room_id and non-empty phone_numbers array. Optional scheduled_at (ISO 8601) for explicit time.
+// @Description Requires room_id; phone_numbers optional. Optional scheduled_at (ISO 8601) for explicit time.
 // @Description If scheduled_at is omitted, booking end time is derived from device info. Template defaults to end_meeting.
 // @Tags 08. Common
 // @Accept json
 // @Produce json
-// @Param        request body      terminal_dtos.NotificationPublishRequest true "Notification details (scheduled_at and template are optional)"
+// @Param        request body      terminal_dtos.NotificationPublishRequest true "Notification details (scheduled_at, template, and phone_numbers are optional)"
 // @Success 200 {object} dtos.StandardResponse{data=terminal_dtos.NotificationPublishResponse}
 // @Failure      400  {object}  dtos.ValidationErrorResponse
 // @Failure      404  {object}  dtos.ErrorResponse
@@ -51,14 +51,6 @@ func (c *NotificationExternalController) PublishToRoom(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
 			Message: "room_id is required",
-		})
-		return
-	}
-
-	if len(req.PhoneNumbers) == 0 {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
-			Status:  false,
-			Message: "phone_numbers is required and must not be empty",
 		})
 		return
 	}
