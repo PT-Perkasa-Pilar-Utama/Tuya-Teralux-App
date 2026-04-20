@@ -337,6 +337,57 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
+    /api/devices/{id}/statuses/{code}:
+        get:
+            tags:
+                - 02. Terminal
+            summary: Get device status by code
+            description: Retrieve a specific status record for a device by its code
+            parameters:
+                - name: id
+                  in: path
+                  description: Device ID
+                  required: true
+                  schema:
+                    type: string
+                - name: code
+                  in: path
+                  description: Status code
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.StandardResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.DeviceStatusResponseDTO'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ValidationErrorResponse'
+                "404":
+                    description: Not Found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
     /api/devices/statuses:
         get:
             tags:
@@ -668,51 +719,6 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
-    /api/models/llama/cpp:
-        post:
-            tags:
-                - 04. Models
-            summary: Raw prompt query to local Llama.cpp model
-            description: Send a raw prompt directly to the local Llama.cpp LLM model without RAG orchestration.
-            requestBody:
-                description: Prompt Request
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/dtos.RAGRawPromptRequestDTO'
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                allOf:
-                                    - $ref: '#/components/schemas/dtos.StandardResponse'
-                                    - type: object
-                                      properties:
-                                        data:
-                                            $ref: '#/components/schemas/dtos.RAGRawPromptResponseDTO'
-                "400":
-                    description: Bad Request
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/dtos.ValidationErrorResponse'
-                "401":
-                    description: Unauthorized
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/dtos.ErrorResponse'
-                "500":
-                    description: Internal Server Error
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/dtos.ErrorResponse'
-            security:
-                - BearerAuth: []
     /api/models/openai:
         post:
             tags:
@@ -888,6 +894,51 @@ paths:
                                       properties:
                                         data:
                                             $ref: '#/components/schemas/dtos.PipelineResponseDTO'
+            security:
+                - BearerAuth: []
+    /api/models/pipeline/job/by-upload:
+        post:
+            tags:
+                - 04. Models
+            summary: Execute pipeline job by upload session
+            description: Execute a full AI pipeline using a completed upload session (Transcribe -> Refine -> Translate -> Summarize).
+            requestBody:
+                description: Pipeline job request by upload session
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.PipelineSubmitByUploadRequest'
+            responses:
+                "202":
+                    description: Accepted
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.StandardResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.PipelineResponseDTO'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ValidationErrorResponse'
+                "403":
+                    description: Forbidden
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
     /api/models/pipeline/status/{task_id}:
@@ -1720,6 +1771,51 @@ paths:
                                             $ref: '#/components/schemas/dtos.AsyncTranscriptionStatusDTO'
                 "404":
                     description: Not Found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - BearerAuth: []
+    /api/models/whisper/transcribe/by-upload:
+        post:
+            tags:
+                - 04. Models
+            summary: Transcribe audio using upload session
+            description: Transcribe an audio file using a completed upload session instead of direct file upload.
+            requestBody:
+                description: Transcription request by upload session
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.SubmitByUploadRequest'
+            responses:
+                "202":
+                    description: Accepted
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/dtos.StandardResponse'
+                                    - type: object
+                                      properties:
+                                        data:
+                                            $ref: '#/components/schemas/dtos.TranscriptionTaskResponseDTO'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ValidationErrorResponse'
+                "403":
+                    description: Forbidden
                     content:
                         application/json:
                             schema:
@@ -2804,7 +2900,7 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
-    /api/whisper/models/gemini:
+    /api/models/whisper/gemini:
         post:
             tags:
                 - 04. Models
@@ -2860,7 +2956,7 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
-    /api/whisper/models/groq:
+    /api/models/whisper/groq:
         post:
             tags:
                 - 04. Models
@@ -2916,7 +3012,7 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
-    /api/whisper/models/openai:
+    /api/models/whisper/openai:
         post:
             tags:
                 - 04. Models
@@ -2972,7 +3068,7 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
-    /api/whisper/models/orion:
+    /api/models/whisper/orion:
         post:
             tags:
                 - 04. Models
@@ -3028,7 +3124,7 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
             security:
                 - BearerAuth: []
-    /api/whisper/models/whisper/cpp:
+    /api/models/whisper/whisper/cpp:
         post:
             tags:
                 - 04. Models
@@ -3192,7 +3288,7 @@ components:
                     type: string
                 trigger:
                     type: string
-                    example: /api/whisper/models/gemini
+                    example: /api/models/whisper/gemini
         dtos.ConfidenceSummary:
             type: object
             properties:
