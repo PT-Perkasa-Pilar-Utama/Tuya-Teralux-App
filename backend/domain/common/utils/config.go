@@ -84,7 +84,8 @@ type Config struct {
 	WANotificationBaseURL string
 
 	// Runtime & Networking
-	LogLevel string
+	LogLevel       string
+	AllowedOrigins string
 
 	// Storage (S3)
 	S3Enabled             bool
@@ -193,6 +194,7 @@ func LoadConfig() {
 		ApiKey:                 os.Getenv("API_KEY"),
 		JWTSecret:              os.Getenv("JWT_SECRET"),
 		LogLevel:               os.Getenv("LOG_LEVEL"),
+		AllowedOrigins:         os.Getenv("ALLOWED_ORIGINS"),
 		ApplicationEnvironment: os.Getenv("APPLICATION_ENVIRONMENT"),
 		S3Enabled:              getEnvAsBool("S3_ENABLED", false),
 		S3Bucket:               os.Getenv("S3_BUCKET"),

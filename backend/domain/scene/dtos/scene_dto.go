@@ -2,23 +2,25 @@ package dtos
 
 // ActionDTO represents an action in request/response
 type ActionDTO struct {
-	DeviceID string      `json:"device_id,omitempty"`
-	Code     string      `json:"code,omitempty"`
-	RemoteID string      `json:"remote_id,omitempty"`
-	Topic    string      `json:"topic,omitempty"`
+	DeviceID string      `json:"device_id" binding:"required,uuid"`
+	Code     string      `json:"code" binding:"required,max=100"`
+	RemoteID string      `json:"remote_id" binding:"omitempty,max=255"`
+	Topic    string      `json:"topic" binding:"omitempty,max=255"`
 	Value    interface{} `json:"value"`
 }
 
 // CreateSceneRequestDTO for POST /api/terminal/:id/scenes
 type CreateSceneRequestDTO struct {
-	Name    string      `json:"name" binding:"required"`
-	Actions []ActionDTO `json:"actions"`
+	Name        string      `json:"name" binding:"required,min=1,max=255"`
+	Description string      `json:"description" binding:"omitempty,max=1000"`
+	Actions     []ActionDTO `json:"actions" binding:"required,min=1,dive"`
 }
 
 // UpdateSceneRequestDTO for PUT /api/terminal/:id/scenes/:scene_id
 type UpdateSceneRequestDTO struct {
-	Name    string      `json:"name" binding:"required" example:"Evening Mode"`
-	Actions []ActionDTO `json:"actions"`
+	Name        string      `json:"name" binding:"required" example:"Evening Mode"`
+	Description string      `json:"description" binding:"omitempty,max=1000"`
+	Actions     []ActionDTO `json:"actions"`
 }
 
 // SceneResponseDTO for GET /api/terminal/:id/scenes (includes terminal_id)

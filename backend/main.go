@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"sensio/domain/common"
+	"sensio/domain/common/controllers"
 	common_entities "sensio/domain/common/entities"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/middlewares"
@@ -164,9 +165,8 @@ func run() error {
 	protected.Use(middlewares.AuthMiddleware(tuyaModule.AuthUseCase))
 	protected.Use(middlewares.TuyaErrorMiddleware())
 
-	// Static File Serving (for audio uploads)
-	// Access via: /uploads/audio/filename.ext
-	router.Static("/uploads", "./uploads")
+	// Static File Serving (protected via auth middleware)
+	protected.GET("/uploads/:filename", middlewares.AuthMiddleware(tuyaModule.AuthUseCase), controllers.ServeProtectedUploads())
 
 	// 1. Common Routes (Health, Cache)
 	commonModule.RegisterRoutes(router, protected)

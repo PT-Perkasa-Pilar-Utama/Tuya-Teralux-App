@@ -132,7 +132,9 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 
 		// Generate a descriptive temporary filename
 		uuidStr, _ := uuid.NewV7()
-		tempFilename := fmt.Sprintf("mqtt_temp_%s_%s.wav", req.TerminalID, uuidStr.String())
+		// Sanitize TerminalID to prevent path traversal attacks
+		safeTerminalID := filepath.Base(req.TerminalID)
+		tempFilename := fmt.Sprintf("mqtt_temp_%s_%s.wav", safeTerminalID, uuidStr.String())
 		tempPath := filepath.Join("uploads", "audio", tempFilename)
 
 		// Save audio bytes to disk manually (without DB entry)

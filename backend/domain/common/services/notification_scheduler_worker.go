@@ -8,6 +8,7 @@ import (
 	"sensio/domain/common/utils"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -17,8 +18,7 @@ type NotificationSchedulerWorker struct {
 	templateService *WATemplateService
 	stopCh          chan struct{}
 	wg              sync.WaitGroup
-	running         bool
-	mu              sync.Mutex
+	running         uint32
 }
 
 func NewNotificationSchedulerWorker(waBaseURL string) *NotificationSchedulerWorker {
@@ -31,14 +31,10 @@ func NewNotificationSchedulerWorker(waBaseURL string) *NotificationSchedulerWork
 }
 
 func (w *NotificationSchedulerWorker) Start() {
-	w.mu.Lock()
-	if w.running {
-		w.mu.Unlock()
+	if !atomic.CompareAndSwapUint32(&w.running, 0, 1) {
 		return
 	}
-	w.running = true
 	w.stopCh = make(chan struct{})
-	w.mu.Unlock()
 
 	w.wg.Add(1)
 	go w.run()
@@ -46,14 +42,10 @@ func (w *NotificationSchedulerWorker) Start() {
 }
 
 func (w *NotificationSchedulerWorker) Stop() {
-	w.mu.Lock()
-	if !w.running {
-		w.mu.Unlock()
+	if !atomic.CompareAndSwapUint32(&w.running, 1, 0) {
 		return
 	}
-	w.running = false
 	close(w.stopCh)
-	w.mu.Unlock()
 
 	w.wg.Wait()
 	utils.LogInfo("NotificationSchedulerWorker: Stopped")

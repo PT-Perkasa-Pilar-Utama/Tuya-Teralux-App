@@ -247,6 +247,9 @@ func (u *uploadSessionUseCase) UploadChunk(sessionID string, chunkIndex int, own
 }
 
 func (u *uploadSessionUseCase) GetSessionStatus(sessionID string, ownerUID string) (*dtos.UploadSessionResponseDTO, error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
 	meta, err := u.getMetadata(sessionID)
 	if err != nil {
 		return nil, err
