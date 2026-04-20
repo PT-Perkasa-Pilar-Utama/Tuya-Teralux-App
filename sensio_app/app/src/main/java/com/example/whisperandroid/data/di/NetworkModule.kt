@@ -196,7 +196,10 @@ object NetworkModule {
     }
 
     val uploadRepository: UploadRepository by lazy {
-        UploadRepositoryImpl(uploadWhisperApi)
+        UploadRepositoryImpl(
+            uploadWhisperApi,
+            signedUploadModeStore.isEnabled.value
+        )
     }
 
     val registerUseCase: RegisterTerminalUseCase by lazy {
@@ -257,5 +260,9 @@ object NetworkModule {
     val getTuyaDevicesUseCase: GetTuyaDevicesUseCase by lazy {
         com.example.whisperandroid.domain.usecase
             .GetTuyaDevicesUseCase(tuyaRepository)
+    }
+
+    val signedUploadModeStore: com.example.whisperandroid.data.local.SignedUploadModeStore by lazy {
+        com.example.whisperandroid.data.local.SignedUploadModeStore(appContext)
     }
 }

@@ -217,3 +217,20 @@ data class PipelineSubmitByUploadRequestDto(
     @SerializedName("mac_address") val macAddress: String? = null,
     @SerializedName("idempotency_key") val idempotencyKey: String? = null
 )
+
+/**
+ * Request to create upload intent for signed URL upload
+ */
+data class CreateUploadIntentRequestDto(
+    @SerializedName("content_type") val contentType: String? = "audio/wav"
+)
+
+/**
+ * Response with signed upload URL
+ */
+data class UploadIntentResponseDto(
+    @SerializedName("object_key") val objectKey: String,
+    @SerializedName("presigned_url") val presignedUrl: String,
+    @SerializedName("content_type") val contentType: String,
+    @SerializedName("expires_at") val expiresAt: String
+)

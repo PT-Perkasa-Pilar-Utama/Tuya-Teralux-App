@@ -7,6 +7,7 @@ import (
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
+	"sensio/domain/download_token"
 	pipelineControllers "sensio/domain/models/pipeline/controllers"
 	pipelinedtos "sensio/domain/models/pipeline/dtos"
 	pipelineRoutes "sensio/domain/models/pipeline/routes"
@@ -57,6 +58,18 @@ func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string)
 	}, nil
 }
 
+type tokenServiceAdapter struct {
+	svc *download_token.DownloadTokenService
+}
+
+func (a *tokenServiceAdapter) CreateToken(recipient, objectKey, purpose string, password ...string) (string, error) {
+	token, err := a.svc.CreateToken(recipient, objectKey, purpose, password...)
+	if err != nil {
+		return "", err
+	}
+	return token.TokenID, nil
+}
+
 // InitModule initializes the consolidated models module (Whisper, RAG, and Pipeline).
 func InitModule(
 	protected *gin.RouterGroup,
@@ -68,7 +81,8 @@ func InitModule(
 	mqttSvc *infrastructure.MqttService,
 	terminalRepo terminalRepositories.ITerminalRepository,
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
-) (whisperUsecases.TranscribeUseCase, whisperUsecases.UploadSessionUseCase, ragUsecases.RefineUseCase, ragUsecases.TranslateUseCase, ragUsecases.SummaryUseCase) {
+	storageProvider infrastructure.StorageProvider,
+) (whisperUsecases.TranscribeUseCase, whisperUsecases.UploadSessionUseCase, ragUsecases.RefineUseCase, ragUsecases.TranslateUseCase, ragUsecases.SummaryUseCase, whisperUsecases.AudioEncryptorUseCase, ragUsecases.SecurePDFUseCase) {
 
 	// 1. Initialize RAG Sub-module
 	// Initialize all provider services upfront for provider resolution
@@ -163,7 +177,9 @@ func InitModule(
 	router := ragOrchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewDeviceInfoExternalService()
-	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver)
+	securePDFUC := ragUsecases.NewSecurePDFUseCase(storageProvider)
+	tokenCreator := &tokenServiceAdapter{svc: download_token.NewDownloadTokenService(download_token.NewStore(), storageProvider)}
+	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, securePDFUC, tokenCreator, bigExternalService, mqttSvc, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
 	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, nil, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)
 	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, nil, cfg, badger, vectorSvc, guardOrch, fastIntentRouter, decisionEngine, providerResolver, controlUC, router)
@@ -267,5 +283,8 @@ func InitModule(
 
 	pipelineRoutes.SetupPipelineRoutes(protected, pipelineCtrl)
 
-	return transcribeUC, uploadSessionUC, refineUC, translateUC, summaryUC
+	uploadDir := "tmp/chunk_uploads"
+	audioEncryptorUC := whisperUsecases.NewAudioEncryptorUseCase(storageProvider, uploadDir)
+
+	return transcribeUC, uploadSessionUC, refineUC, translateUC, summaryUC, audioEncryptorUC, securePDFUC
 }

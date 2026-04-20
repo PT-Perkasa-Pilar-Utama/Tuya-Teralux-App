@@ -153,7 +153,7 @@ func run() error {
 	terminalRepo := terminal_repositories.NewTerminalRepository(badgerService)
 
 	// Initialize Modules
-	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService, terminalRepo)
+	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService, terminalRepo, utils.GetConfig())
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, terminalRepo)
 	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
@@ -242,6 +242,7 @@ func run() error {
 		mqttService,
 		terminalRepo,
 		recordingsModule.SaveRecordingUseCase,
+		commonModule.StorageProvider,
 	)
 
 	// 5b. Models-v1 Module (v1 routes: /api/models/v1/...)
