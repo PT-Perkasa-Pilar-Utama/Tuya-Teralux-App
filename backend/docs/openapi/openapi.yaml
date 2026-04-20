@@ -3443,27 +3443,21 @@ components:
         dtos.NotificationPublishRequest:
             type: object
             properties:
-                date:
+                room_id:
                     type: string
-                    example: "2026-03-17"
+                    example: "123"
+                scheduled_at:
+                    type: string
+                    example: "2026-03-17T14:00:00+07:00"
                 phone_numbers:
                     type: array
                     items:
                         type: string
                     example:
-                        - See phone_numbers array for values
-                room_id:
-                    type: string
-                    example: "123"
+                        - "+6281234567890"
                 template:
                     type: string
-                    example: start_meeting
-                time:
-                    type: string
-                    example: "14:00:00"
-                timezone:
-                    type: string
-                    example: Asia/Jakarta
+                    example: end_meeting
             required:
                 - room_id
         dtos.NotificationPublishResponse:

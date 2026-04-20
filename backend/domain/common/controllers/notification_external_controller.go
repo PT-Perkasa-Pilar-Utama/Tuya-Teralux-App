@@ -25,12 +25,13 @@ func NewNotificationExternalController(notificationSvc *services.NotificationExt
 // PublishToRoom handles POST /api/notification/publish
 // @Summary Publish a notification to all terminals in a room (with optional WhatsApp)
 // @Description Publishes a notification to all terminals in the room via MQTT.
-// @Description If phone_number is provided, a WhatsApp notification will be scheduled to be sent at the specified time.
-// @Description Requires date, time, timezone, phone_number array, and template (start_meeting or end_meeting).
+// @Description If phone_numbers is provided and device info is available, WhatsApp notifications are scheduled.
+// @Description Requires room_id and non-empty phone_numbers array. Optional scheduled_at (ISO 8601) for explicit time.
+// @Description If scheduled_at is omitted, booking end time is derived from device info. Template defaults to end_meeting.
 // @Tags 08. Common
 // @Accept json
 // @Produce json
-// @Param        request body      terminal_dtos.NotificationPublishRequest true "Notification details (phone_number is optional)"
+// @Param        request body      terminal_dtos.NotificationPublishRequest true "Notification details (scheduled_at and template are optional)"
 // @Success 200 {object} dtos.StandardResponse{data=terminal_dtos.NotificationPublishResponse}
 // @Failure      400  {object}  dtos.ValidationErrorResponse
 // @Failure      404  {object}  dtos.ErrorResponse
@@ -46,7 +47,6 @@ func (c *NotificationExternalController) PublishToRoom(ctx *gin.Context) {
 		return
 	}
 
-	// Basic validation
 	if req.RoomID == "" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
@@ -54,28 +54,16 @@ func (c *NotificationExternalController) PublishToRoom(ctx *gin.Context) {
 		})
 		return
 	}
-	if req.Date == "" {
+
+	if len(req.PhoneNumbers) == 0 {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
-			Message: "date is required",
+			Message: "phone_numbers is required and must not be empty",
 		})
 		return
 	}
-	if req.Time == "" {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
-			Status:  false,
-			Message: "time is required",
-		})
-		return
-	}
-	if req.Timezone == "" {
-		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
-			Status:  false,
-			Message: "timezone is required",
-		})
-		return
-	}
-	if req.Template != "start_meeting" && req.Template != "end_meeting" {
+
+	if req.Template != "" && req.Template != "start_meeting" && req.Template != "end_meeting" {
 		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
 			Status:  false,
 			Message: "template must be either 'start_meeting' or 'end_meeting'",

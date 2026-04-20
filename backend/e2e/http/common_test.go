@@ -56,10 +56,8 @@ func (s *CommonE2ETestSuite) TestBigDevice_GetByMAC() {
 func (s *CommonE2ETestSuite) TestNotification_Publish() {
 	payload := map[string]interface{}{
 		"room_id":       "room-001",
-		"title":         "Test Notification",
-		"message":       "This is a test notification",
-		"datetime_end":  "2026-04-15T18:00:00Z",
-		"interval_time": 5,
+		"scheduled_at":  "2026-04-20T23:00:00+07:00",
+		"phone_numbers": []string{"+6281234567890"},
 	}
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBufferString(mustMarshal(payload)))

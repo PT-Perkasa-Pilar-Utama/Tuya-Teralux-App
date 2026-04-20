@@ -18,6 +18,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func ptr(s string) *string { return &s }
+
 // MockTerminalRepository for controller test
 type MockTerminalRepository struct {
 	mock.Mock
@@ -71,7 +73,6 @@ func TestPublishToRoom(t *testing.T) {
 		controller := NewNotificationExternalController(service)
 
 		roomID := "room-123"
-
 		terminals := []entities.Terminal{
 			{MacAddress: "AA:BB:CC:DD:EE:FF", RoomID: roomID},
 		}
@@ -83,11 +84,10 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   roomID,
-			Date:     "2026-03-17",
-			Time:     "14:00:00",
-			Timezone: "Asia/Jakarta",
-			Template: "start_meeting",
+			RoomID:       roomID,
+			ScheduledAt:  ptr("2026-03-17T14:00:00+07:00"),
+			PhoneNumbers: []string{"+6281234567890"},
+			Template:     "start_meeting",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -111,10 +111,9 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   "",
-			Date:     "2026-03-17",
-			Time:     "14:00:00",
-			Timezone: "Asia/Jakarta",
+			RoomID:       "",
+			ScheduledAt:  ptr("2026-03-17T14:00:00+07:00"),
+			PhoneNumbers: []string{"+6281234567890"},
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -130,17 +129,16 @@ func TestPublishToRoom(t *testing.T) {
 		assert.Contains(t, resp.Message, "room_id is required")
 	})
 
-	t.Run("Validation Error - Missing Date", func(t *testing.T) {
+	t.Run("Validation Error - Empty PhoneNumbers", func(t *testing.T) {
 		controller := NewNotificationExternalController(nil)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   "room-123",
-			Date:     "",
-			Time:     "14:00:00",
-			Timezone: "Asia/Jakarta",
+			RoomID:       "room-123",
+			ScheduledAt:  ptr("2026-03-17T14:00:00+07:00"),
+			PhoneNumbers: []string{},
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -153,59 +151,7 @@ func TestPublishToRoom(t *testing.T) {
 		var resp dtos.StandardResponse
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.False(t, resp.Status)
-		assert.Contains(t, resp.Message, "date is required")
-	})
-
-	t.Run("Validation Error - Missing Time", func(t *testing.T) {
-		controller := NewNotificationExternalController(nil)
-
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-
-		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   "room-123",
-			Date:     "2026-03-17",
-			Time:     "",
-			Timezone: "Asia/Jakarta",
-		}
-		jsonBody, _ := json.Marshal(reqBody)
-		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
-		c.Request.Header.Set("Content-Type", "application/json")
-
-		controller.PublishToRoom(c)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-
-		var resp dtos.StandardResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.False(t, resp.Status)
-		assert.Contains(t, resp.Message, "time is required")
-	})
-
-	t.Run("Validation Error - Missing Timezone", func(t *testing.T) {
-		controller := NewNotificationExternalController(nil)
-
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-
-		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   "room-123",
-			Date:     "2026-03-17",
-			Time:     "14:00:00",
-			Timezone: "",
-		}
-		jsonBody, _ := json.Marshal(reqBody)
-		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
-		c.Request.Header.Set("Content-Type", "application/json")
-
-		controller.PublishToRoom(c)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-
-		var resp dtos.StandardResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
-		assert.False(t, resp.Status)
-		assert.Contains(t, resp.Message, "timezone is required")
+		assert.Contains(t, resp.Message, "phone_numbers is required and must not be empty")
 	})
 
 	t.Run("Validation Error - Invalid Template", func(t *testing.T) {
@@ -215,11 +161,10 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   "room-123",
-			Date:     "2026-03-17",
-			Time:     "14:00:00",
-			Timezone: "Asia/Jakarta",
-			Template: "invalid",
+			RoomID:       "room-123",
+			ScheduledAt:  ptr("2026-03-17T14:00:00+07:00"),
+			PhoneNumbers: []string{"+6281234567890"},
+			Template:     "invalid",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -248,11 +193,10 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   roomID,
-			Date:     "2026-03-17",
-			Time:     "14:00:00",
-			Timezone: "Asia/Jakarta",
-			Template: "start_meeting",
+			RoomID:       roomID,
+			ScheduledAt:  ptr("2026-03-17T14:00:00+07:00"),
+			PhoneNumbers: []string{"+6281234567890"},
+			Template:     "start_meeting",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))
@@ -280,11 +224,10 @@ func TestPublishToRoom(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 
 		reqBody := terminal_dtos.NotificationPublishRequest{
-			RoomID:   roomID,
-			Date:     "2026-03-17",
-			Time:     "14:00:00",
-			Timezone: "Asia/Jakarta",
-			Template: "start_meeting",
+			RoomID:       roomID,
+			ScheduledAt:  ptr("2026-03-17T14:00:00+07:00"),
+			PhoneNumbers: []string{"+6281234567890"},
+			Template:     "start_meeting",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		c.Request, _ = http.NewRequest(http.MethodPost, "/api/notification/publish", bytes.NewBuffer(jsonBody))

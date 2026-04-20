@@ -48,25 +48,49 @@ func NewNotificationExternalServiceWithWA(
 }
 
 func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dtos.NotificationPublishRequest) (*terminal_dtos.NotificationPublishResponse, error) {
-	loc, err := time.LoadLocation(req.Timezone)
-	if err != nil {
-		utils.LogError("NotificationExternalService: Failed to load timezone %s: %v", req.Timezone, err)
-		return nil, utils.NewAPIError(400, "Invalid timezone. Must be a valid IANA timezone.")
-	}
+	var dateTimeEnd time.Time
 
-	dateOnly, err := time.Parse("2006-01-02", req.Date)
-	if err != nil {
-		utils.LogError("NotificationExternalService: Failed to parse date: %v", err)
-		return nil, utils.NewAPIError(400, "Invalid date format. Must be YYYY-MM-DD.")
-	}
+	if req.ScheduledAt != nil {
+		parsed, err := time.Parse(time.RFC3339, *req.ScheduledAt)
+		if err != nil {
+			utils.LogError("NotificationExternalService: Failed to parse scheduled_at: %v", err)
+			return nil, utils.NewAPIError(400, "Invalid scheduled_at format. Must be a valid ISO 8601 datetime with timezone offset (e.g. 2026-04-20T23:00:00+07:00).")
+		}
+		dateTimeEnd = parsed
+	} else {
+		if s.deviceInfoSvc == nil {
+			return nil, utils.NewAPIError(400, "Cannot determine publish time: scheduled_at is required when no booking end time is available from device info.")
+		}
 
-	timeOnly, err := time.Parse("15:04:05", req.Time)
-	if err != nil {
-		utils.LogError("NotificationExternalService: Failed to parse time: %v", err)
-		return nil, utils.NewAPIError(400, "Invalid time format. Must be HH:MM:SS.")
-	}
+		terminals, err := s.terminalRepo.GetByRoomID(req.RoomID)
+		if err != nil {
+			utils.LogError("NotificationExternalService: Failed to query terminals for RoomID %s: %v", req.RoomID, err)
+			return nil, fmt.Errorf("failed to lookup terminals: %w", err)
+		}
+		if len(terminals) == 0 {
+			return nil, utils.NewAPIError(404, fmt.Sprintf("No terminals found for RoomID %s", req.RoomID))
+		}
 
-	dateTimeEnd := time.Date(dateOnly.Year(), dateOnly.Month(), dateOnly.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, loc)
+		bookingInfo, err := s.deviceInfoSvc.GetDeviceInfoByMac(terminals[0].MacAddress)
+		if err != nil {
+			utils.LogWarn("NotificationExternalService: Failed to fetch booking info: %v", err)
+			return nil, utils.NewAPIError(400, "Cannot determine publish time: scheduled_at is required when no booking end time is available from device info.")
+		}
+
+		dateStr := s.getStringValue(bookingInfo, "SDTGetRoomTeraluxtimeendDate")
+		timeRange := s.getStringValue(bookingInfo, "SDTGetRoomTeraluxBookingtimeChar")
+		if dateStr == "" || timeRange == "" {
+			return nil, utils.NewAPIError(400, "Cannot determine publish time: scheduled_at is required when no booking end time is available from device info.")
+		}
+
+		loc, _ := time.LoadLocation("Asia/Jakarta")
+		derived, err := s.deriveBookingEndFromRange(dateStr, timeRange, loc)
+		if err != nil {
+			utils.LogError("NotificationExternalService: Failed to derive booking end: %v", err)
+			return nil, utils.NewAPIError(400, "Cannot determine publish time: scheduled_at is required when no booking end time is available from device info.")
+		}
+		dateTimeEnd = derived
+	}
 
 	publishAtStr := dateTimeEnd.Format(time.RFC3339)
 
@@ -75,14 +99,18 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 		utils.LogError("NotificationExternalService: Failed to query terminals for RoomID %s: %v", req.RoomID, err)
 		return nil, fmt.Errorf("failed to lookup terminals: %w", err)
 	}
-
 	if len(terminals) == 0 {
 		utils.LogDebug("NotificationExternalService: No terminals found for RoomID %s", req.RoomID)
 		return nil, utils.NewAPIError(404, fmt.Sprintf("No terminals found for RoomID %s", req.RoomID))
 	}
 
+	template := req.Template
+	if template == "" {
+		template = "end_meeting"
+	}
+
 	eventType := "meeting_start"
-	if req.Template == "end_meeting" {
+	if template == "end_meeting" {
 		eventType = "meeting_end"
 	}
 
@@ -161,7 +189,7 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 
 	var wanNotificationID string
 	if len(req.PhoneNumbers) > 0 && s.scheduledRepo != nil && s.deviceInfoSvc != nil {
-		wanID, err := s.scheduleWANotification(req, dateTimeEnd, terminals)
+		wanID, err := s.scheduleWANotification(req, template, dateTimeEnd, terminals)
 		if err != nil {
 			utils.LogWarn("NotificationExternalService: Failed to schedule WA notification: %v", err)
 		} else {
@@ -179,7 +207,7 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 	}, nil
 }
 
-func (s *NotificationExternalService) scheduleWANotification(req terminal_dtos.NotificationPublishRequest, bookingTimeEnd time.Time, terminals []terminal_entities.Terminal) (string, error) {
+func (s *NotificationExternalService) scheduleWANotification(req terminal_dtos.NotificationPublishRequest, template string, bookingTimeEnd time.Time, terminals []terminal_entities.Terminal) (string, error) {
 	if len(terminals) == 0 {
 		return "", fmt.Errorf("no terminals found")
 	}
@@ -218,7 +246,7 @@ func (s *NotificationExternalService) scheduleWANotification(req terminal_dtos.N
 		BookingTimeEnd: bookingTimeEnd.Format(time.RFC3339),
 		ScheduledAt:    scheduledAt,
 		Status:         entities.NotificationStatusPending,
-		Template:       req.Template,
+		Template:       template,
 	}
 
 	if err := s.scheduledRepo.Create(notification); err != nil {
@@ -241,4 +269,35 @@ func (s *NotificationExternalService) getStringValue(data map[string]interface{}
 		}
 	}
 	return ""
+}
+
+func (s *NotificationExternalService) deriveBookingEndFromRange(dateStr, timeRange string, loc *time.Location) (time.Time, error) {
+	dateOnly, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid date format: %w", err)
+	}
+
+	parts := strings.Split(timeRange, "-")
+	if len(parts) != 2 {
+		return time.Time{}, fmt.Errorf("invalid time range format: %s", timeRange)
+	}
+
+	endPart := strings.TrimSpace(parts[1])
+	endPart = strings.Trim(endPart, " ")
+
+	timeFormats := []string{"2006-01-02 03:04 PM", "2006-01-02 3:04 PM", "03:04 PM", "3:04 PM", "15:04"}
+	var endTime time.Time
+	for _, fmt := range timeFormats {
+		if strings.Contains(endPart, "AM") || strings.Contains(endPart, "PM") {
+			endTime, err = time.Parse(fmt, endPart)
+			if err == nil {
+				break
+			}
+		}
+	}
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to parse end time from range: %w", err)
+	}
+
+	return time.Date(dateOnly.Year(), dateOnly.Month(), dateOnly.Day(), endTime.Hour(), endTime.Minute(), 0, 0, loc), nil
 }
