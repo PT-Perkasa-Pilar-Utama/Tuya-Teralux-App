@@ -3,8 +3,8 @@ package usecases
 import (
 	"context"
 	"encoding/json"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
 	"sensio/domain/models/rag/skills/orchestrator"

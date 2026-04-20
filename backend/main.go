@@ -15,14 +15,13 @@ import (
 
 	"sensio/domain/common"
 	"sensio/domain/common/controllers"
-	common_entities "sensio/domain/common/entities"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/middlewares"
-	"sensio/domain/common/services"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/mail"
 	"sensio/domain/models"
-	models_v1 "sensio/domain/models-v1"
+	notification_entities "sensio/domain/notification/entities"
+	notification_services "sensio/domain/notification/services"
 	"sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
 	"sensio/domain/scene"
@@ -121,7 +120,7 @@ func run() error {
 		&device_entities.Device{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
-		&common_entities.ScheduledNotification{},
+		&notification_entities.ScheduledNotification{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate entities: %w", err)
 	}
@@ -246,10 +245,6 @@ func run() error {
 		commonModule.StorageProvider,
 	)
 
-	// 5b. Models-v1 Module (v1 routes: /api/models/v1/...)
-	// This provides access to Python AI services via gRPC/REST
-	models_v1.InitModule(protected, scfg)
-
 	// 6. Scene Module
 	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
 	sceneModule.RegisterRoutes(protected)
@@ -258,7 +253,7 @@ func run() error {
 	router.GET("/api/health", commonModule.HealthController.CheckHealth)
 
 	// Start notification scheduler worker for WA notifications
-	notificationWorker := services.NewNotificationSchedulerWorker(scfg.WANotificationBaseURL)
+	notificationWorker := notification_services.NewNotificationSchedulerWorker(scfg.WANotificationBaseURL)
 	notificationWorker.Start()
 	utils.LogInfo("Notification scheduler worker started with WA endpoint: %s", scfg.WANotificationBaseURL)
 

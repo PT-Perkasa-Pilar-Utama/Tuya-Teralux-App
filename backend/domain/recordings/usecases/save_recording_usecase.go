@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/recordings/entities"
 	"sensio/domain/recordings/repositories"
 	"sensio/domain/recordings/services"

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"sensio/domain/common/utils"
 )
 
 // ConvertToWav converts an input audio file (e.g., MP3) to a 16kHz mono WAV file
@@ -15,9 +17,9 @@ func ConvertToWav(inputPath, outputPath string) error {
 	// ffmpeg -i input.mp3 -ar 16000 -ac 1 -c:a pcm_s16le output.wav
 	cmd := exec.Command("ffmpeg", "-y", "-i", inputPath, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", outputPath)
 	// Log the ffmpeg command for easier debugging
-	LogDebug("[ffmpeg] running: %v", cmd.Args)
+	utils.LogDebug("[ffmpeg] running: %v", cmd.Args)
 	output, err := cmd.CombinedOutput()
-	LogDebug("[ffmpeg] output: %s", string(output))
+	utils.LogDebug("[ffmpeg] output: %s", string(output))
 	if err != nil {
 		return fmt.Errorf("ffmpeg error: %v, output: %s", err, string(output))
 	}
@@ -43,7 +45,7 @@ func NormalizeToWavPCM16k(inputPath string) (string, func(), error) {
 	ext := strings.ToLower(filepath.Ext(inputPath))
 	formatMatch := strings.Contains(strings.ToLower(probe.FormatName), strings.TrimPrefix(ext, "."))
 	if ext != "" && !formatMatch {
-		LogWarn("[audio] Extension mismatch warning: filename has %s but ffprobe detected %s for %s", ext, probe.FormatName, inputPath)
+		utils.LogWarn("[audio] Extension mismatch warning: filename has %s but ffprobe detected %s for %s", ext, probe.FormatName, inputPath)
 	}
 
 	// 3. Check if already normalized
@@ -52,7 +54,7 @@ func NormalizeToWavPCM16k(inputPath string) (string, func(), error) {
 	}
 
 	// 4. Create unique temp normalized file to avoid races
-	LogInfo("[audio] Normalizing to WAV 16k mono: %s", inputPath)
+	utils.LogInfo("[audio] Normalizing to WAV 16k mono: %s", inputPath)
 	uniqueSuffix := time.Now().UnixNano()
 	outputPath := fmt.Sprintf("%s.%d.normalize.wav", inputPath, uniqueSuffix)
 

@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"net/http"
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 
 	"github.com/gin-gonic/gin"
 )

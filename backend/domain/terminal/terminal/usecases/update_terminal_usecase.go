@@ -3,8 +3,8 @@ package usecases
 import (
 	"errors"
 	"regexp"
-	"sensio/domain/common/providers"
 	"sensio/domain/common/utils"
+	"sensio/domain/speech/providers"
 	"sensio/domain/terminal/terminal/dtos"
 	"sensio/domain/terminal/terminal/repositories"
 	"strings"

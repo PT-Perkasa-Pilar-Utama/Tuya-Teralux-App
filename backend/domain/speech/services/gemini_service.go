@@ -10,16 +10,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sensio/domain/common/utils"
+	commonUtils "sensio/domain/common/utils"
 	"sensio/domain/models/whisper/dtos"
+	speechUtils "sensio/domain/speech/utils"
 )
 
 type GeminiService struct {
 	apiKey string
-	config *utils.Config
+	config *commonUtils.Config
 }
 
-func NewGeminiService(cfg *utils.Config) *GeminiService {
+func NewGeminiService(cfg *commonUtils.Config) *GeminiService {
 	return &GeminiService{
 		apiKey: cfg.GeminiApiKey,
 		config: cfg,
@@ -59,13 +60,13 @@ func (s *GeminiService) HealthCheck() bool {
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", s.apiKey)
 	resp, err := http.Get(url)
 	if err != nil {
-		utils.LogWarn("Gemini HealthCheck failed: %v", err)
+		commonUtils.LogWarn("Gemini HealthCheck failed: %v", err)
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		utils.LogWarn("Gemini HealthCheck failed: status %d", resp.StatusCode)
+		commonUtils.LogWarn("Gemini HealthCheck failed: status %d", resp.StatusCode)
 		return false
 	}
 	return true
@@ -87,7 +88,7 @@ func (s *GeminiService) CallModel(ctx context.Context, prompt string, model stri
 	}
 
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", actualModel, s.apiKey)
-	utils.LogDebug("Gemini: Calling URL: https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", actualModel)
+	commonUtils.LogDebug("Gemini: Calling URL: https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", actualModel)
 
 	reqBody := geminiRequest{
 		Contents: []geminiContent{
@@ -123,7 +124,7 @@ func (s *GeminiService) CallModel(ctx context.Context, prompt string, model stri
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
+		return "", commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var geminiResp geminiResponse
@@ -136,7 +137,7 @@ func (s *GeminiService) CallModel(ctx context.Context, prompt string, model stri
 	}
 
 	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
-	utils.LogDebug("Gemini: Response received: %s", responseText)
+	commonUtils.LogDebug("Gemini: Response received: %s", responseText)
 	return responseText, nil
 }
 
@@ -228,7 +229,7 @@ func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, langua
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
+		return nil, commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var geminiResp geminiResponse
@@ -247,7 +248,7 @@ func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, langua
 	var transcriptFormat dtos.TranscriptFormat
 
 	if diarize {
-		utterances = utils.ParseUtterancesFromText(transcription)
+		utterances = speechUtils.ParseUtterancesFromText(transcription)
 		if len(utterances) > 0 {
 			transcriptFormat = dtos.TranscriptFormatUtteranceList
 		}
@@ -269,6 +270,6 @@ func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, langua
 		Diarized:          diarized,
 		Utterances:        utterances,
 		TranscriptFormat:  transcriptFormat,
-		ConfidenceSummary: utils.BuildConfidenceSummary(utterances, 1),
+		ConfidenceSummary: speechUtils.BuildConfidenceSummary(utterances, 1),
 	}, nil
 }

@@ -8,8 +8,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/recordings/entities"
 )
 

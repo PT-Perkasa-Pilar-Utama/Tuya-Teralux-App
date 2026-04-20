@@ -10,17 +10,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sensio/domain/common/utils"
+	commonUtils "sensio/domain/common/utils"
 	"sensio/domain/models/whisper/dtos"
+	speechUtils "sensio/domain/speech/utils"
 	"strings"
 	"time"
 )
 
 type OrionService struct {
-	config *utils.Config
+	config *commonUtils.Config
 }
 
-func NewOrionService(cfg *utils.Config) *OrionService {
+func NewOrionService(cfg *commonUtils.Config) *OrionService {
 	return &OrionService{
 		config: cfg,
 	}
@@ -65,13 +66,13 @@ func (s *OrionService) HealthCheck() bool {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.LogWarn("Orion HealthCheck failed: %v", err)
+		commonUtils.LogWarn("Orion HealthCheck failed: %v", err)
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		utils.LogWarn("Orion HealthCheck failed: status %d", resp.StatusCode)
+		commonUtils.LogWarn("Orion HealthCheck failed: status %d", resp.StatusCode)
 		return false
 	}
 	return true
@@ -122,7 +123,7 @@ func (s *OrionService) CallModel(ctx context.Context, prompt string, model strin
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("orion api returned status %d: %s", resp.StatusCode, string(body)))
+		return "", commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("orion api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var orionResp orionResponse
@@ -135,7 +136,7 @@ func (s *OrionService) CallModel(ctx context.Context, prompt string, model strin
 		if output.Type == "message" {
 			for _, content := range output.Content {
 				if content.Type == "output_text" && content.Text != "" {
-					utils.LogDebug("Orion: Response received: %s", content.Text)
+					commonUtils.LogDebug("Orion: Response received: %s", content.Text)
 					return content.Text, nil
 				}
 			}
@@ -162,7 +163,7 @@ type OrionWhisperResponse struct {
 func (s *OrionService) WhisperHealthCheck() bool {
 	baseURL := s.config.OrionWhisperBaseURL
 	if baseURL == "" {
-		utils.LogError("Orion: ORION_WHISPER_BASE_URL not configured")
+		commonUtils.LogError("Orion: ORION_WHISPER_BASE_URL not configured")
 		return false
 	}
 
@@ -170,14 +171,14 @@ func (s *OrionService) WhisperHealthCheck() bool {
 
 	req, err := http.NewRequest("GET", healthCheckURL, nil)
 	if err != nil {
-		utils.LogError("Orion: Failed to create health check request: %v", err)
+		commonUtils.LogError("Orion: Failed to create health check request: %v", err)
 		return false
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.LogWarn("Orion: Health check request failed - server unreachable: %v", err)
+		commonUtils.LogWarn("Orion: Health check request failed - server unreachable: %v", err)
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -217,7 +218,7 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 
 		file, err := os.Open(audioPath)
 		if err != nil {
-			utils.LogError("Orion Transcribe: failed to open file: %v", err)
+			commonUtils.LogError("Orion Transcribe: failed to open file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
@@ -225,19 +226,19 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 
 		part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
 		if err != nil {
-			utils.LogError("Orion Transcribe: failed to create form file: %v", err)
+			commonUtils.LogError("Orion Transcribe: failed to create form file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
 
 		if _, err := io.Copy(part, file); err != nil {
-			utils.LogError("Orion Transcribe: failed to copy file: %v", err)
+			commonUtils.LogError("Orion Transcribe: failed to copy file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
 
 		if err := writer.WriteField("language", lang); err != nil {
-			utils.LogError("Orion Transcribe: failed to write language field: %v", err)
+			commonUtils.LogError("Orion Transcribe: failed to write language field: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
@@ -272,8 +273,8 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
 		errMsg := fmt.Sprintf("Orion server returned error status %d: %s", resp.StatusCode, string(respBody))
-		structuredErr := utils.MapOrionErrorToCode(resp.StatusCode, string(respBody), errMsg)
-		return nil, utils.NewOrionTranscribeError(resp.StatusCode, structuredErr)
+		structuredErr := commonUtils.MapOrionErrorToCode(resp.StatusCode, string(respBody), errMsg)
+		return nil, commonUtils.NewOrionTranscribeError(resp.StatusCode, structuredErr)
 	}
 
 	// Parse response as JSON
@@ -295,7 +296,7 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 	var transcriptFormat dtos.TranscriptFormat
 
 	if diarize {
-		utterances = utils.ParseUtterancesFromText(transcription)
+		utterances = speechUtils.ParseUtterancesFromText(transcription)
 		if len(utterances) > 0 {
 			transcriptFormat = dtos.TranscriptFormatUtteranceList
 		}
@@ -315,6 +316,6 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 		Source:            "Orion (Outsystems)",
 		Utterances:        utterances,
 		TranscriptFormat:  transcriptFormat,
-		ConfidenceSummary: utils.BuildConfidenceSummary(utterances, 1),
+		ConfidenceSummary: speechUtils.BuildConfidenceSummary(utterances, 1),
 	}, nil
 }

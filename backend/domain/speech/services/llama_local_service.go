@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sensio/domain/common/utils"
+	commonUtils "sensio/domain/common/utils"
 	"strings"
 	"time"
 )
@@ -14,7 +14,7 @@ type LlamaLocalService struct {
 	modelPath string
 }
 
-func NewLlamaLocalService(cfg *utils.Config) *LlamaLocalService {
+func NewLlamaLocalService(cfg *commonUtils.Config) *LlamaLocalService {
 	return &LlamaLocalService{
 		modelPath: cfg.LlamaLocalModel,
 	}
@@ -71,7 +71,7 @@ func (s *LlamaLocalService) CallModel(ctx context.Context, prompt string, model 
 	ctx, cancel := context.WithTimeout(ctx, 120*time.Second) // Increased timeout for loading
 	defer cancel()
 
-	utils.LogDebug("LlamaLocal: Running %s (no-cnv)", bin)
+	commonUtils.LogDebug("LlamaLocal: Running %s (no-cnv)", bin)
 
 	cmd := exec.CommandContext(ctx, bin, args...)
 
@@ -83,11 +83,11 @@ func (s *LlamaLocalService) CallModel(ctx context.Context, prompt string, model 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			utils.LogError("LlamaLocal: Execution timed out")
+			commonUtils.LogError("LlamaLocal: Execution timed out")
 			return "", fmt.Errorf("llama-cli timed out after 120s")
 		}
 		// If it failed, don't show the noisy output unless in debug
-		utils.LogDebug("LlamaLocal: raw failure output: %s", string(out))
+		commonUtils.LogDebug("LlamaLocal: raw failure output: %s", string(out))
 		return "", fmt.Errorf("llama-cli failed: %w", err)
 	}
 
@@ -124,6 +124,6 @@ func (s *LlamaLocalService) CallModel(ctx context.Context, prompt string, model 
 
 	result = strings.TrimSpace(result)
 
-	utils.LogDebug("LlamaLocal: Processed result (length: %d)", len(result))
+	commonUtils.LogDebug("LlamaLocal: Processed result (length: %d)", len(result))
 	return result, nil
 }

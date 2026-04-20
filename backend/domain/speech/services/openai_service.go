@@ -10,17 +10,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sensio/domain/common/utils"
+	commonUtils "sensio/domain/common/utils"
 	"sensio/domain/models/whisper/dtos"
+	speechUtils "sensio/domain/speech/utils"
 	"strings"
 	"time"
 )
 
 type OpenAIService struct {
-	config *utils.Config
+	config *commonUtils.Config
 }
 
-func NewOpenAIService(cfg *utils.Config) *OpenAIService {
+func NewOpenAIService(cfg *commonUtils.Config) *OpenAIService {
 	return &OpenAIService{
 		config: cfg,
 	}
@@ -61,7 +62,7 @@ func (s *OpenAIService) HealthCheck() bool {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.LogWarn("OpenAI HealthCheck failed: %v", err)
+		commonUtils.LogWarn("OpenAI HealthCheck failed: %v", err)
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -97,7 +98,7 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	if deadline, ok := ctx.Deadline(); ok {
 		ctxDeadline = time.Until(deadline).String()
 	}
-	utils.LogDebug(
+	commonUtils.LogDebug(
 		"OpenAI CallModel: model=%s prompt_chars=%d approx_tokens=%d client_timeout=%s ctx_deadline=%s",
 		actualModel,
 		promptChars,
@@ -128,7 +129,7 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.LogWarn(
+		commonUtils.LogWarn(
 			"OpenAI CallModel failed: model=%s duration=%s prompt_chars=%d approx_tokens=%d err=%v",
 			actualModel,
 			time.Since(startTime),
@@ -142,7 +143,7 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		utils.LogWarn(
+		commonUtils.LogWarn(
 			"OpenAI CallModel read body failed: model=%s duration=%s prompt_chars=%d approx_tokens=%d err=%v",
 			actualModel,
 			time.Since(startTime),
@@ -154,14 +155,14 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		utils.LogWarn(
+		commonUtils.LogWarn(
 			"OpenAI CallModel non-200: model=%s status=%d duration=%s resp_bytes=%d",
 			actualModel,
 			resp.StatusCode,
 			time.Since(startTime),
 			len(body),
 		)
-		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("openai api returned status %d: %s", resp.StatusCode, string(body)))
+		return "", commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("openai api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var openaiResp openaiResponse
@@ -174,14 +175,14 @@ func (s *OpenAIService) CallModel(ctx context.Context, prompt string, model stri
 	}
 
 	result := openaiResp.Choices[0].Message.Content
-	utils.LogDebug(
+	commonUtils.LogDebug(
 		"OpenAI CallModel success: model=%s status=%d duration=%s resp_bytes=%d",
 		actualModel,
 		resp.StatusCode,
 		time.Since(startTime),
 		len(body),
 	)
-	utils.LogDebug("OpenAI: Response received: %s", result)
+	commonUtils.LogDebug("OpenAI: Response received: %s", result)
 	return result, nil
 }
 
@@ -227,14 +228,14 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 		}
 
 		if err := writer.WriteField("model", model); err != nil {
-			utils.LogError("OpenAI Transcribe: failed to write model field: %v", err)
+			commonUtils.LogError("OpenAI Transcribe: failed to write model field: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
 
 		if language != "" && language != "auto" {
 			if err := writer.WriteField("language", language); err != nil {
-				utils.LogError("OpenAI Transcribe: failed to write language field: %v", err)
+				commonUtils.LogError("OpenAI Transcribe: failed to write language field: %v", err)
 				_ = pw.CloseWithError(err)
 				return
 			}
@@ -243,7 +244,7 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 		// 2. Write the file field last
 		file, err := os.Open(audioPath)
 		if err != nil {
-			utils.LogError("OpenAI Transcribe: failed to open file: %v", err)
+			commonUtils.LogError("OpenAI Transcribe: failed to open file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
@@ -251,13 +252,13 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 
 		part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
 		if err != nil {
-			utils.LogError("OpenAI Transcribe: failed to create form file: %v", err)
+			commonUtils.LogError("OpenAI Transcribe: failed to create form file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
 
 		if _, err := io.Copy(part, file); err != nil {
-			utils.LogError("OpenAI Transcribe: failed to copy file: %v", err)
+			commonUtils.LogError("OpenAI Transcribe: failed to copy file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
@@ -283,7 +284,7 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("openai whisper returned status %d: %s", resp.StatusCode, string(respBody)))
+		return nil, commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("openai whisper returned status %d: %s", resp.StatusCode, string(respBody)))
 	}
 
 	var result struct {
@@ -301,7 +302,7 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 	var transcriptFormat dtos.TranscriptFormat
 
 	if diarize {
-		utterances = utils.ParseUtterancesFromText(transcription)
+		utterances = speechUtils.ParseUtterancesFromText(transcription)
 		if len(utterances) > 0 {
 			transcriptFormat = dtos.TranscriptFormatUtteranceList
 		}
@@ -321,6 +322,6 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 		Source:            "OpenAI Whisper",
 		Utterances:        utterances,
 		TranscriptFormat:  transcriptFormat,
-		ConfidenceSummary: utils.BuildConfidenceSummary(utterances, 1),
+		ConfidenceSummary: speechUtils.BuildConfidenceSummary(utterances, 1),
 	}, nil
 }

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 	"sensio/domain/tuya/dtos"
 )
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 )
 
 var (

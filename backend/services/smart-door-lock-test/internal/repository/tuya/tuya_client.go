@@ -12,12 +12,12 @@ import (
 
 // Client handles HTTP communication with Tuya API
 type Client struct {
-	baseURL           string
-	clientID          string
-	accessSecret      string
-	httpClient        *http.Client
+	baseURL            string
+	clientID           string
+	accessSecret       string
+	httpClient         *http.Client
 	signatureGenerator *SignatureGenerator
-	tokenManager      *TokenCacheManager
+	tokenManager       *TokenCacheManager
 }
 
 // NewClient creates a new Tuya API client

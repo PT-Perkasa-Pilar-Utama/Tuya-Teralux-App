@@ -1,7 +1,7 @@
 package scene
 
 import (
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 	"sensio/domain/scene/controllers"
 	"sensio/domain/scene/repositories"
 	"sensio/domain/scene/usecases"

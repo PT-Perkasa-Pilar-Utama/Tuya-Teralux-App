@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sensio/domain/common/providers"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
-	"sensio/domain/models/rag/services"
+	ragServices "sensio/domain/models/rag/services"
 	"sensio/domain/models/rag/skills"
+	"sensio/domain/speech/providers"
 	"strings"
 	"time"
 
@@ -87,7 +87,7 @@ type summaryUseCase struct {
 	config                    *utils.Config
 	cache                     *tasks.BadgerTaskCache
 	store                     *tasks.StatusStore[dtos.RAGStatusDTO]
-	renderer                  services.SummaryPDFRenderer
+	renderer                  ragServices.SummaryPDFRenderer
 	securePDFUC               securePDFProcessor
 	tokenService              downloadTokenCreator
 	bigExternal               *commonServices.DeviceInfoExternalService
@@ -106,7 +106,7 @@ func NewSummaryUseCase(
 	cfg *utils.Config,
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
-	renderer services.SummaryPDFRenderer,
+	renderer ragServices.SummaryPDFRenderer,
 	securePDFUC securePDFProcessor,
 	tokenService downloadTokenCreator,
 	bigExternal *commonServices.DeviceInfoExternalService,
@@ -319,7 +319,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 
 	pdfUrl := ""
 	if u.renderer != nil {
-		meta := services.SummaryPDFMeta{
+		meta := ragServices.SummaryPDFMeta{
 			Language:     targetLangName,
 			Context:      meetingContext,
 			Style:        style,

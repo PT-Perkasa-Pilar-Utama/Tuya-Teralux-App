@@ -12,11 +12,12 @@ import (
 	"time"
 
 	commonDtos "sensio/domain/common/dtos"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/models/whisper/dtos"
 	"sensio/domain/models/whisper/usecases"
 	recordingUsecases "sensio/domain/recordings/usecases"
+	speechUtils "sensio/domain/speech/utils"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
@@ -355,7 +356,7 @@ func (c *WhisperTranscribeController) Transcribe(ctx *gin.Context) {
 	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
 
 	// 3. Content Validation via ffprobe
-	probe, err := utils.ProbeAudio(finalInputPath)
+	probe, err := speechUtils.ProbeAudio(finalInputPath)
 	if err != nil {
 		utils.LogError("Transcribe.ProbeAudio: %v", err)
 		_ = os.Remove(finalInputPath) // Cleanup invalid file

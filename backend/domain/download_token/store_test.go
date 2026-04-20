@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/crypto"
+	"sensio/domain/infrastructure"
 
 	"github.com/stretchr/testify/assert"
 )

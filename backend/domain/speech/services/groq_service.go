@@ -10,17 +10,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sensio/domain/common/utils"
+	commonUtils "sensio/domain/common/utils"
 	"sensio/domain/models/whisper/dtos"
+	speechUtils "sensio/domain/speech/utils"
 	"strings"
 	"time"
 )
 
 type GroqService struct {
-	config *utils.Config
+	config *commonUtils.Config
 }
 
-func NewGroqService(cfg *utils.Config) *GroqService {
+func NewGroqService(cfg *commonUtils.Config) *GroqService {
 	return &GroqService{
 		config: cfg,
 	}
@@ -43,7 +44,7 @@ func (s *GroqService) HealthCheck() bool {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.LogWarn("Groq HealthCheck failed: %v", err)
+		commonUtils.LogWarn("Groq HealthCheck failed: %v", err)
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -104,7 +105,7 @@ func (s *GroqService) CallModel(ctx context.Context, prompt string, model string
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", utils.NewAPIError(resp.StatusCode, fmt.Sprintf("groq api returned status %d: %s", resp.StatusCode, string(body)))
+		return "", commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("groq api returned status %d: %s", resp.StatusCode, string(body)))
 	}
 
 	var response struct {
@@ -123,7 +124,7 @@ func (s *GroqService) CallModel(ctx context.Context, prompt string, model string
 	}
 
 	result := response.Choices[0].Message.Content
-	utils.LogDebug("Groq: Response received: %s", result)
+	commonUtils.LogDebug("Groq: Response received: %s", result)
 	return result, nil
 }
 
@@ -165,7 +166,7 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 
 		file, err := os.Open(audioPath)
 		if err != nil {
-			utils.LogError("Groq Transcribe: failed to open file: %v", err)
+			commonUtils.LogError("Groq Transcribe: failed to open file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
@@ -173,13 +174,13 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 
 		part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
 		if err != nil {
-			utils.LogError("Groq Transcribe: failed to create form file: %v", err)
+			commonUtils.LogError("Groq Transcribe: failed to create form file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
 
 		if _, err := io.Copy(part, file); err != nil {
-			utils.LogError("Groq Transcribe: failed to copy file: %v", err)
+			commonUtils.LogError("Groq Transcribe: failed to copy file: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
@@ -190,14 +191,14 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 		}
 
 		if err := writer.WriteField("model", model); err != nil {
-			utils.LogError("Groq Transcribe: failed to write model field: %v", err)
+			commonUtils.LogError("Groq Transcribe: failed to write model field: %v", err)
 			_ = pw.CloseWithError(err)
 			return
 		}
 
 		if language != "" && language != "auto" {
 			if err := writer.WriteField("language", language); err != nil {
-				utils.LogError("Groq Transcribe: failed to write language field: %v", err)
+				commonUtils.LogError("Groq Transcribe: failed to write language field: %v", err)
 				_ = pw.CloseWithError(err)
 				return
 			}
@@ -224,7 +225,7 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("groq whisper returned status %d: %s", resp.StatusCode, string(respBody)))
+		return nil, commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("groq whisper returned status %d: %s", resp.StatusCode, string(respBody)))
 	}
 
 	var result struct {
@@ -242,7 +243,7 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 	var transcriptFormat dtos.TranscriptFormat
 
 	if diarize {
-		utterances = utils.ParseUtterancesFromText(transcription)
+		utterances = speechUtils.ParseUtterancesFromText(transcription)
 		if len(utterances) > 0 {
 			transcriptFormat = dtos.TranscriptFormatUtteranceList
 		}
@@ -262,6 +263,6 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 		Source:            "Groq Whisper",
 		Utterances:        utterances,
 		TranscriptFormat:  transcriptFormat,
-		ConfidenceSummary: utils.BuildConfidenceSummary(utterances, 1),
+		ConfidenceSummary: speechUtils.BuildConfidenceSummary(utterances, 1),
 	}, nil
 }

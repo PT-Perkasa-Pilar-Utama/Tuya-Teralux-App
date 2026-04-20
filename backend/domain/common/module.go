@@ -3,12 +3,15 @@ package common
 import (
 	"github.com/gin-gonic/gin"
 	"sensio/domain/common/controllers"
-	"sensio/domain/common/infrastructure"
-	"sensio/domain/common/repositories"
 	"sensio/domain/common/routes"
 	"sensio/domain/common/services"
 	"sensio/domain/common/utils"
 	"sensio/domain/download_token"
+	"sensio/domain/infrastructure"
+	notification_controllers "sensio/domain/notification/controllers"
+	notification_repositories "sensio/domain/notification/repositories"
+	notification_routes "sensio/domain/notification/routes"
+	notification_services "sensio/domain/notification/services"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 )
 
@@ -19,7 +22,7 @@ type CommonModule struct {
 	DocsController                 *controllers.DocsController
 	MqttService                    *infrastructure.MqttService
 	DeviceInfoExternalController   *controllers.DeviceInfoExternalController
-	NotificationExternalController *controllers.NotificationExternalController
+	NotificationExternalController *notification_controllers.NotificationExternalController
 	StorageProvider                infrastructure.StorageProvider
 	DownloadTokenService           *download_token.DownloadTokenService
 }
@@ -27,9 +30,9 @@ type CommonModule struct {
 // NewCommonModule initializes the common domain components
 func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService, terminalRepo terminal_repositories.ITerminalRepository, cfg *utils.Config) *CommonModule {
 	bigSvc := services.NewDeviceInfoExternalService()
-	scheduledRepo := repositories.NewScheduledNotificationRepository()
+	scheduledRepo := notification_repositories.NewScheduledNotificationRepository()
 
-	notificationSvc := services.NewNotificationExternalServiceWithWA(terminalRepo, scheduledRepo, bigSvc, mqttSvc)
+	notificationSvc := notification_services.NewNotificationExternalServiceWithWA(terminalRepo, scheduledRepo, bigSvc, mqttSvc)
 
 	// Initialize S3 storage provider
 	storageProvider, err := infrastructure.NewStorageProvider(cfg)
@@ -47,7 +50,7 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 		DocsController:                 controllers.NewDocsController(),
 		MqttService:                    mqttSvc,
 		DeviceInfoExternalController:   controllers.NewDeviceInfoExternalController(bigSvc),
-		NotificationExternalController: controllers.NewNotificationExternalController(notificationSvc),
+		NotificationExternalController: notification_controllers.NewNotificationExternalController(notificationSvc),
 		StorageProvider:                storageProvider,
 		DownloadTokenService:           tokenService,
 	}
@@ -73,7 +76,7 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)
 	routes.SetupDeviceInfoExternalRoutes(protected, m.DeviceInfoExternalController)
-	routes.SetupNotificationExternalRoutes(protected, m.NotificationExternalController)
+	notification_routes.SetupNotificationExternalRoutes(protected, m.NotificationExternalController)
 
 	// Download Token Routes
 	downloadTokenHandler := download_token.NewHandler(m.DownloadTokenService)

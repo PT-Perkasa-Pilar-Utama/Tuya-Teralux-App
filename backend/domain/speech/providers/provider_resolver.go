@@ -3,10 +3,10 @@ package providers
 import (
 	"context"
 	"fmt"
-	"sensio/domain/common/services"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/skills"
 	whisperdtos "sensio/domain/models/whisper/dtos"
+	"sensio/domain/speech/services"
 	"strings"
 	"time"
 )

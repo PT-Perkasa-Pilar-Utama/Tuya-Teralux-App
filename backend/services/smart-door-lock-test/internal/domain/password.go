@@ -76,9 +76,9 @@ func (r *PasswordCreationResult) IsActive() bool {
 
 // PasswordRequest represents a request to generate a password
 type PasswordRequest struct {
-	Type       PasswordType
-	DeviceID   string
-	Duration   int    // minutes (for temporary)
+	Type        PasswordType
+	DeviceID    string
+	Duration    int    // minutes (for temporary)
 	CustomValue string // optional custom password
 }
 

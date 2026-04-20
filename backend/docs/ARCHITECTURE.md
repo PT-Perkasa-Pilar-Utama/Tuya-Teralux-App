@@ -233,19 +233,18 @@ func (r *TerminalRepository) GetByID(id string) (*entities.Terminal, error) {
 backend/
 ├── domain/
 │   ├── common/           # Shared utilities, DTOs, middleware
+│   ├── infrastructure/    # DB, cache, storage, MQ infrastructure
+│   ├── speech/           # AI/ML services (Whisper, LLM providers)
+│   ├── notification/     # WhatsApp and push notifications
 │   ├── terminal/         # Terminal management domain
 │   │   ├── terminal/     # Terminal aggregate
 │   │   ├── device/       # Device aggregate (Tuya)
-│   │   ├── scene/        # Scene aggregate
 │   │   └── device_status/# Device status tracking
-│   ├── models/           # Legacy AI models (Python-based)
-│   ├── models-v1/        # V1 AI models (gRPC/REST)
-│   │   ├── whisper/      # Whisper transcription
-│   │   ├── pipeline/     # AI pipeline orchestration
-│   │   └── rag/          # RAG (Retrieval-Augmented Generation)
 │   ├── tuya/             # Tuya IoT platform integration
+│   ├── scene/            # Scene automation
 │   ├── recordings/       # Meeting recordings
-│   └── notifications/    # Email notifications
+│   ├── models/           # AI pipeline (native Go)
+│   └── mail/            # Email notifications
 ```
 
 ### Module Dependencies
@@ -493,5 +492,5 @@ RAG_WHISPER_SERVICE_URL=http://localhost:8000
 
 ---
 
-**Last Updated:** 2026-04-01  
+**Last Updated:** 2026-04-21  
 **Maintainer:** Backend Team

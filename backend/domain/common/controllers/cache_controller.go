@@ -3,8 +3,8 @@ package controllers
 import (
 	"net/http"
 	"sensio/domain/common/dtos"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 
 	"github.com/gin-gonic/gin"
 )

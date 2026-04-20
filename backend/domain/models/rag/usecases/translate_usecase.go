@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sensio/domain/common/providers"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
+	"sensio/domain/speech/providers"
 	"time"
 
 	"github.com/google/uuid"

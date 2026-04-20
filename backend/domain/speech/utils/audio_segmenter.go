@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"sensio/domain/common/utils"
 )
 
 // AudioSegment represents a split portion of an audio file.
@@ -66,7 +68,7 @@ func SplitAudioSegments(inputPath string, segmentSec int, overlapSec int) ([]Aud
 
 		cmd := exec.Command("ffmpeg", cmdArgs...)
 		if output, err := cmd.CombinedOutput(); err != nil {
-			LogDebug("[ffmpeg split] error segment %d: %s", index, string(output))
+			utils.LogDebug("[ffmpeg split] error segment %d: %s", index, string(output))
 			_ = os.RemoveAll(outDir)
 			return nil, fmt.Errorf("ffmpeg split error at segment %d: %v", index, err)
 		}
@@ -90,6 +92,6 @@ func CleanupSegments(segments []AudioSegment) {
 	if len(segments) > 0 {
 		dir := filepath.Dir(segments[0].Path)
 		_ = os.RemoveAll(dir)
-		LogDebug("Cleaned up segment directory: %s", dir)
+		utils.LogDebug("Cleaned up segment directory: %s", dir)
 	}
 }
