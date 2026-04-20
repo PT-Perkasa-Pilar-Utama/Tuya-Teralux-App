@@ -206,9 +206,19 @@ func (s *OpenAIService) Transcribe(ctx context.Context, audioPath string, langua
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
 
+	// Create cancellable context to signal goroutine to stop on early error
+	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
+		defer cancel() // Signal main function that goroutine is done
 		defer pw.Close()
 		defer writer.Close()
+
+		select {
+		case <-ctx.Done():
+			return // Goroutine was cancelled, don't continue
+		default:
+		}
 
 		// 1. Write metadata fields first (best practice for multipart)
 		model := s.config.OpenAIModelWhisper

@@ -25,7 +25,7 @@ func NewMacRegistrationExternalService() *MacRegistrationExternalService {
 
 // ProcInsertMacAddress calls the external API to register the MAC address
 func (s *MacRegistrationExternalService) ProcInsertMacAddress(roomID int, macAddress string, deviceTypeID int) error {
-	url := "https://aplikasi-big.com/IOTAN5JavaDasboard/rest/ProcInsertMacAddress"
+	url := utils.GetConfig().BIGAPIBaseURL + "/IOTAN5JavaDasboard/rest/ProcInsertMacAddress"
 
 	payload := map[string]interface{}{
 		"roomid":       roomID,

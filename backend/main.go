@@ -3,6 +3,7 @@ package main
 // Trigger documentation refresh build
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -261,17 +262,6 @@ func run() error {
 	notificationWorker.Start()
 	utils.LogInfo("Notification scheduler worker started with WA endpoint: %s", scfg.WANotificationBaseURL)
 
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-quit
-		utils.LogInfo("Shutting down server...")
-		notificationWorker.Stop()
-		os.Exit(0)
-	}()
-
 	port := scfg.Port
 	if port == "" {
 		port = "8080"
@@ -284,6 +274,19 @@ func run() error {
 		WriteTimeout: 1 * time.Hour, // Long timeout for slow responses
 		IdleTimeout:  5 * time.Minute,
 	}
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		utils.LogInfo("Shutting down server...")
+		notificationWorker.Stop()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		server.Shutdown(ctx)
+	}()
 
 	utils.LogInfo("Server starting on :%s", port)
 	return server.ListenAndServe()

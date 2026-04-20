@@ -27,11 +27,11 @@ func NewDeviceInfoExternalService() *DeviceInfoExternalService {
 // GetDeviceInfoByMac fetches device and booking info by MAC address
 func (s *DeviceInfoExternalService) GetDeviceInfoByMac(macAddress string) (map[string]interface{}, error) {
 	// API endpoint
-	url := "https://aplikasi-big.com/IOTANSJavaDasboard/rest/ProcGetDeviceByMacAddressCurrentpied"
+	url := utils.GetConfig().BIGAPIBaseURL + "/IOTANSJavaDasboard/rest/ProcGetDeviceByMacAddressCurrentpied"
 
 	// Payload structure
 	payload := map[string]interface{}{
-		"host":       "aplikasi-big.com",
+		"host":       utils.GetConfig().BIGAPIBaseURL,
 		"port":       "",
 		"baseUrl":    "SmartMeetingRoomJavaMySQL/rest",
 		"secure":     "1",

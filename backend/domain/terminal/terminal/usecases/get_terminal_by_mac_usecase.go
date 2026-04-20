@@ -41,6 +41,9 @@ func (uc *GetTerminalByMACUseCase) GetTerminalByMAC(macAddress string) (*dtos.Te
 	if err != nil {
 		return nil, errors.New("Terminal not found")
 	}
+	if terminal == nil {
+		return nil, errors.New("Terminal not found")
+	}
 
 	// Fetch MQTT credentials from Rust Auth Service
 	mqttUsername := terminal.MacAddress

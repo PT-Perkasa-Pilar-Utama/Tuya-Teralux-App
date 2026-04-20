@@ -29,6 +29,9 @@ func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTermi
 	if err != nil {
 		return nil, errors.New("Terminal not found")
 	}
+	if item == nil {
+		return nil, errors.New("Terminal not found")
+	}
 
 	var details []utils.ValidationErrorDetail
 

@@ -36,7 +36,7 @@ type updateRoomOccupiedAudioResponse struct {
 }
 
 func (s *bigRoomAudioUpdateService) UpdateRoomOccupiedAudio(macAddress, audioPath string) error {
-	url := "https://aplikasi-big.com/IOTAN5JavaDasboard/rest/ProcUpdateRoomOccupiedAudio"
+	url := utils.GetConfig().BIGAPIBaseURL + "/IOTAN5JavaDasboard/rest/ProcUpdateRoomOccupiedAudio"
 
 	reqBody := updateRoomOccupiedAudioRequest{
 		MacAddress: macAddress,

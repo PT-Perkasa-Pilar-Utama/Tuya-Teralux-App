@@ -149,9 +149,19 @@ func (s *GroqService) Transcribe(ctx context.Context, audioPath string, language
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
 
+	// Create cancellable context to signal goroutine to stop on early error
+	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
+		defer cancel() // Signal main function that goroutine is done
 		defer pw.Close()
 		defer writer.Close()
+
+		select {
+		case <-ctx.Done():
+			return // Goroutine was cancelled, don't continue
+		default:
+		}
 
 		file, err := os.Open(audioPath)
 		if err != nil {

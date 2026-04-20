@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/gin-gonic/gin"
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/repositories"
@@ -9,9 +10,6 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/download_token"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
-	"sensio/domain/upload_intent"
-
-	"github.com/gin-gonic/gin"
 )
 
 // CommonModule encapsulates common domain components
@@ -24,7 +22,6 @@ type CommonModule struct {
 	NotificationExternalController *controllers.NotificationExternalController
 	StorageProvider                infrastructure.StorageProvider
 	DownloadTokenService           *download_token.DownloadTokenService
-	UploadIntentService            *upload_intent.UploadIntentService
 }
 
 // NewCommonModule initializes the common domain components
@@ -44,9 +41,6 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 	// Initialize download token service
 	tokenService := download_token.NewDownloadTokenService(download_token.NewStore(), storageProvider)
 
-	// Initialize upload intent service
-	uploadIntentService := upload_intent.NewUploadIntentService(storageProvider)
-
 	return &CommonModule{
 		HealthController:               controllers.NewHealthController(),
 		CacheController:                controllers.NewCacheController(badger, vector),
@@ -56,7 +50,6 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 		NotificationExternalController: controllers.NewNotificationExternalController(notificationSvc),
 		StorageProvider:                storageProvider,
 		DownloadTokenService:           tokenService,
-		UploadIntentService:            uploadIntentService,
 	}
 }
 
@@ -86,7 +79,5 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	downloadTokenHandler := download_token.NewHandler(m.DownloadTokenService)
 	download_token.RegisterRoutes(protected, downloadTokenHandler)
 
-	// Upload Intent Routes
-	uploadIntentHandler := upload_intent.NewHandler(m.StorageProvider)
-	upload_intent.RegisterRoutes(protected, uploadIntentHandler)
+	// Upload Intent Routes (removed - scope creep)
 }
