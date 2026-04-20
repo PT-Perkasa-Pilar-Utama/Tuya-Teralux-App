@@ -42,7 +42,7 @@ func (c *GetTerminalAIEngineProfileByMACController) GetAIEngineProfile(ctx *gin.
 		utils.LogError("GetTerminalAIEngineProfileByMACController: %v", err)
 		ctx.JSON(statusCode, dtos.StandardResponse{
 			Status:  false,
-			Message: http.StatusText(statusCode),
+			Message: errMsg,
 		})
 		return
 	}

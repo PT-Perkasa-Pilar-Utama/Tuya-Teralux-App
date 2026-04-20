@@ -6,27 +6,38 @@ import org.junit.Test
 
 /**
  * Unit tests for MeetingReminderParser.
+ * Tests the new payload contract: id, publish_at, title, message, event_type
  */
 class MeetingReminderParserTest {
 
     @Test
     fun parseValidPayload_returnsMessage() {
-        val payload = """{"publish_at": "2026-03-17T13:45:00+0700", "remaining_minutes": 15}"""
+        val payload = """{"id": "rem-123", "publish_at": "2026-03-17T13:45:00+0700", "title": "Meeting Reminder", "message": "Your meeting will start soon", "event_type": "meeting_start"}"""
 
         val result = MeetingReminderParser.parse(payload)
 
+        assertEquals("rem-123", result?.id)
         assertEquals("2026-03-17T13:45:00+0700", result?.publishAt)
-        assertEquals(15, result?.remainingMinutes)
+        assertEquals("Meeting Reminder", result?.title)
+        assertEquals("Your meeting will start soon", result?.message)
+        assertEquals("meeting_start", result?.eventType)
     }
 
     @Test
-    fun parseValidPayloadWithColonTimezone_returnsMessage() {
-        val payload = """{"publish_at": "2026-03-17T13:45:00+07:00", "remaining_minutes": 30}"""
+    fun parseValidPayloadWithOptionalFields_returnsMessage() {
+        val payload = """{"id": "rem-456", "publish_at": "2026-03-17T13:45:00+07:00", "title": "Meeting Ending", "message": "Your meeting is ending", "event_type": "meeting_end", "meeting_id": "meet-123", "room_id": "room-456", "severity": "high", "ttl_seconds": 3600}"""
 
         val result = MeetingReminderParser.parse(payload)
 
+        assertEquals("rem-456", result?.id)
         assertEquals("2026-03-17T13:45:00+07:00", result?.publishAt)
-        assertEquals(30, result?.remainingMinutes)
+        assertEquals("Meeting Ending", result?.title)
+        assertEquals("Your meeting is ending", result?.message)
+        assertEquals("meeting_end", result?.eventType)
+        assertEquals("meet-123", result?.meetingId)
+        assertEquals("room-456", result?.roomId)
+        assertEquals("high", result?.severity)
+        assertEquals(3600, result?.ttlSeconds)
     }
 
     @Test
@@ -39,8 +50,26 @@ class MeetingReminderParserTest {
     }
 
     @Test
+    fun parseMissingId_returnsNull() {
+        val payload = """{"publish_at": "2026-03-17T13:45:00+0700", "title": "Meeting Reminder", "message": "Your meeting", "event_type": "meeting_start"}"""
+
+        val result = MeetingReminderParser.parse(payload)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun parseEmptyId_returnsNull() {
+        val payload = """{"id": "", "publish_at": "2026-03-17T13:45:00+0700", "title": "Meeting Reminder", "message": "Your meeting", "event_type": "meeting_start"}"""
+
+        val result = MeetingReminderParser.parse(payload)
+
+        assertNull(result)
+    }
+
+    @Test
     fun parseMissingPublishAt_returnsNull() {
-        val payload = """{"remaining_minutes": 15}"""
+        val payload = """{"id": "rem-123", "title": "Meeting Reminder", "message": "Your meeting", "event_type": "meeting_start"}"""
 
         val result = MeetingReminderParser.parse(payload)
 
@@ -49,7 +78,7 @@ class MeetingReminderParserTest {
 
     @Test
     fun parseEmptyPublishAt_returnsNull() {
-        val payload = """{"publish_at": "", "remaining_minutes": 15}"""
+        val payload = """{"id": "rem-123", "publish_at": "", "title": "Meeting Reminder", "message": "Your meeting", "event_type": "meeting_start"}"""
 
         val result = MeetingReminderParser.parse(payload)
 
@@ -57,18 +86,53 @@ class MeetingReminderParserTest {
     }
 
     @Test
-    fun parseZeroRemainingMinutes_returnsMessage() {
-        val payload = """{"publish_at": "2026-03-17T13:45:00+0700", "remaining_minutes": 0}"""
+    fun parseMissingTitle_returnsNull() {
+        val payload = """{"id": "rem-123", "publish_at": "2026-03-17T13:45:00+0700", "message": "Your meeting", "event_type": "meeting_start"}"""
 
         val result = MeetingReminderParser.parse(payload)
 
-        assertEquals("2026-03-17T13:45:00+0700", result?.publishAt)
-        assertEquals(0, result?.remainingMinutes)
+        assertNull(result)
     }
 
     @Test
-    fun parseNegativeRemainingMinutes_returnsNull() {
-        val payload = """{"publish_at": "2026-03-17T13:45:00+0700", "remaining_minutes": -5}"""
+    fun parseEmptyTitle_returnsNull() {
+        val payload = """{"id": "rem-123", "publish_at": "2026-03-17T13:45:00+0700", "title": "", "message": "Your meeting", "event_type": "meeting_start"}"""
+
+        val result = MeetingReminderParser.parse(payload)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun parseMissingMessage_returnsNull() {
+        val payload = """{"id": "rem-123", "publish_at": "2026-03-17T13:45:00+0700", "title": "Meeting Reminder", "event_type": "meeting_start"}"""
+
+        val result = MeetingReminderParser.parse(payload)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun parseEmptyMessage_returnsNull() {
+        val payload = """{"id": "rem-123", "publish_at": "2026-03-17T13:45:00+0700", "title": "Meeting Reminder", "message": "", "event_type": "meeting_start"}"""
+
+        val result = MeetingReminderParser.parse(payload)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun parseMissingEventType_returnsNull() {
+        val payload = """{"id": "rem-123", "publish_at": "2026-03-17T13:45:00+0700", "title": "Meeting Reminder", "message": "Your meeting"}"""
+
+        val result = MeetingReminderParser.parse(payload)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun parseEmptyEventType_returnsNull() {
+        val payload = """{"id": "rem-123", "publish_at": "2026-03-17T13:45:00+0700", "title": "Meeting Reminder", "message": "Your meeting", "event_type": ""}"""
 
         val result = MeetingReminderParser.parse(payload)
 
@@ -77,7 +141,7 @@ class MeetingReminderParserTest {
 
     @Test
     fun parseInvalidTimestampFormat_returnsNull() {
-        val payload = """{"publish_at": "invalid-date", "remaining_minutes": 15}"""
+        val payload = """{"id": "rem-123", "publish_at": "invalid-date", "title": "Meeting Reminder", "message": "Your meeting", "event_type": "meeting_start"}"""
 
         val result = MeetingReminderParser.parse(payload)
 
@@ -86,17 +150,13 @@ class MeetingReminderParserTest {
 
     @Test
     fun parseTimestamp_validIso8601_returnsEpochMillis() {
-        // 2026-03-17T13:45:00+07:00 in epoch millis
-        // Note: Parser expects timezone offset format like +0700 or +07:00
         val timestamp = "2026-03-17T13:45:00+0700"
 
         val result = MeetingReminderParser.parseTimestamp(timestamp)
 
-        // Expected: approximately 1742193900000 (depending on exact timezone)
-        // Just verify it's not null and is a reasonable timestamp
         assert(result != null)
-        assert(result!! > 1700000000000L) // After 2023
-        assert(result < 1800000000000L) // Before 2027
+        assert(result!! > 1700000000000L)
+        assert(result < 1800000000000L)
     }
 
     @Test

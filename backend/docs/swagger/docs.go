@@ -2653,7 +2653,7 @@ const docTemplate = `{
         },
         "/api/notification/publish": {
             "post": {
-                "description": "Computes publish_at = datetime_end (or time_end) - interval_time and immediately publishes it to all terminals in the room via MQTT.\nAt least one of datetime_end or time_end must be provided. If both are provided, datetime_end takes priority.",
+                "description": "Publishes a notification to all terminals in the room via MQTT.\nIf phone_number is provided, a WhatsApp notification will be scheduled to be sent at the specified time.\nRequires date, time, timezone, phone_number array, and template (start_meeting or end_meeting).",
                 "consumes": [
                     "application/json"
                 ],
@@ -2663,10 +2663,10 @@ const docTemplate = `{
                 "tags": [
                     "08. Common"
                 ],
-                "summary": "Publish a notification to all terminals in a room",
+                "summary": "Publish a notification to all terminals in a room (with optional WhatsApp)",
                 "parameters": [
                     {
-                        "description": "Notification details",
+                        "description": "Notification details (phone_number is optional)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -4618,6 +4618,10 @@ const docTemplate = `{
         "dtos.AsyncTranscriptionResultDTO": {
             "type": "object",
             "properties": {
+                "audio_class": {
+                    "description": "ASR Quality Gate Metadata (internal use for tuning and observability)\nCRITICAL: These fields MUST always be present (no omitempty) for completed transcription results\nto ensure frontend can reliably detect rejection states.",
+                    "type": "string"
+                },
                 "confidence_summary": {
                     "$ref": "#/definitions/dtos.ConfidenceSummary"
                 },
@@ -4627,6 +4631,14 @@ const docTemplate = `{
                 },
                 "normalization_applied": {
                     "description": "Whether safe normalization was applied",
+                    "type": "boolean"
+                },
+                "provider_name": {
+                    "description": "Which provider was used",
+                    "type": "string"
+                },
+                "provider_skipped": {
+                    "description": "ALWAYS present when audio analysis ran (no omitempty)",
                     "type": "boolean"
                 },
                 "refined_text": {
@@ -4641,6 +4653,14 @@ const docTemplate = `{
                 },
                 "transcript_format": {
                     "$ref": "#/definitions/dtos.TranscriptFormat"
+                },
+                "transcript_rejection_reason": {
+                    "description": "Present when transcript_valid=false",
+                    "type": "string"
+                },
+                "transcript_valid": {
+                    "description": "ALWAYS present for completed results (no omitempty)",
+                    "type": "boolean"
                 },
                 "transcription": {
                     "type": "string",
@@ -4663,6 +4683,7 @@ const docTemplate = `{
                     "example": 1.5
                 },
                 "error": {
+                    "description": "Deprecated: use StructuredError",
                     "type": "string",
                     "example": "service unavailable"
                 },
@@ -4685,6 +4706,14 @@ const docTemplate = `{
                 "status": {
                     "type": "string",
                     "example": "completed"
+                },
+                "structured_error": {
+                    "description": "StructuredError provides machine-readable error_code for reliable Android polling termination.\nUse this instead of the generic Error field for terminal failure detection.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dtos.StructuredErrorDTO"
+                        }
+                    ]
                 },
                 "terminal_id": {
                     "type": "string"
@@ -5064,22 +5093,34 @@ const docTemplate = `{
                 "room_id"
             ],
             "properties": {
-                "datetime_end": {
+                "date": {
                     "type": "string",
-                    "example": "2026-03-17T14:00:00+07:00"
+                    "example": "2026-03-17"
                 },
-                "interval_time": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "example": 15
+                "phone_numbers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "See phone_numbers array for values"
+                    ]
                 },
                 "room_id": {
                     "type": "string",
                     "example": "123"
                 },
-                "time_end": {
+                "template": {
+                    "type": "string",
+                    "example": "start_meeting"
+                },
+                "time": {
                     "type": "string",
                     "example": "14:00:00"
+                },
+                "timezone": {
+                    "type": "string",
+                    "example": "Asia/Jakarta"
                 }
             }
         },
@@ -5106,6 +5147,10 @@ const docTemplate = `{
                 "room_id": {
                     "type": "string",
                     "example": "123"
+                },
+                "wa_notification_id": {
+                    "type": "string",
+                    "example": "uuid-here"
                 }
             }
         },
@@ -5636,6 +5681,23 @@ const docTemplate = `{
                 "status": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "dtos.StructuredErrorDTO": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "description": "Technical details (for logging only, not displayed)",
+                    "type": "string"
+                },
+                "error_code": {
+                    "description": "Machine-readable code: model-not-loaded, gpu-oom, upstream-500, etc.",
+                    "type": "string"
+                },
+                "message": {
+                    "description": "User-safe message for display to user",
+                    "type": "string"
                 }
             }
         },

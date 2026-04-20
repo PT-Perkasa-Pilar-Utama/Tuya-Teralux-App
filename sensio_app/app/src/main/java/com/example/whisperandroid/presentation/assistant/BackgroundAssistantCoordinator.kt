@@ -684,7 +684,8 @@ class BackgroundAssistantCoordinator(
                         // Technical failure (backend error, network issue, etc.)
                         timingLogger?.markStep("transcription_poll_error", mapOf("error" to outcome.message))
                         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "transcription_poll_error"))
-                        showServiceIssue(requestId, "transcription_poll_error")
+                        // Use backend-provided message if available, otherwise fall back to generic
+                        showServiceIssue(requestId, "transcription_poll_error", outcome.message)
                         return@launch
                     }
                     is TranscriptionPollingOutcome.Pending -> {

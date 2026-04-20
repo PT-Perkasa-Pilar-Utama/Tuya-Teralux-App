@@ -49,7 +49,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -903,11 +903,10 @@ private fun AiEngineProfileCard(
     onProfileSelected: (String) -> Unit,
     layoutSpec: DashboardLayoutSpec
 ) {
-    val profiles = listOf("fast", "standard", "plaud")
+    val profiles = listOf("premium", "standard")
     val profileLabels = mapOf(
-        "fast" to "Fast",
-        "standard" to "Standard",
-        "plaud" to "Plaud"
+        "premium" to "Premium",
+        "standard" to "Standard"
     )
 
     androidx.compose.material3.Surface(

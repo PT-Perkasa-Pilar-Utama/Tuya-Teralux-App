@@ -301,7 +301,7 @@ fun RegisterCard(
             .padding(SensioSpacing.Sm)
             .wrapContentHeight(),
         shape = RoundedCornerShape(SensioRadius.Xxl),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = SensioElevation.Md,
         border =
         androidx.compose.foundation.BorderStroke(

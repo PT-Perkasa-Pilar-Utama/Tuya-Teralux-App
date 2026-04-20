@@ -23,7 +23,6 @@ class MeetingReminderAlarmReceiver : BroadcastReceiver() {
 
         Log.d(tag, "Alarm received: action=$action, reminderId=$reminderId")
 
-        // Ensure NetworkModule is initialized
         NetworkModule.ensureInitialized(context)
 
         val store = NetworkModule.meetingReminderStore
@@ -31,25 +30,20 @@ class MeetingReminderAlarmReceiver : BroadcastReceiver() {
         val overlayController = NetworkModule.meetingReminderOverlayController
         val arbiter = NetworkModule.overlayArbiter
 
-        // Handle immediate trigger (late reminder within grace window)
         if (action == MeetingReminderScheduler.ACTION_IMMEDIATE_TRIGGER) {
-            val publishAt = intent.getLongExtra(MeetingReminderScheduler.EXTRA_PUBLISH_AT, 0L)
-            val remainingMinutes = intent.getIntExtra(MeetingReminderScheduler.EXTRA_REMAINING_MINUTES, 0)
+            if (reminderId != null) {
+                val pendingReminders = store.getPendingReminders()
+                val entity = pendingReminders.find { it.id == reminderId }
 
-            if (publishAt > 0 && remainingMinutes > 0) {
-                val entity = MeetingReminderEntity(
-                    id = reminderId ?: MeetingReminderEntity.generateId(publishAt, remainingMinutes),
-                    publishAtEpochMillis = publishAt,
-                    remainingMinutes = remainingMinutes,
-                    createdAtEpochMillis = System.currentTimeMillis(),
-                    fired = false
-                )
-                fireReminder(context, entity, store, notifier, overlayController, arbiter)
+                if (entity != null) {
+                    fireReminder(context, entity, store, notifier, overlayController, arbiter)
+                } else {
+                    Log.w(tag, "Reminder not found for immediate trigger: $reminderId")
+                }
             }
             return
         }
 
-        // Normal scheduled alarm trigger
         if (reminderId != null) {
             val pendingReminders = store.getPendingReminders()
             val entity = pendingReminders.find { it.id == reminderId }
@@ -70,16 +64,13 @@ class MeetingReminderAlarmReceiver : BroadcastReceiver() {
         overlayController: MeetingReminderOverlayController,
         arbiter: OverlayArbiter
     ) {
-        Log.i(tag, "Firing reminder: ${entity.id}, remainingMinutes=${entity.remainingMinutes}")
+        Log.i(tag, "Firing reminder: ${entity.id}, eventType=${entity.eventType}")
 
-        // Always post notification first (guaranteed delivery)
         val uiModel = MeetingReminderUiModel.fromEntity(entity)
         notifier.showNotification(uiModel, entity.id)
 
-        // Mark as fired in store
         store.markFired(entity.id)
 
-        // Attempt overlay only if allowed by arbiter
         if (arbiter.canShowReminderOverlay()) {
             Log.d(tag, "Overlay allowed, showing reminder overlay")
             overlayController.show(uiModel)

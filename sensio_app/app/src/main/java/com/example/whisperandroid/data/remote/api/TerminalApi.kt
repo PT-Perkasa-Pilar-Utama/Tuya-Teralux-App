@@ -41,4 +41,11 @@ interface TerminalApi {
         @retrofit2.http.Header("Authorization") token: String,
         @retrofit2.http.Path("username") username: String
     ): com.example.whisperandroid.data.remote.dto.MqttCredentialsResponseDto
+
+    @retrofit2.http.PUT("/api/terminal/{id}/ai-engine-profile")
+    suspend fun updateAiEngineProfile(
+        @retrofit2.http.Header("Authorization") token: String,
+        @retrofit2.http.Path("id") id: String,
+        @retrofit2.http.Body request: com.example.whisperandroid.data.remote.dto.UpdateAiEngineProfileRequestDto
+    ): com.example.whisperandroid.data.remote.dto.StandardResponseDto<Unit>
 }

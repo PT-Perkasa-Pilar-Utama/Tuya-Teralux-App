@@ -14,12 +14,12 @@ import java.util.TimeZone
  * Parser for meeting reminder MQTT payloads.
  *
  * Validates and parses incoming JSON messages into typed models.
+ * Strict validation: rejects payloads with missing or blank title, message, event_type, or invalid timestamp.
  */
 object MeetingReminderParser {
     private val tag = "MeetingReminderParser"
     private val gson = Gson()
 
-    // ISO 8601 date format parser
     private val iso8601Format = object : ThreadLocal<SimpleDateFormat>() {
         override fun initialValue(): SimpleDateFormat {
             return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US).apply {
@@ -31,30 +31,46 @@ object MeetingReminderParser {
     /**
      * Parse and validate an incoming MQTT reminder payload.
      *
+     * Required fields: id, publish_at, title, message, event_type
+     * event_type allowed values: meeting_start, meeting_end
+     *
      * @return Parsed [MeetingReminderMessage] or null if invalid
      */
     fun parse(payload: String): MeetingReminderMessage? {
         return try {
             val message = gson.fromJson(payload, MeetingReminderMessage::class.java)
 
-            // Validate required fields
+            if (message.id.isBlank()) {
+                Log.w(tag, "Invalid payload: missing or empty id")
+                return null
+            }
+
             if (message.publishAt.isBlank()) {
                 Log.w(tag, "Invalid payload: missing or empty publish_at")
                 return null
             }
 
-            if (message.remainingMinutes < 0) {
-                Log.w(tag, "Invalid payload: remaining_minutes must be non-negative: ${message.remainingMinutes}")
+            if (message.title.isBlank()) {
+                Log.w(tag, "Invalid payload: missing or empty title")
                 return null
             }
 
-            // Validate publish_at format
+            if (message.message.isBlank()) {
+                Log.w(tag, "Invalid payload: missing or empty message")
+                return null
+            }
+
+            if (message.eventType.isBlank()) {
+                Log.w(tag, "Invalid payload: missing or empty event_type")
+                return null
+            }
+
             if (parseTimestamp(message.publishAt) == null) {
                 Log.w(tag, "Invalid payload: cannot parse publish_at: ${message.publishAt}")
                 return null
             }
 
-            Log.d(tag, "Successfully parsed reminder: publishAt=${message.publishAt}, remainingMinutes=${message.remainingMinutes}")
+            Log.d(tag, "Successfully parsed reminder: id=${message.id}, eventType=${message.eventType}, title=${message.title}")
             message
         } catch (e: JsonSyntaxException) {
             Log.e(tag, "Invalid JSON payload: ${e.message}")
@@ -72,15 +88,14 @@ object MeetingReminderParser {
      */
     fun parseTimestamp(isoString: String): Long? {
         return try {
-            // Handle timezone offset in format like +07:00 or +0700
             val normalized = normalizeTimezone(isoString)
-            val date: Date = iso8601Format.get()!!.parse(normalized)
+            val date = iso8601Format.get()!!.parse(normalized) ?: return null
             date.time
         } catch (e: ParseException) {
             Log.e(tag, "Failed to parse timestamp '$isoString': ${e.message}")
             null
         } catch (e: Exception) {
-            Log.e(tag, "Unexpected error parsing timestamp '$isoString': ${e.message}")
+            Log.e(tag, "Failed to parse timestamp '$isoString': ${e.message}")
             null
         }
     }
@@ -90,14 +105,11 @@ object MeetingReminderParser {
      * Also handles UTC Z suffix (converts Z to +0000).
      */
     private fun normalizeTimezone(isoString: String): String {
-        // Handle UTC Z suffix: convert "2024-03-24T10:00:00Z" to "2024-03-24T10:00:00+0000"
         val withUtcOffset = isoString.replace(Regex("""Z$"""), "+0000")
 
-        // If already in +0700 format, return as-is
         if (Regex("""\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}""").matches(withUtcOffset)) {
             return withUtcOffset
         }
-        // Convert +07:00 to +0700
         return withUtcOffset.replace(Regex("""([+-]\d{2}):(\d{2})$"""), "$1$2")
     }
 }

@@ -1781,12 +1781,13 @@ paths:
         post:
             tags:
                 - 08. Common
-            summary: Publish a notification to all terminals in a room
+            summary: Publish a notification to all terminals in a room (with optional WhatsApp)
             description: |-
-                Computes publish_at = datetime_end (or time_end) - interval_time and immediately publishes it to all terminals in the room via MQTT.
-                At least one of datetime_end or time_end must be provided. If both are provided, datetime_end takes priority.
+                Publishes a notification to all terminals in the room via MQTT.
+                If phone_number is provided, a WhatsApp notification will be scheduled to be sent at the specified time.
+                Requires date, time, timezone, phone_number array, and template (start_meeting or end_meeting).
             requestBody:
-                description: Notification details
+                description: Notification details (phone_number is optional)
                 required: true
                 content:
                     application/json:
@@ -2261,7 +2262,9 @@ paths:
                 description: Profile update
                 required: true
                 content:
-                    application/json: {}
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/dtos.UpdateTerminalAIEngineProfileRequestDTO'
             responses:
                 "200":
                     description: OK
@@ -2509,6 +2512,34 @@ paths:
                                 $ref: '#/components/schemas/dtos.ErrorResponse'
                 "500":
                     description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.ErrorResponse'
+            security:
+                - ApiKeyAuth: []
+    /api/terminal/mac/{mac}/ai-engine-profile:
+        get:
+            tags:
+                - 02. Terminal
+            summary: Get AI engine profile by MAC
+            description: Returns the AI engine profile (fast, standard) for a terminal identified by MAC address
+            parameters:
+                - name: mac
+                  in: path
+                  description: Terminal MAC address
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/dtos.StandardResponse'
+                "404":
+                    description: Not Found
                     content:
                         application/json:
                             schema:
@@ -3084,6 +3115,12 @@ components:
         dtos.AsyncTranscriptionResultDTO:
             type: object
             properties:
+                audio_class:
+                    type: string
+                    description: |-
+                        ASR Quality Gate Metadata (internal use for tuning and observability)
+                        CRITICAL: These fields MUST always be present (no omitempty) for completed transcription results
+                        to ensure frontend can reliably detect rejection states.
                 confidence_summary:
                     $ref: '#/components/schemas/dtos.ConfidenceSummary'
                 detected_language:
@@ -3092,6 +3129,12 @@ components:
                 normalization_applied:
                     type: boolean
                     description: Whether safe normalization was applied
+                provider_name:
+                    type: string
+                    description: Which provider was used
+                provider_skipped:
+                    type: boolean
+                    description: ALWAYS present when audio analysis ran (no omitempty)
                 refined_text:
                     type: string
                     example: Hello world
@@ -3101,6 +3144,12 @@ components:
                         $ref: '#/components/schemas/dtos.TranscriptSegment'
                 transcript_format:
                     $ref: '#/components/schemas/dtos.TranscriptFormat'
+                transcript_rejection_reason:
+                    type: string
+                    description: Present when transcript_valid=false
+                transcript_valid:
+                    type: boolean
+                    description: ALWAYS present for completed results (no omitempty)
                 transcription:
                     type: string
                     example: Halo dunia
@@ -3117,6 +3166,7 @@ components:
                     example: 1.5
                 error:
                     type: string
+                    description: 'Deprecated: use StructuredError'
                     example: service unavailable
                 expires_at:
                     type: string
@@ -3132,6 +3182,12 @@ components:
                 status:
                     type: string
                     example: completed
+                structured_error:
+                    description: |-
+                        StructuredError provides machine-readable error_code for reliable Android polling termination.
+                        Use this instead of the generic Error field for terminal failure detection.
+                    allOf:
+                        - $ref: '#/components/schemas/dtos.StructuredErrorDTO'
                 terminal_id:
                     type: string
                 trigger:
@@ -3387,18 +3443,27 @@ components:
         dtos.NotificationPublishRequest:
             type: object
             properties:
-                datetime_end:
+                date:
                     type: string
-                    example: "2026-03-17T14:00:00+07:00"
-                interval_time:
-                    type: integer
-                    example: 15
+                    example: "2026-03-17"
+                phone_numbers:
+                    type: array
+                    items:
+                        type: string
+                    example:
+                        - See phone_numbers array for values
                 room_id:
                     type: string
                     example: "123"
-                time_end:
+                template:
+                    type: string
+                    example: start_meeting
+                time:
                     type: string
                     example: "14:00:00"
+                timezone:
+                    type: string
+                    example: Asia/Jakarta
             required:
                 - room_id
         dtos.NotificationPublishResponse:
@@ -3419,6 +3484,9 @@ components:
                 room_id:
                     type: string
                     example: "123"
+                wa_notification_id:
+                    type: string
+                    example: uuid-here
         dtos.OpenIssue:
             type: object
             properties:
@@ -3803,6 +3871,18 @@ components:
                 status:
                     type: boolean
                     example: true
+        dtos.StructuredErrorDTO:
+            type: object
+            properties:
+                details:
+                    type: string
+                    description: Technical details (for logging only, not displayed)
+                error_code:
+                    type: string
+                    description: 'Machine-readable code: model-not-loaded, gpu-oom, upstream-500, etc.'
+                message:
+                    type: string
+                    description: User-safe message for display to user
         dtos.TaskIDResponseDTO:
             type: object
             properties:

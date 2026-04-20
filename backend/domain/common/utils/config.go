@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -76,8 +77,20 @@ type Config struct {
 	SMTPPassword string
 	SMTPFrom     string
 
+	// WhatsApp Notification
+	WANotificationBaseURL string
+
 	// Runtime & Networking
 	LogLevel string
+
+	// Storage (S3)
+	S3Enabled             bool
+	S3Bucket              string
+	S3Region              string
+	S3Prefix              string
+	S3SignedURLTTLSeconds int
+	AWSAccessKeyID        string
+	AWSSecretAccessKey    string
 
 	// Database
 	DBHost     string
@@ -89,6 +102,7 @@ type Config struct {
 
 	// Chunk Upload & Async Tasks
 	EnableChunkUpload          bool
+	EnableSignedUpload         bool
 	ChunkUploadDefaultChunkMB  int
 	ChunkUploadMinChunkMB      int
 	ChunkUploadMaxChunkMB      int
@@ -131,6 +145,10 @@ func LoadConfig() {
 		} else {
 			isTest := os.Getenv("GO_TEST") == "true"
 			for k, v := range m {
+				// APPLICATION_ENVIRONMENT: always preserve if already set in environment (e.g., via docker-compose)
+				if k == "APPLICATION_ENVIRONMENT" && os.Getenv("APPLICATION_ENVIRONMENT") != "" {
+					continue
+				}
 				// In production/dev, we overwrite OS vars with .env values (previous behavior)
 				// In tests, we preserve what the test setup (e.g. TestApiKeyMiddleware) has configured
 				if !isTest {
@@ -173,6 +191,13 @@ func LoadConfig() {
 		JWTSecret:              os.Getenv("JWT_SECRET"),
 		LogLevel:               os.Getenv("LOG_LEVEL"),
 		ApplicationEnvironment: os.Getenv("APPLICATION_ENVIRONMENT"),
+		S3Enabled:              getEnvAsBool("S3_ENABLED", false),
+		S3Bucket:               os.Getenv("S3_BUCKET"),
+		S3Region:               os.Getenv("S3_REGION"),
+		S3Prefix:               getEnvAsDefault("S3_PREFIX", "Sensio/"),
+		S3SignedURLTTLSeconds:  getEnvAsInt("S3_SIGNED_URL_TTL_SECONDS", 300),
+		AWSAccessKeyID:         os.Getenv("AWS_ACCESS_KEY_ID"),
+		AWSSecretAccessKey:     os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		LLMProvider:            os.Getenv("LLM_PROVIDER"),
 
 		GeminiApiKey:       os.Getenv("GEMINI_API_KEY"),
@@ -219,6 +244,9 @@ func LoadConfig() {
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
 
+		// WhatsApp Notification
+		WANotificationBaseURL: getEnvAsDefault("WA_NOTIFICATION_BASE_URL", "http://10.10.3.24:3000/api/v1/send"),
+
 		// Runtime
 
 		// Database
@@ -229,7 +257,8 @@ func LoadConfig() {
 		DBName:     os.Getenv("MYSQL_DATABASE"),
 
 		// Chunk Upload & Async Tasks
-		EnableChunkUpload:          os.Getenv("ENABLE_CHUNK_UPLOAD") == "true",
+		EnableChunkUpload:          getEnvAsBool("ENABLE_CHUNK_UPLOAD", false),
+		EnableSignedUpload:         getEnvAsBool("ENABLE_SIGNED_UPLOAD", false),
 		ChunkUploadDefaultChunkMB:  getEnvAsInt("CHUNK_UPLOAD_DEFAULT_CHUNK_MB", 8),
 		ChunkUploadMinChunkMB:      getEnvAsInt("CHUNK_UPLOAD_MIN_CHUNK_MB", 1),
 		ChunkUploadMaxChunkMB:      getEnvAsInt("CHUNK_UPLOAD_MAX_CHUNK_MB", 32),
@@ -271,6 +300,9 @@ func LoadConfig() {
 	if AppConfig.Port == "" {
 		AppConfig.Port = "8080"
 	}
+
+	AppConfig.S3Prefix = normalizeS3Prefix(AppConfig.S3Prefix)
+	validateS3RequiredEnv(AppConfig)
 
 	UpdateLogLevel()
 }
@@ -320,6 +352,21 @@ func getEnvAsInt(key string, defaultVal int) int {
 	return defaultVal
 }
 
+// getEnvAsBool reads an environment variable and returns its boolean value or a default.
+func getEnvAsBool(key string, defaultVal bool) bool {
+	valueStr := os.Getenv(key)
+	if valueStr == "" {
+		return defaultVal
+	}
+
+	value, err := strconv.ParseBool(valueStr)
+	if err != nil {
+		return defaultVal
+	}
+
+	return value
+}
+
 // getByteConfigWithMBFallback reads byte-based config with MB fallback.
 // Resolution order: 1) byte-based env var, 2) legacy MB env var, 3) hardcoded default.
 func getByteConfigWithMBFallback(byteKey string, mbKey string, defaultBytes int64) int64 {
@@ -347,6 +394,57 @@ func getEnvAsDefault(key string, defaultVal string) string {
 		return value
 	}
 	return defaultVal
+}
+
+func normalizeS3Prefix(prefix string) string {
+	prefix = strings.TrimSpace(prefix)
+	if prefix == "" {
+		return "Sensio/"
+	}
+
+	prefix = strings.TrimLeft(prefix, "/")
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
+
+	return prefix
+}
+
+func validateS3RequiredEnv(cfg *Config) {
+	if cfg == nil || !cfg.S3Enabled || isDevEnvironment(cfg.ApplicationEnvironment) {
+		return
+	}
+
+	missing := make([]string, 0, 4)
+	if strings.TrimSpace(cfg.S3Bucket) == "" {
+		missing = append(missing, "S3_BUCKET")
+	}
+	if strings.TrimSpace(cfg.S3Region) == "" {
+		missing = append(missing, "S3_REGION")
+	}
+	if strings.TrimSpace(cfg.AWSAccessKeyID) == "" {
+		missing = append(missing, "AWS_ACCESS_KEY_ID")
+	}
+	if strings.TrimSpace(cfg.AWSSecretAccessKey) == "" {
+		missing = append(missing, "AWS_SECRET_ACCESS_KEY")
+	}
+
+	if len(missing) > 0 {
+		log.Fatalf("Config: S3 is enabled in non-dev environment but required env vars are missing: %s", strings.Join(missing, ", "))
+	}
+
+	if cfg.S3SignedURLTTLSeconds <= 0 {
+		log.Fatalf("Config: S3_SIGNED_URL_TTL_SECONDS must be greater than 0")
+	}
+}
+
+func isDevEnvironment(env string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(env))
+	if normalized == "" {
+		return true
+	}
+
+	return normalized == "dev" || normalized == "development" || normalized == "local" || normalized == "test"
 }
 
 // getEnvDuration reads an environment variable and ensures it's a valid Go duration and NOT EMPTY.

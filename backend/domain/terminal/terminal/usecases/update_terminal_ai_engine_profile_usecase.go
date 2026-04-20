@@ -20,8 +20,8 @@ func NewUpdateTerminalAIEngineProfileUseCase(repository repositories.ITerminalRe
 }
 
 // Update sets the engine profile for the terminal identified by ID.
-// Accepted values: "fast", "standard". Empty/nil clears the profile.
-// "plaud" and unknown values are rejected with a validation error.
+// Accepted values: "premium", "standard". Empty/nil clears the profile.
+// Unknown values are rejected with a validation error.
 func (uc *UpdateTerminalAIEngineProfileUseCase) Update(id string, req *dtos.UpdateTerminalAIEngineProfileRequestDTO) (*dtos.TerminalAIEngineProfileResponseDTO, error) {
 	term, err := uc.repository.GetByID(id)
 	if err != nil {
@@ -36,17 +36,17 @@ func (uc *UpdateTerminalAIEngineProfileUseCase) Update(id string, req *dtos.Upda
 		normalized := providers.NormalizeEngineProfile(*req.Profile)
 
 		switch normalized {
-		case "fast":
+		case "premium":
 			openAiErr := providers.ValidateProviderConfig("openai", uc.cfg)
 			groqErr := providers.ValidateProviderConfig("groq", uc.cfg)
 			if openAiErr != nil && groqErr != nil {
-				utils.LogWarn("UpdateTerminalAIEngineProfileUseCase: fast profile update blocked by missing config | terminal_id=%s | openai_err=%v | groq_err=%v", id, openAiErr, groqErr)
+				utils.LogWarn("UpdateTerminalAIEngineProfileUseCase: premium profile update blocked by missing config | terminal_id=%s | openai_err=%v | groq_err=%v", id, openAiErr, groqErr)
 				return nil, utils.NewValidationError("Validation Error", []utils.ValidationErrorDetail{
-					{Field: "profile", Message: "fast profile is unavailable because neither OpenAI nor Groq is configured"},
+					{Field: "profile", Message: "premium profile is unavailable because neither OpenAI nor Groq is configured"},
 				})
 			}
 			term.AiEngineProfile = &normalized
-			utils.LogInfo("UpdateTerminalAIEngineProfileUseCase: setting engine profile to fast | terminal_id=%s", id)
+			utils.LogInfo("UpdateTerminalAIEngineProfileUseCase: setting engine profile to premium | terminal_id=%s", id)
 		case "standard":
 			if err := providers.ValidateProviderConfig("orion", uc.cfg); err != nil {
 				utils.LogWarn("UpdateTerminalAIEngineProfileUseCase: standard profile update blocked by missing config | terminal_id=%s | error=%v", id, err)
@@ -56,13 +56,9 @@ func (uc *UpdateTerminalAIEngineProfileUseCase) Update(id string, req *dtos.Upda
 			}
 			term.AiEngineProfile = &normalized
 			utils.LogInfo("UpdateTerminalAIEngineProfileUseCase: setting engine profile to standard | terminal_id=%s", id)
-		case "plaud":
-			return nil, utils.NewValidationError("Validation Error", []utils.ValidationErrorDetail{
-				{Field: "profile", Message: "profile is not available yet"},
-			})
 		default:
 			return nil, utils.NewValidationError("Validation Error", []utils.ValidationErrorDetail{
-				{Field: "profile", Message: "invalid profile; supported values: fast, standard"},
+				{Field: "profile", Message: "invalid profile; supported values: premium, standard"},
 			})
 		}
 	}

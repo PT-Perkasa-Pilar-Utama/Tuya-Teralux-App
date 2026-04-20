@@ -202,14 +202,14 @@ class MqttHelper(
         mqttConnectOptions.userName = username
         mqttConnectOptions.password = password.toCharArray()
 
-        // Enable TLS for MQTTS connections (ssl:// or tcps://)
-        // Note: Paho Android only supports ssl:// and tcps:// schemes
-        if (serverUri.startsWith("ssl://") || serverUri.startsWith("tcps://")) {
+        // Enable TLS for MQTTS/WSS connections (ssl://, tcps://, or wss://)
+        // Note: Paho Android supports ssl://, tcps:// for direct MQTT, and wss:// for WebSocket Secure
+        if (serverUri.startsWith("ssl://") || serverUri.startsWith("tcps://") || serverUri.startsWith("wss://")) {
             try {
                 val sslContext = javax.net.ssl.SSLContext.getInstance("TLSv1.2")
                 sslContext.init(null, null, java.security.SecureRandom())
                 mqttConnectOptions.socketFactory = sslContext.socketFactory
-                Log.d(tag, "TLS 1.2 enabled for MQTTS connection: $serverUri")
+                Log.d(tag, "TLS 1.2 enabled for connection: $serverUri")
             } catch (e: Exception) {
                 Log.e(tag, "Failed to initialize TLS: ${e.message}")
             }

@@ -154,12 +154,17 @@ class MeetingReminderRuntimeCoordinator(
             }
 
         val currentTime = System.currentTimeMillis()
-        val id = MeetingReminderEntity.generateId(publishAtMillis, message.remainingMinutes)
+        val id = MeetingReminderEntity.generateId(message.id)
 
         val entity = MeetingReminderEntity(
             id = id,
             publishAtEpochMillis = publishAtMillis,
-            remainingMinutes = message.remainingMinutes,
+            title = message.title,
+            message = message.message,
+            eventType = message.eventType,
+            meetingId = message.meetingId,
+            roomId = message.roomId,
+            severity = message.severity,
             createdAtEpochMillis = currentTime,
             fired = false
         )
@@ -168,7 +173,7 @@ class MeetingReminderRuntimeCoordinator(
         store.savePending(entity)
         scheduler.scheduleReminder(entity)
 
-        Log.i(tag, "Processed reminder: id=$id, fireAt=$publishAtMillis, remainingMin=${message.remainingMinutes}")
+        Log.i(tag, "Processed reminder: id=$id, eventType=${message.eventType}, title=${message.title}")
     }
 
     /**

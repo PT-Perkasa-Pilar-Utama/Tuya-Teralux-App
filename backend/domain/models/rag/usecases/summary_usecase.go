@@ -33,6 +33,16 @@ type IntermediateSummaryNote struct {
 	Summary       string   `json:"summary"`                // Brief narrative summary of this window
 }
 
+// securePDFProcessor defines an interface for PDF protection to avoid import cycle
+type securePDFProcessor interface {
+	ProtectAndStore(ctx context.Context, pdfPath string) (string, string, error)
+}
+
+// downloadTokenCreator defines interface for token creation to avoid import cycle
+type downloadTokenCreator interface {
+	CreateToken(recipient, objectKey, purpose string, password ...string) (string, error)
+}
+
 // HierarchicalSummaryResult encapsulates the output of hierarchical structured summarization
 type HierarchicalSummaryResult struct {
 	FinalSummary      string                    `json:"final_summary"`
@@ -78,6 +88,8 @@ type summaryUseCase struct {
 	cache                     *tasks.BadgerTaskCache
 	store                     *tasks.StatusStore[dtos.RAGStatusDTO]
 	renderer                  services.SummaryPDFRenderer
+	securePDFUC               securePDFProcessor
+	tokenService              downloadTokenCreator
 	bigExternal               *commonServices.DeviceInfoExternalService
 	mqttSvc                   mqttPublisher
 	llmTimeout                time.Duration
@@ -95,6 +107,8 @@ func NewSummaryUseCase(
 	cache *tasks.BadgerTaskCache,
 	store *tasks.StatusStore[dtos.RAGStatusDTO],
 	renderer services.SummaryPDFRenderer,
+	securePDFUC securePDFProcessor,
+	tokenService downloadTokenCreator,
 	bigExternal *commonServices.DeviceInfoExternalService,
 	mqttSvc mqttPublisher,
 	skill skills.Skill,
@@ -109,6 +123,8 @@ func NewSummaryUseCase(
 		cache:                     cache,
 		store:                     store,
 		renderer:                  renderer,
+		securePDFUC:               securePDFUC,
+		tokenService:              tokenService,
 		bigExternal:               bigExternal,
 		mqttSvc:                   mqttSvc,
 		llmTimeout:                5 * time.Minute,
@@ -293,13 +309,13 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 
 	// PDF Generation
 	uuidStr, _ := uuid.NewV7()
-	pdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
+	tmpPdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
 	basePath := "."
 	if envPath := utils.FindEnvFile(); envPath != "" {
 		basePath = filepath.Dir(envPath)
 	}
-	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
-	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
+	tmpPdfPath := filepath.Join(basePath, "uploads", "reports", tmpPdfFilename)
+	_ = os.MkdirAll(filepath.Dir(tmpPdfPath), 0755)
 
 	pdfUrl := ""
 	if u.renderer != nil {
@@ -314,13 +330,26 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 			CustomerName: "Internal User",
 			CompanyName:  "Sensio",
 		}
-		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
-			// Log warning but don't fail the entire operation
-			// PDF generation is optional for platforms without Chromium support
+		if err := u.renderer.Render(trimmedSummary, tmpPdfPath, meta); err != nil {
 			fmt.Printf("[WARNING] PDF generation skipped: %v\n", err)
-			pdfUrl = "" // No PDF available
+			pdfUrl = ""
+		} else if u.securePDFUC != nil {
+			s3Key, password, err := u.securePDFUC.ProtectAndStore(ctx, tmpPdfPath)
+			if err != nil {
+				utils.LogError("SecurePDF: failed to protect PDF: %v", err)
+				pdfUrl = ""
+			} else {
+				tokenID, err := u.tokenService.CreateToken("", s3Key, "summary_pdf", password)
+				if err != nil {
+					utils.LogError("SecurePDF: failed to create token: %v", err)
+					pdfUrl = ""
+				} else {
+					pdfUrl = fmt.Sprintf("/api/download/resolve/%s", tokenID)
+				}
+			}
+			os.Remove(tmpPdfPath)
 		} else {
-			pdfUrl = fmt.Sprintf("/uploads/reports/%s", pdfFilename)
+			_ = os.Remove(tmpPdfPath)
 		}
 	}
 

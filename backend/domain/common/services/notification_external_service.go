@@ -3,62 +3,73 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"sensio/domain/common/entities"
 	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/repositories"
 	"sensio/domain/common/utils"
 	terminal_dtos "sensio/domain/terminal/terminal/dtos"
-	"sensio/domain/terminal/terminal/repositories"
+	terminal_entities "sensio/domain/terminal/terminal/entities"
+	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-// NotificationExternalService handles computing and publishing notifications to terminals
 type NotificationExternalService struct {
-	terminalRepo repositories.ITerminalRepository
-	mqttSvc      infrastructure.IMqttService
+	terminalRepo  terminal_repositories.ITerminalRepository
+	scheduledRepo repositories.IScheduledNotificationRepository
+	deviceInfoSvc *DeviceInfoExternalService
+	mqttSvc       infrastructure.IMqttService
 }
 
-// NewNotificationExternalService creates a new instance of NotificationExternalService
-func NewNotificationExternalService(terminalRepo repositories.ITerminalRepository, mqttSvc infrastructure.IMqttService) *NotificationExternalService {
+func NewNotificationExternalService(
+	terminalRepo terminal_repositories.ITerminalRepository,
+	mqttSvc infrastructure.IMqttService,
+) *NotificationExternalService {
 	return &NotificationExternalService{
 		terminalRepo: terminalRepo,
 		mqttSvc:      mqttSvc,
 	}
 }
 
-// PublishNotificationToRoom computes the publish time and sends MQTT messages to all terminals in a room
-func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dtos.NotificationPublishRequest) (*terminal_dtos.NotificationPublishResponse, error) {
-	// 1. Resolve DateTimeEnd from either datetime_end or time_end
-	var dateTimeEnd time.Time
-	var err error
+func NewNotificationExternalServiceWithWA(
+	terminalRepo terminal_repositories.ITerminalRepository,
+	scheduledRepo repositories.IScheduledNotificationRepository,
+	deviceInfoSvc *DeviceInfoExternalService,
+	mqttSvc infrastructure.IMqttService,
+) *NotificationExternalService {
+	return &NotificationExternalService{
+		terminalRepo:  terminalRepo,
+		scheduledRepo: scheduledRepo,
+		deviceInfoSvc: deviceInfoSvc,
+		mqttSvc:       mqttSvc,
+	}
+}
 
-	if req.DateTimeEnd != "" {
-		// DateTimeEnd takes priority
-		dateTimeEnd, err = time.Parse(time.RFC3339, req.DateTimeEnd)
-		if err != nil {
-			utils.LogError("NotificationExternalService: Failed to parse DateTimeEnd: %v", err)
-			return nil, utils.NewAPIError(400, "Invalid datetime_end format. Must be RFC3339.")
-		}
-	} else if req.TimeEnd != "" {
-		// Parse time_end and combine with server's current date
-		timeOnly, err := time.Parse("15:04:05", req.TimeEnd)
-		if err != nil {
-			utils.LogError("NotificationExternalService: Failed to parse TimeEnd: %v", err)
-			return nil, utils.NewAPIError(400, "Invalid time_end format. Must be HH:MM:SS.")
-		}
-		now := time.Now()
-		dateTimeEnd = time.Date(now.Year(), now.Month(), now.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, now.Location())
-		if dateTimeEnd.Before(now) {
-			dateTimeEnd = dateTimeEnd.Add(24 * time.Hour)
-		}
-	} else {
-		// Both are empty - return error
-		return nil, utils.NewAPIError(400, "At least one of datetime_end or time_end must be provided.")
+func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dtos.NotificationPublishRequest) (*terminal_dtos.NotificationPublishResponse, error) {
+	loc, err := time.LoadLocation(req.Timezone)
+	if err != nil {
+		utils.LogError("NotificationExternalService: Failed to load timezone %s: %v", req.Timezone, err)
+		return nil, utils.NewAPIError(400, "Invalid timezone. Must be a valid IANA timezone.")
 	}
 
-	// 2. Compute PublishAt
-	publishAt := dateTimeEnd.Add(time.Duration(-req.IntervalTime) * time.Minute)
-	publishAtStr := publishAt.Format(time.RFC3339)
+	dateOnly, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		utils.LogError("NotificationExternalService: Failed to parse date: %v", err)
+		return nil, utils.NewAPIError(400, "Invalid date format. Must be YYYY-MM-DD.")
+	}
 
-	// 3. Lookup terminals in the room
+	timeOnly, err := time.Parse("15:04:05", req.Time)
+	if err != nil {
+		utils.LogError("NotificationExternalService: Failed to parse time: %v", err)
+		return nil, utils.NewAPIError(400, "Invalid time format. Must be HH:MM:SS.")
+	}
+
+	dateTimeEnd := time.Date(dateOnly.Year(), dateOnly.Month(), dateOnly.Day(), timeOnly.Hour(), timeOnly.Minute(), timeOnly.Second(), 0, loc)
+
+	publishAtStr := dateTimeEnd.Format(time.RFC3339)
+
 	terminals, err := s.terminalRepo.GetByRoomID(req.RoomID)
 	if err != nil {
 		utils.LogError("NotificationExternalService: Failed to query terminals for RoomID %s: %v", req.RoomID, err)
@@ -70,36 +81,164 @@ func (s *NotificationExternalService) PublishNotificationToRoom(req terminal_dto
 		return nil, utils.NewAPIError(404, fmt.Sprintf("No terminals found for RoomID %s", req.RoomID))
 	}
 
-	// 4. Prepare MQTT payload
-	payload := terminal_dtos.NotificationMQTTPayload{
-		PublishAt:        publishAtStr,
-		RemainingMinutes: req.IntervalTime,
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal MQTT payload: %w", err)
+	eventType := "meeting_start"
+	if req.Template == "end_meeting" {
+		eventType = "meeting_end"
 	}
 
-	// 5. Fan out to each terminal
 	publishedTopics := make([]string, 0, len(terminals))
 	for _, t := range terminals {
+		terminal := t
+		macAddress := terminal.MacAddress
+
+		var title, message string
+		var meetingID, roomID string
+
+		if s.deviceInfoSvc != nil {
+			bookingInfo, err := s.deviceInfoSvc.GetDeviceInfoByMac(macAddress)
+			if err != nil {
+				utils.LogWarn("NotificationExternalService: Failed to fetch booking info for MAC %s: %v", macAddress, err)
+				bookingInfo = make(map[string]interface{})
+			}
+
+			customerName := s.getStringValue(bookingInfo, "SDTGetRoomTeraluxCustomerName")
+			roomName := s.getStringValue(bookingInfo, "SDTGetRoomTeraluxRoomName")
+			meetingID = s.getStringValue(bookingInfo, "SDTGetRoomTeraluxBookingID")
+			roomID = req.RoomID
+
+			if customerName == "" {
+				customerName = "Bapak/Ibu"
+			}
+			if roomName == "" {
+				roomName = "the room"
+			}
+
+			if eventType == "meeting_start" {
+				title = "Meeting Reminder"
+				message = fmt.Sprintf("%s, your meeting at %s will start soon", customerName, roomName)
+			} else {
+				title = "Meeting Ending"
+				message = fmt.Sprintf("%s, your meeting at %s is ending soon", customerName, roomName)
+			}
+		} else {
+			if eventType == "meeting_start" {
+				title = "Meeting Reminder"
+				message = "Your meeting will start soon"
+			} else {
+				title = "Meeting Ending"
+				message = "Your meeting is ending soon"
+			}
+		}
+
+		payload := terminal_dtos.NotificationMQTTPayload{
+			ID:        uuid.New().String(),
+			PublishAt: publishAtStr,
+			Title:     title,
+			Message:   message,
+			EventType: eventType,
+			MeetingID: meetingID,
+			RoomID:    roomID,
+		}
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal MQTT payload: %w", err)
+		}
+
 		topic := fmt.Sprintf("users/%s/%s/notification", t.MacAddress, utils.GetConfig().ApplicationEnvironment)
 
-		err := s.mqttSvc.Publish(topic, 1, false, payloadBytes)
+		utils.LogDebug("NotificationExternalService: MQTT connected=%v, publishing to topic: %s", s.mqttSvc.IsConnected(), topic)
+
+		err = s.mqttSvc.Publish(topic, 1, false, payloadBytes)
 		if err != nil {
 			utils.LogError("NotificationExternalService: Failed to publish to %s: %v", topic, err)
-			// According to the plan, we treat any failure as request failure
 			return nil, fmt.Errorf("failed to publish to topic %s: %w", topic, err)
 		}
 
 		publishedTopics = append(publishedTopics, topic)
+
+		_ = terminal
 	}
 
-	// 6. Return response
+	var wanNotificationID string
+	if len(req.PhoneNumbers) > 0 && s.scheduledRepo != nil && s.deviceInfoSvc != nil {
+		wanID, err := s.scheduleWANotification(req, dateTimeEnd, terminals)
+		if err != nil {
+			utils.LogWarn("NotificationExternalService: Failed to schedule WA notification: %v", err)
+		} else {
+			wanNotificationID = wanID
+			utils.LogInfo("NotificationExternalService: WA notification scheduled with ID %s", wanID)
+		}
+	}
+
 	return &terminal_dtos.NotificationPublishResponse{
-		RoomID:          req.RoomID,
-		PublishAt:       publishAt,
-		PublishedCount:  len(publishedTopics),
-		PublishedTopics: publishedTopics,
+		RoomID:           req.RoomID,
+		PublishAt:        dateTimeEnd,
+		PublishedCount:   len(publishedTopics),
+		PublishedTopics:  publishedTopics,
+		WANotificationID: wanNotificationID,
 	}, nil
+}
+
+func (s *NotificationExternalService) scheduleWANotification(req terminal_dtos.NotificationPublishRequest, bookingTimeEnd time.Time, terminals []terminal_entities.Terminal) (string, error) {
+	if len(terminals) == 0 {
+		return "", fmt.Errorf("no terminals found")
+	}
+
+	terminal := terminals[0]
+	macAddress := terminal.MacAddress
+
+	utils.LogDebug("scheduleWANotification: Terminal MAC=%s, RoomID=%s", macAddress, req.RoomID)
+
+	bookingInfo, err := s.deviceInfoSvc.GetDeviceInfoByMac(macAddress)
+	if err != nil {
+		utils.LogWarn("NotificationExternalService: Failed to fetch booking info for MAC %s: %v", macAddress, err)
+		bookingInfo = make(map[string]interface{})
+	} else {
+		utils.LogDebug("scheduleWANotification: BookingInfo=%+v", bookingInfo)
+	}
+
+	bookingInfoJSON, err := json.Marshal(bookingInfo)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal booking info: %w", err)
+	}
+
+	phoneNumbersJSON, err := json.Marshal(req.PhoneNumbers)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal phone numbers: %w", err)
+	}
+
+	scheduledAt := bookingTimeEnd
+
+	notification := &entities.ScheduledNotification{
+		ID:             uuid.New().String(),
+		RoomID:         req.RoomID,
+		MacAddress:     macAddress,
+		PhoneNumbers:   string(phoneNumbersJSON),
+		BookingInfo:    string(bookingInfoJSON),
+		BookingTimeEnd: bookingTimeEnd.Format(time.RFC3339),
+		ScheduledAt:    scheduledAt,
+		Status:         entities.NotificationStatusPending,
+		Template:       req.Template,
+	}
+
+	if err := s.scheduledRepo.Create(notification); err != nil {
+		return "", fmt.Errorf("failed to save scheduled notification: %w", err)
+	}
+
+	return notification.ID, nil
+}
+
+func normalizeMacAddress(mac string) string {
+	mac = strings.ReplaceAll(mac, ":", "-")
+	mac = strings.ReplaceAll(mac, ":", "")
+	return strings.ToLower(mac)
+}
+
+func (s *NotificationExternalService) getStringValue(data map[string]interface{}, key string) string {
+	if val, ok := data[key]; ok {
+		if str, ok := val.(string); ok {
+			return strings.TrimSpace(str)
+		}
+	}
+	return ""
 }

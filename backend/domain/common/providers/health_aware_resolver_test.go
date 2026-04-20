@@ -277,7 +277,7 @@ func TestHealthAwareResolver_SortByHealthScore(t *testing.T) {
 	}
 
 	candidates := []string{"gemini", "openai", "groq"}
-	resolver.sortByHealthScore(candidates)
+	resolver.SortByHealthScore(candidates)
 
 	// Gemini should be first (preferred provider), then openai (fastest), then groq
 	if candidates[0] != "gemini" {

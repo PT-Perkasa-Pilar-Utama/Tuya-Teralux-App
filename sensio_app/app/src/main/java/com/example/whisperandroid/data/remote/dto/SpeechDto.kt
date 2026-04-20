@@ -32,7 +32,18 @@ data class TranscriptionStatusDto(
     @SerializedName("started_at") val startedAt: String? = null,
     @SerializedName("duration_seconds") val durationSeconds: Double? = null,
     @SerializedName("expires_at") val expiresAt: String? = null,
-    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null
+    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null,
+    @SerializedName("structured_error") val structuredError: StructuredErrorDto? = null
+)
+
+/**
+ * Structured error from backend for Orion transcription failures.
+ * Provides machine-readable error_code and user-safe message.
+ */
+data class StructuredErrorDto(
+    @SerializedName("error_code") val errorCode: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("details") val details: String? = null
 )
 
 data class TranscriptionResultText(
@@ -205,4 +216,21 @@ data class PipelineSubmitByUploadRequestDto(
     @SerializedName("participants") val participants: List<String>? = null,
     @SerializedName("mac_address") val macAddress: String? = null,
     @SerializedName("idempotency_key") val idempotencyKey: String? = null
+)
+
+/**
+ * Request to create upload intent for signed URL upload
+ */
+data class CreateUploadIntentRequestDto(
+    @SerializedName("content_type") val contentType: String? = "audio/wav"
+)
+
+/**
+ * Response with signed upload URL
+ */
+data class UploadIntentResponseDto(
+    @SerializedName("object_key") val objectKey: String,
+    @SerializedName("presigned_url") val presignedUrl: String,
+    @SerializedName("content_type") val contentType: String,
+    @SerializedName("expires_at") val expiresAt: String
 )

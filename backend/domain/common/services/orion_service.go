@@ -152,35 +152,28 @@ func (s *OrionService) CallModel(ctx context.Context, prompt string, model strin
 // safe default to match Gemini's inline limit and avoid remote timeouts/rejections.
 const OrionDirectUploadLimitBytes = 20 * 1024 * 1024
 
+const OrionWhisperTranscribePath = "/v1/audio/transcriptions"
+const OrionHealthCheckPath = "/v1/models"
+
 type OrionWhisperResponse struct {
 	Text string `json:"text"`
 }
 
 func (s *OrionService) WhisperHealthCheck() bool {
-	outsystemsURL := s.config.OrionWhisperBaseURL
-	if outsystemsURL == "" {
+	baseURL := s.config.OrionWhisperBaseURL
+	if baseURL == "" {
 		utils.LogError("Orion: ORION_WHISPER_BASE_URL not configured")
 		return false
 	}
 
-	// Extract base URL (remove /whisper/transcribe)
-	var baseURL string
-	if len(outsystemsURL) > len("/whisper/transcribe") && strings.HasSuffix(outsystemsURL, "/whisper/transcribe") {
-		baseURL = outsystemsURL[:len(outsystemsURL)-len("/whisper/transcribe")]
-	} else {
-		baseURL = outsystemsURL
-	}
+	healthCheckURL := strings.TrimSuffix(baseURL, "/") + OrionHealthCheckPath
 
-	healthCheckURL := baseURL + "/"
-
-	// Create HTTP request
 	req, err := http.NewRequest("GET", healthCheckURL, nil)
 	if err != nil {
 		utils.LogError("Orion: Failed to create health check request: %v", err)
 		return false
 	}
 
-	// Execute request
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -193,12 +186,13 @@ func (s *OrionService) WhisperHealthCheck() bool {
 }
 
 func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang string, diarize bool) (*dtos.WhisperResult, error) {
-	outsystemsURL := s.config.OrionWhisperBaseURL
-	if outsystemsURL == "" {
+	baseURL := s.config.OrionWhisperBaseURL
+	if baseURL == "" {
 		return nil, fmt.Errorf("ORION_WHISPER_BASE_URL not configured")
 	}
 
-	// Preflight size check to avoid sending oversized files to Orion
+	transcribeURL := strings.TrimSuffix(baseURL, "/") + OrionWhisperTranscribePath
+
 	fileInfo, err := os.Stat(audioPath)
 	if err == nil && fileInfo.Size() > OrionDirectUploadLimitBytes {
 		return nil, fmt.Errorf("file size (%d bytes) exceeds Orion direct upload limit (%d bytes); use segmented transcription path", fileInfo.Size(), OrionDirectUploadLimitBytes)
@@ -239,7 +233,7 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", outsystemsURL, pr)
+	req, err := http.NewRequestWithContext(ctx, "POST", transcribeURL, pr)
 	if err != nil {
 		return nil, fmt.Errorf("request creation failed: %w", err)
 	}
@@ -267,7 +261,9 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
-		return nil, utils.NewAPIError(resp.StatusCode, fmt.Sprintf("Orion server returned error status %d: %s", resp.StatusCode, string(respBody)))
+		errMsg := fmt.Sprintf("Orion server returned error status %d: %s", resp.StatusCode, string(respBody))
+		structuredErr := utils.MapOrionErrorToCode(resp.StatusCode, string(respBody), errMsg)
+		return nil, utils.NewOrionTranscribeError(resp.StatusCode, structuredErr)
 	}
 
 	// Parse response as JSON

@@ -114,7 +114,7 @@ type AsyncTranscriptionResultDTO struct {
 type AsyncTranscriptionStatusDTO struct {
 	Status          string                       `json:"status" example:"completed"`
 	Result          *AsyncTranscriptionResultDTO `json:"result,omitempty"`
-	Error           string                       `json:"error,omitempty" example:"service unavailable"`
+	Error           string                       `json:"error,omitempty" example:"service unavailable"` // Deprecated: use StructuredError
 	Trigger         string                       `json:"trigger,omitempty" example:"/api/whisper/models/gemini"`
 	MacAddress      string                       `json:"mac_address,omitempty"`
 	TerminalID      string                       `json:"terminal_id,omitempty"`
@@ -123,6 +123,18 @@ type AsyncTranscriptionStatusDTO struct {
 	DurationSeconds float64                      `json:"duration_seconds,omitempty" example:"1.5"`
 	ExpiresAt       string                       `json:"expires_at,omitempty"`
 	ExpiresInSecond int64                        `json:"expires_in_seconds,omitempty"`
+
+	// StructuredError provides machine-readable error_code for reliable Android polling termination.
+	// Use this instead of the generic Error field for terminal failure detection.
+	StructuredError *StructuredErrorDTO `json:"structured_error,omitempty"`
+}
+
+// StructuredErrorDTO contains machine-readable error information for client error handling.
+// This enables Android to reliably detect terminal failures and stop polling.
+type StructuredErrorDTO struct {
+	ErrorCode string `json:"error_code"`        // Machine-readable code: model-not-loaded, gpu-oom, upstream-500, etc.
+	Message   string `json:"message"`           // User-safe message for display to user
+	Details   string `json:"details,omitempty"` // Technical details (for logging only, not displayed)
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface

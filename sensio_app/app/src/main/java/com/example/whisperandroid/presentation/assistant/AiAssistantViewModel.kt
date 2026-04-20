@@ -240,7 +240,7 @@ class AiAssistantViewModel(
      * Completes a request with a friendly service-issue message.
      * Used for recoverable transport/network/server failures that should not show as errors.
      */
-    private fun completeWithServiceIssue(requestId: String?, source: String) {
+    private fun completeWithServiceIssue(requestId: String?, source: String, overrideMessage: String? = null) {
         val currentRequestId = activeRequestId
         if (requestId != null && (currentRequestId == null || requestId != currentRequestId)) {
             android.util.Log.w(
@@ -268,7 +268,8 @@ class AiAssistantViewModel(
         }
 
         // Friendly service-issue message (matches backend ServiceIssue skill)
-        val serviceIssueMessage = when (selectedLanguage) {
+        // Use backend-provided message if available, otherwise fall back to generic
+        val serviceIssueMessage = overrideMessage ?: when (selectedLanguage) {
             "en" -> "Sorry, the AI service or network is having trouble right now. Please try again shortly."
             else -> "Maaf, koneksi atau layanan AI sedang bermasalah. Coba lagi sebentar ya."
         }
@@ -1004,7 +1005,8 @@ class AiAssistantViewModel(
                         // Technical failure (backend error, network issue, etc.)
                         activeTimingLogger?.markStep("transcription_poll_error", mapOf("error" to outcome.message))
                         activeTimingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "transcription_poll_error"))
-                        completeWithServiceIssue(requestId, "transcription_poll_error")
+                        // Use backend-provided message if available, otherwise fall back to generic
+                        completeWithServiceIssue(requestId, "transcription_poll_error", outcome.message)
                         return@launch
                     }
                     is TranscriptionPollingOutcome.Pending -> {

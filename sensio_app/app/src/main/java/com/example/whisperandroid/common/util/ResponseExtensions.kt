@@ -1,7 +1,9 @@
 package com.example.whisperandroid.common.util
 
 import com.example.whisperandroid.data.remote.dto.StandardResponseDto
+import com.example.whisperandroid.data.remote.dto.StructuredErrorDto
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import retrofit2.HttpException
 import retrofit2.Response
 
@@ -43,10 +45,23 @@ fun HttpException.getErrorMessage(): String =
         }
     }
 
-private fun parseErrorBody(errorBody: String): String =
-    try {
+private fun parseErrorBody(errorBody: String): String {
+    return try {
         val gson = Gson()
-        // We use Any for T because we don't care about data type when parsing error
+        val jsonObject = gson.fromJson(errorBody, JsonObject::class.java)
+
+        // Check for structured_error in the data field (transcription status responses)
+        if (jsonObject.has("data") && !jsonObject.get("data").isJsonNull) {
+            val data = jsonObject.getAsJsonObject("data")
+            if (data.has("structured_error") && !data.get("structured_error").isJsonNull) {
+                val structuredError = gson.fromJson(data.get("structured_error"), StructuredErrorDto::class.java)
+                if (!structuredError.message.isNullOrBlank()) {
+                    return structuredError.message
+                }
+            }
+        }
+
+        // Fall back to StandardResponseDto parsing
         val errorResponse = gson.fromJson(errorBody, StandardResponseDto::class.java)
 
         var message = errorResponse.message
@@ -80,3 +95,4 @@ private fun parseErrorBody(errorBody: String): String =
     } catch (e: Exception) {
         "An error occurred. Please try again"
     }
+}

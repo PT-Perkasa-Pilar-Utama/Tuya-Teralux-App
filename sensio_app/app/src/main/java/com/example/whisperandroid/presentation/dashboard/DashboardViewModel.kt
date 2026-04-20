@@ -82,7 +82,7 @@ class DashboardViewModel(
             val result = terminalRepository.getAiEngineProfileByMac(macAddress)
             result.onSuccess { state ->
                 val warning = if (state?.source == "legacy_provider") {
-                    "This terminal is still using a legacy AI provider setting. Choose Fast or Standard to migrate."
+                    "This terminal is still using a legacy AI provider setting. Choose Premium or Standard to migrate."
                 } else null
 
                 _uiState.update {

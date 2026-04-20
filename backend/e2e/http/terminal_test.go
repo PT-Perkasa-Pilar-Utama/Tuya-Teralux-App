@@ -139,7 +139,7 @@ func (suite *TerminalE2ETestSuite) TestTerminal_NotFoundErrors() {
 
 func (suite *TerminalE2ETestSuite) TestTerminal_UpdateAIEngineProfile() {
 	payload := map[string]interface{}{
-		"profile": "fast",
+		"profile": "premium",
 	}
 
 	req, _ := http.NewRequest(http.MethodPut, "/api/terminal/test-id/ai-engine-profile", bytes.NewBufferString(mustMarshal(payload)))

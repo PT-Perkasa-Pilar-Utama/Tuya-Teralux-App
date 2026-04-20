@@ -141,7 +141,7 @@ class MeetingForegroundService : Service() {
                         state is MeetingProcessState.Cancelled
                     ) {
                         showFinalNotification(state)
-                        stopForeground(false)
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                         stopSelf()
                     }
                 }
@@ -149,13 +149,13 @@ class MeetingForegroundService : Service() {
                 // User-initiated cancellation - don't show error state
                 Log.d("MeetingForegroundService", "Processing cancelled: ${e.message}")
                 MeetingProcessManager.updateState(MeetingProcessState.Cancelled)
-                stopForeground(false)
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             } catch (e: Exception) {
                 val errorState = MeetingProcessState.Error(e.message ?: "Unknown error")
                 MeetingProcessManager.updateState(errorState)
                 showFinalNotification(errorState)
-                stopForeground(false)
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             } finally {
                 // Clear the job reference when processing completes
@@ -186,16 +186,16 @@ class MeetingForegroundService : Service() {
             try {
                 val token = tokenManager.getAccessToken() ?: ""
                 if (token.isNotEmpty()) {
-                    // Run cancel request in current coroutine scope (already IO dispatcher)
-                    val result = withTimeoutOrNull(5000) {
-                        NetworkModule.pipelineRepository.cancelPipelineTask(taskId, token)
-                    }
-                    // Check if result is success
-                    backendCancelSucceeded = result?.isSuccess == true
-                    if (backendCancelSucceeded) {
-                        Log.d("MeetingForegroundService", "Backend cancel request succeeded for task: $taskId")
-                    } else {
-                        Log.w("MeetingForegroundService", "Backend cancel request failed or timed out for task: $taskId")
+                    serviceScope.launch {
+                        val result = withTimeoutOrNull(5000) {
+                            NetworkModule.pipelineRepository.cancelPipelineTask(taskId, token)
+                        }
+                        backendCancelSucceeded = result?.isSuccess == true
+                        if (backendCancelSucceeded) {
+                            Log.d("MeetingForegroundService", "Backend cancel request succeeded for task: $taskId")
+                        } else {
+                            Log.w("MeetingForegroundService", "Backend cancel request failed or timed out for task: $taskId")
+                        }
                     }
                 } else {
                     Log.w("MeetingForegroundService", "No auth token available for backend cancel")
@@ -206,7 +206,6 @@ class MeetingForegroundService : Service() {
             }
         } else {
             Log.d("MeetingForegroundService", "No pipeline task ID available - skipping backend cancel")
-            // No task ID means backend was never contacted, so local cancel is truthful
             backendCancelSucceeded = true
         }
 
@@ -230,7 +229,7 @@ class MeetingForegroundService : Service() {
         }
 
         // Stop the service
-        stopForeground(false)
+        stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 

@@ -48,7 +48,12 @@ func (c *WhisperTranscribeStatusController) GetStatus(ctx *gin.Context) {
 		httpStatus := http.StatusOK
 
 		if status.Status == "failed" {
-			message = "Task failed: " + status.Error
+			// Use structured error message for user-safe display if available
+			if status.StructuredError != nil && status.StructuredError.Message != "" {
+				message = status.StructuredError.Message
+			} else {
+				message = "Transcription failed. Please try again."
+			}
 			if status.HTTPStatusCode != 0 {
 				httpStatus = status.HTTPStatusCode
 			}

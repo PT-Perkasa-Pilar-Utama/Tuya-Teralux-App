@@ -1,11 +1,13 @@
 package com.example.whisperandroid.data.remote.api
 
+import com.example.whisperandroid.data.remote.dto.CreateUploadIntentRequestDto
 import com.example.whisperandroid.data.remote.dto.CreateUploadSessionRequestDto
 import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
 import com.example.whisperandroid.data.remote.dto.SubmitByUploadRequestDto
 import com.example.whisperandroid.data.remote.dto.TranscriptionStatusDto
 import com.example.whisperandroid.data.remote.dto.TranscriptionSubmissionData
 import com.example.whisperandroid.data.remote.dto.UploadChunkAckDto
+import com.example.whisperandroid.data.remote.dto.UploadIntentResponseDto
 import com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto
 import okhttp3.MultipartBody
 import retrofit2.http.GET
@@ -63,4 +65,12 @@ interface WhisperApi {
         @retrofit2.http.Body request: SubmitByUploadRequestDto,
         @Header("Authorization") token: String
     ): SpeechResponseDto<TranscriptionSubmissionData>
+
+    // --- Signed Upload Endpoints ---
+
+    @POST("/api/upload/intent")
+    suspend fun createUploadIntent(
+        @retrofit2.http.Body request: CreateUploadIntentRequestDto,
+        @Header("Authorization") token: String
+    ): SpeechResponseDto<UploadIntentResponseDto>
 }

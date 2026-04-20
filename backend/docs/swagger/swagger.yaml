@@ -28,6 +28,12 @@ definitions:
     type: object
   dtos.AsyncTranscriptionResultDTO:
     properties:
+      audio_class:
+        description: |-
+          ASR Quality Gate Metadata (internal use for tuning and observability)
+          CRITICAL: These fields MUST always be present (no omitempty) for completed transcription results
+          to ensure frontend can reliably detect rejection states.
+        type: string
       confidence_summary:
         $ref: '#/definitions/dtos.ConfidenceSummary'
       detected_language:
@@ -35,6 +41,12 @@ definitions:
         type: string
       normalization_applied:
         description: Whether safe normalization was applied
+        type: boolean
+      provider_name:
+        description: Which provider was used
+        type: string
+      provider_skipped:
+        description: ALWAYS present when audio analysis ran (no omitempty)
         type: boolean
       refined_text:
         example: Hello world
@@ -45,6 +57,12 @@ definitions:
         type: array
       transcript_format:
         $ref: '#/definitions/dtos.TranscriptFormat'
+      transcript_rejection_reason:
+        description: Present when transcript_valid=false
+        type: string
+      transcript_valid:
+        description: ALWAYS present for completed results (no omitempty)
+        type: boolean
       transcription:
         example: Halo dunia
         type: string
@@ -61,6 +79,7 @@ definitions:
         example: 1.5
         type: number
       error:
+        description: 'Deprecated: use StructuredError'
         example: service unavailable
         type: string
       expires_at:
@@ -77,6 +96,12 @@ definitions:
       status:
         example: completed
         type: string
+      structured_error:
+        allOf:
+        - $ref: '#/definitions/dtos.StructuredErrorDTO'
+        description: |-
+          StructuredError provides machine-readable error_code for reliable Android polling termination.
+          Use this instead of the generic Error field for terminal failure detection.
       terminal_id:
         type: string
       trigger:
@@ -329,18 +354,26 @@ definitions:
     type: object
   dtos.NotificationPublishRequest:
     properties:
-      datetime_end:
-        example: "2026-03-17T14:00:00+07:00"
+      date:
+        example: "2026-03-17"
         type: string
-      interval_time:
-        example: 15
-        minimum: 0
-        type: integer
+      phone_numbers:
+        example:
+        - See phone_numbers array for values
+        items:
+          type: string
+        type: array
       room_id:
         example: "123"
         type: string
-      time_end:
+      template:
+        example: start_meeting
+        type: string
+      time:
         example: "14:00:00"
+        type: string
+      timezone:
+        example: Asia/Jakarta
         type: string
     required:
     - room_id
@@ -361,6 +394,9 @@ definitions:
         type: array
       room_id:
         example: "123"
+        type: string
+      wa_notification_id:
+        example: uuid-here
         type: string
     type: object
   dtos.OpenIssue:
@@ -736,6 +772,19 @@ definitions:
       status:
         example: true
         type: boolean
+    type: object
+  dtos.StructuredErrorDTO:
+    properties:
+      details:
+        description: Technical details (for logging only, not displayed)
+        type: string
+      error_code:
+        description: 'Machine-readable code: model-not-loaded, gpu-oom, upstream-500,
+          etc.'
+        type: string
+      message:
+        description: User-safe message for display to user
+        type: string
     type: object
   dtos.TaskIDResponseDTO:
     properties:
@@ -2773,10 +2822,11 @@ paths:
       consumes:
       - application/json
       description: |-
-        Computes publish_at = datetime_end (or time_end) - interval_time and immediately publishes it to all terminals in the room via MQTT.
-        At least one of datetime_end or time_end must be provided. If both are provided, datetime_end takes priority.
+        Publishes a notification to all terminals in the room via MQTT.
+        If phone_number is provided, a WhatsApp notification will be scheduled to be sent at the specified time.
+        Requires date, time, timezone, phone_number array, and template (start_meeting or end_meeting).
       parameters:
-      - description: Notification details
+      - description: Notification details (phone_number is optional)
         in: body
         name: request
         required: true
@@ -2806,7 +2856,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dtos.ErrorResponse'
-      summary: Publish a notification to all terminals in a room
+      summary: Publish a notification to all terminals in a room (with optional WhatsApp)
       tags:
       - 08. Common
   /api/recordings:

@@ -2,7 +2,9 @@ package com.example.whisperandroid.data.repository
 
 import android.util.Log
 import com.example.whisperandroid.data.remote.api.WhisperApi
+import com.example.whisperandroid.data.remote.dto.CreateUploadIntentRequestDto
 import com.example.whisperandroid.data.remote.dto.CreateUploadSessionRequestDto
+import com.example.whisperandroid.data.remote.dto.UploadIntentResponseDto
 import com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.domain.repository.UploadRepository
@@ -25,7 +27,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 
 class UploadRepositoryImpl(
-    private val whisperApi: WhisperApi
+    private val whisperApi: WhisperApi,
+    private val signedUploadEnabled: Boolean = false
 ) : UploadRepository {
 
     companion object {
@@ -51,6 +54,49 @@ class UploadRepositoryImpl(
     ): Flow<UploadState> = flow {
         emit(UploadState.Loading("Initializing upload..."))
 
+        // Signed URL upload path (alternative to chunk upload)
+        if (signedUploadEnabled) {
+            try {
+                emit(UploadState.Loading("Requesting signed upload URL..."))
+                
+                val intentResponse = whisperApi.createUploadIntent(
+                    CreateUploadIntentRequestDto("audio/wav"),
+                    token
+                )
+                
+                if (!intentResponse.status || intentResponse.data == null) {
+                    emit(UploadState.Error("Failed to get signed URL: ${intentResponse.message}"))
+                    return@flow
+                }
+                
+                val intent = intentResponse.data
+                emit(UploadState.Loading("Uploading to signed URL..."))
+                
+                // Upload directly to signed URL
+                val uploadResult = uploadToSignedUrl(
+                    file = file,
+                    signedUrl = intent.presignedUrl,
+                    contentType = intent.contentType,
+                    totalSize = file.length()
+                ) { progress, total ->
+                    val progressPercent = (progress * 100 / total).toFloat().coerceIn(0f, 100f)
+                    emit(UploadState.Progress(progress, total, progressPercent))
+                }
+                
+                if (uploadResult) {
+                    // Store object key for later reference (finalization)
+                    emit(UploadState.Success(intent.objectKey))
+                } else {
+                    emit(UploadState.Error("Signed URL upload failed"))
+                }
+                return@flow
+            } catch (e: Exception) {
+                Log.w(TAG, "Signed upload failed, falling back to chunk upload: ${e.message}")
+                // Fall through to chunk upload path
+            }
+        }
+
+        // Original chunk upload path
         val totalSize = file.length()
         val requestedChunkSize = if (chunkSizeMb > 0) {
             chunkSizeMb * 1024 * 1024L
@@ -926,5 +972,48 @@ class UploadRepositoryImpl(
             }
         }
         return missingIndices.toList().sorted()
+    }
+
+    /**
+     * Upload file directly to signed S3 URL
+     */
+    private suspend fun uploadToSignedUrl(
+        file: File,
+        signedUrl: String,
+        contentType: String,
+        totalSize: Long,
+        onProgress: suspend (Long, Long) -> Unit
+    ): Boolean {
+        return try {
+            val client = okhttp3.OkHttpClient()
+                .newBuilder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
+                .writeTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
+                .build()
+
+            val requestBody = okhttp3.RequestBody.create(
+                contentType.toMediaTypeOrNull(),
+                file
+            )
+
+            val request = okhttp3.Request.Builder()
+                .url(signedUrl)
+                .put(requestBody)
+                .build()
+
+            val response = client.newCall(request).execute()
+            
+            if (response.isSuccessful) {
+                onProgress(totalSize, totalSize)
+                true
+            } else {
+                Log.e(TAG, "Signed URL upload failed: ${response.code} ${response.message}")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Signed URL upload exception: ${e.message}")
+            false
+        }
     }
 }
