@@ -1,0 +1,275 @@
+package services
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	commonUtils "sensio/domain/common/utils"
+	"sensio/domain/models/whisper/dtos"
+	speechUtils "sensio/domain/speech/speech/utils"
+)
+
+type GeminiService struct {
+	apiKey string
+	config *commonUtils.Config
+}
+
+func NewGeminiService(cfg *commonUtils.Config) *GeminiService {
+	return &GeminiService{
+		apiKey: cfg.GeminiApiKey,
+		config: cfg,
+	}
+}
+
+// LLM Implementation
+
+type geminiRequest struct {
+	Contents []geminiContent `json:"contents"`
+}
+
+type geminiContent struct {
+	Parts []geminiPart `json:"parts"`
+}
+
+type geminiPart struct {
+	Text string `json:"text"`
+}
+
+type geminiResponse struct {
+	Candidates []struct {
+		Content struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"content"`
+	} `json:"candidates"`
+}
+
+func (s *GeminiService) HealthCheck() bool {
+	if s.apiKey == "" {
+		return false
+	}
+
+	// Quick test with models list endpoint
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", s.apiKey)
+	resp, err := http.Get(url)
+	if err != nil {
+		commonUtils.LogWarn("Gemini HealthCheck failed: %v", err)
+		return false
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		commonUtils.LogWarn("Gemini HealthCheck failed: status %d", resp.StatusCode)
+		return false
+	}
+	return true
+}
+
+func (s *GeminiService) CallModel(ctx context.Context, prompt string, model string) (string, error) {
+	if s.apiKey == "" {
+		return "", fmt.Errorf("GEMINI_API_KEY is not configured")
+	}
+
+	actualModel := model
+	switch {
+	case model == "high":
+		actualModel = s.config.GeminiModelHigh
+	case model == "low":
+		actualModel = s.config.GeminiModelLow
+	case model == "default" || model == "":
+		actualModel = s.config.GeminiModelLow
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", actualModel, s.apiKey)
+	commonUtils.LogDebug("Gemini: Calling URL: https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", actualModel)
+
+	reqBody := geminiRequest{
+		Contents: []geminiContent{
+			{
+				Parts: []geminiPart{
+					{Text: prompt},
+				},
+			},
+		},
+	}
+
+	b, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to call gemini api: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
+	}
+
+	var geminiResp geminiResponse
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("gemini api returned no candidates")
+	}
+
+	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
+	commonUtils.LogDebug("Gemini: Response received: %s", responseText)
+	return responseText, nil
+}
+
+// Whisper Implementation
+
+// GeminiDirectUploadLimitBytes is the maximum file size for direct Gemini Whisper uploads.
+// Gemini has approximately a 20MB limit for inline base64 data.
+const GeminiDirectUploadLimitBytes = 20 * 1024 * 1024
+
+func (s *GeminiService) Transcribe(ctx context.Context, audioPath string, language string, diarize bool) (*dtos.WhisperResult, error) {
+	if s.apiKey == "" {
+		return nil, fmt.Errorf("GEMINI_API_KEY is not configured")
+	}
+
+	// Check file size for inline limit (Gemini typically < 20MB for inline base64)
+	fileInfo, err := os.Stat(audioPath)
+	if err == nil && fileInfo.Size() > GeminiDirectUploadLimitBytes {
+		return nil, fmt.Errorf("file size (%d bytes) exceeds Gemini direct upload limit (%d bytes); use segmented transcription path", fileInfo.Size(), GeminiDirectUploadLimitBytes)
+	}
+
+	// Read audio file
+	audioData, err := os.ReadFile(audioPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read audio file: %w", err)
+	}
+
+	// Detect mime type based on extension
+	ext := filepath.Ext(audioPath)
+	mimeType := "audio/mp3" // default
+	switch ext {
+	case ".wav":
+		mimeType = "audio/wav"
+	case ".ogg":
+		mimeType = "audio/ogg"
+	case ".m4a":
+		mimeType = "audio/m4a"
+	}
+
+	// Build prompt
+	promptText := "Transcribe this audio file exactly as spoken."
+	if diarize {
+		promptText = "Transcribe this audio file exactly as spoken, and perform speaker diarization. Identify different speakers as [Speaker 1], [Speaker 2], etc. Format the output as a dialogue."
+	}
+
+	if language != "" {
+		promptText += fmt.Sprintf(" The language is %s.", language)
+	}
+
+	reqBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": promptText},
+					{
+						"inline_data": map[string]string{
+							"mime_type": mimeType,
+							"data":      base64.StdEncoding.EncodeToString(audioData),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Use configured Whisper model
+	model := s.config.GeminiModelWhisper
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, s.apiKey)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(b))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gemini request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 0}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call gemini api: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, commonUtils.NewAPIError(resp.StatusCode, fmt.Sprintf("gemini api returned status %d: %s", resp.StatusCode, string(body)))
+	}
+
+	var geminiResp geminiResponse
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("gemini api returned no candidates")
+	}
+
+	transcription := geminiResp.Candidates[0].Content.Parts[0].Text
+
+	// Parse structured utterances if diarization was requested
+	var utterances []dtos.Utterance
+	var transcriptFormat dtos.TranscriptFormat
+
+	if diarize {
+		utterances = speechUtils.ParseUtterancesFromText(transcription)
+		if len(utterances) > 0 {
+			transcriptFormat = dtos.TranscriptFormatUtteranceList
+		}
+	}
+
+	if len(utterances) == 0 {
+		transcriptFormat = dtos.TranscriptFormatPlainText
+	}
+
+	// Diarized is true ONLY if:
+	// 1. Diarization was requested AND
+	// 2. Actual speaker-labeled utterances were extracted (not fabricated)
+	diarized := diarize && len(utterances) > 0
+
+	return &dtos.WhisperResult{
+		Transcription:     transcription,
+		DetectedLanguage:  language,
+		Source:            "Gemini Whisper",
+		Diarized:          diarized,
+		Utterances:        utterances,
+		TranscriptFormat:  transcriptFormat,
+		ConfidenceSummary: speechUtils.BuildConfidenceSummary(utterances, 1),
+	}, nil
+}

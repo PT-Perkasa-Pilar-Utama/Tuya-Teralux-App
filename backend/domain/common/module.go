@@ -8,10 +8,9 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/download_token"
 	"sensio/domain/infrastructure"
-	notification_controllers "sensio/domain/notification/controllers"
-	notification_repositories "sensio/domain/notification/repositories"
-	notification_routes "sensio/domain/notification/routes"
-	notification_services "sensio/domain/notification/services"
+	"sensio/domain/notification"
+	notification_controllers "sensio/domain/notification/notification/controllers"
+	notification_routes "sensio/domain/notification/notification/routes"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 )
 
@@ -29,11 +28,6 @@ type CommonModule struct {
 
 // NewCommonModule initializes the common domain components
 func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService, terminalRepo terminal_repositories.ITerminalRepository, cfg *utils.Config) *CommonModule {
-	bigSvc := services.NewDeviceInfoExternalService()
-	scheduledRepo := notification_repositories.NewScheduledNotificationRepository()
-
-	notificationSvc := notification_services.NewNotificationExternalServiceWithWA(terminalRepo, scheduledRepo, bigSvc, mqttSvc)
-
 	// Initialize S3 storage provider
 	storageProvider, err := infrastructure.NewStorageProvider(cfg)
 	if err != nil {
@@ -44,13 +38,15 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 	// Initialize download token service
 	tokenService := download_token.NewDownloadTokenService(download_token.NewStore(), storageProvider)
 
+	notificationModule := notification.NewNotificationModule(badger, mqttSvc, terminalRepo)
+
 	return &CommonModule{
 		HealthController:               controllers.NewHealthController(),
 		CacheController:                controllers.NewCacheController(badger, vector),
 		DocsController:                 controllers.NewDocsController(),
 		MqttService:                    mqttSvc,
-		DeviceInfoExternalController:   controllers.NewDeviceInfoExternalController(bigSvc),
-		NotificationExternalController: notification_controllers.NewNotificationExternalController(notificationSvc),
+		DeviceInfoExternalController:   controllers.NewDeviceInfoExternalController(services.NewDeviceInfoExternalService()),
+		NotificationExternalController: notificationModule.NotificationExternalController,
 		StorageProvider:                storageProvider,
 		DownloadTokenService:           tokenService,
 	}
