@@ -71,9 +71,6 @@ import (
 // @tag.name 04. Models
 // @tag.description AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain
 
-// @tag.name 05. Models-v1
-// @tag.description New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API
-
 // @tag.name 06. Recordings
 // @tag.description Recordings management endpoints
 
