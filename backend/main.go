@@ -21,6 +21,7 @@ import (
 	"sensio/domain/mail"
 	"sensio/domain/models"
 	notification_entities "sensio/domain/notification/entities"
+	"sensio/domain/notification"
 	notification_services "sensio/domain/notification/services"
 	"sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
@@ -29,6 +30,7 @@ import (
 	"sensio/domain/terminal"
 	device_entities "sensio/domain/terminal/device/entities"
 	device_repositories "sensio/domain/terminal/device/repositories"
+	device_status_entities "sensio/domain/terminal/device_status/entities"
 	terminal_entities "sensio/domain/terminal/terminal/entities"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/tuya"
@@ -118,6 +120,7 @@ func run() error {
 	if err := infrastructure.DB.AutoMigrate(
 		&terminal_entities.Terminal{},
 		&device_entities.Device{},
+		&device_status_entities.DeviceStatus{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
 		&notification_entities.ScheduledNotification{},
@@ -158,6 +161,8 @@ func run() error {
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, terminalRepo)
 	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
+	notificationModule := notification.NewNotificationModule(badgerService, mqttService, terminalRepo)
+
 	terminalModule := terminal.NewTerminalModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
 	protected := router.Group("/")
@@ -178,6 +183,9 @@ func run() error {
 
 	// 3a. Mail Routes
 	mailModule.RegisterRoutes(protected)
+
+	// 3b. Notification Routes
+	notificationModule.RegisterRoutes(protected)
 
 	// 4. Recordings Module
 	recordingsModule := recordings.NewRecordingsModule(badgerService)

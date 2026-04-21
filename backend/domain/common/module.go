@@ -8,22 +8,18 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/download_token"
 	"sensio/domain/infrastructure"
-	"sensio/domain/notification"
-	notification_controllers "sensio/domain/notification/controllers"
-	notification_routes "sensio/domain/notification/routes"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 )
 
 // CommonModule encapsulates common domain components
 type CommonModule struct {
-	HealthController               *controllers.HealthController
-	CacheController                *controllers.CacheController
-	DocsController                 *controllers.DocsController
-	MqttService                    *infrastructure.MqttService
-	DeviceInfoExternalController   *controllers.DeviceInfoExternalController
-	NotificationExternalController *notification_controllers.NotificationExternalController
-	StorageProvider                infrastructure.StorageProvider
-	DownloadTokenService           *download_token.DownloadTokenService
+	HealthController             *controllers.HealthController
+	CacheController              *controllers.CacheController
+	DocsController               *controllers.DocsController
+	MqttService                  *infrastructure.MqttService
+	DeviceInfoExternalController *controllers.DeviceInfoExternalController
+	StorageProvider              infrastructure.StorageProvider
+	DownloadTokenService         *download_token.DownloadTokenService
 }
 
 // NewCommonModule initializes the common domain components
@@ -38,17 +34,14 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 	// Initialize download token service
 	tokenService := download_token.NewDownloadTokenService(download_token.NewStore(), storageProvider)
 
-	notificationModule := notification.NewNotificationModule(badger, mqttSvc, terminalRepo)
-
 	return &CommonModule{
-		HealthController:               controllers.NewHealthController(),
-		CacheController:                controllers.NewCacheController(badger, vector),
-		DocsController:                 controllers.NewDocsController(),
-		MqttService:                    mqttSvc,
-		DeviceInfoExternalController:   controllers.NewDeviceInfoExternalController(services.NewDeviceInfoExternalService()),
-		NotificationExternalController: notificationModule.NotificationExternalController,
-		StorageProvider:                storageProvider,
-		DownloadTokenService:           tokenService,
+		HealthController:             controllers.NewHealthController(),
+		CacheController:              controllers.NewCacheController(badger, vector),
+		DocsController:               controllers.NewDocsController(),
+		MqttService:                  mqttSvc,
+		DeviceInfoExternalController: controllers.NewDeviceInfoExternalController(services.NewDeviceInfoExternalService()),
+		StorageProvider:              storageProvider,
+		DownloadTokenService:         tokenService,
 	}
 }
 
@@ -72,7 +65,6 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	// Protected Routes
 	routes.SetupCacheRoutes(protected, m.CacheController)
 	routes.SetupDeviceInfoExternalRoutes(protected, m.DeviceInfoExternalController)
-	notification_routes.SetupNotificationExternalRoutes(protected, m.NotificationExternalController)
 
 	// Download Token Routes
 	downloadTokenHandler := download_token.NewHandler(m.DownloadTokenService)
