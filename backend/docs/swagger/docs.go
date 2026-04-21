@@ -34,7 +34,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Fetch device and booking info by MAC address",
                 "parameters": [
@@ -102,7 +102,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -650,7 +650,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -684,7 +684,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Send an email using a template",
                 "parameters": [
@@ -747,7 +747,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Send an email by Terminal MAC Address",
                 "parameters": [
@@ -820,7 +820,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Get email task status",
                 "parameters": [
@@ -1971,7 +1971,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "List all recordings",
                 "parameters": [
@@ -2035,7 +2035,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Save a new recording",
                 "parameters": [
@@ -2105,7 +2105,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Get recording by ID",
                 "parameters": [
@@ -2167,7 +2167,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Delete a recording",
                 "parameters": [

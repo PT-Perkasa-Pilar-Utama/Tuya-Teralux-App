@@ -25,7 +25,7 @@
         "/api/big/device/{mac_address}": {
             "get": {
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "[Common] Fetch device and booking info by MAC address",
                 "description": "Fetches specific device information including booking_id, time_start, and time_stop directly from the Big API.",
@@ -100,7 +100,7 @@
         "/api/cache/flush": {
             "delete": {
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "[Common] Flush all cache",
                 "description": "Remove all data from the cache storage",
@@ -742,7 +742,7 @@
         "/api/health": {
             "get": {
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "[Common] Health check endpoint",
                 "description": "Check if the application and database are healthy",
@@ -773,7 +773,7 @@
         "/api/mail/send": {
             "post": {
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "[Mail] Send an email using a template",
                 "description": "Send an email using a server-side template and specified recipients",
@@ -842,7 +842,7 @@
         "/api/mail/send/mac/{mac_address}": {
             "post": {
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "[Mail] Send an email by Terminal MAC Address",
                 "description": "Looks up customer email by MAC address and sends an email using a template",
@@ -932,7 +932,7 @@
         "/api/mail/status/{task_id}": {
             "get": {
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "[Mail] Get email task status",
                 "description": "Get the status and result of an email sending task.",
@@ -2264,7 +2264,7 @@
         "/api/recordings": {
             "get": {
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "[Recordings] List all recordings",
                 "description": "Get a paginated list of all recordings.",
@@ -2338,7 +2338,7 @@
             },
             "post": {
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "[Recordings] Save a new recording",
                 "description": "Upload an audio file and save its metadata.",
@@ -2425,7 +2425,7 @@
         "/api/recordings/{id}": {
             "get": {
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "[Recordings] Get recording by ID",
                 "description": "Retrieve metadata for a specific recording.",
@@ -2502,7 +2502,7 @@
             },
             "delete": {
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "[Recordings] Delete a recording",
                 "description": "Remove a recording and its associated file from the system.",

@@ -80,9 +80,9 @@ domain_map = {
     '02. Terminal': 'Terminal',
     '03. Scenes': 'Scenes',
     '04. Models': 'Models',
-    '06. Recordings': 'Recordings',
-    '07. Mail': 'Mail',
-    '08. Common': 'Common',
+    '05. Recordings': 'Recordings',
+    '06. Mail': 'Mail',
+    '07. Common': 'Common',
 }
 
 # Subdomain detection from path

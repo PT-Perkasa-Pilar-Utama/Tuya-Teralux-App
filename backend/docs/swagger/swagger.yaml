@@ -1144,7 +1144,7 @@ paths:
             $ref: '#/definitions/dtos.ErrorResponse'
       summary: Fetch device and booking info by MAC address
       tags:
-      - 08. Common
+      - 07. Common
   /api/cache/flush:
     delete:
       consumes:
@@ -1165,7 +1165,7 @@ paths:
       - BearerAuth: []
       summary: Flush all cache
       tags:
-      - 08. Common
+      - 07. Common
   /api/devices:
     post:
       consumes:
@@ -1491,7 +1491,7 @@ paths:
             type: string
       summary: Health check endpoint
       tags:
-      - 08. Common
+      - 07. Common
   /api/mail/send:
     post:
       consumes:
@@ -1528,7 +1528,7 @@ paths:
       - BearerAuth: []
       summary: Send an email using a template
       tags:
-      - 07. Mail
+      - 06. Mail
   /api/mail/send/mac/{mac_address}:
     post:
       consumes:
@@ -1575,7 +1575,7 @@ paths:
       - BearerAuth: []
       summary: Send an email by Terminal MAC Address
       tags:
-      - 07. Mail
+      - 06. Mail
   /api/mail/status/{task_id}:
     get:
       description: Get the status and result of an email sending task.
@@ -1609,7 +1609,7 @@ paths:
       - BearerAuth: []
       summary: Get email task status
       tags:
-      - 07. Mail
+      - 06. Mail
   /api/models/gemini:
     post:
       consumes:
@@ -2311,7 +2311,7 @@ paths:
       - BearerAuth: []
       summary: List all recordings
       tags:
-      - 06. Recordings
+      - 05. Recordings
     post:
       consumes:
       - multipart/form-data
@@ -2354,7 +2354,7 @@ paths:
       - BearerAuth: []
       summary: Save a new recording
       tags:
-      - 06. Recordings
+      - 05. Recordings
   /api/recordings/{id}:
     delete:
       description: Remove a recording and its associated file from the system.
@@ -2383,7 +2383,7 @@ paths:
       - BearerAuth: []
       summary: Delete a recording
       tags:
-      - 06. Recordings
+      - 05. Recordings
     get:
       description: Retrieve metadata for a specific recording.
       parameters:
@@ -2420,7 +2420,7 @@ paths:
       - BearerAuth: []
       summary: Get recording by ID
       tags:
-      - 06. Recordings
+      - 05. Recordings
   /api/scenes:
     get:
       description: Retrieve all configured scenes grouped under each Terminal device

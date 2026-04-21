@@ -31,7 +31,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Fetch device and booking info by MAC address",
                 "parameters": [
@@ -99,7 +99,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -647,7 +647,7 @@
                     "text/plain"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -681,7 +681,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Send an email using a template",
                 "parameters": [
@@ -744,7 +744,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Send an email by Terminal MAC Address",
                 "parameters": [
@@ -817,7 +817,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Get email task status",
                 "parameters": [
@@ -1968,7 +1968,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "List all recordings",
                 "parameters": [
@@ -2032,7 +2032,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Save a new recording",
                 "parameters": [
@@ -2102,7 +2102,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Get recording by ID",
                 "parameters": [
@@ -2164,7 +2164,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Delete a recording",
                 "parameters": [
