@@ -80,7 +80,6 @@ domain_map = {
     '02. Terminal': 'Terminal',
     '03. Scenes': 'Scenes',
     '04. Models': 'Models',
-    '05. Models-v1': 'Models-v1',
     '06. Recordings': 'Recordings',
     '07. Mail': 'Mail',
     '08. Common': 'Common',
