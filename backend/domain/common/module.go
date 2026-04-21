@@ -59,7 +59,7 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 		c.File("./docs/openapi/openapi.yaml")
 	})
 	router.GET("/openapi/", func(c *gin.Context) {
-		c.File("./docs/openapi/openapi.html")
+		c.File("./docs/openapi/index.html")
 	})
 
 	// Protected Routes
