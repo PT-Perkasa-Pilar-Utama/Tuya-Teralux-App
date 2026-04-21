@@ -23,7 +23,7 @@ func NewMailStatusController(statusUC tasks.GenericStatusUseCase[mail_dtos.MailS
 // GetStatus handles GET /api/mail/status/{task_id}
 // @Summary Get email task status
 // @Description Get the status and result of an email sending task.
-// @Tags 07. Mail
+// @Tags 06. Mail
 // @Security BearerAuth
 // @Produce json
 // @Param task_id path string true "Task ID"

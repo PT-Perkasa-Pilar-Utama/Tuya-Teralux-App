@@ -28,7 +28,7 @@ func NewMailSendByMacController(useCase usecases.MailSendByMacUseCase) *MailSend
 // SendMailByMac handles POST /api/mail/send/mac/:mac_address
 // @Summary Send an email by Terminal MAC Address
 // @Description Looks up customer email by MAC address and sends an email using a template
-// @Tags 07. Mail
+// @Tags 06. Mail
 // @Accept json
 // @Produce json
 // @Param mac_address path string true "Terminal MAC Address"
