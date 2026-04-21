@@ -2,8 +2,8 @@ package skills
 
 import (
 	"context"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 )
 
 // LLMClient represents the external LLM client used by RAG.

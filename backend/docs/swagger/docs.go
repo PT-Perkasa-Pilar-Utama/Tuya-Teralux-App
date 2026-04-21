@@ -34,7 +34,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Fetch device and booking info by MAC address",
                 "parameters": [
@@ -102,7 +102,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Flush all cache",
                 "responses": {
@@ -650,7 +650,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "08. Common"
+                    "07. Common"
                 ],
                 "summary": "Health check endpoint",
                 "responses": {
@@ -684,7 +684,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Send an email using a template",
                 "parameters": [
@@ -747,7 +747,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Send an email by Terminal MAC Address",
                 "parameters": [
@@ -820,7 +820,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "07. Mail"
+                    "06. Mail"
                 ],
                 "summary": "Get email task status",
                 "parameters": [
@@ -1737,698 +1737,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/models/v1/pipeline/job": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Execute a full AI pipeline (transcribe, translate, summarize)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Execute AI pipeline job",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Audio file",
-                        "name": "audio",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Source language (default: id)",
-                        "name": "language",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Target language (default: en)",
-                        "name": "target_language",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Enable summarization (true/false)",
-                        "name": "summarize",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Enable speaker diarization (true/false)",
-                        "name": "diarize",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Enable refinement (true/false)",
-                        "name": "refine",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Comma-separated participant names",
-                        "name": "participants",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.TaskIDResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/pipeline/status/{task_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get the status of a pipeline job by ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Get pipeline status",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Task ID",
-                        "name": "task_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.V1PipelineStatusResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/rag/chat": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Chat using the legacy Python RAG service",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Chat with model (v1)",
-                "parameters": [
-                    {
-                        "description": "Chat request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.RAGRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/rag/control": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Control devices using the legacy Python RAG service",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Device control (v1)",
-                "parameters": [
-                    {
-                        "description": "Control request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.RAGRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/rag/status/{task_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get the status of a RAG task by ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Get RAG status (v1)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Task ID",
-                        "name": "task_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/rag/summary": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Summarize text using the legacy Python RAG service",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Summarize text (v1)",
-                "parameters": [
-                    {
-                        "description": "Summary request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.RAGRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/rag/translate": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Translate text using the legacy Python RAG service",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Translate text (v1)",
-                "parameters": [
-                    {
-                        "description": "Translation request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.RAGRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/whisper/status/{transcribe_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get the status of a transcription task by ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Get transcription status (v1)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Transcription Task ID",
-                        "name": "transcribe_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/whisper/transcribe": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Transcribe an audio file by providing its local path",
-                "consumes": [
-                    "application/x-www-form-urlencoded"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Transcribe audio (v1)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Local path to audio file",
-                        "name": "audio_path",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Audio language",
-                        "name": "language",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Enable speaker diarization",
-                        "name": "diarize",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.StandardResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/whisper/uploads/sessions": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Initialize a new chunked upload session for a large audio file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Create upload session (v1)",
-                "parameters": [
-                    {
-                        "description": "Upload session configuration",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/whisper/uploads/sessions/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get the current status and progress of an upload session",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Get upload session status (v1)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Session ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/models/v1/whisper/uploads/sessions/{id}/chunks/{index}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Upload a single chunk of an audio file for a session",
-                "consumes": [
-                    "application/octet-stream"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "05. Models-v1"
-                ],
-                "summary": "Upload chunk (v1)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Session ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Chunk index",
-                        "name": "index",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Binary chunk data",
-                        "name": "chunk",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/models/whisper/transcribe": {
             "post": {
                 "security": [
@@ -2651,70 +1959,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/notification/publish": {
-            "post": {
-                "description": "Publishes a notification to all terminals in the room via MQTT.\nIf phone_number is provided, a WhatsApp notification will be scheduled to be sent at the specified time.\nRequires date, time, timezone, phone_number array, and template (start_meeting or end_meeting).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "08. Common"
-                ],
-                "summary": "Publish a notification to all terminals in a room (with optional WhatsApp)",
-                "parameters": [
-                    {
-                        "description": "Notification details (phone_number is optional)",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dtos.NotificationPublishRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/dtos.StandardResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dtos.NotificationPublishResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ValidationErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dtos.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/recordings": {
             "get": {
                 "security": [
@@ -2727,7 +1971,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "List all recordings",
                 "parameters": [
@@ -2791,7 +2035,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Save a new recording",
                 "parameters": [
@@ -2861,7 +2105,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Get recording by ID",
                 "parameters": [
@@ -2923,7 +2167,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "06. Recordings"
+                    "05. Recordings"
                 ],
                 "summary": "Delete a recording",
                 "parameters": [
@@ -4578,18 +3822,25 @@ const docTemplate = `{
     "definitions": {
         "dtos.ActionDTO": {
             "type": "object",
+            "required": [
+                "code",
+                "device_id"
+            ],
             "properties": {
                 "code": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100
                 },
                 "device_id": {
                     "type": "string"
                 },
                 "remote_id": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255
                 },
                 "topic": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255
                 },
                 "value": {}
             }
@@ -4794,17 +4045,25 @@ const docTemplate = `{
         "dtos.CreateSceneRequestDTO": {
             "type": "object",
             "required": [
+                "actions",
                 "name"
             ],
             "properties": {
                 "actions": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "$ref": "#/definitions/dtos.ActionDTO"
                     }
                 },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
                 }
             }
         },
@@ -5084,73 +4343,6 @@ const docTemplate = `{
                 "task_status": {
                     "type": "string",
                     "example": "pending"
-                }
-            }
-        },
-        "dtos.NotificationPublishRequest": {
-            "type": "object",
-            "required": [
-                "room_id"
-            ],
-            "properties": {
-                "date": {
-                    "type": "string",
-                    "example": "2026-03-17"
-                },
-                "phone_numbers": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "See phone_numbers array for values"
-                    ]
-                },
-                "room_id": {
-                    "type": "string",
-                    "example": "123"
-                },
-                "template": {
-                    "type": "string",
-                    "example": "start_meeting"
-                },
-                "time": {
-                    "type": "string",
-                    "example": "14:00:00"
-                },
-                "timezone": {
-                    "type": "string",
-                    "example": "Asia/Jakarta"
-                }
-            }
-        },
-        "dtos.NotificationPublishResponse": {
-            "type": "object",
-            "properties": {
-                "publish_at": {
-                    "type": "string",
-                    "example": "2026-03-17T13:45:00+07:00"
-                },
-                "published_count": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "published_topics": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "[\"users/AA:BB:CC:DD:EE:FF/dev/notification\"]"
-                    ]
-                },
-                "room_id": {
-                    "type": "string",
-                    "example": "123"
-                },
-                "wa_notification_id": {
-                    "type": "string",
-                    "example": "uuid-here"
                 }
             }
         },
@@ -5701,15 +4893,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dtos.TaskIDResponseDTO": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string",
-                    "example": "task-123"
-                }
-            }
-        },
         "dtos.TerminalListResponseDTO": {
             "type": "object",
             "properties": {
@@ -6068,6 +5251,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/dtos.ActionDTO"
                     }
                 },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
                 "name": {
                     "type": "string",
                     "example": "Evening Mode"
@@ -6130,38 +5317,6 @@ const docTemplate = `{
                 "text": {
                     "description": "Transcribed text for this utterance",
                     "type": "string"
-                }
-            }
-        },
-        "dtos.V1PipelineStatusResponseDTO": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
-                },
-                "refined_text": {
-                    "type": "string",
-                    "example": "Hello, world."
-                },
-                "status": {
-                    "type": "string",
-                    "example": "completed"
-                },
-                "summary": {
-                    "type": "string",
-                    "example": "A greeting to the world."
-                },
-                "task_id": {
-                    "type": "string",
-                    "example": "pipeline_task_123"
-                },
-                "transcript": {
-                    "type": "string",
-                    "example": "Hello world"
-                },
-                "translated": {
-                    "type": "string",
-                    "example": "Halo dunia"
                 }
             }
         },
@@ -6237,92 +5392,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "sensio_domain_models-v1_whisper_dtos.CreateUploadSessionRequest": {
-            "type": "object",
-            "required": [
-                "file_name",
-                "total_size_bytes"
-            ],
-            "properties": {
-                "chunk_size_bytes": {
-                    "type": "integer"
-                },
-                "file_name": {
-                    "type": "string"
-                },
-                "mime_type": {
-                    "type": "string"
-                },
-                "total_size_bytes": {
-                    "type": "integer"
-                }
-            }
-        },
-        "sensio_domain_models-v1_whisper_dtos.UploadChunkAckDTO": {
-            "type": "object",
-            "properties": {
-                "is_duplicate": {
-                    "type": "boolean"
-                },
-                "received_bytes": {
-                    "type": "integer"
-                },
-                "received_chunks": {
-                    "type": "integer"
-                },
-                "state": {
-                    "type": "string"
-                }
-            }
-        },
-        "sensio_domain_models-v1_whisper_dtos.UploadSessionResponseDTO": {
-            "type": "object",
-            "properties": {
-                "chunk_size_bytes": {
-                    "type": "integer"
-                },
-                "expires_at": {
-                    "type": "integer"
-                },
-                "missing_ranges": {
-                    "description": "e.g. [\"0-2\", \"5\"]",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "received_bytes": {
-                    "type": "integer"
-                },
-                "session_id": {
-                    "type": "string"
-                },
-                "state": {
-                    "description": "uploading, ready, consumed, aborted, expired",
-                    "type": "string"
-                },
-                "total_chunks": {
-                    "type": "integer"
-                },
-                "total_size_bytes": {
-                    "type": "integer"
-                }
-            }
-        },
-        "services.RAGRequest": {
-            "type": "object",
-            "properties": {
-                "language": {
-                    "type": "string"
-                },
-                "mac_address": {
-                    "type": "string"
-                },
-                "text": {
-                    "type": "string"
-                }
-            }
         }
     },
     "securityDefinitions": {
@@ -6356,20 +5425,16 @@ const docTemplate = `{
             "name": "04. Models"
         },
         {
-            "description": "New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API",
-            "name": "05. Models-v1"
-        },
-        {
             "description": "Recordings management endpoints",
-            "name": "06. Recordings"
+            "name": "05. Recordings"
         },
         {
             "description": "Mail service endpoints",
-            "name": "07. Mail"
+            "name": "06. Mail"
         },
         {
             "description": "Common endpoints (Health, Cache, External APIs)",
-            "name": "08. Common"
+            "name": "07. Common"
         }
     ]
 }`

@@ -3,8 +3,8 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/tuya/dtos"
 	"sensio/domain/tuya/entities"
 	"sync"

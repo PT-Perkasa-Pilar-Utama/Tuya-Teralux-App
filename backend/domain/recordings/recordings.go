@@ -3,7 +3,7 @@ package recordings
 import (
 	"github.com/gin-gonic/gin"
 
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 	"sensio/domain/recordings/controllers"
 	"sensio/domain/recordings/repositories"
 	"sensio/domain/recordings/services"

@@ -44,12 +44,12 @@ func main() {
 
 // CLI handles command-line interaction
 type CLI struct {
-	deviceService    *service.DeviceService
-	commandService   *service.CommandService
-	passwordService  *service.PasswordService
-	deviceID         string
-	reader           *bufio.Reader
-	currentDevice    interface{} // cache
+	deviceService     *service.DeviceService
+	commandService    *service.CommandService
+	passwordService   *service.PasswordService
+	deviceID          string
+	reader            *bufio.Reader
+	currentDevice     interface{} // cache
 	lastStatusRefresh time.Time
 }
 

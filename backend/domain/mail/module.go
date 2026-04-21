@@ -1,10 +1,10 @@
 package mail
 
 import (
-	"sensio/domain/common/infrastructure"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/mail/controllers"
 	"sensio/domain/mail/dtos"
 	"sensio/domain/mail/routes"

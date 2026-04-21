@@ -3,6 +3,7 @@ package main
 // Trigger documentation refresh build
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,14 +14,15 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"sensio/domain/common"
-	common_entities "sensio/domain/common/entities"
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/common/controllers"
 	"sensio/domain/common/middlewares"
-	"sensio/domain/common/services"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/mail"
 	"sensio/domain/models"
-	models_v1 "sensio/domain/models-v1"
+	notification_entities "sensio/domain/notification/entities"
+	"sensio/domain/notification"
+	notification_services "sensio/domain/notification/services"
 	"sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
 	"sensio/domain/scene"
@@ -28,6 +30,7 @@ import (
 	"sensio/domain/terminal"
 	device_entities "sensio/domain/terminal/device/entities"
 	device_repositories "sensio/domain/terminal/device/repositories"
+	device_status_entities "sensio/domain/terminal/device_status/entities"
 	terminal_entities "sensio/domain/terminal/terminal/entities"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/tuya"
@@ -68,16 +71,13 @@ import (
 // @tag.name 04. Models
 // @tag.description AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain
 
-// @tag.name 05. Models-v1
-// @tag.description New AI Model endpoints (Whisper, RAG, Pipeline) - v1 API
-
-// @tag.name 06. Recordings
+// @tag.name 05. Recordings
 // @tag.description Recordings management endpoints
 
-// @tag.name 07. Mail
+// @tag.name 06. Mail
 // @tag.description Mail service endpoints
 
-// @tag.name 08. Common
+// @tag.name 07. Common
 // @tag.description Common endpoints (Health, Cache, External APIs)
 func main() {
 	// CLI: Healthcheck
@@ -117,9 +117,10 @@ func run() error {
 	if err := infrastructure.DB.AutoMigrate(
 		&terminal_entities.Terminal{},
 		&device_entities.Device{},
+		&device_status_entities.DeviceStatus{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
-		&common_entities.ScheduledNotification{},
+		&notification_entities.ScheduledNotification{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate entities: %w", err)
 	}
@@ -157,15 +158,16 @@ func run() error {
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, terminalRepo)
 	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
+	notificationModule := notification.NewNotificationModule(badgerService, mqttService, terminalRepo)
+
 	terminalModule := terminal.NewTerminalModule(badgerService, deviceRepo, tuyaModule.AuthUseCase, tuyaModule.GetDeviceByIDUseCase, tuyaModule.DeviceControlUseCase)
 	// Register Routes
 	protected := router.Group("/")
 	protected.Use(middlewares.AuthMiddleware(tuyaModule.AuthUseCase))
 	protected.Use(middlewares.TuyaErrorMiddleware())
 
-	// Static File Serving (for audio uploads)
-	// Access via: /uploads/audio/filename.ext
-	router.Static("/uploads", "./uploads")
+	// Static File Serving (protected via auth middleware)
+	protected.GET("/uploads/:filename", middlewares.AuthMiddleware(tuyaModule.AuthUseCase), controllers.ServeProtectedUploads())
 
 	// 1. Common Routes (Health, Cache)
 	commonModule.RegisterRoutes(router, protected)
@@ -178,6 +180,9 @@ func run() error {
 
 	// 3a. Mail Routes
 	mailModule.RegisterRoutes(protected)
+
+	// 3b. Notification Routes
+	notificationModule.RegisterRoutes(protected)
 
 	// 4. Recordings Module
 	recordingsModule := recordings.NewRecordingsModule(badgerService)
@@ -245,10 +250,6 @@ func run() error {
 		commonModule.StorageProvider,
 	)
 
-	// 5b. Models-v1 Module (v1 routes: /api/models/v1/...)
-	// This provides access to Python AI services via gRPC/REST
-	models_v1.InitModule(protected, scfg)
-
 	// 6. Scene Module
 	sceneModule := scene.NewSceneModule(infrastructure.DB, tuyaModule.DeviceControlUseCase, mqttService)
 	sceneModule.RegisterRoutes(protected)
@@ -257,20 +258,9 @@ func run() error {
 	router.GET("/api/health", commonModule.HealthController.CheckHealth)
 
 	// Start notification scheduler worker for WA notifications
-	notificationWorker := services.NewNotificationSchedulerWorker(scfg.WANotificationBaseURL)
+	notificationWorker := notification_services.NewNotificationSchedulerWorker(scfg.WANotificationBaseURL)
 	notificationWorker.Start()
 	utils.LogInfo("Notification scheduler worker started with WA endpoint: %s", scfg.WANotificationBaseURL)
-
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-quit
-		utils.LogInfo("Shutting down server...")
-		notificationWorker.Stop()
-		os.Exit(0)
-	}()
 
 	port := scfg.Port
 	if port == "" {
@@ -284,6 +274,19 @@ func run() error {
 		WriteTimeout: 1 * time.Hour, // Long timeout for slow responses
 		IdleTimeout:  5 * time.Minute,
 	}
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		utils.LogInfo("Shutting down server...")
+		notificationWorker.Stop()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		server.Shutdown(ctx)
+	}()
 
 	utils.LogInfo("Server starting on :%s", port)
 	return server.ListenAndServe()

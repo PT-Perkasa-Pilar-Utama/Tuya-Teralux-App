@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sensio/domain/common/infrastructure"
-	"sensio/domain/common/providers"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
 	"sensio/domain/models/rag/skills/orchestrator"
+	speechUsecases "sensio/domain/speech/usecases"
 	tuyaDtos "sensio/domain/tuya/dtos"
 	"strings"
 	"time"
@@ -28,7 +28,7 @@ type ChatUseCaseImpl struct {
 	guard            *orchestrator.GuardOrchestrator
 	fastIntentRouter *orchestrator.FastIntentRouter
 	decisionEngine   *orchestrator.AssistantDecisionEngineImpl
-	providerResolver providers.ProviderResolver
+	providerResolver speechUsecases.ProviderResolver
 	controlUseCase   ControlUseCase // For actual device execution
 	// Keep orchestrator for backward compatibility during migration
 	orchestrator *orchestrator.Router
@@ -43,7 +43,7 @@ func NewChatUseCase(
 	guard *orchestrator.GuardOrchestrator,
 	fastIntentRouter *orchestrator.FastIntentRouter,
 	decisionEngine *orchestrator.AssistantDecisionEngineImpl,
-	providerResolver providers.ProviderResolver,
+	providerResolver speechUsecases.ProviderResolver,
 	controlUseCase ControlUseCase,
 	orchestrator *orchestrator.Router, // kept for migration
 ) ChatUseCase {
@@ -118,10 +118,14 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 
 				// Cache corrupted, delete and continue
 				utils.LogWarn("ChatUseCase: Idempotency cache corrupted | request_id=%s | error=%v", requestID, err)
-				_ = u.badger.Delete(idempotencyKey)
+				if err := u.badger.Delete(idempotencyKey); err != nil {
+					utils.LogWarn("ChatUseCase: Failed to delete idempotency cache | request_id=%s | error=%v", requestID, err)
+				}
 			} else if ttlRemaining == 0 {
 				// Key expired, clean up and continue
-				_ = u.badger.Delete(idempotencyKey)
+				if err := u.badger.Delete(idempotencyKey); err != nil {
+					utils.LogWarn("ChatUseCase: Failed to delete expired idempotency key | request_id=%s | error=%v", requestID, err)
+				}
 			}
 		}
 	}
@@ -131,10 +135,14 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 	historyKey := fmt.Sprintf("chat_history:%s", terminalID)
 	var history []string
 	if u.badger != nil {
-		data, _ := u.badger.Get(historyKey)
-		if data != nil {
+		data, err := u.badger.Get(historyKey)
+		if err != nil {
+			utils.LogWarn("ChatUseCase: Failed to get history | key=%s | error=%v", historyKey, err)
+		} else if data != nil {
 			unmarshalStart := time.Now()
-			_ = json.Unmarshal(data, &history)
+			if err := json.Unmarshal(data, &history); err != nil {
+				utils.LogWarn("ChatUseCase: Failed to unmarshal history | key=%s | error=%v", historyKey, err)
+			}
 			utils.LogDebug("ChatUseCase: History retrieved | key=%s | cache_duration_ms=%d | unmarshal_duration_ms=%d | history_size=%d", historyKey, time.Since(historyStart).Milliseconds()-time.Since(unmarshalStart).Milliseconds(), time.Since(unmarshalStart).Milliseconds(), len(history))
 		} else {
 			utils.LogDebug("ChatUseCase: History not found | key=%s | duration_ms=%d", historyKey, time.Since(historyStart).Milliseconds())
@@ -332,7 +340,9 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 		marshalDuration := time.Since(marshalStart)
 
 		setStart := time.Now()
-		_ = u.badger.Set(historyKey, data)
+		if err := u.badger.Set(historyKey, data); err != nil {
+			utils.LogWarn("ChatUseCase: Failed to save history | key=%s | error=%v", historyKey, err)
+		}
 		setDuration := time.Since(setStart)
 
 		utils.LogDebug("ChatUseCase: History saved | key=%s | marshal_duration_ms=%d | set_duration_ms=%d | history_size=%d", historyKey, marshalDuration.Milliseconds(), setDuration.Milliseconds(), len(history))
@@ -523,8 +533,14 @@ func (u *ChatUseCaseImpl) saveHistoryIfNotBlocked(badger *infrastructure.BadgerS
 	if len(history) > 20 {
 		history = history[len(history)-20:]
 	}
-	data, _ := json.Marshal(history)
-	_ = badger.Set(historyKey, data)
+	data, err := json.Marshal(history)
+	if err != nil {
+		utils.LogWarn("ChatUseCase: Failed to marshal history | key=%s | error=%v", historyKey, err)
+		return time.Since(historyStart)
+	}
+	if err := badger.Set(historyKey, data); err != nil {
+		utils.LogWarn("ChatUseCase: Failed to save history | key=%s | error=%v", historyKey, err)
+	}
 	return time.Since(historyStart)
 }
 
@@ -695,7 +711,7 @@ func (u *ChatUseCaseImpl) executeDecisionWithFallback(skillCtx *skills.SkillCont
 
 	if skillCtx.TerminalID != "" {
 		// Use terminal-specific provider preference
-		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx.LLM = resolvedSet.LLM
 			u.decisionEngine.SetLLM(resolvedSet.LLM)
 
@@ -710,7 +726,7 @@ func (u *ChatUseCaseImpl) executeDecisionWithFallback(skillCtx *skills.SkillCont
 		})
 	} else {
 		// Use standard health-aware fallback
-		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx.LLM = resolvedSet.LLM
 			u.decisionEngine.SetLLM(resolvedSet.LLM)
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 )
 
 // BadgerStore defines the interface for badger database operations

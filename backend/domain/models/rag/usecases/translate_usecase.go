@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sensio/domain/common/providers"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
+	speechUsecases "sensio/domain/speech/usecases"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,10 +28,10 @@ type translateUseCase struct {
 	store            *tasks.StatusStore[dtos.RAGStatusDTO]
 	mqttSvc          mqttPublisher
 	skill            skills.Skill
-	providerResolver providers.ProviderResolver
+	providerResolver speechUsecases.ProviderResolver
 }
 
-func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher, skill skills.Skill, providerResolver providers.ProviderResolver) TranslateUseCase {
+func NewTranslateUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, cache *tasks.BadgerTaskCache, store *tasks.StatusStore[dtos.RAGStatusDTO], mqttSvc mqttPublisher, skill skills.Skill, providerResolver speechUsecases.ProviderResolver) TranslateUseCase {
 	return &translateUseCase{
 		llm:              llm,
 		fallbackLLM:      fallbackLLM,
@@ -58,7 +58,7 @@ func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLa
 	if len(args) > 0 && args[0] != "" {
 		// Use terminal-specific provider preference
 		macAddress := args[0]
-		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx := &skills.SkillContext{
 				Ctx:      ctx,
 				Prompt:   text,
@@ -74,7 +74,7 @@ func (u *translateUseCase) translateInternal(ctx context.Context, text, targetLa
 		})
 	} else {
 		// Use standard health-aware fallback
-		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx := &skills.SkillContext{
 				Ctx:      ctx,
 				Prompt:   text,

@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sensio/domain/common/providers"
-	"sensio/domain/common/services"
 	"sensio/domain/common/tasks"
-	"sensio/domain/common/utils"
+	commonUtils "sensio/domain/common/utils"
 	ragUsecases "sensio/domain/models/rag/usecases"
 	whisperdtos "sensio/domain/models/whisper/dtos"
+	speechUsecases "sensio/domain/speech/usecases"
+	speechServices "sensio/domain/speech/services"
+	speechUtils "sensio/domain/speech/utils"
 	"strings"
 	"sync"
 	"time"
@@ -60,11 +61,11 @@ type transcribeUseCase struct {
 	refineUC            ragUsecases.RefineUseCase
 	store               *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO]
 	cache               *tasks.BadgerTaskCache
-	config              *utils.Config
+	config              *commonUtils.Config
 	mqttSvc             mqttPublisher
-	providerResolver    providers.ProviderResolver
-	audioAnalyzer       utils.AudioAnalyzer
-	transcriptValidator utils.TranscriptValidator
+	providerResolver    speechUsecases.ProviderResolver
+	audioAnalyzer       speechUtils.AudioAnalyzer
+	transcriptValidator speechUtils.TranscriptValidator
 }
 
 func NewTranscribeUseCase(
@@ -72,11 +73,11 @@ func NewTranscribeUseCase(
 	refineUC ragUsecases.RefineUseCase,
 	store *tasks.StatusStore[whisperdtos.AsyncTranscriptionStatusDTO],
 	cache *tasks.BadgerTaskCache,
-	config *utils.Config,
+	config *commonUtils.Config,
 	mqttSvc mqttPublisher,
-	providerResolver providers.ProviderResolver,
-	audioAnalyzer utils.AudioAnalyzer,
-	transcriptValidator utils.TranscriptValidator,
+	providerResolver speechUsecases.ProviderResolver,
+	audioAnalyzer speechUtils.AudioAnalyzer,
+	transcriptValidator speechUtils.TranscriptValidator,
 ) TranscribeUseCase {
 	return &transcribeUseCase{
 		whisperClient:       whisperClient,
@@ -97,7 +98,7 @@ func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, process
 	var finalResult *whisperdtos.WhisperResult
 	var actualProvider string
 
-	executable := func(resolvedSet *providers.ResolvedProviderSet) error {
+	executable := func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 		if resolvedSet.WhisperClient == nil {
 			return fmt.Errorf("no Whisper client available for provider %s", resolvedSet.ProviderName)
 		}
@@ -135,7 +136,7 @@ func (uc *transcribeUseCase) CheckIdempotency(idempotencyKey string, audioHash s
 		return "", false
 	}
 	hashInput := fmt.Sprintf("%s_%s_%s_%s", idempotencyKey, language, terminalID, audioHash)
-	idempotencyHash := "idemp_transcribe_" + utils.HashString(hashInput)
+	idempotencyHash := "idemp_transcribe_" + commonUtils.HashString(hashInput)
 
 	var existingTaskID string
 	if _, exists, _ := uc.cache.GetWithTTL(idempotencyHash, &existingTaskID); exists && existingTaskID != "" {
@@ -156,7 +157,7 @@ func (uc *transcribeUseCase) CheckIdempotency(idempotencyKey string, audioHash s
 
 func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath string, fileName string, language string, metadata ...TranscriptionMetadata) (string, error) {
 	if _, err := os.Stat(inputPath); err != nil {
-		utils.LogError("Transcribe: Failed to stat audio file: %v", err)
+		commonUtils.LogError("Transcribe: Failed to stat audio file: %v", err)
 		return "", fmt.Errorf("audio file not found")
 	}
 
@@ -169,9 +170,9 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 	var idempotencyHash string
 	if meta != nil && meta.IdempotencyKey != "" {
 		// Create a deterministic hash based on idempotency key, language, terminal ID, and audio content
-		audioHash, _ := utils.HashFile(inputPath)
+		audioHash, _ := commonUtils.HashFile(inputPath)
 		hashInput := fmt.Sprintf("%s_%s_%s_%s", meta.IdempotencyKey, language, meta.TerminalID, audioHash)
-		idempotencyHash = "idemp_transcribe_" + utils.HashString(hashInput)
+		idempotencyHash = "idemp_transcribe_" + commonUtils.HashString(hashInput)
 
 		// Check if a task already exists for this idempotency key
 		var existingTaskID string
@@ -189,14 +190,14 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 			}
 
 			if ok && status != nil && status.Status != "failed" {
-				utils.LogInfo("Transcribe Task: Duplicate request detected for IdempotencyKey %s. Returning existing TaskID %s (Status: %s)", meta.IdempotencyKey, existingTaskID, status.Status)
+				commonUtils.LogInfo("Transcribe Task: Duplicate request detected for IdempotencyKey %s. Returning existing TaskID %s (Status: %s)", meta.IdempotencyKey, existingTaskID, status.Status)
 				return existingTaskID, nil
 			}
-			utils.LogInfo("Transcribe Task: Found existing task %s for key %s but it failed or could not be loaded. Proceeding with new task.", existingTaskID, meta.IdempotencyKey)
+			commonUtils.LogInfo("Transcribe Task: Found existing task %s for key %s but it failed or could not be loaded. Proceeding with new task.", existingTaskID, meta.IdempotencyKey)
 		}
 	}
 
-	taskID := utils.GenerateUUID()
+	taskID := commonUtils.GenerateUUID()
 
 	ttl, err := time.ParseDuration(uc.config.TaskStatusTTL)
 	if err != nil {
@@ -233,7 +234,7 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 
 	// Mark terminal as actively transcribing if applicable
 	if meta != nil && meta.TerminalID != "" && meta.Source == "mqtt" {
-		utils.ActiveTranscriptions.Store(meta.TerminalID, true)
+		commonUtils.ActiveTranscriptions.Store(meta.TerminalID, true)
 	}
 
 	timeout, err := time.ParseDuration(uc.config.TranscribeAsyncTimeout)
@@ -266,10 +267,10 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		macAddress := opts.TerminalContext[0]
 		resolved, err := uc.providerResolver.ResolveByMacAddress(macAddress)
 		if err != nil {
-			utils.LogWarn("TranscribeUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
+			commonUtils.LogWarn("TranscribeUseCase: Provider resolution failed for MAC %s: %v, using default", macAddress, err)
 		} else {
 			resolvedProvider = resolved.ProviderName
-			utils.LogInfo("TranscribeUseCase: Using terminal-specific provider '%s' for MAC %s", resolvedProvider, macAddress)
+			commonUtils.LogInfo("TranscribeUseCase: Using terminal-specific provider '%s' for MAC %s", resolvedProvider, macAddress)
 		}
 	}
 
@@ -279,12 +280,12 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		defaultResolved := uc.providerResolver.ResolveDefault()
 		if defaultResolved != nil && defaultResolved.ProviderName != "" {
 			resolvedProvider = defaultResolved.ProviderName
-			utils.LogDebug("TranscribeUseCase: Using default provider '%s' for size limit calculation", resolvedProvider)
+			commonUtils.LogDebug("TranscribeUseCase: Using default provider '%s' for size limit calculation", resolvedProvider)
 		}
 	}
 
 	// 1. Audio Normalization (WAV PCM 16k Mono)
-	processingPath, audioCleanup, err := utils.NormalizeToWavPCM16k(inputPath)
+	processingPath, audioCleanup, err := speechUtils.NormalizeToWavPCM16k(inputPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to normalize audio: %w", err)
 	}
@@ -304,10 +305,10 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	if uc.audioAnalyzer != nil {
 		audioResult, analyzeErr := uc.audioAnalyzer.Analyze(processingPath)
 		if analyzeErr != nil {
-			utils.LogWarn("TranscribeSync: Audio analysis failed: %v, proceeding with transcription", analyzeErr)
+			commonUtils.LogWarn("TranscribeSync: Audio analysis failed: %v, proceeding with transcription", analyzeErr)
 		} else {
 			audioClass = string(audioResult.Class)
-			utils.LogInfo("TranscribeSync: Audio gate analysis | audio_class=%s | duration_sec=%.2f | mean_vol_db=%.1f | max_vol_db=%.1f | silence_pct=%.1f | longest_silence_sec=%.2f",
+			commonUtils.LogInfo("TranscribeSync: Audio gate analysis | audio_class=%s | duration_sec=%.2f | mean_vol_db=%.1f | max_vol_db=%.1f | silence_pct=%.1f | longest_silence_sec=%.2f",
 				audioClass,
 				audioResult.Metrics.DurationSec,
 				audioResult.Metrics.MeanVolumeDB,
@@ -316,11 +317,11 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 				audioResult.Metrics.LongestSilenceSec)
 
 			// Gate decision: skip provider for silent audio
-			if audioResult.Class == utils.AudioClassSilent {
-				utils.LogInfo("TranscribeSync: Audio gate REJECT - silent audio detected, skipping provider call")
+			if audioResult.Class == speechUtils.AudioClassSilent {
+				commonUtils.LogInfo("TranscribeSync: Audio gate REJECT - silent audio detected, skipping provider call")
 				providerSkipped = true
-			} else if audioResult.Class == utils.AudioClassNearSilent {
-				utils.LogInfo("TranscribeSync: Audio gate WARNING - near-silent audio detected, will apply stricter post-gate validation")
+			} else if audioResult.Class == speechUtils.AudioClassNearSilent {
+				commonUtils.LogInfo("TranscribeSync: Audio gate WARNING - near-silent audio detected, will apply stricter post-gate validation")
 			}
 		}
 	}
@@ -334,7 +335,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 	if useSegment {
 		// ASR Quality Gate: Skip segmentation entirely for silent audio
 		if providerSkipped {
-			utils.LogInfo("TranscribeSync: Audio gate REJECT - silent audio detected, skipping segmented transcription")
+			commonUtils.LogInfo("TranscribeSync: Audio gate REJECT - silent audio detected, skipping segmented transcription")
 			rawTranscription = ""
 			detectedLang = opts.Language
 			resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
@@ -349,20 +350,20 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 			}
 			overlapSec := uc.config.AudioSegmentOverlapSec
 
-			utils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
-			segments, splitErr := utils.SplitAudioSegments(processingPath, segmentSec, overlapSec)
+			commonUtils.LogInfo("TranscribeSync: Large audio file detected (%d bytes), starting segmented transcription (step=%ds, overlap=%ds)...", fileInfo.Size(), segmentSec, overlapSec)
+			segments, splitErr := speechUtils.SplitAudioSegments(processingPath, segmentSec, overlapSec)
 			if splitErr != nil {
 				// CRITICAL: If segmentation is mandatory (file exceeds provider limit), DO NOT fallback to full file.
 				// This would send an oversized file to the provider and cause failure.
 				if segmentationIsRequired {
-					utils.LogError("TranscribeSync: Failed to split audio and segmentation is mandatory (size=%d bytes, provider=%s, limit=%d bytes). Aborting transcription.", normalizedSize, resolvedProvider, uc.getProviderDirectLimit(resolvedProvider))
+					commonUtils.LogError("TranscribeSync: Failed to split audio and segmentation is mandatory (size=%d bytes, provider=%s, limit=%d bytes). Aborting transcription.", normalizedSize, resolvedProvider, uc.getProviderDirectLimit(resolvedProvider))
 					return nil, fmt.Errorf("failed to split oversized audio for segmented transcription: %w; cannot fallback to full-file as it exceeds provider limit", splitErr)
 				}
 				// Segmentation was optional (flag-based), safe to fallback
-				utils.LogWarn("TranscribeSync: Failed to split audio, falling back to full file (segmentation was optional): %v", splitErr)
+				commonUtils.LogWarn("TranscribeSync: Failed to split audio, falling back to full file (segmentation was optional): %v", splitErr)
 				useSegment = false
 			} else {
-				defer utils.CleanupSegments(segments)
+				defer speechUtils.CleanupSegments(segments)
 
 				type segResult struct {
 					index int
@@ -372,7 +373,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 				}
 
 				results := make([]segResult, len(segments))
-				concurrency := utils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency)
+				concurrency := commonUtils.MaxInt(1, uc.config.AudioSegmentMaxConcurrency)
 				if opts.ForceSegmentConcurrency > 0 {
 					concurrency = opts.ForceSegmentConcurrency
 				} else if opts.IsPipeline && resolvedProvider == "orion" {
@@ -452,7 +453,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 						detectedLang = r.lang
 					} else {
 						// Use utility merge function that handles overlap detection
-						overlapChars := utils.FindOverlapLength(mergedText, r.text)
+						overlapChars := speechUtils.FindOverlapLength(mergedText, r.text)
 						if overlapChars > 0 {
 							r.text = r.text[overlapChars:]
 						}
@@ -476,7 +477,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 					// Parse utterances from this segment ONLY if diarization was requested
 					// This prevents false-positive structured output when diarize=false
 					if opts.Diarize {
-						if segmentUtterances := utils.ParseUtterancesFromText(r.text); len(segmentUtterances) > 0 {
+						if segmentUtterances := speechUtils.ParseUtterancesFromText(r.text); len(segmentUtterances) > 0 {
 							// Adjust utterance timestamps to global timeline
 							for j := range segmentUtterances {
 								segmentUtterances[j].StartMs += cumulativeOffsetMs
@@ -497,7 +498,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 				resultUtterances = allUtterances
 				if len(allUtterances) > 0 {
 					resultTranscriptFormat = whisperdtos.TranscriptFormatUtteranceList
-					resultConfidenceSummary = utils.BuildConfidenceSummary(allUtterances, len(allSegments))
+					resultConfidenceSummary = speechUtils.BuildConfidenceSummary(allUtterances, len(allSegments))
 				} else {
 					resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
 				}
@@ -571,10 +572,10 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 	defer func() {
 		// Defensive cleanup in case of panic or early exit
 		if metadata != nil && metadata.TerminalID != "" && metadata.Source == "mqtt" {
-			utils.ActiveTranscriptions.Delete(metadata.TerminalID)
+			commonUtils.ActiveTranscriptions.Delete(metadata.TerminalID)
 		}
 		if r := recover(); r != nil {
-			utils.LogError("Transcribe Task %s: Panic recovered: %v", taskID, r)
+			commonUtils.LogError("Transcribe Task %s: Panic recovered: %v", taskID, r)
 			uc.updateStatus(taskID, "failed", nil, fmt.Errorf("internal panic: %v", r))
 		}
 	}()
@@ -602,7 +603,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 
 	finalResult, err := uc.TranscribeAudioSync(ctx, inputPath, opts)
 	if err != nil {
-		utils.LogError("Transcribe Task %s: Failed: %v", taskID, err)
+		commonUtils.LogError("Transcribe Task %s: Failed: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", nil, err)
 
 		if metadata != nil && metadata.DeleteAfter {
@@ -611,7 +612,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 		return
 	}
 
-	utils.LogInfo("Transcribe Task %s: Finished successfully", taskID)
+	commonUtils.LogInfo("Transcribe Task %s: Finished successfully", taskID)
 
 	if metadata != nil && metadata.DeleteAfter {
 		_ = os.Remove(inputPath)
@@ -622,7 +623,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 	// Explicitly clear the transcription flag BEFORE chaining to /chat
 	// to prevent a race condition where the chat controller drops the request.
 	if metadata != nil && metadata.TerminalID != "" && metadata.Source == "mqtt" {
-		utils.ActiveTranscriptions.Delete(metadata.TerminalID)
+		commonUtils.ActiveTranscriptions.Delete(metadata.TerminalID)
 	}
 
 	// ASR Quality Gate: Stop empty/rejected transcripts from entering chat chain
@@ -649,7 +650,7 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 
 		// Check if transcript was rejected or empty
 		if finalTranscript == "" || !finalResult.TranscriptValid {
-			utils.LogInfo("Transcribe Task %s: ASR gate BLOCKED chat chaining | transcript_valid=%v | rejection_reason=%s | audio_class=%s",
+			commonUtils.LogInfo("Transcribe Task %s: ASR gate BLOCKED chat chaining | transcript_valid=%v | rejection_reason=%s | audio_class=%s",
 				taskID, finalResult.TranscriptValid, finalResult.TranscriptRejectionReason, finalResult.AudioClass)
 
 			// NEW: Publish terminal completion via MQTT for rejected results
@@ -671,11 +672,11 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 
 			payload, marshalErr := json.Marshal(answerPayload)
 			if marshalErr != nil {
-				utils.LogError("Transcribe Task %s: Failed to marshal rejection payload: %v", taskID, marshalErr)
+				commonUtils.LogError("Transcribe Task %s: Failed to marshal rejection payload: %v", taskID, marshalErr)
 			} else if err := uc.mqttSvc.Publish(answerTopic, 0, false, payload); err != nil {
-				utils.LogError("Transcribe Task %s: Failed to publish rejection to MQTT: %v", taskID, err)
+				commonUtils.LogError("Transcribe Task %s: Failed to publish rejection to MQTT: %v", taskID, err)
 			} else {
-				utils.LogInfo("Transcribe Task %s: Published rejection completion to %s", taskID, answerTopic)
+				commonUtils.LogInfo("Transcribe Task %s: Published rejection completion to %s", taskID, answerTopic)
 			}
 			// Do NOT chain to /chat
 		} else {
@@ -691,9 +692,9 @@ func (uc *transcribeUseCase) processAsync(ctx context.Context, taskID string, in
 			}
 			payload, _ := json.Marshal(chatReq)
 			if err := uc.mqttSvc.Publish(chatTopic, 0, false, payload); err != nil {
-				utils.LogError("TranscribeUseCase: Failed to publish transcript to MQTT: %v", err)
+				commonUtils.LogError("TranscribeUseCase: Failed to publish transcript to MQTT: %v", err)
 			}
-			utils.LogInfo("Transcribe Task %s: Chained result to %s", taskID, chatTopic)
+			commonUtils.LogInfo("Transcribe Task %s: Chained result to %s", taskID, chatTopic)
 		}
 	}
 }
@@ -720,9 +721,9 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 
 	if err != nil {
 		status.Error = err.Error()
-		status.HTTPStatusCode = utils.GetErrorStatusCode(err)
+		status.HTTPStatusCode = commonUtils.GetErrorStatusCode(err)
 		// Extract structured error for Orion transcription failures
-		if structuredErr := utils.GetOrionStructuredError(err); structuredErr != nil {
+		if structuredErr := commonUtils.GetOrionStructuredError(err); structuredErr != nil {
 			status.StructuredError = &whisperdtos.StructuredErrorDTO{
 				ErrorCode: structuredErr.ErrorCode,
 				Message:   structuredErr.Message,
@@ -750,9 +751,9 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 			logMsg += fmt.Sprintf(", Trigger: %s", status.Trigger)
 		}
 		if err != nil {
-			utils.LogError("%s, Error: %v", logMsg, err)
+			commonUtils.LogError("%s, Error: %v", logMsg, err)
 		} else {
-			utils.LogInfo("%s", logMsg)
+			commonUtils.LogInfo("%s", logMsg)
 		}
 		if status.MacAddress != "" && uc.mqttSvc != nil {
 			taskTopic := fmt.Sprintf("users/%s/%s/task", status.MacAddress, uc.config.ApplicationEnvironment)
@@ -762,9 +763,9 @@ func (uc *transcribeUseCase) updateStatus(taskID string, statusStr string, resul
 			}
 			payload, _ := json.Marshal(msg)
 			if err := uc.mqttSvc.Publish(taskTopic, 0, false, payload); err != nil {
-				utils.LogError("Transcribe Task %s: Failed to publish stop signal to MQTT: %v", taskID, err)
+				commonUtils.LogError("Transcribe Task %s: Failed to publish stop signal to MQTT: %v", taskID, err)
 			} else {
-				utils.LogInfo("Transcribe Task %s: Published stop signal to %s", taskID, taskTopic)
+				commonUtils.LogInfo("Transcribe Task %s: Published stop signal to %s", taskID, taskTopic)
 			}
 		}
 	}
@@ -785,11 +786,11 @@ func (uc *transcribeUseCase) shouldSegmentByProvider(normalizedSize int64, provi
 	providerLimit := uc.getProviderDirectLimit(provider)
 
 	// Log provider-aware size policy decision
-	utils.LogInfo("TranscribeUseCase: Provider-aware size check | provider=%s | normalized_size=%d bytes | provider_limit=%d bytes", provider, normalizedSize, providerLimit)
+	commonUtils.LogInfo("TranscribeUseCase: Provider-aware size check | provider=%s | normalized_size=%d bytes | provider_limit=%d bytes", provider, normalizedSize, providerLimit)
 
 	// Mandatory segmentation for oversized files
 	if normalizedSize > providerLimit {
-		utils.LogInfo("TranscribeUseCase: FORCING segmented transcription | provider=%s | size=%d bytes exceeds limit=%d bytes", provider, normalizedSize, providerLimit)
+		commonUtils.LogInfo("TranscribeUseCase: FORCING segmented transcription | provider=%s | size=%d bytes exceeds limit=%d bytes", provider, normalizedSize, providerLimit)
 		return true
 	}
 
@@ -797,7 +798,7 @@ func (uc *transcribeUseCase) shouldSegmentByProvider(normalizedSize int64, provi
 	// for additional tuning (e.g., segment medium-sized files for better accuracy)
 	const segmentThreshold = 20 * 1024 * 1024 // 20MB default threshold
 	if normalizedSize > segmentThreshold && uc.config.AudioSegmentEnabled {
-		utils.LogInfo("TranscribeUseCase: Using segmented transcription per AUDIO_SEGMENT_ENABLED flag | size=%d bytes", normalizedSize)
+		commonUtils.LogInfo("TranscribeUseCase: Using segmented transcription per AUDIO_SEGMENT_ENABLED flag | size=%d bytes", normalizedSize)
 		return true
 	}
 
@@ -808,18 +809,18 @@ func (uc *transcribeUseCase) shouldSegmentByProvider(normalizedSize int64, provi
 func (uc *transcribeUseCase) getProviderDirectLimit(provider string) int64 {
 	switch provider {
 	case "gemini":
-		return services.GeminiDirectUploadLimitBytes
+		return speechServices.GeminiDirectUploadLimitBytes
 	case "openai":
-		return services.OpenAIDirectUploadLimitBytes
+		return speechServices.OpenAIDirectUploadLimitBytes
 	case "groq":
-		return services.GroqDirectUploadLimitBytes
+		return speechServices.GroqDirectUploadLimitBytes
 	case "orion":
-		return services.OrionDirectUploadLimitBytes
+		return speechServices.OrionDirectUploadLimitBytes
 	default:
 		// For local or unknown providers, use conservative 20MB default.
 		// This is safer than allowing potentially oversized uploads.
 		if provider != "" && provider != "local" {
-			utils.LogWarn("TranscribeUseCase: Unknown provider '%s' for size limit check, using conservative 20MB default", provider)
+			commonUtils.LogWarn("TranscribeUseCase: Unknown provider '%s' for size limit check, using conservative 20MB default", provider)
 		}
 		return 20 * 1024 * 1024
 	}

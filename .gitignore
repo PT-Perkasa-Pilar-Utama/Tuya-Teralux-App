@@ -45,3 +45,10 @@ backend/services/plaud/
 .playwright-mcp/
 backend/sensio
 *.exe
+
+# Sisyphus planning artifacts
+.sisyphus/
+
+# Codex
+.codex/
+backend/.codex/

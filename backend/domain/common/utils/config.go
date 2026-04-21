@@ -50,6 +50,9 @@ type Config struct {
 	OrionApiKey  string
 	OrionModel   string
 
+	// BIG API
+	BIGAPIBaseURL string // BIGAPIBaseURL is the base URL for the BIG API (aplikasi-big.com)
+
 	// Local Models
 	WhisperLocalModel   string // Path to whisper ggml model
 	LlamaLocalModel     string // Path to llama gguf model (e.g., bin/ggml-base.bin)
@@ -81,7 +84,8 @@ type Config struct {
 	WANotificationBaseURL string
 
 	// Runtime & Networking
-	LogLevel string
+	LogLevel       string
+	AllowedOrigins string
 
 	// Storage (S3)
 	S3Enabled             bool
@@ -190,6 +194,7 @@ func LoadConfig() {
 		ApiKey:                 os.Getenv("API_KEY"),
 		JWTSecret:              os.Getenv("JWT_SECRET"),
 		LogLevel:               os.Getenv("LOG_LEVEL"),
+		AllowedOrigins:         os.Getenv("ALLOWED_ORIGINS"),
 		ApplicationEnvironment: os.Getenv("APPLICATION_ENVIRONMENT"),
 		S3Enabled:              getEnvAsBool("S3_ENABLED", false),
 		S3Bucket:               os.Getenv("S3_BUCKET"),
@@ -218,6 +223,10 @@ func LoadConfig() {
 		OrionBaseURL: os.Getenv("ORION_BASE_URL"),
 		OrionApiKey:  os.Getenv("ORION_API_KEY"),
 		OrionModel:   os.Getenv("ORION_MODEL"),
+
+		// BIG API
+		BIGAPIBaseURL: getEnvAsDefault("BIG_API_BASE_URL", "https://aplikasi-big.com"),
+
 		// Local Models
 		WhisperLocalModel:   os.Getenv("WHISPER_LOCAL_MODEL"),
 		LlamaLocalModel:     os.Getenv("LLAMA_LOCAL_MODEL"),

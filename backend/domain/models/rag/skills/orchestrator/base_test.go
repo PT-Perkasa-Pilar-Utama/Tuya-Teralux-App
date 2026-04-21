@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 	"sensio/domain/models/rag/skills"
 )
 

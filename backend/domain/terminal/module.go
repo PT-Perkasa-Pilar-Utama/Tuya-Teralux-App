@@ -1,8 +1,8 @@
 package terminal
 
 import (
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	device "sensio/domain/terminal/device/controllers"
 	device_repositories "sensio/domain/terminal/device/repositories"
 	device_status "sensio/domain/terminal/device_status/controllers"

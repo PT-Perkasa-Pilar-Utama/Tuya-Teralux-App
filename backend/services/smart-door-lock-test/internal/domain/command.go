@@ -41,15 +41,15 @@ func LockCommand(locked bool) Command {
 
 // Common command codes for smart door locks
 const (
-	CmdLockMotorState   = "lock_motor_state"
+	CmdLockMotorState    = "lock_motor_state"
 	CmdUnlockFingerprint = "unlock_fingerprint"
-	CmdUnlockPassword   = "unlock_password"
-	CmdUnlockTemporary  = "unlock_temporary"
-	CmdUnlockCard       = "unlock_card"
-	CmdUnlockFace       = "unlock_face"
-	CmdUnlockApp        = "unlock_app"
-	CmdAlarmLock        = "alarm_lock"
-	CmdBatteryState     = "battery_state"
-	CmdHijack           = "hijack"
-	CmdDoorbell         = "doorbell"
+	CmdUnlockPassword    = "unlock_password"
+	CmdUnlockTemporary   = "unlock_temporary"
+	CmdUnlockCard        = "unlock_card"
+	CmdUnlockFace        = "unlock_face"
+	CmdUnlockApp         = "unlock_app"
+	CmdAlarmLock         = "alarm_lock"
+	CmdBatteryState      = "battery_state"
+	CmdHijack            = "hijack"
+	CmdDoorbell          = "doorbell"
 )

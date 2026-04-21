@@ -1,8 +1,8 @@
 package tuya
 
 import (
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/middlewares"
+	"sensio/domain/infrastructure"
 	device_repositories "sensio/domain/terminal/device/repositories"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/tuya/controllers"

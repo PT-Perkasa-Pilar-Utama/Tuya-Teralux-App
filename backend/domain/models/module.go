@@ -2,12 +2,11 @@ package models
 
 import (
 	"path/filepath"
-	"sensio/domain/common/infrastructure"
-	"sensio/domain/common/providers"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/download_token"
+	"sensio/domain/infrastructure"
 	pipelineControllers "sensio/domain/models/pipeline/controllers"
 	pipelinedtos "sensio/domain/models/pipeline/dtos"
 	pipelineRoutes "sensio/domain/models/pipeline/routes"
@@ -24,6 +23,9 @@ import (
 	whisperRoutes "sensio/domain/models/whisper/routes"
 	whisperUsecases "sensio/domain/models/whisper/usecases"
 	recordingUsecases "sensio/domain/recordings/usecases"
+	speechUsecases "sensio/domain/speech/usecases"
+	speechServices "sensio/domain/speech/services"
+	speechUtils "sensio/domain/speech/utils"
 	terminalRepositories "sensio/domain/terminal/terminal/repositories"
 	tuyaUsecases "sensio/domain/tuya/usecases"
 	"time"
@@ -31,28 +33,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// providerResolverTerminalRepoWrapper adapts ITerminalRepository to providers.TerminalRepository
+// providerResolverTerminalRepoWrapper adapts ITerminalRepository to speechUsecases.TerminalRepository
 type providerResolverTerminalRepoWrapper struct {
 	repo terminalRepositories.ITerminalRepository
 }
 
-func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*providers.Terminal, error) {
+func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*speechUsecases.Terminal, error) {
 	term, err := w.repo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
-	return &providers.Terminal{
+	return &speechUsecases.Terminal{
 		AiProvider:      term.AiProvider,
 		AiEngineProfile: term.AiEngineProfile,
 	}, nil
 }
 
-func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string) (*providers.Terminal, error) {
+func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string) (*speechUsecases.Terminal, error) {
 	term, err := w.repo.GetByMacAddress(macAddress)
 	if err != nil {
 		return nil, err
 	}
-	return &providers.Terminal{
+	return &speechUsecases.Terminal{
 		AiProvider:      term.AiProvider,
 		AiEngineProfile: term.AiEngineProfile,
 	}, nil
@@ -86,20 +88,20 @@ func InitModule(
 
 	// 1. Initialize RAG Sub-module
 	// Initialize all provider services upfront for provider resolution
-	geminiService, openaiService, groqService, orionService := providers.GetProviderServices(cfg)
+	geminiService, openaiService, groqService, orionService := speechUsecases.GetProviderServices(cfg)
 
 	// Log provider direct upload limits at startup for observability
 	utils.LogInfo("Startup: Provider direct upload limits | Gemini: %d MB | OpenAI: %d MB | Groq: %d MB | Orion: %d MB",
-		commonServices.GeminiDirectUploadLimitBytes/1024/1024,
-		commonServices.OpenAIDirectUploadLimitBytes/1024/1024,
-		commonServices.GroqDirectUploadLimitBytes/1024/1024,
-		commonServices.OrionDirectUploadLimitBytes/1024/1024,
+		speechServices.GeminiDirectUploadLimitBytes/1024/1024,
+		speechServices.OpenAIDirectUploadLimitBytes/1024/1024,
+		speechServices.GroqDirectUploadLimitBytes/1024/1024,
+		speechServices.OrionDirectUploadLimitBytes/1024/1024,
 	)
 
 	// Create provider resolver for terminal-specific provider selection
 	// Wrap terminalRepo to match the interface expected by ProviderResolver
 	providerResolverRepo := &providerResolverTerminalRepoWrapper{terminalRepo}
-	providerResolver := providers.NewProviderResolver(
+	providerResolver := speechUsecases.NewProviderResolver(
 		cfg,
 		geminiService,
 		openaiService,
@@ -216,8 +218,8 @@ func InitModule(
 	whisperStore := tasks.NewStatusStore[whisperDtos.AsyncTranscriptionStatusDTO]()
 
 	// Initialize ASR Quality Gate components
-	audioAnalyzer := utils.NewAudioAnalyzer()
-	transcriptValidator := utils.NewTranscriptValidator()
+	audioAnalyzer := speechUtils.NewAudioAnalyzer()
+	transcriptValidator := speechUtils.NewTranscriptValidator()
 
 	transcribeUC := whisperUsecases.NewTranscribeUseCase(defaultWhisperClient, refineUC, whisperStore, whisperCache, cfg, mqttSvc, providerResolver, audioAnalyzer, transcriptValidator)
 	// Inject all provider services for health-aware fallback chain

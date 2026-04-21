@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"fmt"
-	"sensio/domain/common/infrastructure"
+	"sensio/domain/infrastructure"
 	"sensio/domain/terminal/device_status/entities"
 
 	"gorm.io/gorm"

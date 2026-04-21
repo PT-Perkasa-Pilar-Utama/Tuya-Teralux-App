@@ -11,16 +11,16 @@ import (
 
 // PendingPassword represents a password waiting to be synced
 type PendingPassword struct {
-	ID           int64
-	DeviceID     string
-	PasswordType domain.PasswordType
+	ID            int64
+	DeviceID      string
+	PasswordType  domain.PasswordType
 	PasswordValue string
-	ValidMinutes int
-	ExpireAt     time.Time
-	Status       domain.SyncStatus
-	RetryCount   int
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ValidMinutes  int
+	ExpireAt      time.Time
+	Status        domain.SyncStatus
+	RetryCount    int
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // PendingPasswordRepository handles SQLite storage for pending passwords

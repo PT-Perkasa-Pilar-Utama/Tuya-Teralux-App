@@ -3,8 +3,8 @@ package controllers
 import (
 	"net/http"
 	"sensio/domain/common/dtos"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +26,7 @@ func NewCacheController(cache *infrastructure.BadgerService, vector *infrastruct
 // FlushCache clears the entire cache
 // @Summary Flush all cache
 // @Description Remove all data from the cache storage
-// @Tags 08. Common
+// @Tags 07. Common
 // @Accept json
 // @Produce json
 // @Security BearerAuth

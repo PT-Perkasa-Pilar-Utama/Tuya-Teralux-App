@@ -3,10 +3,11 @@ package usecases
 import (
 	"context"
 	"fmt"
-	"sensio/domain/common/providers"
-	"sensio/domain/common/utils"
+	commonUtils "sensio/domain/common/utils"
 	"sensio/domain/models/rag/skills"
 	whisperdtos "sensio/domain/models/whisper/dtos"
+	speechUsecases "sensio/domain/speech/usecases"
+	"sensio/domain/speech/utils"
 	"strings"
 	"time"
 )
@@ -27,12 +28,12 @@ type RefineUseCase interface {
 type refineUseCase struct {
 	llm              skills.LLMClient
 	fallbackLLM      skills.LLMClient
-	config           *utils.Config
+	config           *commonUtils.Config
 	skill            skills.Skill
-	providerResolver providers.ProviderResolver
+	providerResolver speechUsecases.ProviderResolver
 }
 
-func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, skill skills.Skill, providerResolver providers.ProviderResolver) RefineUseCase {
+func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *commonUtils.Config, skill skills.Skill, providerResolver speechUsecases.ProviderResolver) RefineUseCase {
 	return &refineUseCase{
 		llm:              llm,
 		fallbackLLM:      fallbackLLM,
@@ -51,7 +52,7 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 
 	textChars := len(text)
 	startTime := time.Now()
-	utils.LogDebug("Refine: starting (lang=%s chars=%d)", lang, textChars)
+	commonUtils.LogDebug("Refine: starting (lang=%s chars=%d)", lang, textChars)
 
 	if u.skill == nil {
 		return "", fmt.Errorf("refine skill not configured")
@@ -64,7 +65,7 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 	if len(args) > 0 && args[0] != "" {
 		// Use terminal-specific provider preference
 		macAddress := args[0]
-		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx := &skills.SkillContext{
 				Ctx:      ctx,
 				Prompt:   text,
@@ -80,7 +81,7 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 		})
 	} else {
 		// Use standard health-aware fallback
-		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx := &skills.SkillContext{
 				Ctx:      ctx,
 				Prompt:   text,
@@ -97,12 +98,12 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 	}
 
 	if err != nil {
-		utils.LogWarn("Refine: failed (lang=%s chars=%d duration=%s) err=%v", lang, textChars, time.Since(startTime), err)
+		commonUtils.LogWarn("Refine: failed (lang=%s chars=%d duration=%s) err=%v", lang, textChars, time.Since(startTime), err)
 		return "", err
 	}
 
-	utils.LogDebug("Refine: completed (lang=%s chars=%d duration=%s output_chars=%d)", lang, textChars, time.Since(startTime), len(result))
-	utils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, result)
+	commonUtils.LogDebug("Refine: completed (lang=%s chars=%d duration=%s output_chars=%d)", lang, textChars, time.Since(startTime), len(result))
+	commonUtils.LogDebug("RAG Refine: lang='%s', original='%s', refined='%s'", lang, text, result)
 	return result, nil
 }
 

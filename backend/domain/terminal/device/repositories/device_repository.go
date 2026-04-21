@@ -3,8 +3,8 @@ package repositories
 import (
 	"encoding/json"
 	"fmt"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/terminal/device/entities"
 	"time"
 

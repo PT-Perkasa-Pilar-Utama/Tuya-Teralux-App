@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/middlewares"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/terminal/terminal/controllers"
 	"sensio/domain/terminal/terminal/entities"
 	"sensio/domain/terminal/terminal/repositories"

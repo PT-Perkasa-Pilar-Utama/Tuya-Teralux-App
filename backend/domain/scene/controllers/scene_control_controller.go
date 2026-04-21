@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"sensio/domain/common/dtos"
 	"sensio/domain/common/utils"
 	"sensio/domain/scene/usecases"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type SceneControlController struct {
@@ -37,7 +39,7 @@ func (c *SceneControlController) ControlScene(ctx *gin.Context) {
 	if err := c.useCase.ControlScene(terminalID, id, accessToken); err != nil {
 		utils.LogError("SceneControlController.ControlScene: %v", err)
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "record not found" {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			statusCode = http.StatusNotFound
 		}
 		ctx.JSON(statusCode, dtos.StandardResponse{

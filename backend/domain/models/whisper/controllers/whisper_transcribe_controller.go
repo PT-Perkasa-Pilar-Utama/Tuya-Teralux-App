@@ -12,11 +12,12 @@ import (
 	"time"
 
 	commonDtos "sensio/domain/common/dtos"
-	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/utils"
+	"sensio/domain/infrastructure"
 	"sensio/domain/models/whisper/dtos"
 	"sensio/domain/models/whisper/usecases"
 	recordingUsecases "sensio/domain/recordings/usecases"
+	speechUtils "sensio/domain/speech/utils"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-gonic/gin"
@@ -132,7 +133,9 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 
 		// Generate a descriptive temporary filename
 		uuidStr, _ := uuid.NewV7()
-		tempFilename := fmt.Sprintf("mqtt_temp_%s_%s.wav", req.TerminalID, uuidStr.String())
+		// Sanitize TerminalID to prevent path traversal attacks
+		safeTerminalID := filepath.Base(req.TerminalID)
+		tempFilename := fmt.Sprintf("mqtt_temp_%s_%s.wav", safeTerminalID, uuidStr.String())
 		tempPath := filepath.Join("uploads", "audio", tempFilename)
 
 		// Save audio bytes to disk manually (without DB entry)
@@ -353,7 +356,7 @@ func (c *WhisperTranscribeController) Transcribe(ctx *gin.Context) {
 	finalInputPath := filepath.Join("uploads", "audio", recording.Filename)
 
 	// 3. Content Validation via ffprobe
-	probe, err := utils.ProbeAudio(finalInputPath)
+	probe, err := speechUtils.ProbeAudio(finalInputPath)
 	if err != nil {
 		utils.LogError("Transcribe.ProbeAudio: %v", err)
 		_ = os.Remove(finalInputPath) // Cleanup invalid file
