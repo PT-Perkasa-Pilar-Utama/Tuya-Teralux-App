@@ -23,7 +23,7 @@ import (
 	whisperRoutes "sensio/domain/models/whisper/routes"
 	whisperUsecases "sensio/domain/models/whisper/usecases"
 	recordingUsecases "sensio/domain/recordings/usecases"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	speechServices "sensio/domain/speech/services"
 	speechUtils "sensio/domain/speech/utils"
 	terminalRepositories "sensio/domain/terminal/terminal/repositories"
@@ -33,28 +33,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// providerResolverTerminalRepoWrapper adapts ITerminalRepository to providers.TerminalRepository
+// providerResolverTerminalRepoWrapper adapts ITerminalRepository to speechUsecases.TerminalRepository
 type providerResolverTerminalRepoWrapper struct {
 	repo terminalRepositories.ITerminalRepository
 }
 
-func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*providers.Terminal, error) {
+func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*speechUsecases.Terminal, error) {
 	term, err := w.repo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
-	return &providers.Terminal{
+	return &speechUsecases.Terminal{
 		AiProvider:      term.AiProvider,
 		AiEngineProfile: term.AiEngineProfile,
 	}, nil
 }
 
-func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string) (*providers.Terminal, error) {
+func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string) (*speechUsecases.Terminal, error) {
 	term, err := w.repo.GetByMacAddress(macAddress)
 	if err != nil {
 		return nil, err
 	}
-	return &providers.Terminal{
+	return &speechUsecases.Terminal{
 		AiProvider:      term.AiProvider,
 		AiEngineProfile: term.AiEngineProfile,
 	}, nil
@@ -88,7 +88,7 @@ func InitModule(
 
 	// 1. Initialize RAG Sub-module
 	// Initialize all provider services upfront for provider resolution
-	geminiService, openaiService, groqService, orionService := providers.GetProviderServices(cfg)
+	geminiService, openaiService, groqService, orionService := speechUsecases.GetProviderServices(cfg)
 
 	// Log provider direct upload limits at startup for observability
 	utils.LogInfo("Startup: Provider direct upload limits | Gemini: %d MB | OpenAI: %d MB | Groq: %d MB | Orion: %d MB",
@@ -101,7 +101,7 @@ func InitModule(
 	// Create provider resolver for terminal-specific provider selection
 	// Wrap terminalRepo to match the interface expected by ProviderResolver
 	providerResolverRepo := &providerResolverTerminalRepoWrapper{terminalRepo}
-	providerResolver := providers.NewProviderResolver(
+	providerResolver := speechUsecases.NewProviderResolver(
 		cfg,
 		geminiService,
 		openaiService,

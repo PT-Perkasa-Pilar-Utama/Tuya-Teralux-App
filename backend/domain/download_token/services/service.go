@@ -1,34 +1,28 @@
-package download_token
+package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"sensio/domain/download_token/entities"
+	"sensio/domain/download_token/repositories"
 	"sensio/domain/infrastructure"
 )
 
-var (
-	ErrTokenNotFound = errors.New("download token not found")
-	ErrTokenExpired  = errors.New("download token expired")
-	ErrTokenConsumed = errors.New("download token consumed")
-	ErrTokenRevoked  = errors.New("download token revoked")
-)
-
 type DownloadTokenService struct {
-	store            *Store
+	store            *repositories.Store
 	storageProvider  infrastructure.StorageProvider
 	presignTTLSecond int64
 	now              func() time.Time
 }
 
-func NewDownloadTokenService(store *Store, storageProvider infrastructure.StorageProvider) *DownloadTokenService {
+func NewDownloadTokenService(store *repositories.Store, storageProvider infrastructure.StorageProvider) *DownloadTokenService {
 	if store == nil {
-		store = NewStore()
+		store = repositories.NewStore()
 	}
 
 	return &DownloadTokenService{
@@ -39,7 +33,7 @@ func NewDownloadTokenService(store *Store, storageProvider infrastructure.Storag
 	}
 }
 
-func (s *DownloadTokenService) CreateToken(recipient, objectKey, purpose string, password ...string) (*Token, error) {
+func (s *DownloadTokenService) CreateToken(recipient, objectKey, purpose string, password ...string) (*entities.Token, error) {
 	recipient = strings.TrimSpace(recipient)
 	objectKey = strings.TrimSpace(objectKey)
 	purpose = strings.TrimSpace(purpose)
@@ -60,7 +54,7 @@ func (s *DownloadTokenService) CreateToken(recipient, objectKey, purpose string,
 	}
 
 	now := s.now()
-	token := &Token{
+	token := &entities.Token{
 		TokenID:   uuid.NewString(),
 		Recipient: recipient,
 		ObjectKey: objectKey,
@@ -77,21 +71,21 @@ func (s *DownloadTokenService) CreateToken(recipient, objectKey, purpose string,
 func (s *DownloadTokenService) ResolveToken(tokenID string) (string, error) {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
-		return "", ErrTokenNotFound
+		return "", entities.ErrTokenNotFound
 	}
 
 	token, ok := s.store.Get(tokenID)
 	if !ok || token == nil {
-		return "", ErrTokenNotFound
+		return "", entities.ErrTokenNotFound
 	}
 	if token.RevokedAt != nil {
-		return "", ErrTokenRevoked
+		return "", entities.ErrTokenRevoked
 	}
 	if token.ConsumedAt != nil {
-		return "", ErrTokenConsumed
+		return "", entities.ErrTokenConsumed
 	}
 	if token.ExpiresAt.Before(s.now()) {
-		return "", ErrTokenExpired
+		return "", entities.ErrTokenExpired
 	}
 
 	if s.storageProvider == nil {
@@ -113,12 +107,12 @@ func (s *DownloadTokenService) ResolveToken(tokenID string) (string, error) {
 func (s *DownloadTokenService) RevokeToken(tokenID string) error {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
-		return ErrTokenNotFound
+		return entities.ErrTokenNotFound
 	}
 
 	token, ok := s.store.Get(tokenID)
 	if !ok || token == nil {
-		return ErrTokenNotFound
+		return entities.ErrTokenNotFound
 	}
 
 	return s.store.Revoke(tokenID)

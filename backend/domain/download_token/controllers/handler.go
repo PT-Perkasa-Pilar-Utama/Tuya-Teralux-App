@@ -1,4 +1,4 @@
-package download_token
+package controllers
 
 import (
 	"errors"
@@ -7,10 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"sensio/domain/common/dtos"
+	"sensio/domain/download_token/entities"
+	"sensio/domain/download_token/services"
 )
 
 type Handler struct {
-	service *DownloadTokenService
+	service *services.DownloadTokenService
 }
 
 type CreateTokenRequest struct {
@@ -23,7 +25,7 @@ type CreateTokenResponse struct {
 	TokenID string `json:"token_id"`
 }
 
-func NewHandler(service *DownloadTokenService) *Handler {
+func NewHandler(service *services.DownloadTokenService) *Handler {
 	return &Handler{service: service}
 }
 
@@ -61,9 +63,9 @@ func (h *Handler) ResolveToken(ctx *gin.Context) {
 	signedURL, err := h.service.ResolveToken(tokenID)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrTokenNotFound):
+		case errors.Is(err, entities.ErrTokenNotFound):
 			ctx.JSON(http.StatusNotFound, dtos.StandardResponse{Status: false, Message: err.Error()})
-		case errors.Is(err, ErrTokenExpired), errors.Is(err, ErrTokenConsumed), errors.Is(err, ErrTokenRevoked):
+		case errors.Is(err, entities.ErrTokenExpired), errors.Is(err, entities.ErrTokenConsumed), errors.Is(err, entities.ErrTokenRevoked):
 			ctx.JSON(http.StatusGone, dtos.StandardResponse{Status: false, Message: err.Error()})
 		default:
 			ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Internal Server Error"})

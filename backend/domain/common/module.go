@@ -9,8 +9,8 @@ import (
 	"sensio/domain/download_token"
 	"sensio/domain/infrastructure"
 	"sensio/domain/notification"
-	notification_controllers "sensio/domain/notification/notification/controllers"
-	notification_routes "sensio/domain/notification/notification/routes"
+	notification_controllers "sensio/domain/notification/controllers"
+	notification_routes "sensio/domain/notification/routes"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 )
 

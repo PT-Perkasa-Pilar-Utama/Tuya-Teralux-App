@@ -8,7 +8,7 @@ import (
 	"sensio/domain/infrastructure"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strings"
 	"time"
@@ -27,10 +27,10 @@ type controlUseCase struct {
 	tuyaExecutor     tuyaUsecases.TuyaDeviceControlExecutor
 	tuyaAuth         tuyaUsecases.TuyaAuthUseCase
 	skill            skills.Skill
-	providerResolver providers.ProviderResolver
+	providerResolver speechUsecases.ProviderResolver
 }
 
-func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase, skill skills.Skill, providerResolver providers.ProviderResolver) ControlUseCase {
+func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase, skill skills.Skill, providerResolver speechUsecases.ProviderResolver) ControlUseCase {
 	return &controlUseCase{
 		llm:              llm,
 		fallbackLLM:      fallbackLLM,
@@ -128,7 +128,7 @@ func (u *controlUseCase) executeSkillWithFallback(ctx context.Context, skillCtx 
 
 	if skillCtx.TerminalID != "" {
 		// Use terminal-specific provider preference
-		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx.LLM = resolvedSet.LLM
 			res, execErr := u.skill.Execute(skillCtx)
 			if execErr == nil {
@@ -138,7 +138,7 @@ func (u *controlUseCase) executeSkillWithFallback(ctx context.Context, skillCtx 
 		})
 	} else {
 		// Use standard health-aware fallback
-		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx.LLM = resolvedSet.LLM
 			res, execErr := u.skill.Execute(skillCtx)
 			if execErr == nil {

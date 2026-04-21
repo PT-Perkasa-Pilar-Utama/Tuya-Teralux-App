@@ -1,21 +1,23 @@
-package download_token
+package repositories
 
 import (
 	"fmt"
 	"sync"
 	"time"
+
+	"sensio/domain/download_token/entities"
 )
 
 type Store struct {
 	mu     sync.RWMutex
-	tokens map[string]*Token
+	tokens map[string]*entities.Token
 }
 
 func NewStore() *Store {
-	return &Store{tokens: make(map[string]*Token)}
+	return &Store{tokens: make(map[string]*entities.Token)}
 }
 
-func (s *Store) Save(token *Token) {
+func (s *Store) Save(token *entities.Token) {
 	if token == nil || token.TokenID == "" {
 		return
 	}
@@ -26,7 +28,7 @@ func (s *Store) Save(token *Token) {
 	s.tokens[token.TokenID] = cloneToken(token)
 }
 
-func (s *Store) Get(tokenID string) (*Token, bool) {
+func (s *Store) Get(tokenID string) (*entities.Token, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -77,7 +79,7 @@ func (s *Store) Revoke(tokenID string) error {
 	return nil
 }
 
-func cloneToken(token *Token) *Token {
+func cloneToken(token *entities.Token) *entities.Token {
 	if token == nil {
 		return nil
 	}

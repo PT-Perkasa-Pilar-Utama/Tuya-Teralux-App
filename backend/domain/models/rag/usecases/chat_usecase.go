@@ -9,7 +9,7 @@ import (
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
 	"sensio/domain/models/rag/skills/orchestrator"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	tuyaDtos "sensio/domain/tuya/dtos"
 	"strings"
 	"time"
@@ -28,7 +28,7 @@ type ChatUseCaseImpl struct {
 	guard            *orchestrator.GuardOrchestrator
 	fastIntentRouter *orchestrator.FastIntentRouter
 	decisionEngine   *orchestrator.AssistantDecisionEngineImpl
-	providerResolver providers.ProviderResolver
+	providerResolver speechUsecases.ProviderResolver
 	controlUseCase   ControlUseCase // For actual device execution
 	// Keep orchestrator for backward compatibility during migration
 	orchestrator *orchestrator.Router
@@ -43,7 +43,7 @@ func NewChatUseCase(
 	guard *orchestrator.GuardOrchestrator,
 	fastIntentRouter *orchestrator.FastIntentRouter,
 	decisionEngine *orchestrator.AssistantDecisionEngineImpl,
-	providerResolver providers.ProviderResolver,
+	providerResolver speechUsecases.ProviderResolver,
 	controlUseCase ControlUseCase,
 	orchestrator *orchestrator.Router, // kept for migration
 ) ChatUseCase {
@@ -711,7 +711,7 @@ func (u *ChatUseCaseImpl) executeDecisionWithFallback(skillCtx *skills.SkillCont
 
 	if skillCtx.TerminalID != "" {
 		// Use terminal-specific provider preference
-		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallbackByTerminal(skillCtx.TerminalID, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx.LLM = resolvedSet.LLM
 			u.decisionEngine.SetLLM(resolvedSet.LLM)
 
@@ -726,7 +726,7 @@ func (u *ChatUseCaseImpl) executeDecisionWithFallback(skillCtx *skills.SkillCont
 		})
 	} else {
 		// Use standard health-aware fallback
-		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx.LLM = resolvedSet.LLM
 			u.decisionEngine.SetLLM(resolvedSet.LLM)
 

@@ -9,7 +9,7 @@ import (
 	commonUtils "sensio/domain/common/utils"
 	ragUsecases "sensio/domain/models/rag/usecases"
 	whisperdtos "sensio/domain/models/whisper/dtos"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	speechServices "sensio/domain/speech/services"
 	speechUtils "sensio/domain/speech/utils"
 	"strings"
@@ -63,7 +63,7 @@ type transcribeUseCase struct {
 	cache               *tasks.BadgerTaskCache
 	config              *commonUtils.Config
 	mqttSvc             mqttPublisher
-	providerResolver    providers.ProviderResolver
+	providerResolver    speechUsecases.ProviderResolver
 	audioAnalyzer       speechUtils.AudioAnalyzer
 	transcriptValidator speechUtils.TranscriptValidator
 }
@@ -75,7 +75,7 @@ func NewTranscribeUseCase(
 	cache *tasks.BadgerTaskCache,
 	config *commonUtils.Config,
 	mqttSvc mqttPublisher,
-	providerResolver providers.ProviderResolver,
+	providerResolver speechUsecases.ProviderResolver,
 	audioAnalyzer speechUtils.AudioAnalyzer,
 	transcriptValidator speechUtils.TranscriptValidator,
 ) TranscribeUseCase {
@@ -98,7 +98,7 @@ func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, process
 	var finalResult *whisperdtos.WhisperResult
 	var actualProvider string
 
-	executable := func(resolvedSet *providers.ResolvedProviderSet) error {
+	executable := func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 		if resolvedSet.WhisperClient == nil {
 			return fmt.Errorf("no Whisper client available for provider %s", resolvedSet.ProviderName)
 		}

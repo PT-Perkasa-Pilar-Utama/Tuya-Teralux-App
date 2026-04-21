@@ -3,7 +3,7 @@ package usecases
 import (
 	"errors"
 	"sensio/domain/common/utils"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	"sensio/domain/terminal/terminal/dtos"
 	"sensio/domain/terminal/terminal/repositories"
 )
@@ -33,12 +33,12 @@ func (uc *UpdateTerminalAIEngineProfileUseCase) Update(id string, req *dtos.Upda
 		utils.LogInfo("UpdateTerminalAIEngineProfileUseCase: clearing engine profile | terminal_id=%s", id)
 		term.AiEngineProfile = nil
 	} else {
-		normalized := providers.NormalizeEngineProfile(*req.Profile)
+		normalized := speechUsecases.NormalizeEngineProfile(*req.Profile)
 
 		switch normalized {
 		case "premium":
-			openAiErr := providers.ValidateProviderConfig("openai", uc.cfg)
-			groqErr := providers.ValidateProviderConfig("groq", uc.cfg)
+			openAiErr := speechUsecases.ValidateProviderConfig("openai", uc.cfg)
+			groqErr := speechUsecases.ValidateProviderConfig("groq", uc.cfg)
 			if openAiErr != nil && groqErr != nil {
 				utils.LogWarn("UpdateTerminalAIEngineProfileUseCase: premium profile update blocked by missing config | terminal_id=%s | openai_err=%v | groq_err=%v", id, openAiErr, groqErr)
 				return nil, utils.NewValidationError("Validation Error", []utils.ValidationErrorDetail{
@@ -48,7 +48,7 @@ func (uc *UpdateTerminalAIEngineProfileUseCase) Update(id string, req *dtos.Upda
 			term.AiEngineProfile = &normalized
 			utils.LogInfo("UpdateTerminalAIEngineProfileUseCase: setting engine profile to premium | terminal_id=%s", id)
 		case "standard":
-			if err := providers.ValidateProviderConfig("orion", uc.cfg); err != nil {
+			if err := speechUsecases.ValidateProviderConfig("orion", uc.cfg); err != nil {
 				utils.LogWarn("UpdateTerminalAIEngineProfileUseCase: standard profile update blocked by missing config | terminal_id=%s | error=%v", id, err)
 				return nil, utils.NewValidationError("Validation Error", []utils.ValidationErrorDetail{
 					{Field: "profile", Message: "standard profile is unavailable because Orion is not configured"},

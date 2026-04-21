@@ -12,7 +12,7 @@ import (
 	"sensio/domain/models/rag/dtos"
 	ragServices "sensio/domain/models/rag/services"
 	"sensio/domain/models/rag/skills"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	"strings"
 	"time"
 
@@ -97,7 +97,7 @@ type summaryUseCase struct {
 	skill                     skills.Skill
 	chunkSkill                skills.Skill
 	structuredExtractionSkill skills.Skill // For hierarchical map phase JSON extraction
-	providerResolver          providers.ProviderResolver
+	providerResolver          speechUsecases.ProviderResolver
 }
 
 func NewSummaryUseCase(
@@ -114,7 +114,7 @@ func NewSummaryUseCase(
 	skill skills.Skill,
 	chunkSkill skills.Skill,
 	structuredExtractionSkill skills.Skill,
-	providerResolver providers.ProviderResolver,
+	providerResolver speechUsecases.ProviderResolver,
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:                       llm,
@@ -201,7 +201,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 
 		if macAddress != "" {
 			// Use terminal-specific provider preference
-			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 				skillCtx := &skills.SkillContext{
 					Ctx:          ctx,
 					Prompt:       prompt,
@@ -222,7 +222,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 			})
 		} else {
 			// Use standard health-aware fallback
-			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 				skillCtx := &skills.SkillContext{
 					Ctx:          ctx,
 					Prompt:       prompt,
@@ -406,7 +406,7 @@ func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, lan
 
 		if macAddress != "" {
 			// Use terminal-specific provider preference
-			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 				sCtx := &skills.SkillContext{
 					Ctx:      ctx,
 					Prompt:   chunk,
@@ -423,7 +423,7 @@ func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, lan
 			})
 		} else {
 			// Use standard health-aware fallback
-			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 				sCtx := &skills.SkillContext{
 					Ctx:      ctx,
 					Prompt:   chunk,
@@ -495,7 +495,7 @@ func (u *summaryUseCase) summarizeHierarchical(ctx context.Context, text string,
 
 		var err error
 		if macAddress != "" {
-			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+			err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 				sCtx := &skills.SkillContext{
 					Ctx:      ctx,
 					Prompt:   extractPrompt,
@@ -513,7 +513,7 @@ func (u *summaryUseCase) summarizeHierarchical(ctx context.Context, text string,
 				return execErr
 			})
 		} else {
-			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+			err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 				sCtx := &skills.SkillContext{
 					Ctx:      ctx,
 					Prompt:   extractPrompt,
@@ -569,7 +569,7 @@ func (u *summaryUseCase) summarizeHierarchical(ctx context.Context, text string,
 	var reduceErr error
 
 	if macAddress != "" {
-		reduceErr = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+		reduceErr = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			sCtx := &skills.SkillContext{
 				Ctx:          ctx,
 				Prompt:       reducePrompt,
@@ -589,7 +589,7 @@ func (u *summaryUseCase) summarizeHierarchical(ctx context.Context, text string,
 			return execErr
 		})
 	} else {
-		reduceErr = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+		reduceErr = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			sCtx := &skills.SkillContext{
 				Ctx:          ctx,
 				Prompt:       reducePrompt,

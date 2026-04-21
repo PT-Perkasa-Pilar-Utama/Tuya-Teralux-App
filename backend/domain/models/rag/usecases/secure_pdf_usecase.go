@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"sensio/domain/common/utils"
-	"sensio/domain/crypto"
+	"sensio/domain/common/utils/crypto"
 	"sensio/domain/infrastructure"
 
 	"github.com/google/uuid"

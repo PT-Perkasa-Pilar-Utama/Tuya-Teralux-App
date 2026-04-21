@@ -6,7 +6,7 @@ import (
 	commonUtils "sensio/domain/common/utils"
 	"sensio/domain/models/rag/skills"
 	whisperdtos "sensio/domain/models/whisper/dtos"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	"sensio/domain/speech/utils"
 	"strings"
 	"time"
@@ -30,10 +30,10 @@ type refineUseCase struct {
 	fallbackLLM      skills.LLMClient
 	config           *commonUtils.Config
 	skill            skills.Skill
-	providerResolver providers.ProviderResolver
+	providerResolver speechUsecases.ProviderResolver
 }
 
-func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *commonUtils.Config, skill skills.Skill, providerResolver providers.ProviderResolver) RefineUseCase {
+func NewRefineUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *commonUtils.Config, skill skills.Skill, providerResolver speechUsecases.ProviderResolver) RefineUseCase {
 	return &refineUseCase{
 		llm:              llm,
 		fallbackLLM:      fallbackLLM,
@@ -65,7 +65,7 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 	if len(args) > 0 && args[0] != "" {
 		// Use terminal-specific provider preference
 		macAddress := args[0]
-		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallbackByMac(macAddress, func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx := &skills.SkillContext{
 				Ctx:      ctx,
 				Prompt:   text,
@@ -81,7 +81,7 @@ func (u *refineUseCase) RefineText(ctx context.Context, text string, lang string
 		})
 	} else {
 		// Use standard health-aware fallback
-		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *providers.ResolvedProviderSet) error {
+		err = u.providerResolver.ExecuteWithFallback(func(resolvedSet *speechUsecases.ResolvedProviderSet) error {
 			skillCtx := &skills.SkillContext{
 				Ctx:      ctx,
 				Prompt:   text,

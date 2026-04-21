@@ -6,7 +6,7 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/skills"
 	whisperdtos "sensio/domain/models/whisper/dtos"
-	speechSvc "sensio/domain/speech/speech/services"
+	speechSvc "sensio/domain/speech/services"
 	"strings"
 	"time"
 )

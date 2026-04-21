@@ -5,8 +5,8 @@ import (
 	"sensio/domain/infrastructure"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 
-	usecases "sensio/domain/speech/speech/usecases"
-	services "sensio/domain/speech/speech/services"
+	usecases "sensio/domain/speech/usecases"
+	services "sensio/domain/speech/services"
 )
 
 type SpeechModule struct {

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"sensio/domain/common/utils"
-	"sensio/domain/speech/providers"
+	speechUsecases "sensio/domain/speech/usecases"
 	"sensio/domain/terminal/terminal/dtos"
 	"sensio/domain/terminal/terminal/repositories"
 	"strings"
@@ -79,9 +79,9 @@ func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTermi
 			// Empty string means clear the preference, set to nil
 			item.AiProvider = nil
 		} else {
-			normalizedProvider := providers.NormalizeProvider(*req.AiProvider)
+			normalizedProvider := speechUsecases.NormalizeProvider(*req.AiProvider)
 			// Validate provider - only remote providers are supported
-			if !providers.IsValidProvider(normalizedProvider) {
+			if !speechUsecases.IsValidProvider(normalizedProvider) {
 				details = append(details, utils.ValidationErrorDetail{
 					Field:   "ai_provider",
 					Message: "Invalid ai_provider. Supported values: gemini, openai, groq, orion",
