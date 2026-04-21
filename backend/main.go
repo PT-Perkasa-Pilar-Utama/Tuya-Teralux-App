@@ -71,13 +71,13 @@ import (
 // @tag.name 04. Models
 // @tag.description AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain
 
-// @tag.name 06. Recordings
+// @tag.name 05. Recordings
 // @tag.description Recordings management endpoints
 
-// @tag.name 07. Mail
+// @tag.name 06. Mail
 // @tag.description Mail service endpoints
 
-// @tag.name 08. Common
+// @tag.name 07. Common
 // @tag.description Common endpoints (Health, Cache, External APIs)
 func main() {
 	// CLI: Healthcheck

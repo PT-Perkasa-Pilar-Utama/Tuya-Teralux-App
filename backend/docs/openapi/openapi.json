@@ -6044,15 +6044,15 @@
             "description": "AI Model access endpoints (Speech, RAG, Pipeline) - Unified domain"
         },
         {
-            "name": "06. Recordings",
+            "name": "05. Recordings",
             "description": "Recordings management endpoints"
         },
         {
-            "name": "07. Mail",
+            "name": "06. Mail",
             "description": "Mail service endpoints"
         },
         {
-            "name": "08. Common",
+            "name": "07. Common",
             "description": "Common endpoints (Health, Cache, External APIs)"
         }
     ]

@@ -5426,15 +5426,15 @@ const docTemplate = `{
         },
         {
             "description": "Recordings management endpoints",
-            "name": "06. Recordings"
+            "name": "05. Recordings"
         },
         {
             "description": "Mail service endpoints",
-            "name": "07. Mail"
+            "name": "06. Mail"
         },
         {
             "description": "Common endpoints (Health, Cache, External APIs)",
-            "name": "08. Common"
+            "name": "07. Common"
         }
     ]
 }`
