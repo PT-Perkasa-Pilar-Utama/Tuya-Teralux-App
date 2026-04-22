@@ -4,6 +4,7 @@ import android.content.Context
 import android.provider.Settings
 import com.example.whisperandroid.data.remote.api.CommonApi
 import com.example.whisperandroid.data.remote.api.LoginRequest
+import com.example.whisperandroid.presentation.splash.SplashUiState
 
 class LoginRepositoryImpl(
     private val commonApi: CommonApi,
@@ -13,19 +14,21 @@ class LoginRepositoryImpl(
         return Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
     }
 
-    suspend fun login(): Result<Unit> {
+    suspend fun login(): Result<SplashUiState> {
         return try {
             val androidId = getAndroidId()
             val response = commonApi.login(LoginRequest(terminal_id = androidId))
             if (response.isSuccessful) {
-                Result.success(Unit)
-            } else if (response.code() == 404) {
-                Result.failure(Exception("Terminal not found"))
+                Result.success(SplashUiState.Authenticated)
             } else {
-                Result.failure(Exception("Login failed: ${response.code()}"))
+                when (response.code()) {
+                    404 -> Result.success(SplashUiState.NotRegistered)
+                    401 -> Result.success(SplashUiState.Unauthorized)
+                    else -> Result.success(SplashUiState.Error("Server error: ${response.code()}"))
+                }
             }
         } catch (e: Exception) {
-            Result.failure(Exception("Network error: ${e.message}"))
+            Result.success(SplashUiState.Error("Network error: ${e.message}"))
         }
     }
 }

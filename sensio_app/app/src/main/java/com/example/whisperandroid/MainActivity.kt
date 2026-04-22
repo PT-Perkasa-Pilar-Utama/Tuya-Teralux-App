@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,6 +23,8 @@ import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.navigation.AppRoutes
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
+import com.example.whisperandroid.presentation.splash.SplashScreen
+import com.example.whisperandroid.presentation.splash.SplashViewModel
 import com.example.whisperandroid.ui.theme.SensioTheme
 import com.example.whisperandroid.util.FeatureAvailabilityGuard
 
@@ -92,14 +95,22 @@ fun MainScreen() {
     }
 
     // App Navigation & Overlay
-    val token = remember { NetworkModule.tokenManager.getAccessToken() }
-    val startDestination = if (token != null) AppRoutes.Dashboard.route else AppRoutes.Register.route
+    val startDestination = AppRoutes.Splash.route
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = startDestination
         ) {
+            composable(AppRoutes.Splash.route) {
+                val viewModel: SplashViewModel = viewModel()
+                SplashScreen(
+                    viewModel = viewModel,
+                    onRetry = { viewModel.retry() },
+                    navController = navController
+                )
+            }
+
             composable(AppRoutes.Register.route) {
                 RegisterScreen(onNavigateToDashboard = {
                     navController.navigate(AppRoutes.Dashboard.route) {

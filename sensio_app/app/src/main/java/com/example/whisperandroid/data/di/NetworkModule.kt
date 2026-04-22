@@ -1,5 +1,6 @@
 package com.example.whisperandroid.data.di
 
+import com.example.whisperandroid.data.remote.api.CommonApi
 import com.example.whisperandroid.data.remote.api.PipelineApi
 import com.example.whisperandroid.data.remote.api.TerminalApi
 import com.example.whisperandroid.data.repository.PipelineRepositoryImpl
@@ -170,6 +171,10 @@ object NetworkModule {
 
     private val api: TerminalApi by lazy {
         retrofit.create(TerminalApi::class.java)
+    }
+
+    val commonApi: CommonApi by lazy {
+        retrofit.create(CommonApi::class.java)
     }
 
     private val tuyaApi: com.example.whisperandroid.data.remote.api.TuyaApi by lazy {

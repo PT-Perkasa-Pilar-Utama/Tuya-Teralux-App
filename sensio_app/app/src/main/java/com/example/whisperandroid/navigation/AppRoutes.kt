@@ -1,6 +1,7 @@
 package com.example.whisperandroid.navigation
 
 sealed class AppRoutes(val route: String) {
+    object Splash : AppRoutes("splash")
     object Register : AppRoutes("register")
     object Dashboard : AppRoutes("dashboard")
     object Meeting : AppRoutes("meeting")
