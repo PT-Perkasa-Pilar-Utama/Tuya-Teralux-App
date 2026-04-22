@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"regexp"
 	commonDtos "sensio/domain/common/dtos"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 	"sensio/domain/infrastructure"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/usecases"
-	terminalRepos "sensio/domain/terminal/terminal/repositories"
 	"strings"
 	"time"
 
@@ -26,7 +26,7 @@ var hexIDPattern = regexp.MustCompile(`^[A-Fa-f0-9]{12,24}$`)
 type RAGChatController struct {
 	chatUC       usecases.ChatUseCase
 	mqttSvc      *infrastructure.MqttService
-	terminalRepo terminalRepos.ITerminalRepository
+	terminalRepo interfaces.ITerminalRepository
 	instanceID   string // server start time identifier
 }
 
@@ -73,7 +73,7 @@ func (c *RAGChatController) resolveMQTTUID(mac, reqUID string) string {
 
 	// 3. Fallback: Lookup mapping from database (MAC -> TuyaUID)
 	if mac != "" && c.terminalRepo != nil {
-		terminal, err := c.terminalRepo.GetByMacAddress(strings.ToUpper(mac))
+		terminal, err := c.terminalRepo.GetByMacAddress(context.Background(), strings.ToUpper(mac))
 		if err == nil && terminal != nil && terminal.TuyaUID != "" {
 			utils.LogDebug("RAGChat MQTT: Resolved UID '%s' for terminal %s via DB mapping", terminal.TuyaUID, mac)
 			return terminal.TuyaUID
@@ -90,7 +90,7 @@ func (c *RAGChatController) resolveMQTTUID(mac, reqUID string) string {
 	return utils.GetConfig().TuyaUserID
 }
 
-func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService, terminalRepo terminalRepos.ITerminalRepository) *RAGChatController {
+func NewRAGChatController(chatUC usecases.ChatUseCase, mqttSvc *infrastructure.MqttService, terminalRepo interfaces.ITerminalRepository) *RAGChatController {
 	return &RAGChatController{
 		chatUC:       chatUC,
 		mqttSvc:      mqttSvc,

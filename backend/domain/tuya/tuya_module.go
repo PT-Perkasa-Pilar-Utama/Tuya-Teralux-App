@@ -1,7 +1,6 @@
 package tuya
 
 import (
-	"sensio/domain/common/middlewares"
 	"sensio/domain/infrastructure"
 	device_repositories "sensio/domain/terminal/device/repositories"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
@@ -67,10 +66,7 @@ func NewTuyaModule(badger *infrastructure.BadgerService, vectorSvc *infrastructu
 
 // RegisterRoutes registers Tuya routes
 func (m *TuyaModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
-	// Public/Auth Group
-	authGroup := router.Group("/")
-	authGroup.Use(middlewares.ApiKeyMiddleware())
-	routes.SetupTuyaAuthRoutes(authGroup, m.AuthController)
+	routes.SetupTuyaAuthRoutes(router, m.AuthController)
 
 	// Protected Routes
 	routes.SetupTuyaDeviceRoutes(protected, m.GetAllDevicesController, m.GetDeviceByIDController, m.SensorController)

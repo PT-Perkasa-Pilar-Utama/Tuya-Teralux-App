@@ -2,9 +2,9 @@ package sensors
 
 import (
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/models/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strconv"
 	"strings"
 )
@@ -31,7 +31,7 @@ func (s *SwitchSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
 	return switchCount >= 1
 }
 
-func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
+func (s *SwitchSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor interfaces.DeviceControlExecutor) (*dtos.ControlResultDTO, error) {
 	promptLower := strings.ToLower(prompt)
 
 	var commands []tuyaDtos.TuyaCommandDTO

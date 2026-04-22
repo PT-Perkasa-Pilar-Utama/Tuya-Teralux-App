@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 	"sensio/domain/infrastructure"
 	device "sensio/domain/terminal/device/controllers"
@@ -11,13 +12,10 @@ import (
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/terminal/terminal/routes"
 
-	"sensio/domain/common/middlewares"
 	device_usecases "sensio/domain/terminal/device/usecases"
 	device_status_usecases "sensio/domain/terminal/device_status/usecases"
 	terminal_services "sensio/domain/terminal/terminal/services"
 	terminal_usecases "sensio/domain/terminal/terminal/usecases"
-
-	tuya_usecases "sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 )
@@ -56,9 +54,9 @@ type TerminalModule struct {
 func NewTerminalModule(
 	badger *infrastructure.BadgerService,
 	deviceRepository *device_repositories.DeviceRepository,
-	tuyaAuthUC tuya_usecases.TuyaAuthUseCase,
-	tuyaGetDeviceUC *tuya_usecases.TuyaGetDeviceByIDUseCase,
-	tuyaDeviceControlUC device_status_usecases.TuyaDeviceControlExecutor,
+	authUC interfaces.AuthUseCase,
+	deviceByIDUC interfaces.DeviceByIDUseCase,
+	deviceControlUC interfaces.DeviceControlExecutor,
 ) *TerminalModule {
 	// Services
 	terminalExternalService := terminal_services.NewMacRegistrationExternalService()
@@ -84,7 +82,7 @@ func NewTerminalModule(
 	updateAIEngineProfileUseCase := terminal_usecases.NewUpdateTerminalAIEngineProfileUseCase(terminalRepository, cfg)
 
 	// Device Use Cases
-	createDeviceUseCase := device_usecases.NewCreateDeviceUseCase(deviceRepository, deviceStatusRepository, tuyaAuthUC, tuyaGetDeviceUC, terminalRepository)
+	createDeviceUseCase := device_usecases.NewCreateDeviceUseCase(deviceRepository, deviceStatusRepository, authUC, deviceByIDUC, terminalRepository)
 	getAllDevicesUseCase := device_usecases.NewGetAllDevicesUseCase(deviceRepository)
 	getDeviceByIDUseCase := device_usecases.NewGetDeviceByIDUseCase(deviceRepository)
 	getDevicesByTerminalIDUseCase := device_usecases.NewGetDevicesByTerminalIDUseCase(deviceRepository, terminalRepository)
@@ -95,7 +93,7 @@ func NewTerminalModule(
 	getDeviceStatusesByDeviceIDUseCase := device_status_usecases.NewGetDeviceStatusesByDeviceIDUseCase(deviceStatusRepository, deviceRepository)
 	getAllDeviceStatusesUseCase := device_status_usecases.NewGetAllDeviceStatusesUseCase(deviceStatusRepository)
 	getDeviceStatusByCodeUseCase := device_status_usecases.NewGetDeviceStatusByCodeUseCase(deviceStatusRepository, deviceRepository)
-	updateDeviceStatusUseCase := device_status_usecases.NewUpdateDeviceStatusUseCase(deviceStatusRepository, deviceRepository, tuyaDeviceControlUC)
+	updateDeviceStatusUseCase := device_status_usecases.NewUpdateDeviceStatusUseCase(deviceStatusRepository, deviceRepository, deviceControlUC)
 
 	// Controllers
 	return &TerminalModule{
@@ -126,12 +124,8 @@ func NewTerminalModule(
 
 // RegisterRoutes registers Terminal routes
 func (m *TerminalModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterGroup) {
-	// Public Group with API Key for bootstrap endpoints
-	publicGroup := router.Group("/")
-	publicGroup.Use(middlewares.ApiKeyMiddleware())
-
 	routes.SetupTerminalRoutes(
-		publicGroup,
+		router,
 		protected,
 		m.CreateController,
 		m.GetAllController,

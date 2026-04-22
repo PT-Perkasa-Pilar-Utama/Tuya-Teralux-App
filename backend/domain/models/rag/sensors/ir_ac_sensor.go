@@ -3,10 +3,10 @@ package sensors
 import (
 	"fmt"
 	"regexp"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strconv"
 	"strings"
 )
@@ -21,7 +21,7 @@ func (s *IRACsensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
 	return device.RemoteID != ""
 }
 
-func (s *IRACsensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
+func (s *IRACsensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor interfaces.DeviceControlExecutor) (*dtos.ControlResultDTO, error) {
 	promptLower := strings.ToLower(prompt)
 	isOff := strings.Contains(promptLower, "off") || strings.Contains(promptLower, "matikan") || strings.Contains(promptLower, "mati")
 

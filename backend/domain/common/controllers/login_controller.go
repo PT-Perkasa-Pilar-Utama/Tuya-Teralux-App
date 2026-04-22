@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"sensio/domain/common/dtos"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
-	"sensio/domain/terminal/terminal/repositories"
-	tuya_dtos "sensio/domain/tuya/dtos"
-	"sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,15 +14,15 @@ import (
 
 // LoginController handles terminal login requests
 type LoginController struct {
-	terminalRepo    *repositories.TerminalRepository
-	tuyaAuthUseCase usecases.TuyaAuthUseCase
+	terminalRepo interfaces.ITerminalRepository
+	authUseCase  interfaces.AuthUseCase
 }
 
 // NewLoginController creates a new LoginController instance
-func NewLoginController(terminalRepo *repositories.TerminalRepository, tuyaAuthUseCase usecases.TuyaAuthUseCase) *LoginController {
+func NewLoginController(terminalRepo interfaces.ITerminalRepository, authUseCase interfaces.AuthUseCase) *LoginController {
 	return &LoginController{
-		terminalRepo:    terminalRepo,
-		tuyaAuthUseCase: tuyaAuthUseCase,
+		terminalRepo: terminalRepo,
+		authUseCase:  authUseCase,
 	}
 }
 
@@ -60,7 +58,7 @@ func (c *LoginController) Login(ctx *gin.Context) {
 	}
 
 	// Check if terminal exists
-	terminal, err := c.terminalRepo.GetByID(req.TerminalID)
+	terminal, err := c.terminalRepo.GetByID(ctx.Request.Context(), req.TerminalID)
 	if err != nil || terminal == nil {
 		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
 			Status:  false,
@@ -71,7 +69,7 @@ func (c *LoginController) Login(ctx *gin.Context) {
 	}
 
 	// Call Tuya auth
-	tuyaResult, err := c.tuyaAuthUseCase.Authenticate()
+	tuyaResult, err := c.authUseCase.Authenticate()
 	if err != nil {
 		utils.LogError("LoginController.Login: Tuya auth failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
@@ -121,6 +119,3 @@ func (c *LoginController) Login(ctx *gin.Context) {
 		},
 	})
 }
-
-// Ensure TuyaAuthResponseDTO is used to avoid compiler warning
-var _ = tuya_dtos.TuyaAuthResponseDTO{}

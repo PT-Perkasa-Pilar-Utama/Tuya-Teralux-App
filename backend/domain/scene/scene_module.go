@@ -1,11 +1,11 @@
 package scene
 
 import (
+	"sensio/domain/common/interfaces"
 	"sensio/domain/infrastructure"
 	"sensio/domain/scene/controllers"
 	"sensio/domain/scene/repositories"
 	"sensio/domain/scene/usecases"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -20,7 +20,7 @@ type SceneModule struct {
 	ControlController *controllers.SceneControlController
 }
 
-func NewSceneModule(db *gorm.DB, tuyaCmd tuyaUsecases.TuyaDeviceControlExecutor, mqttSvc *infrastructure.MqttService) *SceneModule {
+func NewSceneModule(db *gorm.DB, deviceCtrl interfaces.DeviceControlExecutor, mqttSvc *infrastructure.MqttService) *SceneModule {
 	repo := repositories.NewSceneRepository(db)
 
 	addUC := usecases.NewAddSceneUseCase(repo)
@@ -28,7 +28,7 @@ func NewSceneModule(db *gorm.DB, tuyaCmd tuyaUsecases.TuyaDeviceControlExecutor,
 	deleteUC := usecases.NewDeleteSceneUseCase(repo)
 	getAllUC := usecases.NewGetAllScenesUseCase(repo)
 	getAllGroupedUC := usecases.NewGetAllGroupedScenesUseCase(repo)
-	controlUC := usecases.NewControlSceneUseCase(repo, tuyaCmd, mqttSvc)
+	controlUC := usecases.NewControlSceneUseCase(repo, deviceCtrl, mqttSvc)
 
 	return &SceneModule{
 		AddController:     controllers.NewSceneAddController(addUC),

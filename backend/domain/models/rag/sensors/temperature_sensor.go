@@ -2,9 +2,9 @@ package sensors
 
 import (
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/models/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 )
 
 type TemperatureSensor struct{}
@@ -30,7 +30,7 @@ func (s *TemperatureSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
 	return false
 }
 
-func (s *TemperatureSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
+func (s *TemperatureSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor interfaces.DeviceControlExecutor) (*dtos.ControlResultDTO, error) {
 	// Temperature sensors are typically read-only, return current readings
 	var temperature float64
 	var humidity int

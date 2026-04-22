@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"sensio/domain/common/middlewares"
 	device "sensio/domain/terminal/device/controllers"
 	device_status "sensio/domain/terminal/device_status/controllers"
 	terminal "sensio/domain/terminal/terminal/controllers"
@@ -34,8 +35,12 @@ func SetupTerminalRoutes(
 	getDeviceStatusesByDeviceIDController *device_status.GetDeviceStatusesByDeviceIDController,
 	updateDeviceStatusController *device_status.UpdateDeviceStatusController,
 ) {
+	// Public Group with API Key for bootstrap endpoints
+	publicGroup := publicRouter.Group("/")
+	publicGroup.Use(middlewares.ApiKeyMiddleware())
+
 	// Public Terminal Routes (Bootstrap: Registration and Check)
-	terminalPublicAPI := publicRouter.Group("/api/terminal")
+	terminalPublicAPI := publicGroup.Group("/api/terminal")
 	{
 		// POST /api/terminal - Create a new terminal (API Key for bootstrap)
 		terminalPublicAPI.POST("", createController.CreateTerminal)
@@ -85,15 +90,18 @@ func SetupTerminalRoutes(
 	}
 
 	// Device Status Routes (Protected)
-	// GET /api/devices/statuses - Get all statuses (Scenario 1)
-	protectedRouter.GET("/api/devices/statuses", getAllDeviceStatusesController.GetAllDeviceStatuses)
+	deviceStatusGroup := protectedRouter.Group("/api/devices")
+	{
+		// GET /api/devices/statuses - Get all statuses (Scenario 1)
+		deviceStatusGroup.GET("/statuses", getAllDeviceStatusesController.GetAllDeviceStatuses)
 
-	// GET /api/devices/:id/statuses - Get statuses by device ID (Scenario 2)
-	protectedRouter.GET("/api/devices/:id/statuses", getDeviceStatusesByDeviceIDController.GetDeviceStatusesByDeviceID)
+		// GET /api/devices/:id/statuses - Get statuses by device ID (Scenario 2)
+		deviceStatusGroup.GET("/:id/statuses", getDeviceStatusesByDeviceIDController.GetDeviceStatusesByDeviceID)
 
-	// GET /api/devices/:id/statuses/:code - Get status by code (Scenario 4)
-	protectedRouter.GET("/api/devices/:id/statuses/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
+		// GET /api/devices/:id/statuses/:code - Get status by code (Scenario 4)
+		deviceStatusGroup.GET("/:id/statuses/:code", getDeviceStatusByCodeController.GetDeviceStatusByCode)
 
-	// PUT /api/devices/:id/status - Update device status (Scenario 1)
-	protectedRouter.PUT("/api/devices/:id/status", updateDeviceStatusController.UpdateDeviceStatus)
+		// PUT /api/devices/:id/status - Update device status (Scenario 1)
+		deviceStatusGroup.PUT("/:id/status", updateDeviceStatusController.UpdateDeviceStatus)
+	}
 }

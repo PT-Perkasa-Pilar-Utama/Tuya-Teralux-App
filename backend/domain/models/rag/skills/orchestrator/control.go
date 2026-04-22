@@ -4,20 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 	"sensio/domain/models/rag/sensors"
 	"sensio/domain/models/rag/skills"
 	tuyaDtos "sensio/domain/tuya/dtos"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strings"
 )
 
 type ControlOrchestrator struct {
-	TuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor
-	TuyaAuth     tuyaUsecases.TuyaAuthUseCase
+	TuyaExecutor interfaces.DeviceControlExecutor
+	TuyaAuth     interfaces.AuthUseCase
 }
 
-func NewControlOrchestrator(executor tuyaUsecases.TuyaDeviceControlExecutor, auth tuyaUsecases.TuyaAuthUseCase) *ControlOrchestrator {
+func NewControlOrchestrator(executor interfaces.DeviceControlExecutor, auth interfaces.AuthUseCase) *ControlOrchestrator {
 	return &ControlOrchestrator{
 		TuyaExecutor: executor,
 		TuyaAuth:     auth,

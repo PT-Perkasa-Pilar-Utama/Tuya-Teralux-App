@@ -1,11 +1,12 @@
 package models
 
 import (
+	"context"
 	"path/filepath"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
-	"sensio/domain/download_token"
+	interfaces "sensio/domain/common/interfaces"
 	"sensio/domain/infrastructure"
 	pipelineControllers "sensio/domain/models/pipeline/controllers"
 	pipelinedtos "sensio/domain/models/pipeline/dtos"
@@ -27,8 +28,6 @@ import (
 	speechUsecases "sensio/domain/speech/usecases"
 	speechServices "sensio/domain/speech/services"
 	speechUtils "sensio/domain/speech/utils"
-	terminalRepositories "sensio/domain/terminal/terminal/repositories"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -36,37 +35,33 @@ import (
 
 // providerResolverTerminalRepoWrapper adapts ITerminalRepository to speechUsecases.TerminalRepository
 type providerResolverTerminalRepoWrapper struct {
-	repo terminalRepositories.ITerminalRepository
+	repo interfaces.ITerminalRepository
 }
 
 func (w *providerResolverTerminalRepoWrapper) GetByID(id string) (*speechUsecases.Terminal, error) {
-	term, err := w.repo.GetByID(id)
+	term, err := w.repo.GetByID(context.Background(), id)
 	if err != nil {
 		return nil, err
 	}
+	aiProvider := term.AiProvider
+	aiEngineProfile := term.AiEngineProfile
 	return &speechUsecases.Terminal{
-		AiProvider:      term.AiProvider,
-		AiEngineProfile: term.AiEngineProfile,
+		AiProvider:      &aiProvider,
+		AiEngineProfile: &aiEngineProfile,
 	}, nil
 }
 
 func (w *providerResolverTerminalRepoWrapper) GetByMacAddress(macAddress string) (*speechUsecases.Terminal, error) {
-	term, err := w.repo.GetByMacAddress(macAddress)
+	term, err := w.repo.GetByMacAddress(context.Background(), macAddress)
 	if err != nil {
 		return nil, err
 	}
+	aiProvider := term.AiProvider
+	aiEngineProfile := term.AiEngineProfile
 	return &speechUsecases.Terminal{
-		AiProvider:      term.AiProvider,
-		AiEngineProfile: term.AiEngineProfile,
+		AiProvider:      &aiProvider,
+		AiEngineProfile: &aiEngineProfile,
 	}, nil
-}
-
-type tokenServiceAdapter struct {
-	svc *download_token.DownloadTokenService
-}
-
-func (a *tokenServiceAdapter) CreateToken(recipient, objectKey, purpose string, password ...string) (string, error) {
-	return a.svc.CreateToken(recipient, objectKey, purpose, password...)
 }
 
 // InitModule initializes the consolidated models module (Whisper, RAG, and Pipeline).
@@ -75,12 +70,13 @@ func InitModule(
 	cfg *utils.Config,
 	badger *infrastructure.BadgerService,
 	vectorSvc *infrastructure.VectorService,
-	tuyaAuth tuyaUsecases.TuyaAuthUseCase,
-	tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor,
+	authUseCase interfaces.AuthUseCase,
+	deviceCtrlExecutor interfaces.DeviceControlExecutor,
 	mqttSvc *infrastructure.MqttService,
-	terminalRepo terminalRepositories.ITerminalRepository,
+	terminalRepo interfaces.ITerminalRepository,
 	saveRecordingUC recordingUsecases.SaveRecordingUseCase,
 	storageProvider infrastructure.StorageProvider,
+	downloadTokenCreator interfaces.DownloadTokenCreator,
 ) (whisperUsecases.TranscribeUseCase, whisperUsecases.UploadSessionUseCase, ragUsecases.RefineUseCase, ragUsecases.TranslateUseCase, ragUsecases.SummaryUseCase, whisperUsecases.AudioEncryptorUseCase, ragUsecases.SecurePDFUseCase) {
 
 	// 1. Initialize RAG Sub-module
@@ -140,7 +136,7 @@ func InitModule(
 		basePath = filepath.Dir(envPath)
 	}
 	baseOrch := ragOrchestrator.NewBaseOrchestrator()
-	controlOrch := ragOrchestrator.NewControlOrchestrator(tuyaExecutor, tuyaAuth)
+	controlOrch := ragOrchestrator.NewControlOrchestrator(deviceCtrlExecutor, authUseCase)
 	summaryOrch := ragOrchestrator.NewSummaryOrchestrator()
 
 	skillsDir := filepath.Join(basePath, "domain", "models", "rag", "skills", "definitions")
@@ -177,11 +173,11 @@ func InitModule(
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewDeviceInfoExternalService()
 	securePDFUC := ragUsecases.NewSecurePDFUseCase(storageProvider)
-	tokenCreator := &tokenServiceAdapter{svc: download_token.NewDownloadTokenService(storageProvider)}
+	tokenCreator := downloadTokenCreator
 	pdfDlqRepo := pdfDlqRepositories.NewPDFDeadLetterRepository()
 	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, securePDFUC, tokenCreator, bigExternalService, mqttSvc, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver, pdfDlqRepo)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
-	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, nil, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)
+	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, nil, cfg, vectorSvc, badger, deviceCtrlExecutor, authUseCase, controlSkill, providerResolver)
 	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, nil, cfg, badger, vectorSvc, guardOrch, fastIntentRouter, decisionEngine, providerResolver, controlUC, router)
 
 	chatController := ragControllers.NewRAGChatController(chatUC, mqttSvc, terminalRepo)

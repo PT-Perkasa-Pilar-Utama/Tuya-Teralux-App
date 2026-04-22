@@ -2,9 +2,9 @@ package sensors
 
 import (
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/models/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strings"
 )
 
@@ -29,7 +29,7 @@ func (s *PowerMonitorSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
 	return false
 }
 
-func (s *PowerMonitorSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
+func (s *PowerMonitorSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor interfaces.DeviceControlExecutor) (*dtos.ControlResultDTO, error) {
 	promptLower := strings.ToLower(prompt)
 
 	isStatusQuery := strings.Contains(promptLower, "status") || strings.Contains(promptLower, "berapa") ||

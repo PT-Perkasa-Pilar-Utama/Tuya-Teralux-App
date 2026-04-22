@@ -46,6 +46,10 @@ backend/services/plaud/
 backend/sensio
 *.exe
 
+# Node
+node_modules/
+bun.lock
+
 # Sisyphus planning artifacts
 .sisyphus/
 
