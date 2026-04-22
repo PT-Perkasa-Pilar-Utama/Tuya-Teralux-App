@@ -27,7 +27,7 @@ func (uc *getRecordingByIDUseCase) GetRecordingByID(id string) (*recordings_dtos
 		ID:           recording.ID,
 		Filename:     recording.Filename,
 		OriginalName: recording.OriginalName,
-		AudioUrl:     recording.AudioUrl,
-		CreatedAt:    recording.CreatedAt,
+		AudioURL:     recording.AudioUrl,
+		CreatedAt:    recording.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}, nil
 }

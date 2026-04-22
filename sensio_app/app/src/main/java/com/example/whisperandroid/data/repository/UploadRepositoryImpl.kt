@@ -1,9 +1,12 @@
 package com.example.whisperandroid.data.repository
 
+import android.content.Context
 import android.util.Log
 import com.example.whisperandroid.data.remote.api.WhisperApi
+import com.example.whisperandroid.utils.ZipEncryptor
 import com.example.whisperandroid.data.remote.dto.CreateUploadIntentRequestDto
 import com.example.whisperandroid.data.remote.dto.CreateUploadSessionRequestDto
+import com.example.whisperandroid.data.remote.dto.SaveRecordingRequestDto
 import com.example.whisperandroid.data.remote.dto.UploadIntentResponseDto
 import com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto
 import com.example.whisperandroid.domain.repository.Resource
@@ -13,6 +16,7 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.net.SocketTimeoutException
+import java.util.UUID
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -24,12 +28,17 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import org.bouncycastle.crypto.generators.Argon2BytesGenerator
+import org.bouncycastle.crypto.params.Argon2Parameters
 import retrofit2.HttpException
 
 class UploadRepositoryImpl(
     private val whisperApi: WhisperApi,
     private val signedUploadEnabled: Boolean = false
 ) : UploadRepository {
+
+    private val zipEncryptor = ZipEncryptor()
 
     companion object {
         private const val TAG = "UploadRepositoryImpl"
@@ -44,6 +53,75 @@ class UploadRepositoryImpl(
 
         // Retryable HTTP status codes
         private val RETRYABLE_HTTP_CODES = setOf(408, 429, 500, 502, 503, 504)
+
+        // S3 Multipart Upload constants
+        private const val MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024L // 5MB minimum per S3 requirement
+        private const val MAX_MULTIPART_RETRIES = 3
+        private val MULTIPART_BACKOFF_DELAYS = listOf(1000L, 2000L, 4000L) // 1s, 2s, 4s exponential backoff
+    }
+
+    override suspend fun uploadSignedUrl(
+        context: Context,
+        audioFile: File,
+        bookingId: String,
+        token: String
+    ): Flow<UploadState> = flow {
+        emit(UploadState.Loading("Requesting signed upload URL..."))
+
+        val password = UUID.randomUUID().toString()
+        val zipFile: File
+        try {
+            zipFile = zipEncryptor.createEncryptedZip(context, audioFile.absolutePath, password)
+        } catch (e: Exception) {
+            emit(UploadState.Error("Failed to create encrypted ZIP: ${e.message}"))
+            return@flow
+        }
+
+        try {
+            val intentRequest = CreateUploadIntentRequestDto(
+                filename = zipFile.name,
+                size = zipFile.length(),
+                contentType = "application/zip",
+                bookingId = bookingId
+            )
+
+            val intentResponse = whisperApi.createUploadIntent(intentRequest, "Bearer $token")
+
+            if (!intentResponse.status || intentResponse.data == null) {
+                emit(UploadState.Error("Failed to get signed URL: ${intentResponse.message}"))
+                return@flow
+            }
+
+            val intent = intentResponse.data
+            emit(UploadState.Loading("Uploading to signed URL..."))
+
+            val uploadResult = uploadToSignedUrl(
+                file = zipFile,
+                signedUrl = intent.presignedUrl,
+                contentType = "application/zip",
+                totalSize = zipFile.length()
+            ) { progress, total ->
+                val progressPercent = (progress * 100 / total).toFloat().coerceIn(0f, 100f)
+                emit(UploadState.Progress(progress, total, progressPercent))
+            }
+
+            if (uploadResult) {
+                val passwordHash = hashPasswordWithArgon2(password)
+                saveRecordingMetadata(
+                    objectKey = intent.objectKey,
+                    bookingId = bookingId,
+                    passwordHash = passwordHash,
+                    token = token
+                )
+                emit(UploadState.Success(intent.objectKey))
+            } else {
+                emit(UploadState.Error("Signed URL upload failed"))
+            }
+        } finally {
+            if (zipFile.exists()) {
+                zipFile.delete()
+            }
+        }
     }
 
     override fun uploadFile(
@@ -58,21 +136,20 @@ class UploadRepositoryImpl(
         if (signedUploadEnabled) {
             try {
                 emit(UploadState.Loading("Requesting signed upload URL..."))
-                
+
                 val intentResponse = whisperApi.createUploadIntent(
                     CreateUploadIntentRequestDto("audio/wav"),
                     token
                 )
-                
+
                 if (!intentResponse.status || intentResponse.data == null) {
                     emit(UploadState.Error("Failed to get signed URL: ${intentResponse.message}"))
                     return@flow
                 }
-                
+
                 val intent = intentResponse.data
                 emit(UploadState.Loading("Uploading to signed URL..."))
-                
-                // Upload directly to signed URL
+
                 val uploadResult = uploadToSignedUrl(
                     file = file,
                     signedUrl = intent.presignedUrl,
@@ -82,9 +159,8 @@ class UploadRepositoryImpl(
                     val progressPercent = (progress * 100 / total).toFloat().coerceIn(0f, 100f)
                     emit(UploadState.Progress(progress, total, progressPercent))
                 }
-                
+
                 if (uploadResult) {
-                    // Store object key for later reference (finalization)
                     emit(UploadState.Success(intent.objectKey))
                 } else {
                     emit(UploadState.Error("Signed URL upload failed"))
@@ -984,6 +1060,19 @@ class UploadRepositoryImpl(
         totalSize: Long,
         onProgress: suspend (Long, Long) -> Unit
     ): Boolean {
+        if (totalSize < MULTIPART_MIN_PART_SIZE) {
+            return uploadSinglePut(file, signedUrl, contentType, totalSize, onProgress)
+        }
+        return uploadMultipart(file, signedUrl, contentType, totalSize, onProgress)
+    }
+
+    private suspend fun uploadSinglePut(
+        file: File,
+        signedUrl: String,
+        contentType: String,
+        totalSize: Long,
+        onProgress: suspend (Long, Long) -> Unit
+    ): Boolean {
         return try {
             val client = okhttp3.OkHttpClient()
                 .newBuilder()
@@ -1003,7 +1092,7 @@ class UploadRepositoryImpl(
                 .build()
 
             val response = client.newCall(request).execute()
-            
+
             if (response.isSuccessful) {
                 onProgress(totalSize, totalSize)
                 true
@@ -1014,6 +1103,227 @@ class UploadRepositoryImpl(
         } catch (e: Exception) {
             Log.e(TAG, "Signed URL upload exception: ${e.message}")
             false
+        }
+    }
+
+    private suspend fun uploadMultipart(
+        file: File,
+        signedUrl: String,
+        contentType: String,
+        totalSize: Long,
+        onProgress: suspend (Long, Long) -> Unit
+    ): Boolean {
+        val client = okhttp3.OkHttpClient()
+            .newBuilder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
+            .writeTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
+            .build()
+
+        var uploadId: String? = null
+        val partETags = mutableListOf<String>()
+        val raf = RandomAccessFile(file, "r")
+
+        try {
+            val createRequest = okhttp3.Request.Builder()
+                .url(signedUrl)
+                .post(okhttp3.RequestBody.create(contentType.toMediaTypeOrNull(), ""))
+                .header("Content-Type", contentType)
+                .header("x-amz-backmodes", "CreateMultipartUpload")
+                .build()
+
+            val createResponse = client.newCall(createRequest).execute()
+            if (!createResponse.isSuccessful) {
+                Log.e(TAG, "CreateMultipartUpload failed: ${createResponse.code}")
+                return false
+            }
+            val createBody = createResponse.body?.string() ?: ""
+            uploadId = extractUploadIdFromResponse(createBody)
+            if (uploadId == null) {
+                Log.e(TAG, "Failed to extract uploadId from CreateMultipartUpload response")
+                return false
+            }
+            createResponse.close()
+
+            val partSize = calculatePartSize(totalSize)
+            val numParts = ((totalSize + partSize - 1) / partSize).toInt()
+            var uploadedBytes = 0L
+
+            for (partNumber in 1..numParts) {
+                val offset = (partNumber - 1).toLong() * partSize
+                val remaining = totalSize - offset
+                val currentPartSize = minOf(partSize, remaining)
+
+                val buffer = ByteArray(currentPartSize.toInt())
+                raf.seek(offset)
+                raf.readFully(buffer)
+
+                var partSuccess = false
+                var lastError: Exception? = null
+
+                for (retryCount in 0 until MAX_MULTIPART_RETRIES) {
+                    try {
+                        val partRequestBody = okhttp3.RequestBody.create(
+                            contentType.toMediaTypeOrNull(),
+                            buffer
+                        )
+
+                        val partUrl = "$signedUrl&uploadId=$uploadId&partNumber=$partNumber"
+                        val partRequest = okhttp3.Request.Builder()
+                            .url(partUrl)
+                            .put(partRequestBody)
+                            .build()
+
+                        val partResponse = client.newCall(partRequest).execute()
+
+                        if (partResponse.isSuccessful) {
+                            val etag = partResponse.header("ETag")?.replace("\"", "") ?: ""
+                            partETags.add(etag)
+                            partSuccess = true
+                            partResponse.close()
+                            break
+                        } else {
+                            lastError = Exception("UploadPart failed: ${partResponse.code}")
+                            partResponse.close()
+                        }
+                    } catch (e: Exception) {
+                        lastError = e
+                    }
+
+                    if (!partSuccess && retryCount < MAX_MULTIPART_RETRIES - 1) {
+                        val delayMs = MULTIPART_BACKOFF_DELAYS[retryCount]
+                        delay(delayMs)
+                    }
+                }
+
+                if (!partSuccess) {
+                    Log.e(TAG, "UploadPart $partNumber failed after $MAX_MULTIPART_RETRIES retries")
+                    abortMultipartUpload(client, signedUrl, uploadId)
+                    return false
+                }
+
+                uploadedBytes += currentPartSize
+                onProgress(uploadedBytes, totalSize)
+            }
+
+            val completeResult = completeMultipartUpload(client, signedUrl, uploadId, partETags)
+            if (!completeResult) {
+                Log.e(TAG, "CompleteMultipartUpload failed")
+                abortMultipartUpload(client, signedUrl, uploadId)
+                return false
+            }
+
+            onProgress(totalSize, totalSize)
+            return true
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Multipart upload exception: ${e.message}")
+            uploadId?.let { abortMultipartUpload(client, signedUrl, it) }
+            return false
+        } finally {
+            raf.close()
+        }
+    }
+
+    private fun calculatePartSize(totalSize: Long): Long {
+        val minPartSize = MULTIPART_MIN_PART_SIZE
+        val numParts = ((totalSize + minPartSize - 1) / minPartSize).toInt()
+        return (totalSize + numParts - 1) / numParts
+    }
+
+    private fun extractUploadIdFromResponse(responseBody: String): String? {
+        val json = JSONObject(responseBody)
+        return json.optString("UploadId")
+    }
+
+    private suspend fun completeMultipartUpload(
+        client: okhttp3.OkHttpClient,
+        signedUrl: String,
+        uploadId: String,
+        partETags: List<String>
+    ): Boolean {
+        val etagsJson = partETags.mapIndexed { index, etag ->
+            """{"PartNumber":${index + 1},"ETag":"$etag"}"""
+        }.joinToString(",")
+
+        val completeBody = """{"UploadId":"$uploadId","Parts":[$etagsJson]}"""
+
+        val request = okhttp3.Request.Builder()
+            .url(signedUrl)
+            .post(completeBody.toRequestBody("application/json".toMediaTypeOrNull()))
+            .header("Content-Type", "application/json")
+            .header("x-amz-backmodes", "CompleteMultipartUpload")
+            .build()
+
+        return try {
+            val response = client.newCall(request).execute()
+            val success = response.isSuccessful
+            response.close()
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "CompleteMultipartUpload exception: ${e.message}")
+            false
+        }
+    }
+
+    private suspend fun abortMultipartUpload(
+        client: okhttp3.OkHttpClient,
+        signedUrl: String,
+        uploadId: String
+    ) {
+        try {
+            val abortUrl = "$signedUrl&uploadId=$uploadId"
+            val request = okhttp3.Request.Builder()
+                .url(abortUrl)
+                .delete()
+                .header("x-amz-backmodes", "AbortMultipartUpload")
+                .build()
+
+            client.newCall(request).execute().close()
+            Log.i(TAG, "AbortMultipartUpload succeeded for uploadId: $uploadId")
+        } catch (e: Exception) {
+            Log.w(TAG, "AbortMultipartUpload failed: ${e.message}")
+        }
+    }
+
+    private fun hashPasswordWithArgon2(password: String): String {
+        val salt = ByteArray(16)
+        java.security.SecureRandom().nextBytes(salt)
+
+        val factory = org.bouncycastle.crypto.generators.Argon2BytesGenerator()
+        val params = org.bouncycastle.crypto.params.Argon2Parameters.Builder(
+            org.bouncycastle.crypto.params.Argon2Parameters.ARGON2_id
+        )
+            .withSalt(salt)
+            .withMemoryAsKB(65536)
+            .withIterations(3)
+            .withParallelism(4)
+            .build()
+        factory.init(params)
+
+        val hash = ByteArray(32)
+        factory.generateBytes(password.toCharArray(), hash)
+
+        val saltHex = salt.joinToString("") { "%02x".format(it) }
+        val hashHex = hash.joinToString("") { "%02x".format(it) }
+        return "$saltHex:$hashHex"
+    }
+
+    private suspend fun saveRecordingMetadata(
+        objectKey: String,
+        bookingId: String,
+        passwordHash: String,
+        token: String
+    ) {
+        try {
+            val request = SaveRecordingRequestDto(
+                s3Key = objectKey,
+                bookingId = bookingId,
+                passwordHash = passwordHash
+            )
+            whisperApi.saveRecording(request, "Bearer $token")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to save recording metadata: ${e.message}")
         }
     }
 }

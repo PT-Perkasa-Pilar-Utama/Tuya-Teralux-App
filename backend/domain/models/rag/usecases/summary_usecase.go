@@ -12,6 +12,7 @@ import (
 	"sensio/domain/models/rag/dtos"
 	ragServices "sensio/domain/models/rag/services"
 	"sensio/domain/models/rag/skills"
+	"sensio/domain/pdf_dlq/entities"
 	speechUsecases "sensio/domain/speech/usecases"
 	"strings"
 	"time"
@@ -41,6 +42,11 @@ type securePDFProcessor interface {
 // downloadTokenCreator defines interface for token creation to avoid import cycle
 type downloadTokenCreator interface {
 	CreateToken(recipient, objectKey, purpose string, password ...string) (string, error)
+}
+
+// pdfDeadLetterCreator defines interface for DLQ entry creation
+type pdfDeadLetterCreator interface {
+	Create(entry *entities.PDFDeadLetter) error
 }
 
 // HierarchicalSummaryResult encapsulates the output of hierarchical structured summarization
@@ -96,8 +102,9 @@ type summaryUseCase struct {
 	renderTimeout             time.Duration
 	skill                     skills.Skill
 	chunkSkill                skills.Skill
-	structuredExtractionSkill skills.Skill // For hierarchical map phase JSON extraction
+	structuredExtractionSkill skills.Skill
 	providerResolver          speechUsecases.ProviderResolver
+	pdfDLQC                   pdfDeadLetterCreator
 }
 
 func NewSummaryUseCase(
@@ -115,6 +122,7 @@ func NewSummaryUseCase(
 	chunkSkill skills.Skill,
 	structuredExtractionSkill skills.Skill,
 	providerResolver speechUsecases.ProviderResolver,
+	pdfDLQC pdfDeadLetterCreator,
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:                       llm,
@@ -133,6 +141,7 @@ func NewSummaryUseCase(
 		chunkSkill:                chunkSkill,
 		structuredExtractionSkill: structuredExtractionSkill,
 		providerResolver:          providerResolver,
+		pdfDLQC:                   pdfDLQC,
 	}
 }
 
@@ -331,18 +340,21 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 			CompanyName:  "Sensio",
 		}
 		if err := u.renderer.Render(trimmedSummary, tmpPdfPath, meta); err != nil {
-			fmt.Printf("[WARNING] PDF generation skipped: %v\n", err)
+			utils.LogError("PDF: generation failed: %v", err)
 			pdfUrl = ""
+			u.recordPDFDLQ(uuidStr.String(), fmt.Sprintf("pdf_render: %v", err))
 		} else if u.securePDFUC != nil {
 			s3Key, password, err := u.securePDFUC.ProtectAndStore(ctx, tmpPdfPath)
 			if err != nil {
 				utils.LogError("SecurePDF: failed to protect PDF: %v", err)
 				pdfUrl = ""
+				u.recordPDFDLQ(uuidStr.String(), fmt.Sprintf("s3_upload: %v", err))
 			} else {
 				tokenID, err := u.tokenService.CreateToken("", s3Key, "summary_pdf", password)
 				if err != nil {
 					utils.LogError("SecurePDF: failed to create token: %v", err)
 					pdfUrl = ""
+					u.recordPDFDLQ(uuidStr.String(), fmt.Sprintf("token_create: %v", err))
 				} else {
 					pdfUrl = fmt.Sprintf("/api/download/resolve/%s", tokenID)
 				}
@@ -1027,4 +1039,20 @@ func (u *summaryUseCase) runSummaryAsync(ctx context.Context, taskID string, tex
 
 	u.store.Set(taskID, status)
 	_ = u.cache.SetPreserveTTL(taskID, status)
+}
+
+func (u *summaryUseCase) recordPDFDLQ(jobID string, failureReason string) {
+	if u.pdfDLQC == nil {
+		return
+	}
+	entry := &entities.PDFDeadLetter{
+		JobID:         jobID,
+		FailureReason: failureReason,
+		RetryCount:    0,
+	}
+	if err := u.pdfDLQC.Create(entry); err != nil {
+		utils.LogError("PDFDLQ: failed to record dead letter entry: %v", err)
+	} else {
+		utils.LogInfo("PDFDLQ: recorded dead letter entry for job %s", jobID)
+	}
 }

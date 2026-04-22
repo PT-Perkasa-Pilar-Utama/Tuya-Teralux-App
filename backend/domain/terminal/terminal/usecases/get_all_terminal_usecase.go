@@ -1,6 +1,8 @@
 package usecases
 
 import (
+	"time"
+
 	"sensio/domain/terminal/terminal/dtos"
 	"sensio/domain/terminal/terminal/repositories"
 )
@@ -57,8 +59,8 @@ func (uc *GetAllTerminalUseCase) ListTerminal(filter *dtos.TerminalFilterDTO) (*
 			RoomID:       item.RoomID,
 			DeviceTypeID: item.DeviceTypeID,
 			AiProvider:   item.AiProvider,
-			CreatedAt:    item.CreatedAt,
-			UpdatedAt:    item.UpdatedAt,
+			CreatedAt:    item.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    item.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 

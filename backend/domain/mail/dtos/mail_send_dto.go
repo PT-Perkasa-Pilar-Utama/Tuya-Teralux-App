@@ -33,13 +33,13 @@ type MailStatusDTO struct {
 	StartedAt       string  `json:"started_at,omitempty"`
 	DurationSeconds float64 `json:"duration_seconds,omitempty"`
 	ExpiresAt       string  `json:"expires_at,omitempty"`
-	ExpiresInSecond int64   `json:"expires_in_seconds,omitempty"`
+	ExpiresInSeconds int64   `json:"expires_in_seconds,omitempty"`
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface
 func (s *MailStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
 	s.ExpiresAt = expiresAt
-	s.ExpiresInSecond = expiresInSeconds
+	s.ExpiresInSeconds = expiresInSeconds
 }
 
 // SwaggerEmailTemplateData represents the expected map structure for the email template (used for Swagger Docs only)

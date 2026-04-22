@@ -23,7 +23,7 @@ import (
 	notification_entities "sensio/domain/notification/entities"
 	"sensio/domain/notification"
 	notification_services "sensio/domain/notification/services"
-	"sensio/domain/recordings"
+	recordings "sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
 	"sensio/domain/scene"
 	scene_entities "sensio/domain/scene/entities"
@@ -120,6 +120,7 @@ func run() error {
 		&device_status_entities.DeviceStatus{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
+		&recordings_entities.AudioUploadStatus{},
 		&notification_entities.ScheduledNotification{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate entities: %w", err)
@@ -185,7 +186,7 @@ func run() error {
 	notificationModule.RegisterRoutes(protected)
 
 	// 4. Recordings Module
-	recordingsModule := recordings.NewRecordingsModule(badgerService)
+	recordingsModule := recordings.NewRecordingsModule(badgerService, commonModule.StorageProvider)
 	recordingsModule.RegisterRoutes(router, protected)
 
 	// 5. Speech & RAG Modules (migrated from stt-service)

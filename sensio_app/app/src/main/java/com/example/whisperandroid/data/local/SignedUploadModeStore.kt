@@ -13,7 +13,7 @@ class SignedUploadModeStore(context: Context) {
         Context.MODE_PRIVATE
     )
 
-    private val _isEnabled = MutableStateFlow(prefs.getBoolean(KEY_SIGNED_UPLOAD, false))
+    private val _isEnabled = MutableStateFlow(prefs.getBoolean(KEY_SIGNED_UPLOAD, true))
     val isEnabled: StateFlow<Boolean> = _isEnabled.asStateFlow()
 
     fun setEnabled(enabled: Boolean) {

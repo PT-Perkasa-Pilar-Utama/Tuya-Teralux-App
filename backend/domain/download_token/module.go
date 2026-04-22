@@ -2,7 +2,6 @@ package download_token
 
 import (
 	download_tokenControllers "sensio/domain/download_token/controllers"
-	download_tokenRepositories "sensio/domain/download_token/repositories"
 	download_tokenRoutes "sensio/domain/download_token/routes"
 	download_tokenServices "sensio/domain/download_token/services"
 
@@ -17,9 +16,7 @@ type DownloadTokenModule struct {
 }
 
 func NewDownloadTokenModule(storageProvider infrastructure.StorageProvider) *DownloadTokenModule {
-	store := download_tokenRepositories.NewStore()
-
-	service := download_tokenServices.NewDownloadTokenService(store, storageProvider)
+	service := download_tokenServices.NewDownloadTokenService(storageProvider)
 
 	handler := download_tokenControllers.NewHandler(service)
 
@@ -36,13 +33,11 @@ func (m *DownloadTokenModule) RegisterRoutes(router *gin.RouterGroup) {
 // Re-export for consumer convenience
 type (
 	DownloadTokenService = download_tokenServices.DownloadTokenService
-	Store                = download_tokenRepositories.Store
 )
 
 // Re-export constructors
 var (
 	NewDownloadTokenService = download_tokenServices.NewDownloadTokenService
-	NewStore                = download_tokenRepositories.NewStore
 	NewHandler              = download_tokenControllers.NewHandler
 	RegisterRoutes          = download_tokenRoutes.RegisterRoutes
 )

@@ -106,3 +106,38 @@ func (c *BadgerTaskCache) Delete(taskID string) error {
 	}
 	return c.badger.Delete(c.key(taskID))
 }
+
+// IdempotencyKeyPrefix returns the full key for an idempotency lookup based on recipient and objectKey.
+func (c *BadgerTaskCache) IdempotencyKeyPrefix(recipient, objectKey string) string {
+	return c.keyPrefix + "idempotent:" + recipient + ":" + objectKey
+}
+
+// SetIdempotencyTask stores a taskID for a given recipient+objectKey combination.
+func (c *BadgerTaskCache) SetIdempotencyTask(recipient, objectKey, taskID string, status any) error {
+	if c == nil || c.badger == nil {
+		return nil
+	}
+	data, err := json.Marshal(status)
+	if err != nil {
+		return err
+	}
+	return c.badger.Set(c.key("idempotent:"+recipient+":"+objectKey), data)
+}
+
+// GetIdempotencyTask retrieves the status for a given recipient+objectKey combination.
+func (c *BadgerTaskCache) GetIdempotencyTask(recipient, objectKey string, out any) (string, bool, error) {
+	if c == nil || c.badger == nil {
+		return "", false, nil
+	}
+	data, ttl, err := c.badger.GetWithTTL(c.key("idempotent:" + recipient + ":" + objectKey))
+	if err != nil {
+		return "", false, err
+	}
+	if len(data) == 0 {
+		return "", false, nil
+	}
+	if err := json.Unmarshal(data, out); err != nil {
+		return "", false, err
+	}
+	return "", ttl > 0, nil
+}

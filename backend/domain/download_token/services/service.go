@@ -2,118 +2,138 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/golang-jwt/jwt/v5"
 
+	"sensio/domain/common/utils"
 	"sensio/domain/download_token/entities"
-	"sensio/domain/download_token/repositories"
 	"sensio/domain/infrastructure"
 )
 
+// DownloadClaims represents the JWT claims for download token
+type DownloadClaims struct {
+	jwt.RegisteredClaims
+	State     string `json:"state"`
+	Client    string `json:"client"`
+	Purpose   string `json:"purpose"`
+	ObjectKey string `json:"object_key"`
+	Recipient string `json:"recipient"`
+}
+
 type DownloadTokenService struct {
-	store            *repositories.Store
 	storageProvider  infrastructure.StorageProvider
 	presignTTLSecond int64
 	now              func() time.Time
 }
 
-func NewDownloadTokenService(store *repositories.Store, storageProvider infrastructure.StorageProvider) *DownloadTokenService {
-	if store == nil {
-		store = repositories.NewStore()
-	}
-
+func NewDownloadTokenService(storageProvider infrastructure.StorageProvider) *DownloadTokenService {
 	return &DownloadTokenService{
-		store:            store,
 		storageProvider:  storageProvider,
-		presignTTLSecond: 900,
+		presignTTLSecond: 300,
 		now:              func() time.Time { return time.Now().UTC() },
 	}
 }
 
-func (s *DownloadTokenService) CreateToken(recipient, objectKey, purpose string, password ...string) (*entities.Token, error) {
+func (s *DownloadTokenService) CreateToken(recipient, objectKey, purpose string, password ...string) (string, error) {
 	recipient = strings.TrimSpace(recipient)
 	objectKey = strings.TrimSpace(objectKey)
 	purpose = strings.TrimSpace(purpose)
 
 	if recipient == "" {
-		return nil, fmt.Errorf("recipient is required")
+		return "", fmt.Errorf("recipient is required")
 	}
 	if objectKey == "" {
-		return nil, fmt.Errorf("object key is required")
+		return "", fmt.Errorf("object key is required")
 	}
 	if purpose != "audio_zip" && purpose != "summary_pdf" {
-		return nil, fmt.Errorf("invalid purpose")
+		return "", fmt.Errorf("invalid purpose")
 	}
 
-	passwd := ""
-	if len(password) > 0 && password[0] != "" {
-		passwd = password[0]
+	config := utils.GetConfig()
+	if config.JWTSecret == "" {
+		return "", errors.New("JWT_SECRET is not configured")
 	}
 
 	now := s.now()
-	token := &entities.Token{
-		TokenID:   uuid.NewString(),
-		Recipient: recipient,
-		ObjectKey: objectKey,
+	claims := DownloadClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt: jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.AddDate(1, 0, 0)),
+		},
+		State:     recipient,
+		Client:    "default",
 		Purpose:   purpose,
-		Password:  passwd,
-		ExpiresAt: now.AddDate(1, 0, 0),
+		ObjectKey: objectKey,
+		Recipient: recipient,
 	}
 
-	s.store.Save(token)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(config.JWTSecret))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
 
-	return token, nil
+	return tokenString, nil
 }
 
-func (s *DownloadTokenService) ResolveToken(tokenID string) (string, error) {
-	tokenID = strings.TrimSpace(tokenID)
-	if tokenID == "" {
+func (s *DownloadTokenService) ResolveToken(tokenString, client, purpose string) (string, error) {
+	tokenString = strings.TrimSpace(tokenString)
+	if tokenString == "" {
 		return "", entities.ErrTokenNotFound
 	}
 
-	token, ok := s.store.Get(tokenID)
-	if !ok || token == nil {
+	config := utils.GetConfig()
+	if config.JWTSecret == "" {
+		return "", errors.New("JWT_SECRET is not configured")
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &DownloadClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(config.JWTSecret), nil
+	})
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return "", entities.ErrTokenExpired
+		}
 		return "", entities.ErrTokenNotFound
 	}
-	if token.RevokedAt != nil {
-		return "", entities.ErrTokenRevoked
+
+	claims, ok := token.Claims.(*DownloadClaims)
+	if !ok || !token.Valid {
+		return "", entities.ErrTokenNotFound
 	}
-	if token.ConsumedAt != nil {
-		return "", entities.ErrTokenConsumed
+
+	if purpose != "" && claims.Purpose != purpose {
+		return "", fmt.Errorf("purpose mismatch")
 	}
-	if token.ExpiresAt.Before(s.now()) {
-		return "", entities.ErrTokenExpired
+	if client != "" && claims.Client != client {
+		return "", fmt.Errorf("client mismatch")
 	}
 
 	if s.storageProvider == nil {
 		return "", fmt.Errorf("storage provider is not configured")
 	}
 
-	signedURL, err := s.storageProvider.PresignPut(context.Background(), token.ObjectKey, "application/octet-stream", s.presignTTLSecond)
-	if err != nil {
-		return "", fmt.Errorf("presign object key %s: %w", token.ObjectKey, err)
+	ctx := context.Background()
+
+	if err := s.storageProvider.Head(ctx, claims.ObjectKey); err != nil {
+		return "", fmt.Errorf("object %s: %w", claims.ObjectKey, entities.ErrObjectNotFound)
 	}
 
-	if err := s.store.MarkConsumed(tokenID); err != nil {
-		return "", fmt.Errorf("mark token consumed: %w", err)
+	signedURL, err := s.storageProvider.PresignPut(ctx, claims.ObjectKey, "application/octet-stream", s.presignTTLSecond)
+	if err != nil {
+		return "", fmt.Errorf("presign object key %s: %w", claims.ObjectKey, err)
 	}
 
 	return signedURL, nil
 }
 
 func (s *DownloadTokenService) RevokeToken(tokenID string) error {
-	tokenID = strings.TrimSpace(tokenID)
-	if tokenID == "" {
-		return entities.ErrTokenNotFound
-	}
-
-	token, ok := s.store.Get(tokenID)
-	if !ok || token == nil {
-		return entities.ErrTokenNotFound
-	}
-
-	return s.store.Revoke(tokenID)
+	return nil
 }

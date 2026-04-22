@@ -1,7 +1,5 @@
 package dtos
 
-import "time"
-
 // CreateDeviceRequestDTO represents the request body for creating a new device
 type CreateDeviceRequestDTO struct {
 	ID         string `json:"id" binding:"required"`
@@ -46,8 +44,8 @@ type DeviceResponseDTO struct {
 	CreateTime        int64     `json:"create_time"`
 	UpdateTime        int64     `json:"update_time"`
 	Collections       string    `json:"collections"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 // DeviceStatusDTO represents a device status for responses

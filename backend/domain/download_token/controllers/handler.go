@@ -22,7 +22,11 @@ type CreateTokenRequest struct {
 }
 
 type CreateTokenResponse struct {
-	TokenID string `json:"token_id"`
+	Token string `json:"token"`
+}
+
+type ResolveTokenResponse struct {
+	URL string `json:"url"`
 }
 
 func NewHandler(service *services.DownloadTokenService) *Handler {
@@ -53,22 +57,33 @@ func (h *Handler) CreateToken(ctx *gin.Context) {
 		Status:  true,
 		Message: "Download token created",
 		Data: CreateTokenResponse{
-			TokenID: token.TokenID,
+			Token: token,
 		},
 	})
 }
 
 func (h *Handler) ResolveToken(ctx *gin.Context) {
-	tokenID := ctx.Param("token")
-	signedURL, err := h.service.ResolveToken(tokenID)
+	tokenString := ctx.Query("state")
+	client := ctx.Query("client")
+	purpose := ctx.Query("purpose")
+
+	if tokenString == "" {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "missing required query param: state",
+		})
+		return
+	}
+
+	signedURL, err := h.service.ResolveToken(tokenString, client, purpose)
 	if err != nil {
 		switch {
 		case errors.Is(err, entities.ErrTokenNotFound):
-			ctx.JSON(http.StatusNotFound, dtos.StandardResponse{Status: false, Message: err.Error()})
-		case errors.Is(err, entities.ErrTokenExpired), errors.Is(err, entities.ErrTokenConsumed), errors.Is(err, entities.ErrTokenRevoked):
+			ctx.JSON(http.StatusUnauthorized, dtos.StandardResponse{Status: false, Message: err.Error()})
+		case errors.Is(err, entities.ErrTokenExpired):
 			ctx.JSON(http.StatusGone, dtos.StandardResponse{Status: false, Message: err.Error()})
 		default:
-			ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{Status: false, Message: "Internal Server Error"})
+			ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{Status: false, Message: err.Error()})
 		}
 		return
 	}

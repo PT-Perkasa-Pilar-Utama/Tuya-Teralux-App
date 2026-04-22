@@ -9,5 +9,5 @@ import (
 func RegisterRoutes(router *gin.RouterGroup, handler *controllers.Handler) {
 	downloadGroup := router.Group("/api/download")
 	downloadGroup.POST("/token", handler.CreateToken)
-	downloadGroup.GET("/:token", handler.ResolveToken)
+	downloadGroup.GET("/resolve", handler.ResolveToken)
 }

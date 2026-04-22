@@ -101,7 +101,7 @@ type RAGStatusDTO struct {
 	Headers         map[string]string `json:"headers,omitempty"`
 	ExecutionResult interface{}       `json:"execution_result,omitempty"` // holds the response from the fetched endpoint
 	ExpiresAt       string            `json:"expires_at,omitempty"`
-	ExpiresInSecond int64             `json:"expires_in_seconds,omitempty"`
+	ExpiresInSeconds int64             `json:"expires_in_seconds,omitempty"`
 
 	// Optional structured summary artifacts (backward compatible - empty when not available)
 	SummaryVersion         string           `json:"summary_version,omitempty"`
@@ -120,7 +120,7 @@ type RAGStatusDTO struct {
 // This allows the generic status usecase to automatically populate TTL info.
 func (s *RAGStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
 	s.ExpiresAt = expiresAt
-	s.ExpiresInSecond = expiresInSeconds
+	s.ExpiresInSeconds = expiresInSeconds
 }
 
 // RAGProcessResponseDTO is the payload returned by POST /api/rag

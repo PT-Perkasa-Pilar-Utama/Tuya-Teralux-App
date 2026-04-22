@@ -18,6 +18,7 @@ import (
 	ragSkills "sensio/domain/models/rag/skills"
 	ragOrchestrator "sensio/domain/models/rag/skills/orchestrator"
 	ragUsecases "sensio/domain/models/rag/usecases"
+	pdfDlqRepositories "sensio/domain/pdf_dlq/repositories"
 	whisperControllers "sensio/domain/models/whisper/controllers"
 	whisperDtos "sensio/domain/models/whisper/dtos"
 	whisperRoutes "sensio/domain/models/whisper/routes"
@@ -65,11 +66,7 @@ type tokenServiceAdapter struct {
 }
 
 func (a *tokenServiceAdapter) CreateToken(recipient, objectKey, purpose string, password ...string) (string, error) {
-	token, err := a.svc.CreateToken(recipient, objectKey, purpose, password...)
-	if err != nil {
-		return "", err
-	}
-	return token.TokenID, nil
+	return a.svc.CreateToken(recipient, objectKey, purpose, password...)
 }
 
 // InitModule initializes the consolidated models module (Whisper, RAG, and Pipeline).
@@ -180,8 +177,9 @@ func InitModule(
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewDeviceInfoExternalService()
 	securePDFUC := ragUsecases.NewSecurePDFUseCase(storageProvider)
-	tokenCreator := &tokenServiceAdapter{svc: download_token.NewDownloadTokenService(download_token.NewStore(), storageProvider)}
-	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, securePDFUC, tokenCreator, bigExternalService, mqttSvc, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver)
+	tokenCreator := &tokenServiceAdapter{svc: download_token.NewDownloadTokenService(storageProvider)}
+	pdfDlqRepo := pdfDlqRepositories.NewPDFDeadLetterRepository()
+	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, securePDFUC, tokenCreator, bigExternalService, mqttSvc, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver, pdfDlqRepo)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
 	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, nil, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)
 	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, nil, cfg, badger, vectorSvc, guardOrch, fastIntentRouter, decisionEngine, providerResolver, controlUC, router)

@@ -1,5 +1,6 @@
 package com.example.whisperandroid.domain.repository
 
+import android.content.Context
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 
@@ -35,4 +36,15 @@ interface UploadRepository {
         sessionId: String,
         token: String
     ): Resource<com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto>
+
+    /**
+     * Uploads a file using a signed URL (single PUT request).
+     * Used when signedUploadEnabled is true.
+     */
+    suspend fun uploadSignedUrl(
+        context: Context,
+        audioFile: File,
+        bookingId: String,
+        token: String
+    ): Flow<UploadState>
 }

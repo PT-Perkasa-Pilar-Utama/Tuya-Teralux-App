@@ -3,6 +3,7 @@ package usecases
 import (
 	"sensio/domain/terminal/device_status/dtos"
 	"sensio/domain/terminal/device_status/repositories"
+	"time"
 )
 
 // GetAllDeviceStatusesUseCase handles retrieving all device statuses
@@ -41,8 +42,8 @@ func (uc *GetAllDeviceStatusesUseCase) ListDeviceStatuses(page, limit int) (*dto
 			DeviceID:  status.DeviceID,
 			Code:      status.Code,
 			Value:     status.Value,
-			CreatedAt: status.CreatedAt,
-			UpdatedAt: status.UpdatedAt,
+			CreatedAt: status.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: status.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 

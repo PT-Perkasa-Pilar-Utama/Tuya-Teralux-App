@@ -10,6 +10,7 @@ var (
 	ErrTokenExpired  = errors.New("download token expired")
 	ErrTokenConsumed = errors.New("download token consumed")
 	ErrTokenRevoked  = errors.New("download token revoked")
+	ErrObjectNotFound = errors.New("object not found in storage")
 )
 
 type Token struct {

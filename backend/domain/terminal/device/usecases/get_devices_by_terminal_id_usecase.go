@@ -5,6 +5,7 @@ import (
 	"sensio/domain/terminal/device/dtos"
 	device_repositories "sensio/domain/terminal/device/repositories"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	"time"
 )
 
 // GetDevicesByTerminalIDUseCase handles retrieving devices linked to a terminal ID
@@ -65,8 +66,8 @@ func (uc *GetDevicesByTerminalIDUseCase) ListDevicesByTerminalID(terminalID stri
 			CreateTime:        item.CreateTime,
 			UpdateTime:        item.UpdateTime,
 			Collections:       item.Collections,
-			CreatedAt:         item.CreatedAt,
-			UpdatedAt:         item.UpdatedAt,
+			CreatedAt:         item.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:         item.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 

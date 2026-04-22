@@ -13,7 +13,7 @@
 
 # Common
 *.pyc
-*.log
+# *.log
 .DS_Store
 
 # Backend

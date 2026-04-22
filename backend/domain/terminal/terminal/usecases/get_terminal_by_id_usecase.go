@@ -3,6 +3,8 @@ package usecases
 import (
 	"errors"
 	"regexp"
+	"time"
+
 	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/terminal/terminal/dtos"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
@@ -45,8 +47,8 @@ func (uc *GetTerminalByIDUseCase) GetTerminalByID(id string) (*dtos.TerminalSing
 			Name:         item.Name,
 			DeviceTypeID: item.DeviceTypeID,
 			AiProvider:   item.AiProvider,
-			CreatedAt:    item.CreatedAt,
-			UpdatedAt:    item.UpdatedAt,
+			CreatedAt:    item.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    item.UpdatedAt.Format(time.RFC3339),
 		},
 		// Note: Depending on whether you want to include Devices in the DTO
 		// The DTO currently doesn't have a Devices field, but the test expected it.

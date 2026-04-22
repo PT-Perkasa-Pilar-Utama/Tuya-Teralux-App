@@ -138,7 +138,7 @@ func (u *uploadSessionUseCase) CreateSession(req dtos.CreateUploadSessionRequest
 		TotalChunks:    meta.TotalChunks,
 		ChunkSizeBytes: meta.ChunkSizeBytes,
 		TotalSizeBytes: meta.TotalSizeBytes,
-		ExpiresAt:      meta.ExpiresAt,
+		ExpiresAt:      meta.ExpiresAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -280,7 +280,7 @@ func (u *uploadSessionUseCase) GetSessionStatus(sessionID string, ownerUID strin
 		TotalSizeBytes: meta.TotalSizeBytes,
 		ReceivedBytes:  u.calculateReceivedBytes(meta),
 		MissingRanges:  missing,
-		ExpiresAt:      meta.ExpiresAt,
+		ExpiresAt:      meta.ExpiresAt.Format(time.RFC3339),
 	}, nil
 }
 

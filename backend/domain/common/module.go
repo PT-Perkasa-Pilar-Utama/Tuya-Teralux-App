@@ -32,7 +32,7 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 	}
 
 	// Initialize download token service
-	tokenService := download_token.NewDownloadTokenService(download_token.NewStore(), storageProvider)
+	tokenService := download_token.NewDownloadTokenService(storageProvider)
 
 	return &CommonModule{
 		HealthController:             controllers.NewHealthController(),

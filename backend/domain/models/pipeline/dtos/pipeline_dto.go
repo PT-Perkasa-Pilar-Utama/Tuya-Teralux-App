@@ -15,14 +15,15 @@ type PipelineStatusDTO struct {
 	StartedAt       string                         `json:"started_at"`
 	DurationSeconds float64                        `json:"duration_seconds"`
 	ExpiresAt       string                         `json:"expires_at,omitempty"`
-	ExpiresInSecond int64                          `json:"expires_in_seconds,omitempty"`
+	ExpiresInSeconds int64                          `json:"expires_in_seconds,omitempty"`
 	MacAddress      string                         `json:"mac_address,omitempty"`
+	Version         uint64                         `json:"version"` // For atomic CAS updates - incremented on each status change
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface
 func (s *PipelineStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
 	s.ExpiresAt = expiresAt
-	s.ExpiresInSecond = expiresInSeconds
+	s.ExpiresInSeconds = expiresInSeconds
 }
 
 type PipelineRequestDTO struct {

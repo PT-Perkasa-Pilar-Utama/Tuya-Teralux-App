@@ -4,6 +4,7 @@ import (
 	"sensio/domain/terminal/device/dtos"
 	"sensio/domain/terminal/device/entities"
 	"sensio/domain/terminal/device/repositories"
+	"time"
 )
 
 // GetAllDevicesUseCase handles retrieving all devices
@@ -76,8 +77,8 @@ func (uc *GetAllDevicesUseCase) ListDevices(filter *dtos.DeviceFilterDTO) (*dtos
 			CreateTime:        item.CreateTime,
 			UpdateTime:        item.UpdateTime,
 			Collections:       item.Collections,
-			CreatedAt:         item.CreatedAt,
-			UpdatedAt:         item.UpdatedAt,
+			CreatedAt:         item.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:         item.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 

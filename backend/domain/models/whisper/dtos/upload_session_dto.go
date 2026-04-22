@@ -1,9 +1,5 @@
 package dtos
 
-import (
-	"time"
-)
-
 // CreateUploadSessionRequest used to initiate a new resumable upload
 type CreateUploadSessionRequest struct {
 	FileName       string `json:"file_name" binding:"required"`
@@ -22,7 +18,7 @@ type UploadSessionResponseDTO struct {
 	TotalSizeBytes int64     `json:"total_size_bytes"`
 	ReceivedBytes  int64     `json:"received_bytes"`
 	MissingRanges  []string  `json:"missing_ranges,omitempty"` // e.g. ["0-2", "5"]
-	ExpiresAt      time.Time `json:"expires_at"`
+	ExpiresAt      string   `json:"expires_at"`
 }
 
 // UploadChunkAckDTO returned after a chunk is successfully received

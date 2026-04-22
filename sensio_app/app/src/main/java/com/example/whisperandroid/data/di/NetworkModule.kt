@@ -238,7 +238,9 @@ object NetworkModule {
             pipelineRepository,
             uploadRepository,
             mqttHelper,
-            prefs
+            prefs,
+            failedUploadStore,
+            signedUploadModeStore
         )
     }
 
@@ -264,5 +266,9 @@ object NetworkModule {
 
     val signedUploadModeStore: com.example.whisperandroid.data.local.SignedUploadModeStore by lazy {
         com.example.whisperandroid.data.local.SignedUploadModeStore(appContext)
+    }
+
+    val failedUploadStore: com.example.whisperandroid.data.local.FailedUploadStore by lazy {
+        com.example.whisperandroid.data.local.FailedUploadStore(appContext)
     }
 }

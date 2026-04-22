@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sensio/domain/terminal/device/dtos"
 	"sensio/domain/terminal/device/repositories"
+	"time"
 )
 
 // GetDeviceByIDUseCase handles retrieving a single device
@@ -44,8 +45,8 @@ func (uc *GetDeviceByIDUseCase) GetDeviceByID(id string) (*dtos.DeviceSingleResp
 			CreateTime:        device.CreateTime,
 			UpdateTime:        device.UpdateTime,
 			Collections:       device.Collections,
-			CreatedAt:         device.CreatedAt,
-			UpdatedAt:         device.UpdatedAt,
+			CreatedAt:         device.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:         device.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }

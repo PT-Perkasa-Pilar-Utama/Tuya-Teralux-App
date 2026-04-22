@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"time"
 
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/terminal/dtos"
@@ -82,8 +83,8 @@ func (uc *GetTerminalByMACUseCase) GetTerminalByMAC(macAddress string) (*dtos.Te
 			AiProvider:   terminal.AiProvider,
 			MQTTUsername: mqttUsername,
 			MQTTPassword: mqttPassword,
-			CreatedAt:    terminal.CreatedAt,
-			UpdatedAt:    terminal.UpdatedAt,
+			CreatedAt:    terminal.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    terminal.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }
