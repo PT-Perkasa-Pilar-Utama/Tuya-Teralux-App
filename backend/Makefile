@@ -59,24 +59,39 @@ dev-mysql: start-mysql-dev
 	@echo "🟢 MySQL started"
 
 # Run MySQL and Backend only (Go + Air)
-dev: kill
-	@trap 'echo "🛑 Stopping services..."; \
+dev: kill-server
+	@trap 'echo ""; echo "🛑 Stopping backend (MySQL kept running)..."; \
 	  [ -n "$$AIR_PID" ] && kill $$AIR_PID 2>/dev/null || true; \
-	  make stop-mysql-dev' EXIT INT TERM; \
+	  [ -n "$$RAG_PID" ] && kill $$RAG_PID 2>/dev/null || true; \
+	  make kill-server; \
+	  echo "✅ Backend stopped. MySQL still running. Use '\''make kill'\'' to stop MySQL."' INT TERM; \
 	set -e; \
-	make start-mysql-dev; \
-	echo "🟢 MySQL started"; \
+	if docker ps --format '{{.Names}}' | grep -q '^dev-mysql$$'; then \
+		echo "✅ MySQL already running, skipping creation..."; \
+	else \
+		echo "🚀 Starting MySQL container..."; \
+		make start-mysql-dev; \
+		echo "🟢 MySQL started"; \
+	fi; \
 	make dev-backend
 
 # Run full development stack with hot reload (Full Docker Stack + Backend + RAG)
-dev-full: kill
-	@trap 'echo "🛑 Stopping all services..."; \
+dev-full: kill-server
+	@# Ctrl+C stops backend + RAG only, Docker stack keeps running
+	@trap 'echo ""; echo "🛑 Stopping backend (Docker stack kept running)..."; \
 	  [ -n "$$AIR_PID" ] && kill $$AIR_PID 2>/dev/null || true; \
+	  [ -n "$$RAG_PID" ] && kill $$RAG_PID 2>/dev/null || true; \
 	  [ -n "$$LOGS_PID" ] && kill $$LOGS_PID 2>/dev/null || true; \
-	  make stop-mysql-dev' EXIT INT TERM; \
+	  make kill-server; \
+	  echo "✅ Backend stopped. Docker stack still running. Use '\''make kill'\'' to stop all."' INT TERM; \
 	set -e; \
-	make start-full-dev; \
-	echo "🟢 Full Docker stack (Milvus + MySQL) started"; \
+	if docker compose -f docker-compose.dev.yml ps --status=running 2>/dev/null | grep -q mysql; then \
+		echo "✅ Full Docker stack already running, skipping creation..."; \
+	else \
+		echo "🚀 Starting full Docker stack (Milvus + etcd + minio + MySQL)..."; \
+		make start-full-dev; \
+		echo "🟢 Full Docker stack started"; \
+	fi; \
 	echo "📂 Following Docker logs..."; \
 	docker compose -f docker-compose.dev.yml & LOGS_PID=$$!; \
 	make dev-server
