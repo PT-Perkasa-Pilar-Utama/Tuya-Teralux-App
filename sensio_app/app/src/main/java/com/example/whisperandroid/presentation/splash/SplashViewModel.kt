@@ -27,8 +27,6 @@ class SplashViewModel : ViewModel() {
 
     fun checkLoginStatus() {
         viewModelScope.launch {
-            _uiState.value = SplashUiState.Loading
-
             delay(1500)
 
             val result = loginRepository.login()
