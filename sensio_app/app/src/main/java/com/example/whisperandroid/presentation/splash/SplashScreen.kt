@@ -1,25 +1,18 @@
 package com.example.whisperandroid.presentation.splash
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseInOut
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,19 +23,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.whisperandroid.R
 import com.example.whisperandroid.navigation.AppRoutes
 import com.example.whisperandroid.presentation.components.SensioButton
 import com.example.whisperandroid.ui.theme.SensioSpacing
 import com.example.whisperandroid.ui.theme.SensioTypography
+
+@Composable
+private fun mapToEmpatheticMessage(rawMessage: String): String {
+    val lower = rawMessage.lowercase()
+    return when {
+        lower.contains("530") || lower.contains("server error") -> "Koneksi Terputus"
+        lower.contains("timeout") -> "Waktu tunggu habis"
+        lower.contains("network") || lower.contains("connection") -> "Periksa koneksi internet Anda"
+        lower.contains("unauthorized") || lower.contains("session") -> "Sesi berakhir, silakan masuk lagi"
+        else -> rawMessage
+    }
+}
 
 @Composable
 fun SplashScreen(
@@ -53,43 +54,32 @@ fun SplashScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var animationStarted by remember { mutableStateOf(false) }
-    var navigateOut by remember { mutableStateOf(false) }
 
-    // Gradient flow animation - subtle vertical shift
-    val infiniteTransition = rememberInfiniteTransition(label = "gradientFlow")
-    val gradientOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(3000, easing = LinearEasing),
-            RepeatMode.Reverse
-        ),
-        label = "gradientOffset"
+    val alphaAnimation by animateFloatAsState(
+        targetValue = if (animationStarted) 1f else 0f,
+        animationSpec = tween(durationMillis = 1000),
+        label = "fadeIn"
     )
 
     LaunchedEffect(Unit) {
         animationStarted = true
     }
 
-    // Handle zoom-out transition
     LaunchedEffect(uiState) {
         when (uiState) {
             is SplashUiState.Authenticated -> {
-                navigateOut = true
-                kotlinx.coroutines.delay(300) // Wait for zoom-out animation
+                kotlinx.coroutines.delay(300)
                 navController?.navigate(AppRoutes.Dashboard.route) {
                     popUpTo(AppRoutes.Splash.route) { inclusive = true }
                 }
             }
             is SplashUiState.NotRegistered -> {
-                navigateOut = true
                 kotlinx.coroutines.delay(300)
                 navController?.navigate(AppRoutes.Register.route) {
                     popUpTo(AppRoutes.Splash.route) { inclusive = true }
                 }
             }
             is SplashUiState.Unauthorized -> {
-                navigateOut = true
                 kotlinx.coroutines.delay(300)
                 navController?.navigate(AppRoutes.Register.route) {
                     popUpTo(AppRoutes.Splash.route) { inclusive = true }
@@ -102,105 +92,49 @@ fun SplashScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .graphicsLayer {
-                scaleX = if (navigateOut) 1.05f else 1f
-                scaleY = if (navigateOut) 1.05f else 1f
-                alpha = if (navigateOut) 0f else 1f
-            }
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
     ) {
-        // Animated gradient background with flow effect
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF67E8F9),
-                    Color(0xFF0EA5E9),
-                    Color(0xFF075985)
-                ),
-                startY = gradientOffset * size.height,
-                endY = size.height + gradientOffset * size.height
-            )
-            drawRect(brush = brush)
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = SensioSpacing.Lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            AnimatedVisibility(
-                visible = animationStarted && !navigateOut,
-                enter = scaleIn(
-                    initialScale = 0.9f,
-                    animationSpec = tween(
-                        durationMillis = 800,
-                        easing = EaseInOut
-                    )
-                ) + fadeIn(
-                    animationSpec = tween(
-                        durationMillis = 800,
-                        easing = EaseInOut
-                    )
-                ),
-                exit = scaleOut(
-                    targetScale = 1.05f,
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        easing = EaseInOut
-                    )
-                ) + fadeOut(
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        easing = EaseInOut
-                    )
-                )
-            ) {
-                androidx.compose.foundation.Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = "Sensio Logo",
-                    modifier = Modifier.height(108.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(SensioSpacing.Lg))
-
-            Text(
-                text = "Sensio",
-                fontSize = SensioTypography.HeadlineMobile,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        val state = uiState
-        when (state) {
+        when (val state = uiState) {
             is SplashUiState.Error -> {
-                Box(
+                Column(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Column(
+                        modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(SensioSpacing.Md)
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = state.message,
-                            color = Color.White,
+                            text = mapToEmpatheticMessage(state.message),
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = SensioTypography.Body,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = SensioSpacing.Lg)
                         )
+                        Spacer(modifier = Modifier.height(SensioSpacing.Md))
                         SensioButton(
-                            text = "Retry",
+                            text = "Coba Lagi",
                             onClick = onRetry,
-                            modifier = Modifier.height(48.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 360.dp)
+                                .height(48.dp)
                         )
                     }
                 }
             }
-            else -> {}
+            else -> {
+                Text(
+                    text = "Sensio",
+                    fontSize = SensioTypography.HeadlineMobile,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.graphicsLayer { this.alpha = alphaAnimation }
+                )
+            }
         }
     }
 }
