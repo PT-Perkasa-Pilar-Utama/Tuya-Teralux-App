@@ -74,10 +74,6 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	routes.SetupCacheRoutes(protected, m.CacheController)
 	routes.SetupDeviceInfoExternalRoutes(protected, m.DeviceInfoExternalController)
 
-	// Download Token Routes
-	downloadTokenHandler := download_token.NewHandler(m.DownloadTokenService)
-	download_token.RegisterRoutes(protected, downloadTokenHandler)
-
 	// Login Routes (public - on router, not protected)
 	routes.SetupLoginRoutes(router.Group("/"), m.LoginController)
 }

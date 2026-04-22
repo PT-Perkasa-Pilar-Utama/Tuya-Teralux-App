@@ -31,9 +31,9 @@ func TestOpenAPI_RouteConsistency(t *testing.T) {
 
 	// Critical route prefixes that must stay in sync
 	criticalPrefixes := []string{
-		"/api/models/v1/whisper",
-		"/api/models/v1/pipeline",
-		"/api/models/v1/rag",
+		"/api/models/whisper",
+		"/api/models/pipeline",
+		"/api/models/rag",
 		"/api/terminal",
 		"/api/mqtt",
 	}
@@ -60,9 +60,9 @@ func TestOpenAPI_RouteConsistency(t *testing.T) {
 				continue
 			}
 
-			// Check for old /api/v1/models/ prefix (should be /api/models/v1/)
+			// Check for old /api/v1/models/ prefix (should be /api/models/)
 			if strings.HasPrefix(path, "/api/v1/models/") {
-				t.Errorf("OpenAPI path uses deprecated /api/v1/models/ prefix: %s (should be /api/models/v1/)", path)
+				t.Errorf("OpenAPI path uses deprecated /api/v1/models/ prefix: %s (should be /api/models/)", path)
 			}
 		}
 	})
@@ -70,18 +70,15 @@ func TestOpenAPI_RouteConsistency(t *testing.T) {
 	// Verify specific critical endpoints exist
 	t.Run("Critical_Endpoints_Exist", func(t *testing.T) {
 		criticalEndpoints := []string{
-			"/api/models/v1/whisper/transcribe",
-			"/api/models/v1/whisper/status/{transcribe_id}",
-			"/api/models/v1/whisper/uploads/sessions",
-			"/api/models/v1/whisper/uploads/sessions/{id}",
-			"/api/models/v1/whisper/uploads/sessions/{id}/chunks/{index}",
-			"/api/models/v1/pipeline/job",
-			"/api/models/v1/pipeline/status/{task_id}",
-			"/api/models/v1/rag/translate",
-			"/api/models/v1/rag/summary",
-			"/api/models/v1/rag/chat",
-			"/api/models/v1/rag/control",
-			"/api/models/v1/rag/status/{task_id}",
+			"/api/models/whisper/transcribe",
+			"/api/models/whisper/transcribe/{transcribe_id}",
+			"/api/models/pipeline/job",
+			"/api/models/pipeline/status/{task_id}",
+			"/api/models/rag/translate",
+			"/api/models/rag/summary",
+			"/api/models/rag/chat",
+			"/api/models/rag/control",
+			"/api/models/rag/{task_id}",
 			"/api/terminal",
 			"/api/terminal/{id}",
 			"/api/terminal/mac/{mac}",

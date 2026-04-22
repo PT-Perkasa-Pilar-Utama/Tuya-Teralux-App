@@ -17,6 +17,7 @@ import (
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/middlewares"
 	"sensio/domain/common/utils"
+	"sensio/domain/download_token"
 	"sensio/domain/infrastructure"
 	"sensio/domain/mail"
 	"sensio/domain/models"
@@ -188,6 +189,9 @@ func run() error {
 	// 4. Recordings Module
 	recordingsModule := recordings.NewRecordingsModule(badgerService, commonModule.StorageProvider)
 	recordingsModule.RegisterRoutes(router, protected)
+
+	download_tokenModule := download_token.NewDownloadTokenModule(commonModule.StorageProvider)
+	download_tokenModule.RegisterRoutes(protected)
 
 	// 5. Speech & RAG Modules (migrated from stt-service)
 	scfg := utils.GetConfig()
