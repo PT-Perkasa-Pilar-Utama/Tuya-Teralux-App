@@ -198,11 +198,9 @@ fun DashboardScreen(
     onNavigateToUpload: () -> Unit,
     onNavigateToStreaming: () -> Unit,
     onNavigateToEdge: () -> Unit,
-    bootstrapViewModel: com.example.whisperandroid.presentation.bootstrap.AppBootstrapViewModel,
     viewModel: DashboardViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel {
             DashboardViewModel(
-                NetworkModule.authenticateUseCase,
                 NetworkModule.getTuyaDevicesUseCase,
                 NetworkModule.backgroundAssistantModeStore,
                 NetworkModule.terminalRepository,
@@ -211,7 +209,6 @@ fun DashboardScreen(
         }
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val bootstrapState by bootstrapViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -312,22 +309,7 @@ fun DashboardScreen(
                     )
             )
 
-            if (bootstrapState.isSyncing) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            "Syncing devices...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            } else if (uiState.error != null) {
+            if (uiState.error != null) {
                 // Show error state (e.g., Terminal not found)
                 uiState.error?.let { errorMessage ->
                     Box(
@@ -361,7 +343,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-            } else if (bootstrapState.isBootstrapped && uiState.isTuyaSyncReady) {
+            } else if (uiState.isTuyaSyncReady) {
                 // Centered content container - width is now controlled by each layout variant
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -404,29 +386,6 @@ fun DashboardScreen(
                             viewModel.updateAiEngineProfile(profile)
                         }
                     )
-                }
-            } else if (bootstrapState.error != null) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Text(
-                            bootstrapState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        androidx.compose.material3.Button(
-                            onClick = { bootstrapViewModel.bootstrap(forceRetry = true) }
-                        ) {
-                            Text("Retry")
-                        }
-                    }
                 }
             } else {
                 // Should not happen, but as a fallback

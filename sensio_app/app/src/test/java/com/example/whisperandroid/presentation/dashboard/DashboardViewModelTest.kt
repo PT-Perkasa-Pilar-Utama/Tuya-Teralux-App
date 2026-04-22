@@ -7,7 +7,6 @@ import com.example.whisperandroid.data.remote.dto.TuyaDeviceDto
 import com.example.whisperandroid.data.remote.dto.TuyaDevicesResponseDto
 import com.example.whisperandroid.domain.repository.AiEngineProfileState
 import com.example.whisperandroid.domain.repository.TerminalRepository
-import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
 import com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -42,7 +41,6 @@ class DashboardViewModelTest {
 
     @Test
     fun `fetchDevices stores synced device list on success`() = runTest {
-        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
         val devicesUC = mockk<GetTuyaDevicesUseCase>()
         val modeStore = mockk<BackgroundAssistantModeStore>()
         val modeFlow = MutableStateFlow(false)
@@ -74,7 +72,7 @@ class DashboardViewModelTest {
         val tokenManager = mockk<TokenManager>(relaxed = true)
         val tuyaSyncReadyFlow = MutableStateFlow(false)
 
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+        val vm = DashboardViewModel(devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
         vm.fetchDevices(force = true)
         tuyaSyncReadyFlow.value = true // Simulate the change we expect
         advanceUntilIdle()
@@ -86,7 +84,6 @@ class DashboardViewModelTest {
 
     @Test
     fun `fetchDevices keeps previous list on failure`() = runTest {
-        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
         val devicesUC = mockk<GetTuyaDevicesUseCase>()
         val modeStore = mockk<BackgroundAssistantModeStore>()
         val modeFlow = MutableStateFlow(false)
@@ -121,7 +118,7 @@ class DashboardViewModelTest {
         val terminalRepository = mockk<TerminalRepository>(relaxed = true)
         val tokenManager = mockk<TokenManager>(relaxed = true)
         val tuyaSyncReadyFlow = MutableStateFlow(true)
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+        val vm = DashboardViewModel(devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
         vm.fetchDevices(force = true)
         advanceUntilIdle()
         vm.fetchDevices(force = true)
@@ -133,7 +130,6 @@ class DashboardViewModelTest {
 
     @Test
     fun `loadCurrentAiEngineProfile sets profile when source is engine_profile`() = runTest {
-        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
         val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
         val modeStore = mockk<BackgroundAssistantModeStore>(relaxed = true)
         val terminalRepository = mockk<TerminalRepository>()
@@ -152,7 +148,7 @@ class DashboardViewModelTest {
             )
         )
 
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+        val vm = DashboardViewModel(devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
         vm.loadCurrentAiEngineProfile()
         advanceUntilIdle()
 
@@ -163,7 +159,6 @@ class DashboardViewModelTest {
 
     @Test
     fun `loadCurrentAiEngineProfile sets warning when source is legacy_provider`() = runTest {
-        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
         val devicesUC = mockk<GetTuyaDevicesUseCase>(relaxed = true)
         val modeStore = mockk<BackgroundAssistantModeStore>(relaxed = true)
         val terminalRepository = mockk<TerminalRepository>()
@@ -182,7 +177,7 @@ class DashboardViewModelTest {
             )
         )
 
-        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+        val vm = DashboardViewModel(devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
         vm.loadCurrentAiEngineProfile()
         advanceUntilIdle()
 

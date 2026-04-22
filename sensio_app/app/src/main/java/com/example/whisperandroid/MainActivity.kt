@@ -15,13 +15,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.navigation.AppRoutes
-import com.example.whisperandroid.presentation.bootstrap.AppBootstrapViewModel
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
 import com.example.whisperandroid.ui.theme.SensioTheme
@@ -56,21 +54,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen(
-    bootstrapViewModel: AppBootstrapViewModel = viewModel {
-        AppBootstrapViewModel(
-            NetworkModule.authenticateUseCase
-        )
-    }
-) {
+fun MainScreen() {
     val context = LocalContext.current
     val navController = rememberNavController()
-
-    val bootstrapState by bootstrapViewModel.uiState.collectAsState()
-
-    LaunchedEffect(Unit) {
-        bootstrapViewModel.bootstrap()
-    }
 
     // Permission Handling
     val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -131,20 +117,15 @@ fun MainScreen(
                     },
                     onNavigateToUpload = { },
                     onNavigateToStreaming = {
-                        if (!bootstrapState.isBootstrapped) {
-                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
-                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                        if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
                             navController.navigate(AppRoutes.Meeting.route)
                         }
                     },
                     onNavigateToEdge = {
-                        if (!bootstrapState.isBootstrapped) {
-                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
-                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                        if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
                             navController.navigate(AppRoutes.Assistant.route)
                         }
-                    },
-                    bootstrapViewModel = bootstrapViewModel
+                    }
                 )
             }
 

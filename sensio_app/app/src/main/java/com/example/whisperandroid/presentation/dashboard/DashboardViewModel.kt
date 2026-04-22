@@ -32,7 +32,6 @@ data class DashboardUiState(
 )
 
 class DashboardViewModel(
-    private val authenticateUseCase: com.example.whisperandroid.domain.usecase.AuthenticateUseCase,
     private val getTuyaDevicesUseCase:
         com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase,
     private val backgroundAssistantModeStore:
