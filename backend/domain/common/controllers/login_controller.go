@@ -1,0 +1,126 @@
+package controllers
+
+import (
+	"net/http"
+	"time"
+
+	"sensio/domain/common/dtos"
+	"sensio/domain/common/utils"
+	"sensio/domain/terminal/terminal/repositories"
+	tuya_dtos "sensio/domain/tuya/dtos"
+	"sensio/domain/tuya/usecases"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
+
+// LoginController handles terminal login requests
+type LoginController struct {
+	terminalRepo    *repositories.TerminalRepository
+	tuyaAuthUseCase usecases.TuyaAuthUseCase
+}
+
+// NewLoginController creates a new LoginController instance
+func NewLoginController(terminalRepo *repositories.TerminalRepository, tuyaAuthUseCase usecases.TuyaAuthUseCase) *LoginController {
+	return &LoginController{
+		terminalRepo:    terminalRepo,
+		tuyaAuthUseCase: tuyaAuthUseCase,
+	}
+}
+
+// Login handles POST /api/login endpoint
+// @Summary      Terminal login
+// @Description  Authenticates a terminal with Tuya and returns JWT tokens
+// @Tags         00. Auth
+// @Accept       json
+// @Produce      json
+// @Param        request body dtos.LoginRequestDTO true "Login request"
+// @Success      200 {object} dtos.StandardResponse{data=dtos.LoginResponseDTO}
+// @Failure      400 {object} dtos.StandardResponse
+// @Failure      404 {object} dtos.StandardResponse
+// @Failure      500 {object} dtos.StandardResponse
+// @Router       /api/login [post]
+func (c *LoginController) Login(ctx *gin.Context) {
+	var req dtos.LoginRequestDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "Validation failed",
+		})
+		return
+	}
+
+	// Validate UUID format
+	if _, err := uuid.Parse(req.TerminalID); err != nil {
+		ctx.JSON(http.StatusBadRequest, dtos.StandardResponse{
+			Status:  false,
+			Message: "Invalid terminal ID format",
+		})
+		return
+	}
+
+	// Check if terminal exists
+	terminal, err := c.terminalRepo.GetByID(req.TerminalID)
+	if err != nil || terminal == nil {
+		ctx.JSON(http.StatusNotFound, dtos.StandardResponse{
+			Status:  false,
+			Message: "Terminal not found",
+			Data:    map[string]string{"redirect": "register"},
+		})
+		return
+	}
+
+	// Call Tuya auth
+	tuyaResult, err := c.tuyaAuthUseCase.Authenticate()
+	if err != nil {
+		utils.LogError("LoginController.Login: Tuya auth failed: %v", err)
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Authentication failed",
+		})
+		return
+	}
+
+	// Convert ExpireTime (Unix timestamp) to time.Time
+	expiry := time.Unix(int64(tuyaResult.ExpireTime), 0)
+
+	// Generate JWT access token with Tuya payload
+	accessToken, err := utils.GenerateLoginToken(tuyaResult.UID, tuyaResult.AccessToken, expiry)
+	if err != nil {
+		utils.LogError("LoginController.Login: Failed to generate access token: %v", err)
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to generate token",
+		})
+		return
+	}
+
+	// Generate refresh token (stateless JWT, 1 month expiry)
+	refreshToken, err := utils.GenerateToken(tuyaResult.UID)
+	if err != nil {
+		utils.LogError("LoginController.Login: Failed to generate refresh token: %v", err)
+		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+			Status:  false,
+			Message: "Failed to generate token",
+		})
+		return
+	}
+
+	// Set cookies
+	// access_token: regular cookie, Secure=false for development
+	ctx.SetCookie("access_token", accessToken, int(expiry.Sub(time.Now()).Seconds()), "/", "", false, false)
+	// refresh_token: http-only cookie, 1 month expiry (30*24*3600 seconds)
+	ctx.SetCookie("refresh_token", refreshToken, 30*24*3600, "/", "", true, false)
+
+	ctx.JSON(http.StatusOK, dtos.StandardResponse{
+		Status:  true,
+		Message: "Login successful",
+		Data: dtos.LoginResponseDTO{
+			TerminalID: req.TerminalID,
+			Message:    "Login successful",
+		},
+	})
+}
+
+// Ensure TuyaAuthResponseDTO is used to avoid compiler warning
+var _ = tuya_dtos.TuyaAuthResponseDTO{}

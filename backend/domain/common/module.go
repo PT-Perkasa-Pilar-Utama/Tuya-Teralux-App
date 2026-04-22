@@ -9,6 +9,7 @@ import (
 	"sensio/domain/download_token"
 	"sensio/domain/infrastructure"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	tuya_usecases "sensio/domain/tuya/usecases"
 )
 
 // CommonModule encapsulates common domain components
@@ -20,10 +21,12 @@ type CommonModule struct {
 	DeviceInfoExternalController *controllers.DeviceInfoExternalController
 	StorageProvider              infrastructure.StorageProvider
 	DownloadTokenService         *download_token.DownloadTokenService
+	LoginController              *controllers.LoginController
+	TuyaAuthUseCase              tuya_usecases.TuyaAuthUseCase
 }
 
 // NewCommonModule initializes the common domain components
-func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService, terminalRepo terminal_repositories.ITerminalRepository, cfg *utils.Config) *CommonModule {
+func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructure.VectorService, mqttSvc *infrastructure.MqttService, terminalRepo *terminal_repositories.TerminalRepository, cfg *utils.Config, tuyaAuthUseCase tuya_usecases.TuyaAuthUseCase) *CommonModule {
 	// Initialize S3 storage provider
 	storageProvider, err := infrastructure.NewStorageProvider(cfg)
 	if err != nil {
@@ -34,6 +37,9 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 	// Initialize download token service
 	tokenService := download_token.NewDownloadTokenService(storageProvider)
 
+	// Initialize login controller
+	loginController := controllers.NewLoginController(terminalRepo, tuyaAuthUseCase)
+
 	return &CommonModule{
 		HealthController:             controllers.NewHealthController(),
 		CacheController:              controllers.NewCacheController(badger, vector),
@@ -42,6 +48,8 @@ func NewCommonModule(badger *infrastructure.BadgerService, vector *infrastructur
 		DeviceInfoExternalController: controllers.NewDeviceInfoExternalController(services.NewDeviceInfoExternalService()),
 		StorageProvider:              storageProvider,
 		DownloadTokenService:         tokenService,
+		LoginController:              loginController,
+		TuyaAuthUseCase:              tuyaAuthUseCase,
 	}
 }
 
@@ -70,5 +78,6 @@ func (m *CommonModule) RegisterRoutes(router *gin.Engine, protected *gin.RouterG
 	downloadTokenHandler := download_token.NewHandler(m.DownloadTokenService)
 	download_token.RegisterRoutes(protected, downloadTokenHandler)
 
-	// Upload Intent Routes (removed - scope creep)
+	// Login Routes (public - on router, not protected)
+	routes.SetupLoginRoutes(router.Group("/"), m.LoginController)
 }

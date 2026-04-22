@@ -155,8 +155,8 @@ func run() error {
 	terminalRepo := terminal_repositories.NewTerminalRepository(badgerService)
 
 	// Initialize Modules
-	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService, terminalRepo, utils.GetConfig())
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, terminalRepo)
+	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService, terminalRepo, utils.GetConfig(), tuyaModule.AuthUseCase)
 	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
 	notificationModule := notification.NewNotificationModule(badgerService, mqttService, terminalRepo)
