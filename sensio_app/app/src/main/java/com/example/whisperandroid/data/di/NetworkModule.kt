@@ -19,6 +19,9 @@ import com.example.whisperandroid.domain.usecase.TranscribeAudioUseCase
 import com.example.whisperandroid.domain.usecase.TranslateTextUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -30,6 +33,32 @@ object NetworkModule {
     private val BASE_HOSTNAME = com.example.whisperandroid.BuildConfig.BASE_HOSTNAME
     private val API_KEY = com.example.whisperandroid.BuildConfig.SENSIO_API_KEY
 
+    private val cookieJar by lazy {
+        object : CookieJar {
+            private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+
+            override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                val host = url.host
+                val existing = cookieStore[host] ?: mutableListOf()
+                cookies.forEach { cookie ->
+                    existing.removeAll { it.name == cookie.name && it.domain == cookie.domain }
+                    existing.add(cookie)
+                }
+                cookieStore[host] = existing
+            }
+
+            override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                return cookieStore[url.host]?.filter { cookie ->
+                    val matcher = okhttp3.Cookie.Builder()
+                        .name(cookie.name)
+                        .domain(cookie.domain)
+                        .build()
+                    matcher.matches(url)
+                } ?: emptyList()
+            }
+        }
+    }
+
     // Shared client for general API calls
     private val client by lazy {
         val logging =
@@ -37,6 +66,7 @@ object NetworkModule {
                 level = HttpLoggingInterceptor.Level.BASIC
             }
         OkHttpClient.Builder()
+            .cookieJar(cookieJar)
             .addInterceptor(logging)
             .connectTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
