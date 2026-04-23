@@ -10,18 +10,15 @@ import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
-import java.lang.reflect.Method
 
 /**
  * Contract tests for Retrofit API interfaces.
- * 
- * These tests ensure that:
+ * * These tests ensure that:
  * 1. API endpoint paths match the expected contract
  * 2. HTTP methods are correctly annotated
  * 3. Required headers are present
  * 4. Response envelope structure is consistent
- * 
- * Run with: ./gradlew test --tests "*ApiContractTest*"
+ * * Run with: ./gradlew test --tests "*ApiContractTest*"
  */
 class ApiContractTest {
 
@@ -81,8 +78,8 @@ class ApiContractTest {
 
     @Test
     fun pipelineApi_executeJob_hasCorrectPath() {
-        val method = PipelineApi::class.java.getMethod("executePipeline", 
-            okhttp3.MultipartBody.Part::class.java,
+        val method = PipelineApi::class.java.getMethod(
+            "executePipeline", okhttp3.MultipartBody.Part::class.java,
             String::class.java, String::class.java, Boolean::class.java,
             Boolean::class.java, Boolean::class.java, String::class.java,
             String::class.java, String::class.java, String::class.java,
@@ -95,8 +92,8 @@ class ApiContractTest {
 
     @Test
     fun pipelineApi_executeJob_isMultipart() {
-        val method = PipelineApi::class.java.getMethod("executePipeline", 
-            okhttp3.MultipartBody.Part::class.java,
+        val method = PipelineApi::class.java.getMethod(
+            "executePipeline", okhttp3.MultipartBody.Part::class.java,
             String::class.java, String::class.java, Boolean::class.java,
             Boolean::class.java, Boolean::class.java, String::class.java,
             String::class.java, String::class.java, String::class.java,
@@ -130,11 +127,11 @@ class ApiContractTest {
         // This test verifies that our response DTOs have the expected structure
         // All API responses should follow the StandardResponse pattern:
         // { "status": boolean, "message": string, "data": T? }
-        
+
         val statusField = com.example.whisperandroid.data.remote.dto.TerminalResponseDto::class.java.getDeclaredField("status")
         val messageField = com.example.whisperandroid.data.remote.dto.TerminalResponseDto::class.java.getDeclaredField("message")
         val dataField = com.example.whisperandroid.data.remote.dto.TerminalResponseDto::class.java.getDeclaredField("data")
-        
+
         assertEquals(Boolean::class.java, statusField.type)
         assertEquals(String::class.java, messageField.type)
         // data field can be nullable
@@ -169,10 +166,8 @@ class ApiContractTest {
         for (apiClass in apiClasses) {
             for (method in apiClass.declaredMethods) {
                 val pathAnnotation = method.annotations
-                    .firstOrNull { 
-                        it is POST || it is GET || it is PUT || it is DELETE || it is HTTP 
-                    }
-                
+                    .firstOrNull { it is POST || it is GET || it is PUT || it is DELETE || it is HTTP }
+
                 val path = when (pathAnnotation) {
                     is POST -> pathAnnotation.value
                     is GET -> pathAnnotation.value

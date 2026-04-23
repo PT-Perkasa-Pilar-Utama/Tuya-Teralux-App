@@ -3,7 +3,6 @@ package com.example.whisperandroid.presentation.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.repository.LoginRepositoryImpl
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,8 +26,6 @@ class SplashViewModel : ViewModel() {
 
     fun checkLoginStatus() {
         viewModelScope.launch {
-            delay(1500)
-
             val result = loginRepository.login()
             result.onSuccess { state ->
                 _uiState.value = state

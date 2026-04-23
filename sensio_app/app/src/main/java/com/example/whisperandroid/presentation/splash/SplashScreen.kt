@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,10 +37,14 @@ import com.example.whisperandroid.ui.theme.SensioTypography
 private fun mapToEmpatheticMessage(rawMessage: String): String {
     val lower = rawMessage.lowercase()
     return when {
-        lower.contains("530") || lower.contains("server error") -> "Koneksi Terputus"
-        lower.contains("timeout") -> "Waktu tunggu habis"
-        lower.contains("network") || lower.contains("connection") -> "Periksa koneksi internet Anda"
-        lower.contains("unauthorized") || lower.contains("session") -> "Sesi berakhir, silakan masuk lagi"
+        lower.contains("530") || lower.contains("server error") -> "Layanan sedang sibuk, coba sebentar lagi"
+        lower.contains("timeout") || lower.contains("timed out") -> "Waktu tunggu habis, periksa koneksi internet"
+        lower.contains("network") || lower.contains("connection") ||
+            lower.contains("socket") || lower.contains("mqtt") -> "Koneksi internet bermasalah"
+        lower.contains("unauthorized") || lower.contains("session") ||
+            lower.contains("401") -> "Sesi berakhir, silakan masuk lagi"
+        lower.contains("no internet") || lower.contains("no_internet") -> "Tidak ada koneksi internet"
+        lower.contains("failed") || lower.contains("error") -> "Terjadi kesalahan, coba lagi"
         else -> rawMessage
     }
 }
@@ -68,19 +72,16 @@ fun SplashScreen(
     LaunchedEffect(uiState) {
         when (uiState) {
             is SplashUiState.Authenticated -> {
-                kotlinx.coroutines.delay(300)
                 navController?.navigate(AppRoutes.Dashboard.route) {
                     popUpTo(AppRoutes.Splash.route) { inclusive = true }
                 }
             }
             is SplashUiState.NotRegistered -> {
-                kotlinx.coroutines.delay(300)
                 navController?.navigate(AppRoutes.Register.route) {
                     popUpTo(AppRoutes.Splash.route) { inclusive = true }
                 }
             }
             is SplashUiState.Unauthorized -> {
-                kotlinx.coroutines.delay(300)
                 navController?.navigate(AppRoutes.Register.route) {
                     popUpTo(AppRoutes.Splash.route) { inclusive = true }
                 }
@@ -108,7 +109,7 @@ fun SplashScreen(
                     ) {
                         Text(
                             text = mapToEmpatheticMessage(state.message),
-                            color = MaterialTheme.colorScheme.onBackground,
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = SensioTypography.Body,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = SensioSpacing.Lg)
@@ -130,7 +131,7 @@ fun SplashScreen(
                     text = "Sensio",
                     fontSize = SensioTypography.HeadlineMobile,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.graphicsLayer { this.alpha = alphaAnimation }
                 )

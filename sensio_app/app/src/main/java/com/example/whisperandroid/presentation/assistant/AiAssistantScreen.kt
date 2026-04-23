@@ -55,7 +55,7 @@ import com.example.whisperandroid.presentation.components.LanguagePillToggle
 import com.example.whisperandroid.presentation.components.MqttStatusBadge
 import com.example.whisperandroid.presentation.components.SensioFeatureLayout
 import com.example.whisperandroid.presentation.components.TranscriptionMessage
-import com.example.whisperandroid.util.MqttHelper
+import com.example.whisperandroid.utils.MqttHelper
 import java.io.File
 import kotlinx.coroutines.launch
 

@@ -113,7 +113,7 @@ object NetworkModule {
     }
 
     lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
-    lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
+    lateinit var mqttHelper: com.example.whisperandroid.utils.MqttHelper
     lateinit var backgroundAssistantModeStore: com.example.whisperandroid.data.local.BackgroundAssistantModeStore
 
     // Meeting reminder components
@@ -140,7 +140,7 @@ object NetworkModule {
         tokenManager =
             com.example.whisperandroid.data.local
                 .TokenManager(appContext)
-        mqttHelper = com.example.whisperandroid.util.MqttHelper(appContext)
+        mqttHelper = com.example.whisperandroid.utils.MqttHelper(appContext)
         backgroundAssistantModeStore = com.example.whisperandroid.data.local.BackgroundAssistantModeStore(appContext)
 
         // Initialize meeting reminder components

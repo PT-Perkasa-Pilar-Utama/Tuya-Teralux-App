@@ -29,9 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
 import com.example.whisperandroid.presentation.components.MarkdownTable
-import com.example.whisperandroid.util.MarkdownBlock
-import com.example.whisperandroid.util.normalizeMeetingSummaryMarkdown
-import com.example.whisperandroid.util.parseMarkdownIntoBlocks
+import com.example.whisperandroid.utils.MarkdownBlock
+import com.example.whisperandroid.utils.normalizeMeetingSummaryMarkdown
+import com.example.whisperandroid.utils.parseMarkdownIntoBlocks
 
 @Composable
 fun MeetingIdleContent() {
@@ -112,12 +112,10 @@ fun MeetingSuccessContent(state: MeetingProcessState.Success) {
 
 /**
  * Renders a meeting summary with proper table handling.
- * 
- * This renderer parses the markdown into blocks and renders tables
+ * * This renderer parses the markdown into blocks and renders tables
  * using a dedicated TV-safe table component instead of relying on
  * the markdown library's table rendering.
- * 
- * @param summary The normalized markdown summary to render
+ * * @param summary The normalized markdown summary to render
  * @param modifier Optional modifier for the container
  */
 @Composable
@@ -126,7 +124,7 @@ private fun MeetingSummaryRenderer(
     modifier: Modifier = Modifier
 ) {
     val blocks = parseMarkdownIntoBlocks(summary)
-    
+
     Column(modifier = modifier) {
         blocks.forEach { block ->
             when (block) {

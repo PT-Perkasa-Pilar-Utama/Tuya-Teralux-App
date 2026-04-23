@@ -50,11 +50,11 @@ import com.example.whisperandroid.presentation.meeting.components.MeetingIdleCon
 import com.example.whisperandroid.presentation.meeting.components.MeetingLoadingContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingRecordingContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingSuccessContent
-import com.example.whisperandroid.util.DeviceUtils
+import com.example.whisperandroid.utils.DeviceUtils
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 @Composable
 fun MeetingTranscriberScreen(
@@ -269,7 +269,7 @@ fun MeetingTranscriberScreen(
                 uiState = uiState,
                 pulseScale = pulseScale,
                 isEnabled = mqttStatus ==
-                    com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED,
+                    com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTED,
                 onMicClick = {
                     val canRecord = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||

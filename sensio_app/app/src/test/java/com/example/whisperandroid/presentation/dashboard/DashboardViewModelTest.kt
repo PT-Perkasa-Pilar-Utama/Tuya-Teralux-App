@@ -135,10 +135,10 @@ class DashboardViewModelTest {
         val terminalRepository = mockk<TerminalRepository>()
         val tokenManager = mockk<TokenManager>(relaxed = true)
         val tuyaSyncReadyFlow = MutableStateFlow(true)
-        
+
         io.mockk.every { modeStore.isEnabled } returns MutableStateFlow(false)
         io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC"
-        
+
         coEvery { terminalRepository.getAiEngineProfileByMac("AA:BB:CC") } returns Result.success(
             AiEngineProfileState(
                 profile = "fast",
@@ -164,10 +164,10 @@ class DashboardViewModelTest {
         val terminalRepository = mockk<TerminalRepository>()
         val tokenManager = mockk<TokenManager>(relaxed = true)
         val tuyaSyncReadyFlow = MutableStateFlow(true)
-        
+
         io.mockk.every { modeStore.isEnabled } returns MutableStateFlow(false)
         io.mockk.every { tokenManager.getMacAddress() } returns "AA:BB:CC"
-        
+
         coEvery { terminalRepository.getAiEngineProfileByMac("AA:BB:CC") } returns Result.success(
             AiEngineProfileState(
                 profile = null,

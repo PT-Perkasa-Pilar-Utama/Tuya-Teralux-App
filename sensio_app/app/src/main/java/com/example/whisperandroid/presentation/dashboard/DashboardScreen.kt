@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -49,7 +48,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,9 +55,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
-import com.example.whisperandroid.util.DeviceUtils
+import com.example.whisperandroid.utils.DeviceUtils
 import kotlinx.coroutines.launch
 
 /**

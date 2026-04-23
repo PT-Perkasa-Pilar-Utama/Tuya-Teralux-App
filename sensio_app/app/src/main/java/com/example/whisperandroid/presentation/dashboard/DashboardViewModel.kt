@@ -82,7 +82,9 @@ class DashboardViewModel(
             result.onSuccess { state ->
                 val warning = if (state?.source == "legacy_provider") {
                     "This terminal is still using a legacy AI provider setting. Choose Premium or Standard to migrate."
-                } else null
+                } else {
+                    null
+                }
 
                 _uiState.update {
                     it.copy(

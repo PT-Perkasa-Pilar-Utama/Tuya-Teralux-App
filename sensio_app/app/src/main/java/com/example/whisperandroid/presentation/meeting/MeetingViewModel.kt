@@ -31,9 +31,9 @@ class MeetingViewModel(
     val emailState: StateFlow<UiState<Boolean>> = _emailState.asStateFlow()
 
     private val _mqttStatus = MutableStateFlow(
-        com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.DISCONNECTED
+        com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.DISCONNECTED
     )
-    val mqttStatus: StateFlow<com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus> =
+    val mqttStatus: StateFlow<com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus> =
         _mqttStatus
 
     private val mqttHelper = com.example.whisperandroid.data.di.NetworkModule.mqttHelper
@@ -56,9 +56,9 @@ class MeetingViewModel(
     fun reconnectMqtt(deviceId: String) {
         viewModelScope.launch {
             if (mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED ||
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTED ||
                 mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTING
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTING
             ) {
                 return@launch
             }

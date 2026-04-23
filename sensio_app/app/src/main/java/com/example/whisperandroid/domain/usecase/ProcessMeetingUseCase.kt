@@ -51,7 +51,7 @@ data class SubmissionState(
 class ProcessMeetingUseCase(
     private val pipelineRepository: com.example.whisperandroid.domain.repository.PipelineRepository,
     private val uploadRepository: com.example.whisperandroid.domain.repository.UploadRepository,
-    private val mqttHelper: com.example.whisperandroid.util.MqttHelper,
+    private val mqttHelper: com.example.whisperandroid.utils.MqttHelper,
     private val prefs: SharedPreferences,
     private val failedUploadStore: FailedUploadStore? = null,
     private val signedUploadModeStore: SignedUploadModeStore
@@ -468,7 +468,7 @@ class ProcessMeetingUseCase(
             }
 
             val isMqttConnected = mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTED
             val timeSinceLastEvent = System.currentTimeMillis() - lastEventTime
 
             // Fallback rule: MQTT disconnected OR no event for 10 seconds

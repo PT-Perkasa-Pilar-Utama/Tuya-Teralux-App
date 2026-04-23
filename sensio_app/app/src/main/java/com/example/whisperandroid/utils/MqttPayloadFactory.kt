@@ -1,4 +1,4 @@
-package com.example.whisperandroid.util
+package com.example.whisperandroid.utils
 
 import org.json.JSONObject
 

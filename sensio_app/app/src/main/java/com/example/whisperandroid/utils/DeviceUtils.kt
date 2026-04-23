@@ -1,5 +1,5 @@
 
-package com.example.whisperandroid.util
+package com.example.whisperandroid.utils
 
 import android.content.Context
 import android.content.res.Configuration

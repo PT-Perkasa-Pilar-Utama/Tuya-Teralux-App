@@ -3,15 +3,14 @@ package com.example.whisperandroid.data.repository
 import android.content.Context
 import android.util.Log
 import com.example.whisperandroid.data.remote.api.WhisperApi
-import com.example.whisperandroid.utils.ZipEncryptor
 import com.example.whisperandroid.data.remote.dto.CreateUploadIntentRequestDto
 import com.example.whisperandroid.data.remote.dto.CreateUploadSessionRequestDto
 import com.example.whisperandroid.data.remote.dto.SaveRecordingRequestDto
-import com.example.whisperandroid.data.remote.dto.UploadIntentResponseDto
 import com.example.whisperandroid.data.remote.dto.UploadSessionResponseDto
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.domain.repository.UploadRepository
 import com.example.whisperandroid.domain.repository.UploadState
+import com.example.whisperandroid.utils.ZipEncryptor
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
@@ -28,9 +27,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator
 import org.bouncycastle.crypto.params.Argon2Parameters
+import org.json.JSONObject
 import retrofit2.HttpException
 
 class UploadRepositoryImpl(
@@ -350,7 +349,7 @@ class UploadRepositoryImpl(
             }
 
             val data = status.data
-            val serverChunkSize = data.chunkSizeByes.toLong()
+            val serverChunkSize = data.chunkSizeBytes.toLong()
             val sessionState = data.state
 
             // Check if session state is resumable
@@ -584,7 +583,7 @@ class UploadRepositoryImpl(
                 CreateUploadSessionRequestDto(
                     fileName = file.name,
                     totalSizeBytes = totalSize,
-                    chunkSizeByes = chunkSize.toInt()
+                    chunkSizeBytes = chunkSize.toInt()
                 ),
                 "Bearer $token"
             )
@@ -602,7 +601,7 @@ class UploadRepositoryImpl(
         }
 
         val sessionId = sessionResponse.data.sessionId
-        val serverChunkSize = sessionResponse.data.chunkSizeByes.toLong()
+        val serverChunkSize = sessionResponse.data.chunkSizeBytes.toLong()
 
         Log.d(TAG, "Probe session $sessionId created with server chunk size: $serverChunkSize")
 
@@ -1215,7 +1214,6 @@ class UploadRepositoryImpl(
 
             onProgress(totalSize, totalSize)
             return true
-
         } catch (e: Exception) {
             Log.e(TAG, "Multipart upload exception: ${e.message}")
             uploadId?.let { abortMultipartUpload(client, signedUrl, it) }

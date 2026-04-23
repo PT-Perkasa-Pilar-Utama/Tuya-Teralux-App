@@ -1,4 +1,4 @@
-package com.example.whisperandroid.util
+package com.example.whisperandroid.utils
 
 /**
  * Strips basic Markdown symbols for plain text display in chat bubbles.

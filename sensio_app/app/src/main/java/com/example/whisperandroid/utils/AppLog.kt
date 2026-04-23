@@ -1,4 +1,4 @@
-package com.example.whisperandroid.util
+package com.example.whisperandroid.utils
 
 import android.util.Log
 import com.example.whisperandroid.BuildConfig

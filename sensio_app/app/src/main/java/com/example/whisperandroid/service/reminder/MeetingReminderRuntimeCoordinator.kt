@@ -7,7 +7,7 @@ import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.data.local.reminder.MeetingReminderStore
 import com.example.whisperandroid.domain.model.reminder.MeetingReminderEntity
 import com.example.whisperandroid.domain.model.reminder.MeetingReminderMessage
-import com.example.whisperandroid.util.MeetingReminderParser
+import com.example.whisperandroid.utils.MeetingReminderParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -60,11 +60,17 @@ class MeetingReminderRuntimeCoordinator(
             // Wait for MQTT connection with retry logic
             val connected = waitForMqttConnection()
             if (!connected) {
-                Log.e(tag, "Failed to establish MQTT connection after retries, proceeding to subscribe so topic is tracked")
+                Log.e(tag, "Failed to establish MQTT connection, skipping subscribe to avoid crash")
+                return@launch
             }
 
             // Subscribe to the topic
-            mqttHelper.subscribe(notificationTopic!!)
+            try {
+                mqttHelper.subscribe(notificationTopic!!)
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to subscribe to notification topic: ${e.message}", e)
+                return@launch
+            }
 
             // Collect messages
             mqttHelper.messages.collectLatest { (topic, payload) ->
@@ -86,22 +92,22 @@ class MeetingReminderRuntimeCoordinator(
 
         while (System.currentTimeMillis() - startTime < timeoutMs) {
             when (val status = mqttHelper.connectionStatus.value) {
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED -> {
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTED -> {
                     Log.d(tag, "MQTT connection established")
                     return true
                 }
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.FAILED,
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.NO_INTERNET -> {
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.FAILED,
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.NO_INTERNET -> {
                     Log.w(tag, "Connection status: $status, retrying in 5s...")
                     delay(5000)
                     mqttHelper.connect()
                 }
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.DISCONNECTED -> {
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.DISCONNECTED -> {
                     Log.w(tag, "Connection status: $status, connecting...")
                     mqttHelper.connect()
                     delay(1000)
                 }
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTING -> {
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTING -> {
                     Log.d(tag, "Connection status: $status, waiting...")
                     delay(1000)
                 }
@@ -200,7 +206,7 @@ class MeetingReminderRuntimeCoordinator(
      * Get username for topic construction.
      */
     private fun getUsername(): String {
-        return com.example.whisperandroid.util.DeviceUtils.getDeviceId(context)
+        return com.example.whisperandroid.utils.DeviceUtils.getDeviceId(context)
     }
 
     /**

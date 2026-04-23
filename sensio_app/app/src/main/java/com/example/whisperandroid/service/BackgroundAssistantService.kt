@@ -13,7 +13,7 @@ import com.example.whisperandroid.MainActivity
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator
 import com.example.whisperandroid.presentation.assistant.SensioWakeWordManager
-import com.example.whisperandroid.util.AppLog
+import com.example.whisperandroid.utils.AppLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

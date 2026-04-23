@@ -112,7 +112,7 @@ class TerminalRepositoryImpl(
                     )
                 )
             } else if (response.status && response.data == null) {
-                 Result.success(null)
+                Result.success(null)
             } else {
                 Result.failure(Exception(response.message))
             }

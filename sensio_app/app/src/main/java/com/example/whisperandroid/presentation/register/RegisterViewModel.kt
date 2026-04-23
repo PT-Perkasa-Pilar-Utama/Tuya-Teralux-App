@@ -37,7 +37,7 @@ class RegisterViewModel(
     fun checkRegistration() {
         viewModelScope.launch {
             val deviceId =
-                com.example.whisperandroid.util.DeviceUtils
+                com.example.whisperandroid.utils.DeviceUtils
                     .getDeviceId(getApplication())
             _uiState.update { it.copy(isLoading = true, error = null) }
             val result = getTerminalByMacUseCase(deviceId)
@@ -98,10 +98,10 @@ class RegisterViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val context = getApplication<Application>()
             val deviceId =
-                com.example.whisperandroid.util.DeviceUtils
+                com.example.whisperandroid.utils.DeviceUtils
                     .getDeviceId(context)
             val deviceTypeId =
-                com.example.whisperandroid.util.DeviceUtils
+                com.example.whisperandroid.utils.DeviceUtils
                     .getDeviceTypeId(context)
 
             val result = registerTerminalUseCase(name, roomId, deviceId, deviceTypeId)

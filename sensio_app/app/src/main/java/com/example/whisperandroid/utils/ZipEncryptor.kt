@@ -1,12 +1,12 @@
 package com.example.whisperandroid.utils
 
 import android.content.Context
+import java.io.File
+import java.util.UUID
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.model.enums.AesKeyStrength
 import net.lingala.zip4j.model.enums.EncryptionMethod
-import java.io.File
-import java.util.UUID
 
 class ZipEncryptor {
 
@@ -16,7 +16,7 @@ class ZipEncryptor {
         password: String
     ): File {
         val uuid = UUID.randomUUID().toString()
-        val outputFile = File(context.cacheDir, "${uuid}.zip")
+        val outputFile = File(context.cacheDir, "$uuid.zip")
 
         val zipFile = ZipFile(outputFile, password.toCharArray())
         val zipParameters = ZipParameters().apply {

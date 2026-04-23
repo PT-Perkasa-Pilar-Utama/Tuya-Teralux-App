@@ -3,7 +3,7 @@ package com.example.whisperandroid.presentation.assistant
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import com.example.whisperandroid.util.AppLog
+import com.example.whisperandroid.utils.AppLog
 import java.io.IOException
 import org.vosk.Model
 import org.vosk.Recognizer

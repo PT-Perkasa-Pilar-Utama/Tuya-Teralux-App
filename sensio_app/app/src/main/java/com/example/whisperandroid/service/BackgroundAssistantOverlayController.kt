@@ -20,7 +20,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.whisperandroid.presentation.assistant.BackgroundAssistantCoordinator
 import com.example.whisperandroid.presentation.assistant.BackgroundAssistantModalHost
 import com.example.whisperandroid.ui.theme.SensioTheme
-import com.example.whisperandroid.util.AppLog
+import com.example.whisperandroid.utils.AppLog
 
 class BackgroundAssistantOverlayController(
     private val context: Context,

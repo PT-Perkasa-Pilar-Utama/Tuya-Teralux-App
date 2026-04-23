@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -26,7 +26,7 @@ import com.example.whisperandroid.presentation.register.RegisterScreen
 import com.example.whisperandroid.presentation.splash.SplashScreen
 import com.example.whisperandroid.presentation.splash.SplashViewModel
 import com.example.whisperandroid.ui.theme.SensioTheme
-import com.example.whisperandroid.util.FeatureAvailabilityGuard
+import com.example.whisperandroid.utils.FeatureAvailabilityGuard
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -41,9 +41,9 @@ class MainActivity : ComponentActivity() {
         // Ensure NetworkModule is initialized
         NetworkModule.ensureInitialized(this)
 
-        if (com.example.whisperandroid.util.DeviceUtils.isTerminal()) {
+        if (com.example.whisperandroid.utils.DeviceUtils.isTerminal()) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        } else if (com.example.whisperandroid.util.DeviceUtils.isPhone(this)) {
+        } else if (com.example.whisperandroid.utils.DeviceUtils.isPhone(this)) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
 

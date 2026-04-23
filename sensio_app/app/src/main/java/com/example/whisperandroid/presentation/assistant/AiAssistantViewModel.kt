@@ -10,7 +10,7 @@ import com.example.whisperandroid.domain.model.TranscriptionPollingOutcome
 import com.example.whisperandroid.presentation.components.MessageRole
 import com.example.whisperandroid.presentation.components.TranscriptionMessage
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
-import com.example.whisperandroid.util.MqttHelper
+import com.example.whisperandroid.utils.MqttHelper
 import java.io.File
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -749,7 +749,7 @@ class AiAssistantViewModel(
 
         viewModelScope.launch {
             val fallbackInitStartMs = System.currentTimeMillis()
-            val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+            val username = com.example.whisperandroid.utils.DeviceUtils.getDeviceId(getApplication())
             val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
             val token = tm.getAccessToken()
             val terminalId = tm.getTerminalId() ?: username
@@ -887,7 +887,7 @@ class AiAssistantViewModel(
         terminalId: String,
         fallbackIdempotencyKey: String
     ) {
-        val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+        val username = com.example.whisperandroid.utils.DeviceUtils.getDeviceId(getApplication())
         viewModelScope.launch {
             val pollStartMs = System.currentTimeMillis()
             activeTimingLogger?.markStep("http_poll_started", mapOf("task_id" to taskId))

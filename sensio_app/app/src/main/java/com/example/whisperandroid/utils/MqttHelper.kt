@@ -1,4 +1,4 @@
-package com.example.whisperandroid.util
+package com.example.whisperandroid.utils
 
 import android.content.Context
 import android.util.Log
@@ -42,7 +42,7 @@ class MqttHelper(
     val messages = _messages.asSharedFlow()
 
     private fun getUsername(): String {
-        return com.example.whisperandroid.util.DeviceUtils.getDeviceId(context)
+        return com.example.whisperandroid.utils.DeviceUtils.getDeviceId(context)
     }
 
     private fun resolveTuyaUid(): String? {
@@ -146,6 +146,10 @@ class MqttHelper(
                 }
             )
         } catch (e: MqttException) {
+            Log.e(tag, "MqttException subscribing to $topic: ${e.message}")
+            e.printStackTrace()
+        } catch (e: Exception) {
+            Log.e(tag, "Unexpected error subscribing to $topic: ${e.message}")
             e.printStackTrace()
         }
     }

@@ -1,4 +1,4 @@
-package com.example.whisperandroid.util
+package com.example.whisperandroid.utils
 
 import android.util.Log
 import com.example.whisperandroid.domain.model.reminder.MeetingReminderMessage
@@ -6,7 +6,6 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 

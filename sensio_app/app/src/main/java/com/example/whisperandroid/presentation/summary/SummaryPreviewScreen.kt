@@ -47,7 +47,7 @@ import com.example.whisperandroid.presentation.components.FeatureBackground
 import com.example.whisperandroid.presentation.components.FeatureHeader
 import com.example.whisperandroid.presentation.components.MqttStatusBadge
 import com.example.whisperandroid.presentation.components.UiState
-import com.example.whisperandroid.util.normalizeMeetingSummaryMarkdown
+import com.example.whisperandroid.utils.normalizeMeetingSummaryMarkdown
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
