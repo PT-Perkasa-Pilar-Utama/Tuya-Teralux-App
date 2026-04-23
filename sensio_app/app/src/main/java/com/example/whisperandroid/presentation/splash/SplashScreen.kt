@@ -4,7 +4,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import com.example.whisperandroid.navigation.AppRoutes
 import com.example.whisperandroid.presentation.components.SensioButton
 import com.example.whisperandroid.ui.theme.SensioSpacing
@@ -70,6 +73,8 @@ fun SplashScreen(
     }
 
     LaunchedEffect(uiState) {
+        delay(1000)
+
         when (uiState) {
             is SplashUiState.Authenticated -> {
                 navController?.navigate(AppRoutes.Dashboard.route) {
@@ -127,14 +132,24 @@ fun SplashScreen(
                 }
             }
             else -> {
-                Text(
-                    text = "Sensio",
-                    fontSize = SensioTypography.HeadlineMobile,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.graphicsLayer { this.alpha = alphaAnimation }
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(SensioSpacing.Md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Sensio",
+                        fontSize = SensioTypography.HeadlineMobile,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.graphicsLayer { this.alpha = alphaAnimation }
+                    )
+                    CircularProgressIndicator(
+                        modifier = Modifier.graphicsLayer { this.alpha = alphaAnimation },
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.dp
+                    )
+                }
             }
         }
     }
