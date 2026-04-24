@@ -62,7 +62,7 @@ func (e *ZIPEncryptor) addEncryptedFile(zw *zip.Writer, inputPath, password stri
 	if err != nil {
 		return fmt.Errorf("open input file %s: %w", inputPath, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	archiveName := filepath.Base(inputPath)
 	entryWriter, err := zw.Encrypt(archiveName, password, zip.AES256Encryption)

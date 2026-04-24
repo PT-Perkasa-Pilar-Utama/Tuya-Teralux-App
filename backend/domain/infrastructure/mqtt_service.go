@@ -41,16 +41,14 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 	brokerURL := cfg.MqttBroker
 
 	// Check if using WSS (WebSocket Secure)
-	if strings.HasPrefix(brokerURL, "wss://") {
-		// WSS URL - use as-is for WebSocket connection
+	switch {
+	case strings.HasPrefix(brokerURL, "wss://"):
 		opts.AddBroker(brokerURL)
 		utils.LogInfo("MQTT WSS mode: %s", brokerURL)
-	} else if strings.HasPrefix(brokerURL, "ws://") {
-		// WS URL - use as-is
+	case strings.HasPrefix(brokerURL, "ws://"):
 		opts.AddBroker(brokerURL)
 		utils.LogInfo("MQTT WS mode: %s", brokerURL)
-	} else {
-		// Traditional MQTT/mqtts - extract host:port
+	default:
 		if strings.HasPrefix(brokerURL, "ssl://") ||
 			strings.HasPrefix(brokerURL, "tcps://") ||
 			strings.HasPrefix(brokerURL, "mqtts://") ||
@@ -72,22 +70,20 @@ func NewMqttService(cfg *utils.Config) *MqttService {
 	opts.SetMaxReconnectInterval(5 * time.Second)
 
 	// Enable TLS if the broker URL starts with ssl://, tcps://, or mqtts://
-	if strings.HasPrefix(cfg.MqttBroker, "ssl://") ||
-		strings.HasPrefix(cfg.MqttBroker, "tcps://") ||
-		strings.HasPrefix(cfg.MqttBroker, "mqtts://") {
-		// Extract hostname for SNI (Server Name Indication)
+	switch {
+	case strings.HasPrefix(cfg.MqttBroker, "ssl://"),
+		strings.HasPrefix(cfg.MqttBroker, "tcps://"),
+		strings.HasPrefix(cfg.MqttBroker, "mqtts://"):
 		brokerHost := strings.SplitN(strings.SplitN(cfg.MqttBroker, "://", 2)[1], ":", 2)[0]
 		if brokerHost != "" {
-			// Load CA certificate from standard path (same as mosquitto --cafile)
+			// Load CA certificate from standard path (same as mosquito --cafile)
 			rootCAs := x509.NewCertPool()
 			caCertPath := "/etc/ssl/certs/ca-certificates.crt"
 			caCerts, err := os.ReadFile(caCertPath)
 			if err != nil {
 				utils.LogError("Failed to read CA certs from %s: %v", caCertPath, err)
-			} else {
-				if !rootCAs.AppendCertsFromPEM(caCerts) {
-					utils.LogError("Failed to append CA certs from %s", caCertPath)
-				}
+			} else if !rootCAs.AppendCertsFromPEM(caCerts) {
+				utils.LogError("Failed to append CA certs from %s", caCertPath)
 			}
 
 			// Load client certificate and key for mutual TLS (mTLS)

@@ -89,7 +89,7 @@ func (w *NotificationSchedulerWorker) processNotification(notification *notifica
 	var phoneNumbers []string
 	if err := json.Unmarshal([]byte(notification.PhoneNumbers), &phoneNumbers); err != nil {
 		utils.LogError("NotificationSchedulerWorker: Failed to parse phone numbers for %s: %v", notification.ID, err)
-		w.scheduledRepo.UpdateStatus(notification.ID, notificationEntities.NotificationStatusFailed)
+		w.scheduledRepo.UpdateStatus(notification.ID, notificationEntities.NotificationStatusFailed) //nolint:errcheck
 		return
 	}
 
@@ -106,13 +106,13 @@ func (w *NotificationSchedulerWorker) processNotification(notification *notifica
 	for _, phone := range phoneNumbers {
 		if err := w.waSvc.SendMessage(phone, content); err != nil {
 			utils.LogError("NotificationSchedulerWorker: Failed to send WA to %s: %v", phone, err)
-			w.scheduledRepo.UpdateStatus(notification.ID, notificationEntities.NotificationStatusFailed)
+			w.scheduledRepo.UpdateStatus(notification.ID, notificationEntities.NotificationStatusFailed) //nolint:errcheck
 			return
 		}
 		utils.LogInfo("NotificationSchedulerWorker: WA sent to %s for notification %s", phone, notification.ID)
 	}
 
-	w.scheduledRepo.UpdateStatus(notification.ID, notificationEntities.NotificationStatusSent)
+	w.scheduledRepo.UpdateStatus(notification.ID, notificationEntities.NotificationStatusSent) //nolint:errcheck
 	utils.LogInfo("NotificationSchedulerWorker: Notification %s processed successfully", notification.ID)
 }
 

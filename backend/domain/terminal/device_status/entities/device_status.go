@@ -7,9 +7,9 @@ import (
 )
 
 type DeviceStatus struct {
-	DeviceID  string         `gorm:"type:char(36);primaryKey"`
-	Code      string         `gorm:"type:varchar(255);primaryKey"`
-	Value     string         `gorm:"type:text"`
+	DeviceID  string `gorm:"type:char(36);primaryKey"`
+	Code      string `gorm:"type:varchar(255);primaryKey"`
+	Value     string `gorm:"type:text"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt

@@ -61,7 +61,7 @@ func (s *DownloadTokenService) CreateToken(recipient, objectKey, purpose string,
 	now := s.now()
 	claims := DownloadClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.AddDate(1, 0, 0)),
 		},
 		State:     recipient,

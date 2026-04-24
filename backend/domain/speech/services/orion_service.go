@@ -207,8 +207,8 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 
 	go func() {
 		defer cancel() // Signal main function that goroutine is done
-		defer pw.Close()
-		defer writer.Close()
+		defer func() { _ = pw.Close() }()
+		defer func() { _ = writer.Close() }()
 
 		select {
 		case <-ctx.Done():
@@ -222,7 +222,7 @@ func (s *OrionService) Transcribe(ctx context.Context, audioPath string, lang st
 			_ = pw.CloseWithError(err)
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		part, err := writer.CreateFormFile("file", filepath.Base(audioPath))
 		if err != nil {

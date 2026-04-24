@@ -116,7 +116,8 @@ Authorization: Bearer your-jwt-token
 
 ### 09. Common
 - `GET /api/health` - Health check
-- `DELETE /api/cache/flush` - Flush cache
+- `DELETE /api/cache/flush` - Flush cache (Bearer)
+- `POST /api/common/login` - Terminal login (API Key required)
 
 ## 💡 Tips
 

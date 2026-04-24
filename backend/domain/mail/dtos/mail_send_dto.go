@@ -25,14 +25,14 @@ type MailTaskResponseDTO struct {
 
 // MailStatusDTO represents the detailed status and result of a mail task
 type MailStatusDTO struct {
-	Status          string  `json:"status" example:"completed"`
-	Result          string  `json:"result,omitempty" example:"Email sent to user@example.com"`
-	Error           string  `json:"error,omitempty" example:"smtp auth failed"`
-	Trigger         string  `json:"trigger,omitempty"`
-	HTTPStatusCode  int     `json:"-"`
-	StartedAt       string  `json:"started_at,omitempty"`
-	DurationSeconds float64 `json:"duration_seconds,omitempty"`
-	ExpiresAt       string  `json:"expires_at,omitempty"`
+	Status           string  `json:"status" example:"completed"`
+	Result           string  `json:"result,omitempty" example:"Email sent to user@example.com"`
+	Error            string  `json:"error,omitempty" example:"smtp auth failed"`
+	Trigger          string  `json:"trigger,omitempty"`
+	HTTPStatusCode   int     `json:"-"`
+	StartedAt        string  `json:"started_at,omitempty"`
+	DurationSeconds  float64 `json:"duration_seconds,omitempty"`
+	ExpiresAt        string  `json:"expires_at,omitempty"`
 	ExpiresInSeconds int64   `json:"expires_in_seconds,omitempty"`
 }
 

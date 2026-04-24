@@ -434,6 +434,28 @@ func InitModule(protected *gin.RouterGroup, cfg *utils.Config) {
 - Middleware-based authorization in `domain/common/middlewares/`
 - Role-based access control for admin endpoints
 
+## Authentication Endpoints
+
+### Terminal Login
+- **Endpoint**: `POST /api/common/login`
+- **Auth**: `X-API-KEY` header (API Key)
+- **Purpose**: Authenticates a terminal with Tuya and returns JWT tokens
+- **Request Body**:
+  ```json
+  { "terminal_id": "<uuid>" }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": true,
+    "data": {
+      "terminal_id": "...",
+      "access_token": "...",
+      "status": "renewed"
+    }
+  }
+  ```
+
 ## Configuration
 
 Environment variables (see `.env.example`):

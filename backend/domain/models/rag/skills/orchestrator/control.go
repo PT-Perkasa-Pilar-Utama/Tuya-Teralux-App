@@ -135,7 +135,7 @@ func (o *ControlOrchestrator) getDevices(ctx *skills.SkillContext) ([]tuyaDtos.T
 		devices = o.filterLampDevices(devices)
 	}
 
-	var names []string
+	names := make([]string, 0, len(devices))
 	for _, d := range devices {
 		codes := []string{}
 		for _, st := range d.Status {

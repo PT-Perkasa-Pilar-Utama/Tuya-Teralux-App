@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"sensio/domain/infrastructure"
-	"sensio/domain/recordings/dtos"
+	recordings_dtos "sensio/domain/recordings/dtos"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +16,7 @@ type UploadIntentUseCase interface {
 }
 
 type uploadIntentUseCase struct {
-	storage   infrastructure.StorageProvider
+	storage    infrastructure.StorageProvider
 	ttlSeconds int64
 }
 
@@ -25,7 +25,7 @@ func NewUploadIntentUseCase(storage infrastructure.StorageProvider, ttlSeconds i
 		ttlSeconds = 900 // default 15 minutes
 	}
 	return &uploadIntentUseCase{
-		storage:   storage,
+		storage:    storage,
 		ttlSeconds: ttlSeconds,
 	}
 }

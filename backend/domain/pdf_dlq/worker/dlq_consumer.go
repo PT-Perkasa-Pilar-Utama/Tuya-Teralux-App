@@ -15,8 +15,8 @@ import (
 type DLQStatus string
 
 const (
-	DLQStatusPending        DLQStatus = "PENDING"
-	DLQStatusProcessed      DLQStatus = "PROCESSED"
+	DLQStatusPending         DLQStatus = "PENDING"
+	DLQStatusProcessed       DLQStatus = "PROCESSED"
 	DLQStatusFailedPermanent DLQStatus = "FAILED_PERMANENT"
 )
 
@@ -127,7 +127,8 @@ func (w *DLQConsumer) processEntry(entry *entities.PDFDeadLetter) {
 	w.updateEntryStatus(entry, DLQStatusProcessed)
 }
 
-func (w *DLQConsumer) retryPDFGeneration(ctx context.Context, entry *entities.PDFDeadLetter) error {
+//nolint:unparam
+func (w *DLQConsumer) retryPDFGeneration(_ context.Context, entry *entities.PDFDeadLetter) error {
 	w.logger.Printf("Retrying PDF generation for job_id=%s", entry.JobID)
 	return nil
 }

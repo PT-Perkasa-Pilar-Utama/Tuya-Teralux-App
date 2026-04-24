@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"sensio/domain/common/utils"
+
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
@@ -19,7 +21,6 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
-	"sensio/domain/common/utils"
 )
 
 type SummaryPDFMeta struct {
@@ -184,14 +185,14 @@ func generatePDFFromHTML(htmlContent string, outputPath string) error {
 	if err := browser.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to browser: %w", err)
 	}
-	defer browser.Close()
+	defer func() { _ = browser.Close() }()
 
 	// Create page
 	page, err := browser.Page(proto.TargetCreateTarget{URL: ""})
 	if err != nil {
 		return fmt.Errorf("failed to create page: %w", err)
 	}
-	defer page.Close()
+	defer func() { _ = page.Close() }()
 
 	// Set the HTML content
 	if err := page.SetDocumentContent(htmlContent); err != nil {

@@ -9,15 +9,15 @@ type PipelineStageStatus struct {
 }
 
 type PipelineStatusDTO struct {
-	TaskID          string                         `json:"task_id"`
-	OverallStatus   string                         `json:"overall_status" example:"processing"` // pending, processing, completed, failed, cancelled
-	Stages          map[string]PipelineStageStatus `json:"stages"`
-	StartedAt       string                         `json:"started_at"`
-	DurationSeconds float64                        `json:"duration_seconds"`
-	ExpiresAt       string                         `json:"expires_at,omitempty"`
+	TaskID           string                         `json:"task_id"`
+	OverallStatus    string                         `json:"overall_status" example:"processing"` // pending, processing, completed, failed, cancelled
+	Stages           map[string]PipelineStageStatus `json:"stages"`
+	StartedAt        string                         `json:"started_at"`
+	DurationSeconds  float64                        `json:"duration_seconds"`
+	ExpiresAt        string                         `json:"expires_at,omitempty"`
 	ExpiresInSeconds int64                          `json:"expires_in_seconds,omitempty"`
-	MacAddress      string                         `json:"mac_address,omitempty"`
-	Version         uint64                         `json:"version"` // For atomic CAS updates - incremented on each status change
+	MacAddress       string                         `json:"mac_address,omitempty"`
+	Version          uint64                         `json:"version"` // For atomic CAS updates - incremented on each status change
 }
 
 // SetExpiry implements tasks.StatusWithExpiry interface

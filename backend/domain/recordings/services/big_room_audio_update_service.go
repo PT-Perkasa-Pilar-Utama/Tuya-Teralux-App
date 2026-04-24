@@ -87,7 +87,7 @@ func (s *bigRoomAudioUpdateService) doUpdateWithRetryInfo(url string, jsonData [
 		// Network errors are generally retryable
 		return fmt.Errorf("failed to send request: %v", err), true
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 500 {
 		return fmt.Errorf("external api returned server error: %s", resp.Status), true

@@ -361,6 +361,7 @@ func TestFinalizeSession_MergedFileValidation(t *testing.T) {
 		}
 		if finalized == nil {
 			t.Error("Expected finalized upload result")
+			return
 		}
 
 		// Verify merged file exists and has correct size

@@ -219,7 +219,7 @@ func (c *WhisperTranscribeController) StartMqttSubscription() error {
 }
 
 func (c *WhisperTranscribeController) publishMqttValidationError(mac, field, message string) {
-	c.publishMqttResponse(mac, commonDtos.StandardResponse{
+	_ = c.publishMqttResponse(mac, commonDtos.StandardResponse{
 		Status:  false,
 		Message: "Validation Error",
 		Details: []utils.ValidationErrorDetail{
@@ -230,7 +230,7 @@ func (c *WhisperTranscribeController) publishMqttValidationError(mac, field, mes
 
 func (c *WhisperTranscribeController) publishMqttError(mac, details string) {
 	utils.LogError("WhisperTranscribe MQTT: %s", details)
-	c.publishMqttResponse(mac, commonDtos.StandardResponse{
+	_ = c.publishMqttResponse(mac, commonDtos.StandardResponse{
 		Status:  false,
 		Message: "Internal Server Error",
 	})
@@ -323,7 +323,7 @@ func (c *WhisperTranscribeController) Transcribe(ctx *gin.Context) {
 		f, err := file.Open()
 		if err == nil {
 			audioHash, _ := utils.HashReader(f)
-			f.Close()
+			f.Close() //nolint:errcheck
 			if taskID, exists := c.transcribeUC.CheckIdempotency(idempotencyKey, audioHash, language, macAddress); exists {
 				utils.LogInfo("Transcribe.Transcribe: Duplicate request detected (pre-save) for key %s. Returning TaskID %s", idempotencyKey, taskID)
 				// We don't have the RecordingID here because it wasn't saved this time,
@@ -412,7 +412,7 @@ func (c *WhisperTranscribeController) Transcribe(ctx *gin.Context) {
 	}
 
 	// Also publish to MQTT if service is available
-	c.publishMqttResponse(macAddress, resp)
+	_ = c.publishMqttResponse(macAddress, resp)
 
 	ctx.JSON(http.StatusAccepted, resp)
 }

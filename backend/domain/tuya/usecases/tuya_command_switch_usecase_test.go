@@ -175,11 +175,8 @@ func TestSendSwitchCommand_StateSavedOnSuccessAndResult(t *testing.T) {
 	_ = []byte(nil) // savedValue - conceptual placeholder
 
 	mockBadger.SetPersistentFunc = func(key string, value []byte) error {
-		if len(key) >= 14 && key[:14] == "device_state:" {
-			// stateSaveCalled = true
-			// savedKey = key
-			// savedValue = value
-		}
+		// device_state: prefix handling (intentional no-op for test)
+		_ = len(key) >= 14 && key[:14] == "device_state:"
 		mockBadger.data[key] = value
 		return nil
 	}

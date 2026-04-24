@@ -506,9 +506,3 @@ func (uc *tuyaGetAllDevicesUseCase) buildAssistantSafeSnapshot(resp *dtos.TuyaDe
 
 	return snapshot
 }
-
-// isFullSnapshotRequest checks if the request parameters represent a full unfiltered device list.
-// Only full snapshots should update the assistant aggregate vector key.
-func isFullSnapshotRequest(category string, page, limit int) bool {
-	return category == "" && page == 0 && limit == 0
-}

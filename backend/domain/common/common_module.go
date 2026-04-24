@@ -1,13 +1,14 @@
 package common
 
 import (
-	"github.com/gin-gonic/gin"
 	"sensio/domain/common/controllers"
 	"sensio/domain/common/interfaces"
 	"sensio/domain/common/routes"
 	"sensio/domain/common/services"
 	"sensio/domain/common/utils"
 	"sensio/domain/infrastructure"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CommonModule encapsulates common domain components

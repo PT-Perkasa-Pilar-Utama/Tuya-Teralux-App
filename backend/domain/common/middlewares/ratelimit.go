@@ -83,19 +83,6 @@ func (r *RateLimiters) cleanupStale(maxAge time.Duration) {
 	}
 }
 
-var (
-	globalRateLimiters *RateLimiters
-	once               sync.Once
-)
-
-// getRateLimiters returns the global rate limiters instance.
-func getRateLimiters() *RateLimiters {
-	once.Do(func() {
-		globalRateLimiters = newRateLimiters(DefaultRateLimitConfig())
-	})
-	return globalRateLimiters
-}
-
 // RateLimitMiddleware returns a Gin middleware that implements IP-based rate limiting.
 // Uses token bucket algorithm with 100 requests per minute per IP.
 // Returns 429 Too Many Requests with Retry-After header when limit is exceeded.

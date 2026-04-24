@@ -6,8 +6,8 @@ import (
 	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 
-	usecases "sensio/domain/speech/usecases"
 	services "sensio/domain/speech/services"
+	usecases "sensio/domain/speech/usecases"
 )
 
 type SpeechModule struct {

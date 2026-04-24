@@ -359,7 +359,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 					pdfUrl = fmt.Sprintf("/api/download/resolve/%s", tokenID)
 				}
 			}
-			os.Remove(tmpPdfPath)
+			os.Remove(tmpPdfPath) //nolint:errcheck
 		} else {
 			_ = os.Remove(tmpPdfPath)
 		}
@@ -397,6 +397,7 @@ func (u *summaryUseCase) summarizeInChunks(ctx context.Context, text string, lan
 	}
 
 	chunks := u.splitText(text, 16000) // ~4000 tokens
+	//nolint:prealloc
 	var intermediateSummaries []string
 
 	// Check for macAddress in args for terminal-specific provider preference
@@ -485,6 +486,7 @@ func (u *summaryUseCase) summarizeHierarchical(ctx context.Context, text string,
 	windows := u.splitTextUtteranceAware(text, 16000) // ~4000 tokens per window
 	utils.LogInfo("summarizeHierarchical: Split transcript into %d windows", len(windows))
 
+	//nolint:prealloc
 	var intermediateNotes []IntermediateSummaryNote
 	var processedWindows int
 	var emptyWindows int

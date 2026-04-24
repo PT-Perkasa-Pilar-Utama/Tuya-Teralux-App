@@ -64,7 +64,8 @@ func NewChatUseCase(
 
 func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, language, requestID string) (*dtos.RAGChatResponseDTO, error) {
 	ucStart := time.Now()
-	pipelinePath := "unknown"
+	var pipelinePath string
+	//nolint:ineffassign
 	var controlDuration time.Duration // Track control execution time separately
 
 	if ctx == nil {
@@ -136,15 +137,16 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 	var history []string
 	if u.badger != nil {
 		data, err := u.badger.Get(historyKey)
-		if err != nil {
+		switch {
+		case err != nil:
 			utils.LogWarn("ChatUseCase: Failed to get history | key=%s | error=%v", historyKey, err)
-		} else if data != nil {
+		case data != nil:
 			unmarshalStart := time.Now()
 			if err := json.Unmarshal(data, &history); err != nil {
 				utils.LogWarn("ChatUseCase: Failed to unmarshal history | key=%s | error=%v", historyKey, err)
 			}
 			utils.LogDebug("ChatUseCase: History retrieved | key=%s | cache_duration_ms=%d | unmarshal_duration_ms=%d | history_size=%d", historyKey, time.Since(historyStart).Milliseconds()-time.Since(unmarshalStart).Milliseconds(), time.Since(unmarshalStart).Milliseconds(), len(history))
-		} else {
+		default:
 			utils.LogDebug("ChatUseCase: History not found | key=%s | duration_ms=%d", historyKey, time.Since(historyStart).Milliseconds())
 		}
 	}
@@ -254,7 +256,6 @@ func (u *ChatUseCaseImpl) Chat(ctx context.Context, uid, terminalID, prompt, lan
 	}
 
 	// 4c. Single Decision Engine (for non-fast-routed requests)
-	pipelinePath = "single_decision_chat"
 	decisionStart := time.Now()
 	totalDecisionDuration := time.Duration(0)
 
@@ -524,6 +525,8 @@ func (u *ChatUseCaseImpl) getServiceIssueResponse(language string) string {
 }
 
 // saveHistoryIfNotBlocked saves history if not blocked.
+//
+//nolint:unparam
 func (u *ChatUseCaseImpl) saveHistoryIfNotBlocked(badger *infrastructure.BadgerService, historyKey string, history []string, prompt, response string, isBlocked bool) time.Duration {
 	if badger == nil || isBlocked {
 		return 0
@@ -545,7 +548,9 @@ func (u *ChatUseCaseImpl) saveHistoryIfNotBlocked(badger *infrastructure.BadgerS
 }
 
 // executeFastControl executes a fast-routed control command.
-func (u *ChatUseCaseImpl) executeFastControl(ctx *skills.SkillContext, intent orchestrator.FastIntentResult) (*skills.SkillResult, error) {
+//
+//nolint:unparam
+func (u *ChatUseCaseImpl) executeFastControl(ctx *skills.SkillContext, _ orchestrator.FastIntentResult) (*skills.SkillResult, error) {
 	// Use the original user prompt directly to preserve quantifiers like "semua" (all)
 	// and ordinal hints that would be lost if we reconstructed from intent
 	controlPrompt := ctx.Prompt
@@ -584,6 +589,8 @@ func (u *ChatUseCaseImpl) executeFastControl(ctx *skills.SkillContext, intent or
 }
 
 // executeDecisionControl executes control based on decision engine hints.
+//
+//nolint:unparam
 func (u *ChatUseCaseImpl) executeDecisionControl(ctx *skills.SkillContext, decision *orchestrator.AssistantDecision) (*skills.SkillResult, error) {
 	// Reconstruct deterministic control prompt
 	controlPrompt, err := u.buildControlPromptFromDecision(decision)
@@ -690,6 +697,8 @@ func (u *ChatUseCaseImpl) mapControlRuntimeError(err error, language string) (st
 }
 
 // getControlUnavailableResponse returns a generic unavailable message.
+//
+//nolint:unparam
 func (u *ChatUseCaseImpl) getControlUnavailableResponse(language string) string {
 	if strings.EqualFold(language, "en") {
 		return "Maaf, sistem kontrol tidak tersedia."

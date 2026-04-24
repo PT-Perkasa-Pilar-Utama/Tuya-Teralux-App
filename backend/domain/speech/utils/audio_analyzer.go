@@ -167,6 +167,8 @@ type volMetricsResult struct {
 }
 
 // getVolumeStats extracts mean and max volume using ffmpeg volumedetect filter
+//
+//nolint:unparam
 func (a *ffmpegAudioAnalyzer) getVolumeStats(audioPath string) (*volMetricsResult, error) {
 	cmd := exec.Command(a.ffmpegPath,
 		"-i", audioPath,
@@ -174,12 +176,8 @@ func (a *ffmpegAudioAnalyzer) getVolumeStats(audioPath string) (*volMetricsResul
 		"-f", "null",
 		"-",
 	)
-	// volumedetect outputs to stderr
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		// volumedetect returns non-zero exit code but still produces output
-		// we'll parse what we can
-	}
+	// volumedetect outputs to stderr - it may return non-zero exit code but still produces output
+	output, _ := cmd.CombinedOutput() //nolint:errcheck
 
 	outputStr := string(output)
 
@@ -219,6 +217,8 @@ type silenceMetricsResult struct {
 
 // detectSilence uses ffmpeg silencedetect to find silence periods
 // Silence threshold: -50dB (adjustable), minimum duration: 0.5s
+//
+//nolint:unparam
 func (a *ffmpegAudioAnalyzer) detectSilence(audioPath string) (*silenceMetricsResult, error) {
 	// silencedetect outputs to stderr
 	cmd := exec.Command(a.ffmpegPath,
@@ -227,10 +227,8 @@ func (a *ffmpegAudioAnalyzer) detectSilence(audioPath string) (*silenceMetricsRe
 		"-f", "null",
 		"-",
 	)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		// silencedetect returns non-zero but still produces output
-	}
+	// silencedetect returns non-zero but still produces output
+	output, _ := cmd.CombinedOutput() //nolint:errcheck
 
 	outputStr := string(output)
 
@@ -241,6 +239,7 @@ func (a *ffmpegAudioAnalyzer) detectSilence(audioPath string) (*silenceMetricsRe
 
 	starts := startRe.FindAllStringSubmatch(outputStr, -1)
 	ends := endRe.FindAllStringSubmatch(outputStr, -1)
+	_ = starts // silence_detect may return starts without ends (edge case noted above)
 
 	// Calculate total silence duration and longest silence
 	var totalSilence float64
@@ -261,9 +260,7 @@ func (a *ffmpegAudioAnalyzer) detectSilence(audioPath string) (*silenceMetricsRe
 
 	// If we have starts but no ends, the last silence extends to the end
 	// This is a simplification - in practice, silencedetect usually pairs them
-	if len(starts) > len(ends) && len(ends) > 0 {
-		// Last silence extends to end of file - already counted in duration
-	}
+	// (intentional no-op - the edge case is noted above)
 
 	// Get duration to calculate percentage
 	duration, err := a.getDuration(audioPath)

@@ -2,10 +2,10 @@ package usecases
 
 import (
 	"fmt"
-	"time"
 	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/terminal/device_status/dtos"
 	device_status_repositories "sensio/domain/terminal/device_status/repositories"
+	"time"
 )
 
 // GetDeviceStatusesByDeviceIDUseCase handles retrieving all statuses for a specific device

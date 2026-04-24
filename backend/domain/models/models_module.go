@@ -3,10 +3,10 @@ package models
 import (
 	"context"
 	"path/filepath"
+	interfaces "sensio/domain/common/interfaces"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
-	interfaces "sensio/domain/common/interfaces"
 	"sensio/domain/infrastructure"
 	pipelineControllers "sensio/domain/models/pipeline/controllers"
 	pipelinedtos "sensio/domain/models/pipeline/dtos"
@@ -19,14 +19,14 @@ import (
 	ragSkills "sensio/domain/models/rag/skills"
 	ragOrchestrator "sensio/domain/models/rag/skills/orchestrator"
 	ragUsecases "sensio/domain/models/rag/usecases"
-	pdfDlqRepositories "sensio/domain/pdf_dlq/repositories"
 	whisperControllers "sensio/domain/models/whisper/controllers"
 	whisperDtos "sensio/domain/models/whisper/dtos"
 	whisperRoutes "sensio/domain/models/whisper/routes"
 	whisperUsecases "sensio/domain/models/whisper/usecases"
+	pdfDlqRepositories "sensio/domain/pdf_dlq/repositories"
 	recordingUsecases "sensio/domain/recordings/usecases"
-	speechUsecases "sensio/domain/speech/usecases"
 	speechServices "sensio/domain/speech/services"
+	speechUsecases "sensio/domain/speech/usecases"
 	speechUtils "sensio/domain/speech/utils"
 	"time"
 
@@ -232,15 +232,13 @@ func InitModule(
 		go func() {
 			ticker := time.NewTicker(cleanupInterval)
 			defer ticker.Stop()
-			for {
-				select {
-				case now := <-ticker.C:
-					count, err := uploadSessionUC.CleanupExpiredSessions(now)
-					if err != nil {
-						utils.LogError("Whisper: Upload session cleanup failed: %v", err)
-					} else if count > 0 {
-						utils.LogInfo("Whisper: Cleaned up %d expired upload sessions", count)
-					}
+			for range ticker.C {
+				now := time.Now()
+				count, err := uploadSessionUC.CleanupExpiredSessions(now)
+				if err != nil {
+					utils.LogError("Whisper: Upload session cleanup failed: %v", err)
+				} else if count > 0 {
+					utils.LogInfo("Whisper: Cleaned up %d expired upload sessions", count)
 				}
 			}
 		}()

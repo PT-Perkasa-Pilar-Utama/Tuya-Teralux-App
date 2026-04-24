@@ -34,16 +34,16 @@ type TerminalFilterDTO struct {
 
 // TerminalResponseDTO represents the response format for a single terminal
 type TerminalResponseDTO struct {
-	ID           string   `json:"id"`
-	MacAddress   string   `json:"mac_address"`
-	RoomID       string   `json:"room_id"`
-	Name         string   `json:"name"`
-	DeviceTypeID string   `json:"device_type_id"`
-	AiProvider   *string  `json:"ai_provider,omitempty"`
-	MQTTUsername string   `json:"mqtt_username"`
-	MQTTPassword string   `json:"mqtt_password,omitempty"`
-	CreatedAt    string   `json:"created_at"`
-	UpdatedAt    string   `json:"updated_at"`
+	ID           string  `json:"id"`
+	MacAddress   string  `json:"mac_address"`
+	RoomID       string  `json:"room_id"`
+	Name         string  `json:"name"`
+	DeviceTypeID string  `json:"device_type_id"`
+	AiProvider   *string `json:"ai_provider,omitempty"`
+	MQTTUsername string  `json:"mqtt_username"`
+	MQTTPassword string  `json:"mqtt_password,omitempty"`
+	CreatedAt    string  `json:"created_at"`
+	UpdatedAt    string  `json:"updated_at"`
 	// Devices:    []DeviceResponseDTO `json:"devices,omitempty"` // Removed to match test scenario
 }
 

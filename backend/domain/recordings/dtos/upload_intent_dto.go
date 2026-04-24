@@ -13,5 +13,5 @@ type UploadIntentResponseDTO struct {
 	ObjectKey   string `json:"object_key"`
 	UploadURL   string `json:"presigned_url"`
 	ContentType string `json:"content_type"`
-	ExpiresAt  string `json:"expires_at"`
+	ExpiresAt   string `json:"expires_at"`
 }

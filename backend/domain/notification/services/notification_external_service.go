@@ -257,12 +257,6 @@ func (s *NotificationExternalService) scheduleWANotification(req terminal_dtos.N
 	return notification.ID, nil
 }
 
-func normalizeMacAddress(mac string) string {
-	mac = strings.ReplaceAll(mac, ":", "-")
-	mac = strings.ReplaceAll(mac, ":", "")
-	return strings.ToLower(mac)
-}
-
 func (s *NotificationExternalService) getStringValue(data map[string]interface{}, key string) string {
 	if val, ok := data[key]; ok {
 		if str, ok := val.(string); ok {

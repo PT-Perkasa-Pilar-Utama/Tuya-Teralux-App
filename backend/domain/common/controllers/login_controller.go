@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"sensio/domain/common/dtos"
@@ -37,7 +39,8 @@ func NewLoginController(terminalRepo interfaces.ITerminalRepository, authUseCase
 // @Failure      400 {object} dtos.StandardResponse
 // @Failure      404 {object} dtos.StandardResponse
 // @Failure      500 {object} dtos.StandardResponse
-// @Router       /api/login [post]
+// @Security     ApiKeyAuth
+// @Router       /api/common/login [post]
 func (c *LoginController) Login(ctx *gin.Context) {
 	var req dtos.LoginRequestDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -68,13 +71,47 @@ func (c *LoginController) Login(ctx *gin.Context) {
 		return
 	}
 
+	// Short UUID for logging
+	shortID := req.TerminalID
+	if len(shortID) > 8 {
+		shortID = shortID[:8]
+	}
+
+	// Check Authorization header for existing JWT
+	authHeader := ctx.GetHeader("Authorization")
+	var tokenValid bool
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		claims, err := utils.ParseTokenWithoutValidation(tokenString)
+		if err == nil {
+			if exp, ok := claims["exp"].(float64); ok {
+				tokenValid = time.Unix(int64(exp), 0).After(time.Now())
+			}
+		}
+	}
+
+	if tokenValid {
+		fmt.Printf("[TOKEN_CHECK] terminal_id=%s status=valid skip_tuya=true\n", shortID)
+		ctx.JSON(http.StatusOK, dtos.StandardResponse{
+			Status:  true,
+			Message: "Token still valid",
+			Data: dtos.LoginResponseDTO{
+				TerminalID: req.TerminalID,
+				Status:     "valid",
+			},
+		})
+		return
+	}
+
+	fmt.Printf("[TOKEN_CHECK] terminal_id=%s status=expired skip_tuya=false calling_tuya=true\n", shortID)
+
 	// Call Tuya auth
 	tuyaResult, err := c.authUseCase.Authenticate()
 	if err != nil {
-		utils.LogError("LoginController.Login: Tuya auth failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, dtos.StandardResponse{
+		fmt.Printf("[TOKEN_CHECK] terminal_id=%s status=renewed_error error=tuya_timeout\n", shortID)
+		ctx.JSON(http.StatusServiceUnavailable, dtos.StandardResponse{
 			Status:  false,
-			Message: "Authentication failed",
+			Message: "Authentication service unavailable",
 		})
 		return
 	}
@@ -106,7 +143,7 @@ func (c *LoginController) Login(ctx *gin.Context) {
 
 	// Set cookies
 	// access_token: regular cookie, Secure=false for development
-	ctx.SetCookie("access_token", accessToken, int(expiry.Sub(time.Now()).Seconds()), "/", "", false, false)
+	ctx.SetCookie("access_token", accessToken, int(time.Until(expiry).Seconds()), "/", "", false, false)
 	// refresh_token: http-only cookie, 1 month expiry (30*24*3600 seconds)
 	ctx.SetCookie("refresh_token", refreshToken, 30*24*3600, "/", "", true, false)
 
@@ -114,8 +151,10 @@ func (c *LoginController) Login(ctx *gin.Context) {
 		Status:  true,
 		Message: "Login successful",
 		Data: dtos.LoginResponseDTO{
-			TerminalID: req.TerminalID,
-			Message:    "Login successful",
+			TerminalID:  req.TerminalID,
+			AccessToken: accessToken,
+			Message:     "Login successful",
+			Status:      "renewed",
 		},
 	})
 }

@@ -89,7 +89,7 @@ func (uc *secureMailUseCase) SendSecureLinkWithPassword(ctx context.Context, rec
 	_ = uc.cache.Set(taskID, status)
 	_ = uc.cache.SetIdempotencyTask(recipient, objectKey, taskID, status)
 
-	uc.outboxRepo.Create(&entities.MailOutbox{
+	uc.outboxRepo.Create(&entities.MailOutbox{ //nolint:errcheck
 		TaskID:    taskID,
 		Recipient: recipient,
 		ObjectKey: objectKey,
@@ -104,7 +104,7 @@ func (uc *secureMailUseCase) SendSecureLinkWithPassword(ctx context.Context, rec
 	return taskID, nil
 }
 
-func (uc *secureMailUseCase) processAsync(ctx context.Context, taskID, recipient, objectKey, purpose, subject string) {
+func (uc *secureMailUseCase) processAsync(_ context.Context, taskID, recipient, objectKey, purpose, subject string) {
 	defer func() {
 		if r := recover(); r != nil {
 			utils.LogError("SecureMail Task %s: Panic recovered: %v", taskID, r)

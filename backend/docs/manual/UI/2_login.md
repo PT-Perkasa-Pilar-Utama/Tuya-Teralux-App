@@ -5,7 +5,42 @@
 A simplified, kiosk-style login screen designed for quick access. It acts as the gatekeeper for day-to-day operations.
 
 ## API Used
-*   **Authenticate**: `GET /api/tuya/auth` (or `/api/auth/login` depending on exact route implementation).
+*   **Authenticate**: `POST /api/common/login`
+
+## Authentication
+This endpoint requires the `X-API-KEY` header with a valid API key.
+
+**Request**:
+```http
+POST /api/common/login
+X-API-KEY: your-api-key
+Content-Type: application/json
+
+{
+    "terminal_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Response** (Success):
+```json
+{
+    "status": true,
+    "message": "Login successful",
+    "data": {
+        "terminal_id": "...",
+        "access_token": "eyJ...",
+        "status": "renewed"
+    }
+}
+```
+
+**Response** (Error - Missing API Key):
+```json
+{
+    "status": false,
+    "message": "Invalid API Key"
+}
+```
 
 ## Flow
 1.  **Display**:
@@ -13,7 +48,7 @@ A simplified, kiosk-style login screen designed for quick access. It acts as the
     *   **Device Identification**: Shows the MAC Address again for confirmation.
 2.  **Interaction**:
     *   **Single Button**: "Sign In with Tuya".
-    *   **No Password Input**: The device authenticates itself using its registered credentials/identity (likely secured via backend validation of the request source or pre-configured tokens).
+    *   **No Password Input**: The device authenticates itself using its registered credentials via backend validation (requires valid X-API-KEY).
 3.  **Logic**:
     *   On click, shows a circular loading indicator.
     *   **Success**: Navigates to the **Room Status** page.

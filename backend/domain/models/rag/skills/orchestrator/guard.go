@@ -99,7 +99,7 @@ var sensitiveTopicKeywords = []string{
 	"perang", "war", "invasi", "invasion", "bom", "bombing",
 	"militer", "military", "tentara", "army", "senjata", "weapon",
 	"nuklir", "nuclear", "rudal", "missile", "sanksi", "sanction",
-	"gaza", "palestina", "palestine", "israel", "ukraine", "ukraina", "rusia", "russia",
+	"gaza", "palestinian", "palestine", "israel", "ukraine", "ukraina", "rusia", "russia",
 	"nato", "isis", "taliban",
 	// Celebrity Gossip
 	"artis", "selebriti", "celebrity", "gosip", "skandal",

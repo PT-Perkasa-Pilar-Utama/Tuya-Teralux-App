@@ -7,7 +7,7 @@ import (
 
 // PromptConfig encapsulates parameterized prompt generation for meeting summaries.
 //
-// DEPRECATED: BuildMinutesPrompt and style-family routing (GetStylePrompt) are deprecated
+// Deprecated: BuildMinutesPrompt and style-family routing (GetStylePrompt) are deprecated
 // for the default meeting-transcriber flow. The default analytical prompt template
 // (summary.md skill definition) should be used instead via placeholder-based expansion.
 //

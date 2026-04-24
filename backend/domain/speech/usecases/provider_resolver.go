@@ -206,6 +206,7 @@ func (r *providerResolverImpl) ResolveByMacAddress(macAddress string) (*Resolved
 	return result, nil
 }
 
+//nolint:unparam
 func (r *providerResolverImpl) resolveFromTerminal(terminal *Terminal) (*ResolvedProviderSet, error) {
 	start := time.Now()
 

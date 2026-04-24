@@ -8,21 +8,21 @@ import (
 	"time"
 
 	"sensio/domain/common/utils"
+	"sensio/domain/download_token"
 	"sensio/domain/mail/entities"
 	"sensio/domain/mail/repositories"
 	"sensio/domain/mail/services"
-	"sensio/domain/download_token"
 )
 
 type MailOutboxWorker struct {
-	repo          repositories.MailOutboxRepository
-	mailService   *services.MailService
-	tokenService  *download_token.DownloadTokenService
-	interval      time.Duration
-	stopChan      chan struct{}
-	wg            sync.WaitGroup
-	running       uint32
-	logger        *log.Logger
+	repo         repositories.MailOutboxRepository
+	mailService  *services.MailService
+	tokenService *download_token.DownloadTokenService
+	interval     time.Duration
+	stopChan     chan struct{}
+	wg           sync.WaitGroup
+	running      uint32
+	logger       *log.Logger
 }
 
 func NewMailOutboxWorker(
@@ -30,12 +30,12 @@ func NewMailOutboxWorker(
 	tokenService *download_token.DownloadTokenService,
 ) *MailOutboxWorker {
 	return &MailOutboxWorker{
-		repo:          repositories.NewMailOutboxRepository(),
-		mailService:   mailService,
-		tokenService:  tokenService,
-		interval:      30 * time.Second,
-		stopChan:      make(chan struct{}),
-		logger:        log.New(log.Writer(), "[MailOutboxWorker] ", log.LstdFlags),
+		repo:         repositories.NewMailOutboxRepository(),
+		mailService:  mailService,
+		tokenService: tokenService,
+		interval:     30 * time.Second,
+		stopChan:     make(chan struct{}),
+		logger:       log.New(log.Writer(), "[MailOutboxWorker] ", log.LstdFlags),
 	}
 }
 
@@ -99,7 +99,7 @@ func (w *MailOutboxWorker) processEntry(entry *entities.MailOutbox) {
 
 	if entry.RetryCount >= 5 {
 		w.logger.Printf("Mail outbox entry exceeded max retries, marking as failed: task_id=%s", entry.TaskID)
-		w.repo.UpdateStatus(entry.TaskID, entities.MailOutboxStatusFailed, "max retries exceeded")
+		w.repo.UpdateStatus(entry.TaskID, entities.MailOutboxStatusFailed, "max retries exceeded") //nolint:errcheck
 		return
 	}
 
@@ -109,16 +109,16 @@ func (w *MailOutboxWorker) processEntry(entry *entities.MailOutbox) {
 	err := w.processMailJob(ctx, entry)
 	if err != nil {
 		w.logger.Printf("Failed to process mail outbox entry: task_id=%s error=%v", entry.TaskID, err)
-		w.repo.IncrementRetry(entry.TaskID)
-		w.repo.UpdateStatus(entry.TaskID, entities.MailOutboxStatusFailed, err.Error())
+		w.repo.IncrementRetry(entry.TaskID)                                             //nolint:errcheck
+		w.repo.UpdateStatus(entry.TaskID, entities.MailOutboxStatusFailed, err.Error()) //nolint:errcheck
 		return
 	}
 
 	w.logger.Printf("Mail outbox entry processed successfully: task_id=%s", entry.TaskID)
-	w.repo.UpdateStatus(entry.TaskID, entities.MailOutboxStatusSent, "")
+	w.repo.UpdateStatus(entry.TaskID, entities.MailOutboxStatusSent, "") //nolint:errcheck
 }
 
-func (w *MailOutboxWorker) processMailJob(ctx context.Context, entry *entities.MailOutbox) error {
+func (w *MailOutboxWorker) processMailJob(_ context.Context, entry *entities.MailOutbox) error {
 	token, err := w.tokenService.CreateToken(entry.Recipient, entry.ObjectKey, entry.Purpose)
 	if err != nil {
 		return err

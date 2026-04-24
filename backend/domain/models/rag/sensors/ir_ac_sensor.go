@@ -209,6 +209,7 @@ func (s *IRACsensor) parseTemperature(prompt string) (int, bool) {
 		priority int // 3: high (keyword), 2: medium (intent), 1: fallback, 0: forbidden
 	}
 
+	//nolint:prealloc
 	var candidates []candidate
 
 	tempKeywords := map[string]bool{
@@ -268,11 +269,12 @@ func (s *IRACsensor) parseTemperature(prompt string) (int, bool) {
 			}
 		}
 
-		if isForbidden {
+		switch {
+		case isForbidden:
 			prio = 0
-		} else if isHigh {
+		case isHigh:
 			prio = 3
-		} else if isMedium {
+		case isMedium:
 			prio = 2
 		}
 

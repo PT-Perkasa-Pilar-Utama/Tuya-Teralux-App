@@ -122,7 +122,7 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 }
 
 // executeSkillWithFallback executes the skill with health-aware remote provider fallback
-func (u *controlUseCase) executeSkillWithFallback(ctx context.Context, skillCtx *skills.SkillContext) (*skills.SkillResult, error) {
+func (u *controlUseCase) executeSkillWithFallback(_ context.Context, skillCtx *skills.SkillContext) (*skills.SkillResult, error) {
 	var result *skills.SkillResult
 	var err error
 

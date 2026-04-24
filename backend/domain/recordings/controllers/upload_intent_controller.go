@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	commonDtos "sensio/domain/common/dtos"
-	"sensio/domain/recordings/dtos"
+	recordings_dtos "sensio/domain/recordings/dtos"
 	"sensio/domain/recordings/usecases"
 
 	"github.com/gin-gonic/gin"

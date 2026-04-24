@@ -23,8 +23,8 @@ import (
 	"sensio/domain/infrastructure"
 	"sensio/domain/mail"
 	"sensio/domain/models"
-	notification_entities "sensio/domain/notification/entities"
 	"sensio/domain/notification"
+	notification_entities "sensio/domain/notification/entities"
 	notification_services "sensio/domain/notification/services"
 	recordings "sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
@@ -265,7 +265,7 @@ func run() error {
 		utils.LogError("Warning: Failed to connect to MQTT: %v", err)
 	} else {
 		defer mqttService.Close()
-}
+	}
 
 	// Shared Repositories
 	deviceRepo := device_repositories.NewDeviceRepository(badgerService)
@@ -413,7 +413,9 @@ func run() error {
 		notificationWorker.Stop()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		server.Shutdown(ctx)
+		if err := server.Shutdown(ctx); err != nil {
+			utils.LogError("server shutdown error: %v", err)
+		}
 	}()
 
 	utils.LogInfo("Server starting on :%s", port)
