@@ -29,10 +29,7 @@ class TuyaRepositoryImpl(
     override suspend fun getDevices():
         Result<com.example.whisperandroid.data.remote.dto.TuyaDevicesResponseDto> =
         try {
-            val token = tokenManager.getAccessToken() ?: return Result.failure(
-                Exception("No access token found")
-            )
-            val response = api.getDevices("Bearer $token")
+            val response = api.getDevices(tokenManager.getAccessToken() ?: "")
             if (response.status && response.data != null) {
                 Result.success(response.data)
             } else {

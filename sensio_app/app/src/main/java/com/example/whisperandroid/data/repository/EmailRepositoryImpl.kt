@@ -36,7 +36,7 @@ class EmailRepositoryImpl(
                 data = dataMap,
                 attachmentPath = attachmentPath
             )
-            val response = api.sendEmailByMac("Bearer $token", macAddress, request)
+            val response = api.sendEmailByMac(token, macAddress, request)
 
             if (response.status && response.data != null) {
                 val taskId = response.data.taskId
@@ -68,7 +68,7 @@ class EmailRepositoryImpl(
                 template = template,
                 attachmentPath = attachmentPath
             )
-            val response = api.sendEmail("Bearer $token", request)
+            val response = api.sendEmail(token, request)
 
             if (response.status && response.data != null) {
                 // Return the taskId via the store, then poll
@@ -96,7 +96,7 @@ class EmailRepositoryImpl(
 
         while (attempts < maxAttempts) {
             try {
-                val response = api.getEmailStatus("Bearer $token", taskId)
+                val response = api.getEmailStatus(token, taskId)
                 if (response.status && response.data != null) {
                     val status = response.data.status
                     when (status) {

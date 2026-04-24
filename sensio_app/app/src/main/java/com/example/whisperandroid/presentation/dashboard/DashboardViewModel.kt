@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.repository.LoginRepositoryImpl
 import com.example.whisperandroid.domain.repository.TerminalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,6 @@ data class DashboardUiState(
     val isSavingAiEngineProfile: Boolean = false,
     val isMicrophoneActive: Boolean = false,
     val error: String? = null,
-    val shouldRedirectToRegister: Boolean = false,
     val legacyMigrationWarning: String? = null
 )
 
@@ -47,10 +47,60 @@ class DashboardViewModel(
     )
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private val loginRepository: LoginRepositoryImpl by lazy {
+        LoginRepositoryImpl(
+            NetworkModule.commonApi,
+            NetworkModule.appContext,
+            NetworkModule.tokenManager
+        )
+    }
+
+    private var isAuthCheckInProgress = false
+
     init {
         observeBackgroundMode()
         observeTuyaSyncReady()
         loadCurrentAiEngineProfile()
+        checkLoginStatus()
+    }
+
+    fun checkLoginStatus() {
+        if (isAuthCheckInProgress) return
+        isAuthCheckInProgress = true
+
+        viewModelScope.launch {
+            val result = loginRepository.login()
+            result.onSuccess { state ->
+                when (state) {
+                    is LoginRepositoryImpl.AuthState.Authenticated -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoadingAuth = false,
+                            error = null
+                        )
+                    }
+                    is LoginRepositoryImpl.AuthState.NotRegistered,
+                    is LoginRepositoryImpl.AuthState.Unauthorized -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoadingAuth = false,
+                            error = "Authentication required. Please register your device."
+                        )
+                    }
+                    is LoginRepositoryImpl.AuthState.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoadingAuth = false,
+                            error = state.message
+                        )
+                    }
+                }
+                isAuthCheckInProgress = false
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoadingAuth = false,
+                    error = e.message ?: "Auth check failed"
+                )
+                isAuthCheckInProgress = false
+            }
+        }
     }
 
     private fun observeTuyaSyncReady() {
@@ -110,8 +160,7 @@ class DashboardViewModel(
                 _uiState.update {
                     it.copy(
                         isSavingAiEngineProfile = false,
-                        error = "Terminal ID not found",
-                        shouldRedirectToRegister = true
+                        error = "Terminal ID not found. Please register your device."
                     )
                 }
                 return@launch
@@ -133,8 +182,7 @@ class DashboardViewModel(
 
                 _uiState.value = _uiState.value.copy(
                     isSavingAiEngineProfile = false,
-                    error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg,
-                    shouldRedirectToRegister = isNotFound
+                    error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg
                 )
             }
         }

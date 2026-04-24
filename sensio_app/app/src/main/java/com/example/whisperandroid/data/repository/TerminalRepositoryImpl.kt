@@ -123,7 +123,7 @@ class TerminalRepositoryImpl(
     override suspend fun fetchMqttPassword(username: String): Result<String> =
         try {
             val response = api.getMqttCredentials(
-                "Bearer ${tokenManager.getAccessToken()}",
+                tokenManager.getAccessToken() ?: "",
                 username
             )
             if (response.status && response.data != null) {
@@ -141,7 +141,7 @@ class TerminalRepositoryImpl(
         try {
             val request = UpdateAiEngineProfileRequestDto(profile = profile)
             val response = api.updateAiEngineProfile(
-                "Bearer ${tokenManager.getAccessToken()}",
+                tokenManager.getAccessToken() ?: "",
                 terminalId,
                 request
             )
@@ -161,7 +161,7 @@ class TerminalRepositoryImpl(
         try {
             val request = UpdateTerminalRequestDto(aiProvider = aiProvider)
             val response = api.updateTerminal(
-                "Bearer ${tokenManager.getAccessToken()}",
+                tokenManager.getAccessToken() ?: "",
                 terminalId,
                 request
             )

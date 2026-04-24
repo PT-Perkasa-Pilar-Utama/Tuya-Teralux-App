@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -257,24 +258,19 @@ fun DashboardScreen(
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
-    // Handle redirect to register when terminal not found
-    androidx.compose.runtime.LaunchedEffect(uiState.shouldRedirectToRegister) {
-        if (uiState.shouldRedirectToRegister) {
-            onNavigateToRegister()
-        }
-    }
-
-    androidx.compose.runtime.LaunchedEffect(uiState.isBackgroundModeEnabled) {
+    LaunchedEffect(uiState.isBackgroundModeEnabled) {
         if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled) {
             val currentMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                 context,
                 android.Manifest.permission.RECORD_AUDIO
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             if (!currentMicPermission) {
-                snackbarHostState.showSnackbar(
-                    message = "Background Assistant turned off because microphone permission is disabled.",
-                    duration = androidx.compose.material3.SnackbarDuration.Long
-                )
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Background Assistant turned off because microphone permission is disabled.",
+                        duration = androidx.compose.material3.SnackbarDuration.Long
+                    )
+                }
             }
         }
         wasBackgroundModeEnabled = uiState.isBackgroundModeEnabled
@@ -308,7 +304,24 @@ fun DashboardScreen(
                     )
             )
 
-            if (uiState.error != null) {
+            if (uiState.isLoadingAuth) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Checking authentication...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            } else if (uiState.error != null) {
                 // Show error state (e.g., Terminal not found)
                 uiState.error?.let { errorMessage ->
                     Box(

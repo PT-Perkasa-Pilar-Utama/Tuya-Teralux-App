@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -61,14 +62,27 @@ object NetworkModule {
     }
 
     // Shared client for general API calls
+    private val authInterceptor = Interceptor { chain ->
+        val originalRequest = chain.request()
+        val token = tokenManager?.getAccessToken()
+        if (!token.isNullOrEmpty()) {
+            val newRequest = originalRequest.newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+            return@Interceptor chain.proceed(newRequest)
+        }
+        chain.proceed(originalRequest)
+    }
+
     private val client by lazy {
         val logging =
             HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BASIC
             }
         OkHttpClient.Builder()
-            .cookieJar(cookieJar)
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
+            .cookieJar(cookieJar)
             .connectTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
@@ -85,6 +99,7 @@ object NetworkModule {
                 level = HttpLoggingInterceptor.Level.BASIC
             }
         OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
@@ -214,7 +229,7 @@ object NetworkModule {
 
     val whisperRepository: com.example.whisperandroid.domain.repository.WhisperRepository by lazy {
         com.example.whisperandroid.data.repository
-            .WhisperRepositoryImpl(whisperApi)
+            .WhisperRepositoryImpl(whisperApi, tokenManager)
     }
 
     val ragRepository: com.example.whisperandroid.domain.repository.RagRepository by lazy {
@@ -227,7 +242,7 @@ object NetworkModule {
     }
 
     val pipelineRepository: PipelineRepository by lazy {
-        PipelineRepositoryImpl(pipelineApi)
+        PipelineRepositoryImpl(pipelineApi, tokenManager)
     }
 
     val uploadRepository: UploadRepository by lazy {

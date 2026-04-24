@@ -17,6 +17,20 @@ class TokenManager(
         private const val KEY_TERMINAL_ID = "terminal_id"
         private const val KEY_TUYA_UID = "tuya_uid"
         private const val KEY_MAC_ADDRESS = "mac_address"
+        private const val KEY_TOKEN_EXPIRES_AT = "token_expires_at"
+    }
+
+    fun saveTokenWithExpiry(token: String, expiresAtMillis: Long) {
+        prefs.edit {
+            putString(KEY_ACCESS_TOKEN, token)
+            putLong(KEY_TOKEN_EXPIRES_AT, expiresAtMillis)
+        }
+    }
+
+    fun isTokenExpired(): Boolean {
+        val token = getAccessToken() ?: return true
+        val expiresAt = prefs.getLong(KEY_TOKEN_EXPIRES_AT, 0L)
+        return expiresAt == 0L || System.currentTimeMillis() >= expiresAt
     }
 
     fun saveAccessToken(token: String) {

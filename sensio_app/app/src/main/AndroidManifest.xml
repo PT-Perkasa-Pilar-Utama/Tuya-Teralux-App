@@ -39,7 +39,7 @@
         <activity
             android:name="com.example.whisperandroid.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Splash">
+            android:theme="@style/Theme.Sensio">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

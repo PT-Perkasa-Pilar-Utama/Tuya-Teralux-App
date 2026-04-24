@@ -18,13 +18,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.whisperandroid.navigation.AuthChecker
 import androidx.navigation.compose.rememberNavController
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.auth.AuthStateManager
 import com.example.whisperandroid.navigation.AppRoutes
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
-import com.example.whisperandroid.presentation.splash.SplashScreen
-import com.example.whisperandroid.presentation.splash.SplashViewModel
+
 import com.example.whisperandroid.ui.theme.SensioTheme
 import com.example.whisperandroid.utils.FeatureAvailabilityGuard
 
@@ -95,22 +96,13 @@ fun MainScreen() {
     }
 
     // App Navigation & Overlay
-    val startDestination = AppRoutes.Splash.route
+    val startDestination = AuthChecker.getStartDestination()
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = startDestination
         ) {
-            composable(AppRoutes.Splash.route) {
-                val viewModel: SplashViewModel = viewModel()
-                SplashScreen(
-                    viewModel = viewModel,
-                    onRetry = { viewModel.retry() },
-                    navController = navController
-                )
-            }
-
             composable(AppRoutes.Register.route) {
                 RegisterScreen(onNavigateToDashboard = {
                     navController.navigate(AppRoutes.Dashboard.route) {

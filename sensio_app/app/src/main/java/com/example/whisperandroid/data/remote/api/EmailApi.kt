@@ -12,10 +12,10 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface EmailApi {
-    @POST("/api/mail/send/mac/{macAddress}")
+    @POST("/api/mail/send/mac/{mac_address}")
     suspend fun sendEmailByMac(
         @Header("Authorization") token: String,
-        @Path("macAddress") macAddress: String,
+        @Path("mac_address") mac_address: String,
         @Body request: SendEmailByMacRequestDto
     ): StandardResponseDto<MailTaskResponseDto>
 
@@ -25,9 +25,9 @@ interface EmailApi {
         @Body request: SendEmailRequestDto
     ): StandardResponseDto<MailTaskResponseDto>
 
-    @GET("/api/mail/status/{taskId}")
+    @GET("/api/mail/status/{task_id}")
     suspend fun getEmailStatus(
         @Header("Authorization") token: String,
-        @Path("taskId") taskId: String
+        @Path("task_id") task_id: String
     ): StandardResponseDto<MailStatusDto>
 }
