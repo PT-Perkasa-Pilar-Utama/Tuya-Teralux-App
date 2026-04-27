@@ -3,6 +3,7 @@ package usecases
 import (
 	"encoding/json"
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 	"sensio/domain/terminal/device/dtos"
 	"sensio/domain/terminal/device/entities"
@@ -10,36 +11,25 @@ import (
 	device_status_entities "sensio/domain/terminal/device_status/entities"
 	device_status_repositories "sensio/domain/terminal/device_status/repositories"
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
-	tuya_dtos "sensio/domain/tuya/dtos"
 
 	"gorm.io/gorm"
 )
-
-// TuyaAuthUseCaseInterface defines the interface for Tuya authentication
-type TuyaAuthUseCaseInterface interface {
-	Authenticate() (*tuya_dtos.TuyaAuthResponseDTO, error)
-}
-
-// TuyaGetDeviceByIDUseCaseInterface defines the interface for getting a device by ID from Tuya
-type TuyaGetDeviceByIDUseCaseInterface interface {
-	GetDeviceByID(accessToken, deviceID, remoteID string) (*tuya_dtos.TuyaDeviceDTO, error)
-}
 
 // CreateDeviceUseCase handles the business logic for creating a new device
 type CreateDeviceUseCase struct {
 	repository       device_repositories.IDeviceRepository
 	statusRepository device_status_repositories.IDeviceStatusRepository
 	terminalRepo     terminal_repositories.ITerminalRepository
-	tuyaAuthUC       TuyaAuthUseCaseInterface
-	tuyaGetDeviceUC  TuyaGetDeviceByIDUseCaseInterface
+	tuyaAuthUC       interfaces.AuthUseCase
+	tuyaGetDeviceUC  interfaces.DeviceByIDUseCase
 }
 
 // NewCreateDeviceUseCase creates a new instance of CreateDeviceUseCase
 func NewCreateDeviceUseCase(
 	repository device_repositories.IDeviceRepository,
 	statusRepository device_status_repositories.IDeviceStatusRepository,
-	tuyaAuthUC TuyaAuthUseCaseInterface,
-	tuyaGetDeviceUC TuyaGetDeviceByIDUseCaseInterface,
+	tuyaAuthUC interfaces.AuthUseCase,
+	tuyaGetDeviceUC interfaces.DeviceByIDUseCase,
 	terminalRepo terminal_repositories.ITerminalRepository,
 ) *CreateDeviceUseCase {
 	return &CreateDeviceUseCase{

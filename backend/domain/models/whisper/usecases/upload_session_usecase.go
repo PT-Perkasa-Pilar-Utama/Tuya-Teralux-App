@@ -138,7 +138,7 @@ func (u *uploadSessionUseCase) CreateSession(req dtos.CreateUploadSessionRequest
 		TotalChunks:    meta.TotalChunks,
 		ChunkSizeBytes: meta.ChunkSizeBytes,
 		TotalSizeBytes: meta.TotalSizeBytes,
-		ExpiresAt:      meta.ExpiresAt,
+		ExpiresAt:      meta.ExpiresAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -173,7 +173,7 @@ func (u *uploadSessionUseCase) UploadChunk(sessionID string, chunkIndex int, own
 	if err != nil {
 		return nil, fmt.Errorf("failed to create chunk file: %v", err)
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	// Log upload start with metadata for observability
 	utils.LogInfo("UploadChunk: starting chunk %d for session %s (expected size: %d bytes)", chunkIndex, sessionID, func() int64 {
@@ -280,7 +280,7 @@ func (u *uploadSessionUseCase) GetSessionStatus(sessionID string, ownerUID strin
 		TotalSizeBytes: meta.TotalSizeBytes,
 		ReceivedBytes:  u.calculateReceivedBytes(meta),
 		MissingRanges:  missing,
-		ExpiresAt:      meta.ExpiresAt,
+		ExpiresAt:      meta.ExpiresAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -325,7 +325,7 @@ func (u *uploadSessionUseCase) FinalizeSession(sessionID string, ownerUID string
 	if err != nil {
 		return nil, fmt.Errorf("failed to create merged file: %v", err)
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	// Track bytes copied for merged file validation
 	var totalCopied int64
@@ -337,7 +337,7 @@ func (u *uploadSessionUseCase) FinalizeSession(sessionID string, ownerUID string
 			return nil, fmt.Errorf("failed to open chunk %d: %v", i, err)
 		}
 		copied, err := io.Copy(out, chunkFile)
-		chunkFile.Close()
+		_ = chunkFile.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to merge chunk %d: %v", i, err)
 		}
@@ -452,6 +452,8 @@ func (u *uploadSessionUseCase) validateSessionIntegrity(meta *sessionMetadata) e
 }
 
 // invalidateCorruptSession marks a session as corrupt and cleans up its resources
+//
+//nolint:unparam
 func (u *uploadSessionUseCase) invalidateCorruptSession(meta *sessionMetadata) error {
 	// Set session state to aborted
 	meta.State = "aborted"

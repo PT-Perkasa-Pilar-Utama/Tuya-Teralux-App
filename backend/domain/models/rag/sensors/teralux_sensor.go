@@ -2,16 +2,16 @@ package sensors
 
 import (
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/models/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strconv"
 	"strings"
 )
 
 type DeviceSensor interface {
 	CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool
-	ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error)
+	ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, tuyaExecutor interfaces.DeviceControlExecutor) (*dtos.ControlResultDTO, error)
 }
 
 type TerminalSensor struct{}
@@ -25,7 +25,7 @@ func (s *TerminalSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
 	return device.Category == "dgnzk"
 }
 
-func (s *TerminalSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
+func (s *TerminalSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor interfaces.DeviceControlExecutor) (*dtos.ControlResultDTO, error) {
 	promptLower := strings.ToLower(prompt)
 
 	// Check what to control

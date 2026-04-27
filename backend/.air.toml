@@ -9,7 +9,7 @@ tmp_dir = ".air"
   # Just plain old go build command. You can use dynamic variables with $variableName.
   # Pre-command: Generate OpenAPI docs before building (only if tools exist)
   pre_cmd = [
-    "test -f bin/openapi_convert && test -f docs/swagger/swagger.json && bash scripts/generate_openapi.sh || echo '⚠️  Skipping OpenAPI generation (run make openapi-tools first)'"
+    "(test -f bin/openapi_convert && test -f docs/swagger/swagger.json && bash ../scripts/backend/generate_openapi.sh) || (echo '📦 Installing OpenAPI tools...' && make openapi-tools && bash ../scripts/backend/generate_openapi.sh)"
   ]
   cmd = "rm -f ./.air/main && CGO_CFLAGS='-w' go build -o ./.air/main ."
   # Binary file yields from `cmd`.

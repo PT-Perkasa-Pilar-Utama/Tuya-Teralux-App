@@ -28,6 +28,7 @@ type StorageProvider interface {
 	Get(ctx context.Context, key string) ([]byte, error)
 	Delete(ctx context.Context, key string) error
 	PresignPut(ctx context.Context, key string, contentType string, ttlSeconds int64) (string, error)
+	Head(ctx context.Context, key string) error
 }
 
 type s3StorageProvider struct {
@@ -197,6 +198,23 @@ func (s *s3StorageProvider) PresignPut(ctx context.Context, key string, contentT
 	return presigned.URL, nil
 }
 
+func (s *s3StorageProvider) Head(ctx context.Context, key string) error {
+	s3Key := s.objectKey(key)
+	if s3Key == "" {
+		return fmt.Errorf("head object: key is required")
+	}
+
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(s3Key),
+	})
+	if err != nil {
+		return fmt.Errorf("head object %s: %w", s3Key, err)
+	}
+
+	return nil
+}
+
 func (l *localStorageProvider) Put(_ context.Context, key string, data []byte, _ string) error {
 	if len(data) == 0 {
 		return fmt.Errorf("put object: empty payload")
@@ -247,6 +265,22 @@ func (l *localStorageProvider) Delete(_ context.Context, key string) error {
 
 func (l *localStorageProvider) PresignPut(_ context.Context, _ string, _ string, _ int64) (string, error) {
 	return "", fmt.Errorf("presign put not supported for local storage")
+}
+
+func (l *localStorageProvider) Head(_ context.Context, key string) error {
+	localPath, err := l.resolveLocalPath(key)
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(localPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("head object %s: not found", localPath)
+		}
+		return fmt.Errorf("head object %s: %w", localPath, err)
+	}
+
+	return nil
 }
 
 func (s *s3StorageProvider) objectKey(key string) string {

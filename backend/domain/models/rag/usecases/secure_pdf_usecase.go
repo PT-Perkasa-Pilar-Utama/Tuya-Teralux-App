@@ -36,7 +36,7 @@ func (uc *securePDFUseCase) ProtectAndStore(ctx context.Context, pdfPath string)
 	}
 
 	tmpProtectedPath := filepath.Join(os.TempDir(), fmt.Sprintf("protected_%s.pdf", uuid.New().String()))
-	defer os.Remove(tmpProtectedPath)
+	defer func() { _ = os.Remove(tmpProtectedPath) }()
 
 	protector := crypto.NewPDFProtector()
 	if err := protector.Protect(pdfPath, tmpProtectedPath, password); err != nil {

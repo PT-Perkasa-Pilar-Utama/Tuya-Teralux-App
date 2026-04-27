@@ -15,15 +15,6 @@ type UpdateDeviceController struct {
 	useCase *usecases.UpdateDeviceUseCase
 }
 
-// Force Swaggo to detect DTOs
-var _ = terminal_dtos.UpdateDeviceRequestDTO{}
-
-// _swaggoForceDetectDTOs is a dummy function to force Swaggo to detect DTOs
-// @Description This function is only for Swaggo documentation generation
-func _swaggoForceDetectDTOs() terminal_dtos.UpdateDeviceRequestDTO {
-	return terminal_dtos.UpdateDeviceRequestDTO{}
-}
-
 // NewUpdateDeviceController creates a new UpdateDeviceController instance
 func NewUpdateDeviceController(useCase *usecases.UpdateDeviceUseCase) *UpdateDeviceController {
 	return &UpdateDeviceController{

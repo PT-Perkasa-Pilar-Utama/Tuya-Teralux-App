@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -15,15 +16,17 @@ import (
 
 	"sensio/domain/common"
 	"sensio/domain/common/controllers"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/middlewares"
 	"sensio/domain/common/utils"
+	"sensio/domain/download_token"
 	"sensio/domain/infrastructure"
 	"sensio/domain/mail"
 	"sensio/domain/models"
-	notification_entities "sensio/domain/notification/entities"
 	"sensio/domain/notification"
+	notification_entities "sensio/domain/notification/entities"
 	notification_services "sensio/domain/notification/services"
-	"sensio/domain/recordings"
+	recordings "sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
 	"sensio/domain/scene"
 	scene_entities "sensio/domain/scene/entities"
@@ -35,6 +38,120 @@ import (
 	terminal_repositories "sensio/domain/terminal/terminal/repositories"
 	"sensio/domain/tuya"
 )
+
+type terminalRepoAdapter struct {
+	repo *terminal_repositories.TerminalRepository
+}
+
+func (a *terminalRepoAdapter) toEntity(t *interfaces.Terminal) *terminal_entities.Terminal {
+	var aiProvider, aiEngineProfile *string
+	if t.AiProvider != "" {
+		s := t.AiProvider
+		aiProvider = &s
+	}
+	if t.AiEngineProfile != "" {
+		s := t.AiEngineProfile
+		aiEngineProfile = &s
+	}
+	deviceTypeID := t.DeviceTypeID
+	return &terminal_entities.Terminal{
+		ID:              t.ID,
+		MacAddress:      t.MacAddress,
+		RoomID:          t.RoomID,
+		TuyaUID:         t.TuyaUID,
+		Name:            t.Name,
+		DeviceTypeID:    fmt.Sprintf("%d", deviceTypeID),
+		AiProvider:      aiProvider,
+		AiEngineProfile: aiEngineProfile,
+	}
+}
+
+func (a *terminalRepoAdapter) fromEntity(t *terminal_entities.Terminal) interfaces.Terminal {
+	var aiProvider, aiEngineProfile string
+	if t.AiProvider != nil {
+		aiProvider = *t.AiProvider
+	}
+	if t.AiEngineProfile != nil {
+		aiEngineProfile = *t.AiEngineProfile
+	}
+	deviceTypeID, _ := strconv.Atoi(t.DeviceTypeID)
+	return interfaces.Terminal{
+		ID:              t.ID,
+		MacAddress:      t.MacAddress,
+		RoomID:          t.RoomID,
+		TuyaUID:         t.TuyaUID,
+		Name:            t.Name,
+		DeviceTypeID:    deviceTypeID,
+		AiProvider:      aiProvider,
+		AiEngineProfile: aiEngineProfile,
+	}
+}
+
+func (a *terminalRepoAdapter) Create(ctx context.Context, terminal *interfaces.Terminal) error {
+	return a.repo.Create(a.toEntity(terminal))
+}
+
+func (a *terminalRepoAdapter) GetAll(ctx context.Context) ([]interfaces.Terminal, error) {
+	terms, err := a.repo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	result := make([]interfaces.Terminal, len(terms))
+	for i, t := range terms {
+		result[i] = a.fromEntity(&t)
+	}
+	return result, nil
+}
+
+func (a *terminalRepoAdapter) GetAllPaginated(ctx context.Context, offset, limit int, roomID *string) ([]interfaces.Terminal, int64, error) {
+	terms, total, err := a.repo.GetAllPaginated(offset, limit, roomID)
+	if err != nil {
+		return nil, 0, err
+	}
+	result := make([]interfaces.Terminal, len(terms))
+	for i, t := range terms {
+		result[i] = a.fromEntity(&t)
+	}
+	return result, total, nil
+}
+
+func (a *terminalRepoAdapter) GetByID(ctx context.Context, id string) (*interfaces.Terminal, error) {
+	t, err := a.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	v := a.fromEntity(t)
+	return &v, nil
+}
+
+func (a *terminalRepoAdapter) GetByMacAddress(ctx context.Context, macAddress string) (*interfaces.Terminal, error) {
+	t, err := a.repo.GetByMacAddress(macAddress)
+	if err != nil {
+		return nil, err
+	}
+	v := a.fromEntity(t)
+	return &v, nil
+}
+
+func (a *terminalRepoAdapter) GetByRoomID(ctx context.Context, roomID string) ([]interfaces.Terminal, error) {
+	terms, err := a.repo.GetByRoomID(roomID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]interfaces.Terminal, len(terms))
+	for i, t := range terms {
+		result[i] = a.fromEntity(&t)
+	}
+	return result, nil
+}
+
+func (a *terminalRepoAdapter) Update(ctx context.Context, terminal *interfaces.Terminal) error {
+	return a.repo.Update(a.toEntity(terminal))
+}
+
+func (a *terminalRepoAdapter) Delete(ctx context.Context, id string) error {
+	return a.repo.Delete(id)
+}
 
 // @title           Sensio API
 // @version         1.0
@@ -120,6 +237,7 @@ func run() error {
 		&device_status_entities.DeviceStatus{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
+		&recordings_entities.AudioUploadStatus{},
 		&notification_entities.ScheduledNotification{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate entities: %w", err)
@@ -153,9 +271,16 @@ func run() error {
 	deviceRepo := device_repositories.NewDeviceRepository(badgerService)
 	terminalRepo := terminal_repositories.NewTerminalRepository(badgerService)
 
+	terminalRepoAdapter := &terminalRepoAdapter{repo: terminalRepo}
+
 	// Initialize Modules
-	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService, terminalRepo, utils.GetConfig())
 	tuyaModule := tuya.NewTuyaModule(badgerService, vectorService, deviceRepo, terminalRepo)
+
+	var downloadTokenCreator interfaces.DownloadTokenCreator
+	storageProvider, _ := infrastructure.NewStorageProvider(utils.GetConfig())
+	downloadTokenCreator = download_token.NewDownloadTokenService(storageProvider)
+
+	commonModule := common.NewCommonModule(badgerService, vectorService, mqttService, terminalRepoAdapter, utils.GetConfig(), tuyaModule.AuthUseCase, downloadTokenCreator)
 	mailModule := mail.NewMailModule(utils.GetConfig(), badgerService)
 
 	notificationModule := notification.NewNotificationModule(badgerService, mqttService, terminalRepo)
@@ -185,8 +310,11 @@ func run() error {
 	notificationModule.RegisterRoutes(protected)
 
 	// 4. Recordings Module
-	recordingsModule := recordings.NewRecordingsModule(badgerService)
+	recordingsModule := recordings.NewRecordingsModule(badgerService, commonModule.StorageProvider)
 	recordingsModule.RegisterRoutes(router, protected)
+
+	download_tokenModule := download_token.NewDownloadTokenModule(commonModule.StorageProvider)
+	download_tokenModule.RegisterRoutes(protected)
 
 	// 5. Speech & RAG Modules (migrated from stt-service)
 	scfg := utils.GetConfig()
@@ -236,7 +364,6 @@ func run() error {
 	}
 
 	// 5. Models Module (Consolidated Whisper, RAG, and Pipeline)
-	// This replaces the direct Go RAG and Speech routes
 	models.InitModule(
 		protected,
 		scfg,
@@ -245,9 +372,10 @@ func run() error {
 		tuyaModule.AuthUseCase,
 		tuyaModule.DeviceControlUseCase,
 		mqttService,
-		terminalRepo,
+		terminalRepoAdapter,
 		recordingsModule.SaveRecordingUseCase,
 		commonModule.StorageProvider,
+		downloadTokenCreator,
 	)
 
 	// 6. Scene Module
@@ -285,7 +413,9 @@ func run() error {
 		notificationWorker.Stop()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		server.Shutdown(ctx)
+		if err := server.Shutdown(ctx); err != nil {
+			utils.LogError("server shutdown error: %v", err)
+		}
 	}()
 
 	utils.LogInfo("Server starting on :%s", port)

@@ -120,6 +120,17 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
         }
     }
 
+    // Show loading while checking registration status
+    if (uiState.isCheckingRegistration) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+        return
+    }
+
     // Enhanced background gradient with subtle radial design
     val bgGradient =
         Brush.radialGradient(

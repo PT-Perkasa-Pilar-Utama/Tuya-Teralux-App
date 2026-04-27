@@ -128,6 +128,7 @@ class MeetingForegroundService : Service() {
                 }
 
                 NetworkModule.processMeetingUseCase(
+                    context = applicationContext,
                     audioFile = audioFile,
                     token = token,
                     targetLang = targetLang,

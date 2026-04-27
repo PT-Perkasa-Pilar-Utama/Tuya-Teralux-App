@@ -2,27 +2,22 @@ package usecases
 
 import (
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 	"sensio/domain/infrastructure"
 	"sensio/domain/scene/repositories"
-	tuya_dtos "sensio/domain/tuya/dtos"
+	tuyaDtos "sensio/domain/tuya/dtos"
 )
-
-// TuyaDeviceControlExecutor defines the interface for controlling Tuya devices
-type TuyaDeviceControlExecutor interface {
-	SendSwitchCommand(accessToken, deviceID string, commands []tuya_dtos.TuyaCommandDTO) (bool, error)
-	SendIRACCommand(accessToken, infraredID, remoteID string, params map[string]int) (bool, error)
-}
 
 type ControlSceneUseCase struct {
 	repo    *repositories.SceneRepository
-	tuyaCmd TuyaDeviceControlExecutor
+	tuyaCmd interfaces.DeviceControlExecutor
 	mqttSvc *infrastructure.MqttService
 }
 
 func NewControlSceneUseCase(
 	repo *repositories.SceneRepository,
-	tuyaCmd TuyaDeviceControlExecutor,
+	tuyaCmd interfaces.DeviceControlExecutor,
 	mqttSvc *infrastructure.MqttService,
 ) *ControlSceneUseCase {
 	return &ControlSceneUseCase{
@@ -65,11 +60,11 @@ func (u *ControlSceneUseCase) ControlScene(terminalID, id, accessToken string) e
 					errs = append(errs, err)
 				}
 			} else {
-				cmd := tuya_dtos.TuyaCommandDTO{
+				cmd := tuyaDtos.TuyaCommandDTO{
 					Code:  action.Code,
 					Value: action.Value,
 				}
-				_, err := u.tuyaCmd.SendSwitchCommand(accessToken, action.DeviceID, []tuya_dtos.TuyaCommandDTO{cmd})
+				_, err := u.tuyaCmd.SendSwitchCommand(accessToken, action.DeviceID, []tuyaDtos.TuyaCommandDTO{cmd})
 				if err != nil {
 					utils.LogError("Scene %s: Failed to send command to %s: %v", id, action.DeviceID, err)
 					errs = append(errs, err)

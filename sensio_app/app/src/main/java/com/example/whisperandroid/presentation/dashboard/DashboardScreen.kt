@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.SmartToy
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -38,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,9 +56,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
-import com.example.whisperandroid.util.DeviceUtils
+import com.example.whisperandroid.utils.DeviceUtils
 import kotlinx.coroutines.launch
 
 /**
@@ -198,20 +198,19 @@ fun DashboardScreen(
     onNavigateToUpload: () -> Unit,
     onNavigateToStreaming: () -> Unit,
     onNavigateToEdge: () -> Unit,
-    bootstrapViewModel: com.example.whisperandroid.presentation.bootstrap.AppBootstrapViewModel,
+    onNavigateToAuth: () -> Unit,
     viewModel: DashboardViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel {
             DashboardViewModel(
-                NetworkModule.authenticateUseCase,
                 NetworkModule.getTuyaDevicesUseCase,
                 NetworkModule.backgroundAssistantModeStore,
                 NetworkModule.terminalRepository,
-                NetworkModule.tokenManager
+                NetworkModule.tokenManager,
+                onNavigateToAuth = onNavigateToAuth
             )
         }
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val bootstrapState by bootstrapViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -261,24 +260,19 @@ fun DashboardScreen(
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
-    // Handle redirect to register when terminal not found
-    androidx.compose.runtime.LaunchedEffect(uiState.shouldRedirectToRegister) {
-        if (uiState.shouldRedirectToRegister) {
-            onNavigateToRegister()
-        }
-    }
-
-    androidx.compose.runtime.LaunchedEffect(uiState.isBackgroundModeEnabled) {
+    LaunchedEffect(uiState.isBackgroundModeEnabled) {
         if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled) {
             val currentMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                 context,
                 android.Manifest.permission.RECORD_AUDIO
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             if (!currentMicPermission) {
-                snackbarHostState.showSnackbar(
-                    message = "Background Assistant turned off because microphone permission is disabled.",
-                    duration = androidx.compose.material3.SnackbarDuration.Long
-                )
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Background Assistant turned off because microphone permission is disabled.",
+                        duration = androidx.compose.material3.SnackbarDuration.Long
+                    )
+                }
             }
         }
         wasBackgroundModeEnabled = uiState.isBackgroundModeEnabled
@@ -312,16 +306,18 @@ fun DashboardScreen(
                     )
             )
 
-            if (bootstrapState.isSyncing) {
+            if (uiState.isLoadingAuth) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "Syncing devices...",
+                            text = "Checking authentication...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
@@ -361,7 +357,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-            } else if (bootstrapState.isBootstrapped && uiState.isTuyaSyncReady) {
+            } else if (uiState.isTuyaSyncReady) {
                 // Centered content container - width is now controlled by each layout variant
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -404,29 +400,6 @@ fun DashboardScreen(
                             viewModel.updateAiEngineProfile(profile)
                         }
                     )
-                }
-            } else if (bootstrapState.error != null) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Text(
-                            bootstrapState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        androidx.compose.material3.Button(
-                            onClick = { bootstrapViewModel.bootstrap(forceRetry = true) }
-                        ) {
-                            Text("Retry")
-                        }
-                    }
                 }
             } else {
                 // Should not happen, but as a fallback

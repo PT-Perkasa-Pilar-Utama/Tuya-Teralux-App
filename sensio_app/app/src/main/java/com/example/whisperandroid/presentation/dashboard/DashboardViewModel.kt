@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.repository.LoginRepositoryImpl
 import com.example.whisperandroid.domain.repository.TerminalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,20 +28,21 @@ data class DashboardUiState(
     val isSavingAiEngineProfile: Boolean = false,
     val isMicrophoneActive: Boolean = false,
     val error: String? = null,
-    val shouldRedirectToRegister: Boolean = false,
     val legacyMigrationWarning: String? = null
 )
 
 class DashboardViewModel(
-    private val authenticateUseCase: com.example.whisperandroid.domain.usecase.AuthenticateUseCase,
     private val getTuyaDevicesUseCase:
         com.example.whisperandroid.domain.usecase.GetTuyaDevicesUseCase,
     private val backgroundAssistantModeStore:
         com.example.whisperandroid.data.local.BackgroundAssistantModeStore,
     private val terminalRepository: TerminalRepository,
     private val tokenManager: com.example.whisperandroid.data.local.TokenManager,
-    private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady
+    private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady,
+    private val onNavigateToAuth: () -> Unit = {}
 ) : ViewModel() {
+    private var renewalAttemptedThisSession = false
+
     private val _uiState = MutableStateFlow(
         DashboardUiState(
             isBackgroundModeEnabled = backgroundAssistantModeStore.isEnabled.value
@@ -48,10 +50,60 @@ class DashboardViewModel(
     )
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private val loginRepository: LoginRepositoryImpl by lazy {
+        LoginRepositoryImpl(
+            NetworkModule.commonApi,
+            NetworkModule.appContext,
+            NetworkModule.tokenManager
+        )
+    }
+
+    private var isAuthCheckInProgress = false
+
     init {
         observeBackgroundMode()
         observeTuyaSyncReady()
         loadCurrentAiEngineProfile()
+        checkLoginStatus()
+    }
+
+    fun checkLoginStatus() {
+        if (isAuthCheckInProgress) return
+        isAuthCheckInProgress = true
+
+        viewModelScope.launch {
+            val result = loginRepository.login()
+            result.onSuccess { state ->
+                when (state) {
+                    is LoginRepositoryImpl.AuthState.Authenticated -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoadingAuth = false,
+                            error = null
+                        )
+                    }
+                    is LoginRepositoryImpl.AuthState.NotRegistered,
+                    is LoginRepositoryImpl.AuthState.Unauthorized -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoadingAuth = false,
+                            error = "Authentication required. Please register your device."
+                        )
+                    }
+                    is LoginRepositoryImpl.AuthState.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoadingAuth = false,
+                            error = state.message
+                        )
+                    }
+                }
+                isAuthCheckInProgress = false
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoadingAuth = false,
+                    error = e.message ?: "Auth check failed"
+                )
+                isAuthCheckInProgress = false
+            }
+        }
     }
 
     private fun observeTuyaSyncReady() {
@@ -83,7 +135,9 @@ class DashboardViewModel(
             result.onSuccess { state ->
                 val warning = if (state?.source == "legacy_provider") {
                     "This terminal is still using a legacy AI provider setting. Choose Premium or Standard to migrate."
-                } else null
+                } else {
+                    null
+                }
 
                 _uiState.update {
                     it.copy(
@@ -109,8 +163,7 @@ class DashboardViewModel(
                 _uiState.update {
                     it.copy(
                         isSavingAiEngineProfile = false,
-                        error = "Terminal ID not found",
-                        shouldRedirectToRegister = true
+                        error = "Terminal ID not found. Please register your device."
                     )
                 }
                 return@launch
@@ -132,8 +185,7 @@ class DashboardViewModel(
 
                 _uiState.value = _uiState.value.copy(
                     isSavingAiEngineProfile = false,
-                    error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg,
-                    shouldRedirectToRegister = isNotFound
+                    error = if (isNotFound) "Terminal not found. Please register your device." else errorMsg
                 )
             }
         }
@@ -191,10 +243,33 @@ class DashboardViewModel(
                     "Devices synced with backend (Request complete)"
                 )
             }.onFailure { e ->
-                // Keep non-blocking behavior: UI can continue even when sync fails.
-                NetworkModule.setTuyaSyncReady(true)
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to sync devices")
-                android.util.Log.e("DashboardViewModel", "Failed to sync devices", e)
+                val errorMsg = e.message ?: ""
+                val is401 = errorMsg.contains("401") || errorMsg.contains("Unauthorized", ignoreCase = true)
+
+                if (is401 && !renewalAttemptedThisSession) {
+                    renewalAttemptedThisSession = true
+                    android.util.Log.w("DashboardViewModel", "Received 401, attempting token renewal")
+
+                    viewModelScope.launch {
+                        val renewed = com.example.whisperandroid.data.auth.AuthStateManager.renewTokenIfNeeded()
+                        if (renewed) {
+                            android.util.Log.w("DashboardViewModel", "Token renewed, retrying fetchDevices")
+                            fetchDevices(force = true)
+                        } else {
+                            android.util.Log.e("DashboardViewModel", "Token renewal failed, redirecting to auth")
+                            onNavigateToAuth()
+                        }
+                    }
+                } else if (is401) {
+                    // Already attempted renewal this session, just redirect
+                    android.util.Log.w("DashboardViewModel", "401 after renewal attempt, redirecting to auth")
+                    onNavigateToAuth()
+                } else {
+                    // Keep non-blocking behavior: UI can continue even when sync fails.
+                    NetworkModule.setTuyaSyncReady(true)
+                    _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to sync devices")
+                    android.util.Log.e("DashboardViewModel", "Failed to sync devices", e)
+                }
             }
         }
     }

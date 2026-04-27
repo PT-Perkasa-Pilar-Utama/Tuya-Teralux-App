@@ -5,6 +5,7 @@ import (
 	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/terminal/device_status/dtos"
 	device_status_repositories "sensio/domain/terminal/device_status/repositories"
+	"time"
 )
 
 // GetDeviceStatusByCodeUseCase handles retrieving a single device status by code
@@ -46,8 +47,8 @@ func (uc *GetDeviceStatusByCodeUseCase) GetDeviceStatusByCode(deviceID string, c
 			DeviceID:  status.DeviceID,
 			Code:      status.Code,
 			Value:     status.Value,
-			CreatedAt: status.CreatedAt,
-			UpdatedAt: status.UpdatedAt,
+			CreatedAt: status.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: status.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }

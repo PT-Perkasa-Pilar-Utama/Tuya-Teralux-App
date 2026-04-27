@@ -1,7 +1,5 @@
 package dtos
 
-import "time"
-
 // NotificationPublishRequest represents the request to publish a notification to a room
 // Requires room_id; phone_numbers optional. Optional scheduled_at (ISO 8601) and template (start_meeting or end_meeting).
 // If PhoneNumbers is provided and device info is available, WhatsApp notifications will be scheduled.
@@ -14,11 +12,11 @@ type NotificationPublishRequest struct {
 
 // NotificationPublishResponse represents the response after publishing notifications
 type NotificationPublishResponse struct {
-	RoomID           string    `json:"room_id" example:"123"`
-	PublishAt        time.Time `json:"publish_at" example:"2026-03-17T13:45:00+07:00"`
-	PublishedCount   int       `json:"published_count" example:"2"`
-	PublishedTopics  []string  `json:"published_topics" example:"[\"users/AA:BB:CC:DD:EE:FF/dev/notification\"]"`
-	WANotificationID string    `json:"wa_notification_id,omitempty" example:"uuid-here"`
+	RoomID           string   `json:"room_id" example:"123"`
+	PublishAt        string   `json:"publish_at" example:"2026-03-17T13:45:00+07:00"`
+	PublishedCount   int      `json:"published_count" example:"2"`
+	PublishedTopics  []string `json:"published_topics" example:"[\"users/AA:BB:CC:DD:EE:FF/dev/notification\"]"`
+	WANotificationID string   `json:"wa_notification_id,omitempty" example:"uuid-here"`
 }
 
 // NotificationMQTTPayload represents the JSON payload sent via MQTT

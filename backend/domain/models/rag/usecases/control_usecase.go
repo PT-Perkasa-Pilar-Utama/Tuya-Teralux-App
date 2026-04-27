@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/common/utils"
 	"sensio/domain/infrastructure"
 	"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/skills"
 	speechUsecases "sensio/domain/speech/usecases"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strings"
 	"time"
 )
@@ -24,13 +24,13 @@ type controlUseCase struct {
 	config           *utils.Config
 	vector           *infrastructure.VectorService
 	badger           *infrastructure.BadgerService
-	tuyaExecutor     tuyaUsecases.TuyaDeviceControlExecutor
-	tuyaAuth         tuyaUsecases.TuyaAuthUseCase
+	tuyaExecutor     interfaces.DeviceControlExecutor
+	tuyaAuth         interfaces.AuthUseCase
 	skill            skills.Skill
 	providerResolver speechUsecases.ProviderResolver
 }
 
-func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor tuyaUsecases.TuyaDeviceControlExecutor, tuyaAuth tuyaUsecases.TuyaAuthUseCase, skill skills.Skill, providerResolver speechUsecases.ProviderResolver) ControlUseCase {
+func NewControlUseCase(llm skills.LLMClient, fallbackLLM skills.LLMClient, cfg *utils.Config, vector *infrastructure.VectorService, badger *infrastructure.BadgerService, tuyaExecutor interfaces.DeviceControlExecutor, tuyaAuth interfaces.AuthUseCase, skill skills.Skill, providerResolver speechUsecases.ProviderResolver) ControlUseCase {
 	return &controlUseCase{
 		llm:              llm,
 		fallbackLLM:      fallbackLLM,
@@ -122,7 +122,7 @@ func (u *controlUseCase) ProcessControl(ctx context.Context, uid, terminalID, pr
 }
 
 // executeSkillWithFallback executes the skill with health-aware remote provider fallback
-func (u *controlUseCase) executeSkillWithFallback(ctx context.Context, skillCtx *skills.SkillContext) (*skills.SkillResult, error) {
+func (u *controlUseCase) executeSkillWithFallback(_ context.Context, skillCtx *skills.SkillContext) (*skills.SkillResult, error) {
 	var result *skills.SkillResult
 	var err error
 

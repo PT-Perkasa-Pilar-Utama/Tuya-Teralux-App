@@ -1,5 +1,6 @@
 package com.example.whisperandroid.data.di
 
+import com.example.whisperandroid.data.remote.api.CommonApi
 import com.example.whisperandroid.data.remote.api.PipelineApi
 import com.example.whisperandroid.data.remote.api.TerminalApi
 import com.example.whisperandroid.data.repository.PipelineRepositoryImpl
@@ -19,6 +20,10 @@ import com.example.whisperandroid.domain.usecase.TranscribeAudioUseCase
 import com.example.whisperandroid.domain.usecase.TranslateTextUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -30,17 +35,57 @@ object NetworkModule {
     private val BASE_HOSTNAME = com.example.whisperandroid.BuildConfig.BASE_HOSTNAME
     private val API_KEY = com.example.whisperandroid.BuildConfig.SENSIO_API_KEY
 
+    private val cookieJar by lazy {
+        object : CookieJar {
+            private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+
+            override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                val host = url.host
+                val existing = cookieStore[host] ?: mutableListOf()
+                cookies.forEach { cookie ->
+                    existing.removeAll { it.name == cookie.name && it.domain == cookie.domain }
+                    existing.add(cookie)
+                }
+                cookieStore[host] = existing
+            }
+
+            override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                return cookieStore[url.host]?.filter { cookie ->
+                    val matcher = okhttp3.Cookie.Builder()
+                        .name(cookie.name)
+                        .domain(cookie.domain)
+                        .build()
+                    matcher.matches(url)
+                } ?: emptyList()
+            }
+        }
+    }
+
     // Shared client for general API calls
+    private val authInterceptor = Interceptor { chain ->
+        val originalRequest = chain.request()
+        val token = tokenManager?.getAccessToken()
+        if (!token.isNullOrEmpty()) {
+            val newRequest = originalRequest.newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+            return@Interceptor chain.proceed(newRequest)
+        }
+        chain.proceed(originalRequest)
+    }
+
     private val client by lazy {
         val logging =
             HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BASIC
             }
         OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
+            .cookieJar(cookieJar)
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }
 
@@ -54,6 +99,7 @@ object NetworkModule {
                 level = HttpLoggingInterceptor.Level.BASIC
             }
         OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(5, java.util.concurrent.TimeUnit.MINUTES)
@@ -82,7 +128,7 @@ object NetworkModule {
     }
 
     lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
-    lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
+    lateinit var mqttHelper: com.example.whisperandroid.utils.MqttHelper
     lateinit var backgroundAssistantModeStore: com.example.whisperandroid.data.local.BackgroundAssistantModeStore
 
     // Meeting reminder components
@@ -109,7 +155,7 @@ object NetworkModule {
         tokenManager =
             com.example.whisperandroid.data.local
                 .TokenManager(appContext)
-        mqttHelper = com.example.whisperandroid.util.MqttHelper(appContext)
+        mqttHelper = com.example.whisperandroid.utils.MqttHelper(appContext)
         backgroundAssistantModeStore = com.example.whisperandroid.data.local.BackgroundAssistantModeStore(appContext)
 
         // Initialize meeting reminder components
@@ -140,6 +186,10 @@ object NetworkModule {
 
     private val api: TerminalApi by lazy {
         retrofit.create(TerminalApi::class.java)
+    }
+
+    val commonApi: CommonApi by lazy {
+        retrofit.create(CommonApi::class.java)
     }
 
     private val tuyaApi: com.example.whisperandroid.data.remote.api.TuyaApi by lazy {
@@ -179,7 +229,7 @@ object NetworkModule {
 
     val whisperRepository: com.example.whisperandroid.domain.repository.WhisperRepository by lazy {
         com.example.whisperandroid.data.repository
-            .WhisperRepositoryImpl(whisperApi)
+            .WhisperRepositoryImpl(whisperApi, tokenManager)
     }
 
     val ragRepository: com.example.whisperandroid.domain.repository.RagRepository by lazy {
@@ -192,7 +242,7 @@ object NetworkModule {
     }
 
     val pipelineRepository: PipelineRepository by lazy {
-        PipelineRepositoryImpl(pipelineApi)
+        PipelineRepositoryImpl(pipelineApi, tokenManager)
     }
 
     val uploadRepository: UploadRepository by lazy {
@@ -238,7 +288,9 @@ object NetworkModule {
             pipelineRepository,
             uploadRepository,
             mqttHelper,
-            prefs
+            prefs,
+            failedUploadStore,
+            signedUploadModeStore
         )
     }
 
@@ -264,5 +316,9 @@ object NetworkModule {
 
     val signedUploadModeStore: com.example.whisperandroid.data.local.SignedUploadModeStore by lazy {
         com.example.whisperandroid.data.local.SignedUploadModeStore(appContext)
+    }
+
+    val failedUploadStore: com.example.whisperandroid.data.local.FailedUploadStore by lazy {
+        com.example.whisperandroid.data.local.FailedUploadStore(appContext)
     }
 }

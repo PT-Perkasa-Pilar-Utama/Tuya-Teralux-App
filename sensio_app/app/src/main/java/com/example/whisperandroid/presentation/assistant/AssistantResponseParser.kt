@@ -1,7 +1,7 @@
 package com.example.whisperandroid.presentation.assistant
 
 import com.example.whisperandroid.data.remote.dto.RAGChatResponseDto
-import com.example.whisperandroid.util.parseMarkdownToText
+import com.example.whisperandroid.utils.parseMarkdownToText
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 

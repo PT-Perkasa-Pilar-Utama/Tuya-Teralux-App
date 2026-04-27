@@ -247,18 +247,14 @@ func (e *AssistantDecisionEngineImpl) validateDecision(decision *AssistantDecisi
 
 	// Validate control intent
 	if decision.Intent == "control" {
-		// Control requires either:
-		// 1. control_prompt (full command string), OR
-		// 2. operation + device_hints (structured command)
-		if decision.ControlPrompt != "" {
+		switch {
+		case decision.ControlPrompt != "":
 			// control_prompt is sufficient on its own
-		} else if decision.Operation != "" {
-			// operation requires device_hints to be valid
+		case decision.Operation != "":
 			if len(decision.DeviceHints) == 0 {
 				return fmt.Errorf("control intent with 'operation' requires 'device_hints'")
 			}
-		} else {
-			// Neither control_prompt nor operation provided
+		default:
 			return fmt.Errorf("control intent requires either 'operation' + 'device_hints' or 'control_prompt'")
 		}
 	}

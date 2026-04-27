@@ -14,8 +14,9 @@ import kotlinx.coroutines.launch
 
 data class RegisterUiState(
     val isLoading: Boolean = false,
+    val isCheckingRegistration: Boolean = true,
     val error: String? = null,
-    val message: String? = null, // Added message field
+    val message: String? = null,
     val isSuccess: Boolean = false
 )
 
@@ -27,7 +28,7 @@ class RegisterViewModel(
         com.example.whisperandroid.domain.usecase.GetTerminalByMacUseCase,
     private val authenticateUseCase: AuthenticateUseCase
 ) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow(RegisterUiState(isLoading = true)) // Start with loading
+    private val _uiState = MutableStateFlow(RegisterUiState(isLoading = true, isCheckingRegistration = true))
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
     init {
@@ -37,7 +38,7 @@ class RegisterViewModel(
     fun checkRegistration() {
         viewModelScope.launch {
             val deviceId =
-                com.example.whisperandroid.util.DeviceUtils
+                com.example.whisperandroid.utils.DeviceUtils
                     .getDeviceId(getApplication())
             _uiState.update { it.copy(isLoading = true, error = null) }
             val result = getTerminalByMacUseCase(deviceId)
@@ -45,23 +46,22 @@ class RegisterViewModel(
             result
                 .onSuccess { registration ->
                     if (registration != null) {
-                        // Registration exists, now try to authenticate
                         val authResult = authenticateUseCase()
                         authResult
                             .onSuccess {
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
+                                        isCheckingRegistration = false,
                                         isSuccess = true,
                                         message = "Logged in successfully. Redirecting..."
                                     )
                                 }
                             }.onFailure { e ->
-                                // Registration exists but auth failed.
-                                // DO NOT set isSuccess = true to avoid infinite loop.
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
+                                        isCheckingRegistration = false,
                                         isSuccess = false,
                                         error =
                                         "Device registered but authentication failed: " +
@@ -71,13 +71,13 @@ class RegisterViewModel(
                                 }
                             }
                     } else {
-                        // Not registered, show form
-                        _uiState.update { it.copy(isLoading = false, isSuccess = false) }
+                        _uiState.update { it.copy(isLoading = false, isCheckingRegistration = false, isSuccess = false) }
                     }
                 }.onFailure { e ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            isCheckingRegistration = false,
                             error = "Failed to check registration: ${e.message}"
                         )
                     }
@@ -98,10 +98,10 @@ class RegisterViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val context = getApplication<Application>()
             val deviceId =
-                com.example.whisperandroid.util.DeviceUtils
+                com.example.whisperandroid.utils.DeviceUtils
                     .getDeviceId(context)
             val deviceTypeId =
-                com.example.whisperandroid.util.DeviceUtils
+                com.example.whisperandroid.utils.DeviceUtils
                     .getDeviceTypeId(context)
 
             val result = registerTerminalUseCase(name, roomId, deviceId, deviceTypeId)

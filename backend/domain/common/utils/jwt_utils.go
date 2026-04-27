@@ -49,6 +49,29 @@ func GenerateToken(uid string) (string, error) {
 	return tokenString, nil
 }
 
+// GenerateLoginToken generates a JWT token for Tuya login with the given access token and expiry.
+func GenerateLoginToken(uid string, tuyaAccessToken string, expiry time.Time) (string, error) {
+	config := GetConfig()
+	if config.JWTSecret == "" {
+		return "", errors.New("JWT_SECRET is not set in configuration")
+	}
+
+	claims := jwt.MapClaims{
+		"uid":          uid,
+		"access_token": tuyaAccessToken,
+		"iat":          time.Now().Unix(),
+		"exp":          expiry.Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(config.JWTSecret))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return tokenString, nil
+}
+
 // ValidateToken parses and validates a JWT token string.
 // It returns the UID extracted from the token if successful.
 // The validation includes checking token expiration.
@@ -79,4 +102,25 @@ func ValidateToken(tokenString string) (string, error) {
 	}
 
 	return "", errors.New("invalid token")
+}
+
+// ParseTokenWithoutValidation parses a JWT token string without validating its signature.
+// It returns the claims map so the caller can read 'exp' and 'uid' claims.
+// This is useful when you need to extract information from a token without verifying its authenticity.
+func ParseTokenWithoutValidation(tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Return nil, nil to skip signature validation
+		return nil, nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || claims == nil {
+		return nil, errors.New("token does not contain valid claims")
+	}
+
+	return claims, nil
 }

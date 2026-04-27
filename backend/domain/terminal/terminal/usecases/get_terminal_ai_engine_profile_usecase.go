@@ -28,17 +28,18 @@ func (uc *GetTerminalAIEngineProfileUseCase) GetByMac(macAddress string) (*dtos.
 	var effectiveMode string
 	var profile *string
 
-	if term.AiEngineProfile != nil && *term.AiEngineProfile != "" {
+	switch {
+	case term.AiEngineProfile != nil && *term.AiEngineProfile != "":
 		source = "engine_profile"
 		effectiveMode = *term.AiEngineProfile
 		effectiveProvider = nil
 		profile = term.AiEngineProfile
-	} else if term.AiProvider != nil && *term.AiProvider != "" {
+	case term.AiProvider != nil && *term.AiProvider != "":
 		source = "legacy_provider"
 		effectiveMode = "legacy"
 		effectiveProvider = term.AiProvider
 		profile = nil
-	} else {
+	default:
 		source = "default"
 		effectiveMode = "default"
 		effectiveProvider = nil

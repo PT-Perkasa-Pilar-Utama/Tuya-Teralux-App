@@ -2,9 +2,9 @@ package sensors
 
 import (
 	"fmt"
+	"sensio/domain/common/interfaces"
 	"sensio/domain/models/rag/dtos"
 	tuyaDtos "sensio/domain/tuya/dtos"
-	tuyaUsecases "sensio/domain/tuya/usecases"
 	"strconv"
 	"strings"
 )
@@ -32,7 +32,7 @@ func (s *LightSensor) CanHandle(device *tuyaDtos.TuyaDeviceDTO) bool {
 	return false
 }
 
-func (s *LightSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor tuyaUsecases.TuyaDeviceControlExecutor) (*dtos.ControlResultDTO, error) {
+func (s *LightSensor) ExecuteControl(token string, device *tuyaDtos.TuyaDeviceDTO, prompt string, history []string, executor interfaces.DeviceControlExecutor) (*dtos.ControlResultDTO, error) {
 	promptLower := strings.ToLower(prompt)
 
 	// Check for specific control types

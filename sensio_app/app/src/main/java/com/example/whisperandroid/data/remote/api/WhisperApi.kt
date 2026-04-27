@@ -2,6 +2,8 @@ package com.example.whisperandroid.data.remote.api
 
 import com.example.whisperandroid.data.remote.dto.CreateUploadIntentRequestDto
 import com.example.whisperandroid.data.remote.dto.CreateUploadSessionRequestDto
+import com.example.whisperandroid.data.remote.dto.SaveRecordingRequestDto
+import com.example.whisperandroid.data.remote.dto.SaveRecordingResponseDto
 import com.example.whisperandroid.data.remote.dto.SpeechResponseDto
 import com.example.whisperandroid.data.remote.dto.SubmitByUploadRequestDto
 import com.example.whisperandroid.data.remote.dto.TranscriptionStatusDto
@@ -68,9 +70,15 @@ interface WhisperApi {
 
     // --- Signed Upload Endpoints ---
 
-    @POST("/api/upload/intent")
+    @POST("/api/recordings/upload/intent")
     suspend fun createUploadIntent(
         @retrofit2.http.Body request: CreateUploadIntentRequestDto,
         @Header("Authorization") token: String
     ): SpeechResponseDto<UploadIntentResponseDto>
+
+    @POST("/api/recordings")
+    suspend fun saveRecording(
+        @retrofit2.http.Body request: SaveRecordingRequestDto,
+        @Header("Authorization") token: String
+    ): SpeechResponseDto<SaveRecordingResponseDto>
 }

@@ -82,26 +82,26 @@ type RAGSummaryRequestDTO struct {
 }
 
 type RAGStatusDTO struct {
-	Status          string            `json:"status" example:"completed"`
-	Result          string            `json:"result,omitempty" example:"The meeting discussed..."`
-	Summary         string            `json:"summary,omitempty"` // Alias for Result in summary tasks
-	PDFUrl          string            `json:"pdf_url,omitempty"`
-	AgendaContext   string            `json:"agenda_context,omitempty"`
-	MeetingContext  string            `json:"meeting_context,omitempty"`
-	Language        string            `json:"language,omitempty"`
-	Error           string            `json:"error,omitempty" example:"gemini api returned status 503"`
-	Trigger         string            `json:"trigger,omitempty" example:"/api/rag/summary"`
-	MacAddress      string            `json:"mac_address,omitempty"`
-	HTTPStatusCode  int               `json:"-"`
-	StartedAt       string            `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`
-	DurationSeconds float64           `json:"duration_seconds,omitempty" example:"2.5"`
-	Endpoint        string            `json:"endpoint,omitempty"`
-	Method          string            `json:"method,omitempty"`
-	Body            interface{}       `json:"body,omitempty"`
-	Headers         map[string]string `json:"headers,omitempty"`
-	ExecutionResult interface{}       `json:"execution_result,omitempty"` // holds the response from the fetched endpoint
-	ExpiresAt       string            `json:"expires_at,omitempty"`
-	ExpiresInSecond int64             `json:"expires_in_seconds,omitempty"`
+	Status           string            `json:"status" example:"completed"`
+	Result           string            `json:"result,omitempty" example:"The meeting discussed..."`
+	Summary          string            `json:"summary,omitempty"` // Alias for Result in summary tasks
+	PDFUrl           string            `json:"pdf_url,omitempty"`
+	AgendaContext    string            `json:"agenda_context,omitempty"`
+	MeetingContext   string            `json:"meeting_context,omitempty"`
+	Language         string            `json:"language,omitempty"`
+	Error            string            `json:"error,omitempty" example:"gemini api returned status 503"`
+	Trigger          string            `json:"trigger,omitempty" example:"/api/rag/summary"`
+	MacAddress       string            `json:"mac_address,omitempty"`
+	HTTPStatusCode   int               `json:"-"`
+	StartedAt        string            `json:"started_at,omitempty" example:"2026-02-21T11:00:00Z"`
+	DurationSeconds  float64           `json:"duration_seconds,omitempty" example:"2.5"`
+	Endpoint         string            `json:"endpoint,omitempty"`
+	Method           string            `json:"method,omitempty"`
+	Body             interface{}       `json:"body,omitempty"`
+	Headers          map[string]string `json:"headers,omitempty"`
+	ExecutionResult  interface{}       `json:"execution_result,omitempty"` // holds the response from the fetched endpoint
+	ExpiresAt        string            `json:"expires_at,omitempty"`
+	ExpiresInSeconds int64             `json:"expires_in_seconds,omitempty"`
 
 	// Optional structured summary artifacts (backward compatible - empty when not available)
 	SummaryVersion         string           `json:"summary_version,omitempty"`
@@ -120,7 +120,7 @@ type RAGStatusDTO struct {
 // This allows the generic status usecase to automatically populate TTL info.
 func (s *RAGStatusDTO) SetExpiry(expiresAt string, expiresInSeconds int64) {
 	s.ExpiresAt = expiresAt
-	s.ExpiresInSecond = expiresInSeconds
+	s.ExpiresInSeconds = expiresInSeconds
 }
 
 // RAGProcessResponseDTO is the payload returned by POST /api/rag

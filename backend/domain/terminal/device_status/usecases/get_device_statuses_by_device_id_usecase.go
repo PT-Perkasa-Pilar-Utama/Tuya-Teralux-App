@@ -5,6 +5,7 @@ import (
 	device_repositories "sensio/domain/terminal/device/repositories"
 	"sensio/domain/terminal/device_status/dtos"
 	device_status_repositories "sensio/domain/terminal/device_status/repositories"
+	"time"
 )
 
 // GetDeviceStatusesByDeviceIDUseCase handles retrieving all statuses for a specific device
@@ -49,8 +50,8 @@ func (uc *GetDeviceStatusesByDeviceIDUseCase) ListDeviceStatusesByDeviceID(devic
 			DeviceID:  s.DeviceID,
 			Code:      s.Code,
 			Value:     s.Value,
-			CreatedAt: s.CreatedAt,
-			UpdatedAt: s.UpdatedAt,
+			CreatedAt: s.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: s.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 

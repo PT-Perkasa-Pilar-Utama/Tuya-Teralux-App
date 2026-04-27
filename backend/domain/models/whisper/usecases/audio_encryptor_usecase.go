@@ -42,7 +42,7 @@ func (u *audioEncryptorUseCase) EncryptAndStore(ctx context.Context, sessionID s
 
 	artifactID := uuid.New().String()
 	tmpZipPath := filepath.Join(u.uploadDir, fmt.Sprintf("%s_encrypted.zip", artifactID))
-	defer os.Remove(tmpZipPath)
+	defer func() { _ = os.Remove(tmpZipPath) }()
 
 	encryptor := crypto.NewZIPEncryptor()
 	if err := encryptor.EncryptFiles(tmpZipPath, []string{mergedPath}, password); err != nil {

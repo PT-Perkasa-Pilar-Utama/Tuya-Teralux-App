@@ -171,7 +171,7 @@ func (u *pipelineUseCase) ExecutePipelineWithSession(ctx context.Context, inputP
 			utils.LogWarn("Pipeline: Lock acquired by another process but task was not created or failed. Proceeding with caution.")
 		}
 		// Ensure we release the lock if we created it but later decided not to proceed or finished
-		defer u.cache.Delete(lockKey)
+		defer func() { _ = u.cache.Delete(lockKey) }()
 	}
 
 	taskID := uuid.New().String()
@@ -230,7 +230,7 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 	if preserveInputAudio {
 		utils.LogInfo("Pipeline Task %s: Preserving input audio (meeting summary) | path=%s", taskID, inputPath)
 	} else {
-		defer os.Remove(inputPath)
+		defer func() { _ = os.Remove(inputPath) }()
 		utils.LogInfo("Pipeline Task %s: Will delete input audio after pipeline | path=%s", taskID, inputPath)
 	}
 
@@ -479,15 +479,24 @@ func (u *pipelineUseCase) runPipelineAsync(ctx context.Context, taskID string, i
 }
 
 func (u *pipelineUseCase) saveStatus(taskID string, status pipelineDtos.PipelineStatusDTO) {
+	mu := u.store.GetTaskMutex(taskID)
+	mu.Lock()
+	defer mu.Unlock()
+
 	ttl, err := time.ParseDuration(utils.AppConfig.TaskStatusTTL)
 	if err != nil {
 		ttl = 24 * time.Hour
 	}
+	status.Version++
 	u.store.Set(taskID, &status)
 	_ = u.cache.SetWithTTL(taskID, status, ttl)
 }
 
 func (u *pipelineUseCase) failStage(taskID string, macAddress string, stageName string, err error) {
+	mu := u.store.GetTaskMutex(taskID)
+	mu.Lock()
+	defer mu.Unlock()
+
 	status, _ := u.store.Get(taskID)
 	if status == nil {
 		return
@@ -497,7 +506,14 @@ func (u *pipelineUseCase) failStage(taskID string, macAddress string, stageName 
 	stage.Error = err.Error()
 	status.Stages[stageName] = stage
 	status.OverallStatus = "failed"
-	u.saveStatus(taskID, *status)
+	status.Version++
+
+	ttl, _ := time.ParseDuration(utils.AppConfig.TaskStatusTTL)
+	if ttl == 0 {
+		ttl = 24 * time.Hour
+	}
+	u.store.Set(taskID, status)
+	_ = u.cache.SetWithTTL(taskID, *status, ttl)
 
 	utils.LogError("Pipeline Task %s: Stage '%s' failed: %v", taskID, stageName, err)
 	u.publishEvent(taskID, macAddress, "failed", "failed", stageName, "failed", 0, err)

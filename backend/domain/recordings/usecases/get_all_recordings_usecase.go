@@ -29,8 +29,8 @@ func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*recordings_
 			ID:           r.ID,
 			Filename:     r.Filename,
 			OriginalName: r.OriginalName,
-			AudioUrl:     r.AudioUrl,
-			CreatedAt:    r.CreatedAt,
+			AudioURL:     r.AudioUrl,
+			CreatedAt:    r.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 

@@ -120,7 +120,7 @@ func (uc *tuyaAuthUseCase) Authenticate() (*dtos.TuyaAuthResponseDTO, error) {
 
 	dto := &dtos.TuyaAuthResponseDTO{
 		AccessToken:  beToken,
-		ExpireTime:   -1, // No expiration
+		ExpireTime:   authResponse.Result.ExpireTime, // Use actual Tuya value
 		RefreshToken: "none",
 		UID:          uid,
 	}

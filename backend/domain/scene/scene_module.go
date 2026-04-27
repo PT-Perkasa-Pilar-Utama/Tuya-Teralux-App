@@ -1,0 +1,56 @@
+package scene
+
+import (
+	"sensio/domain/common/interfaces"
+	"sensio/domain/infrastructure"
+	"sensio/domain/scene/controllers"
+	"sensio/domain/scene/repositories"
+	"sensio/domain/scene/usecases"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type SceneModule struct {
+	AddController     *controllers.SceneAddController
+	ListController    *controllers.SceneListController
+	ListAllController *controllers.SceneListAllController
+	UpdateController  *controllers.SceneUpdateController
+	DeleteController  *controllers.SceneDeleteController
+	ControlController *controllers.SceneControlController
+}
+
+func NewSceneModule(db *gorm.DB, deviceCtrl interfaces.DeviceControlExecutor, mqttSvc *infrastructure.MqttService) *SceneModule {
+	repo := repositories.NewSceneRepository(db)
+
+	addUC := usecases.NewAddSceneUseCase(repo)
+	updateUC := usecases.NewUpdateSceneUseCase(repo)
+	deleteUC := usecases.NewDeleteSceneUseCase(repo)
+	getAllUC := usecases.NewGetAllScenesUseCase(repo)
+	getAllGroupedUC := usecases.NewGetAllGroupedScenesUseCase(repo)
+	controlUC := usecases.NewControlSceneUseCase(repo, deviceCtrl, mqttSvc)
+
+	return &SceneModule{
+		AddController:     controllers.NewSceneAddController(addUC),
+		ListController:    controllers.NewSceneListController(getAllUC),
+		ListAllController: controllers.NewSceneListAllController(getAllGroupedUC),
+		UpdateController:  controllers.NewSceneUpdateController(updateUC),
+		DeleteController:  controllers.NewSceneDeleteController(deleteUC),
+		ControlController: controllers.NewSceneControlController(controlUC),
+	}
+}
+
+func (m *SceneModule) RegisterRoutes(protected *gin.RouterGroup) {
+	// All scenes (grouped by terminal_id)
+	protected.GET("/api/scenes", m.ListAllController.ListAllScenes)
+
+	// Per-device scene routes
+	group := protected.Group("/api/terminal/:id/scenes")
+	{
+		group.POST("", m.AddController.AddScene)
+		group.GET("", m.ListController.ListScenes)
+		group.PUT("/:scene_id", m.UpdateController.UpdateScene)
+		group.DELETE("/:scene_id", m.DeleteController.DeleteScene)
+		group.GET("/:scene_id/control", m.ControlController.ControlScene)
+	}
+}

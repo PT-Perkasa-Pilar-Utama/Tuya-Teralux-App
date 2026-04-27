@@ -7,9 +7,9 @@ import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.domain.model.TranscriptionPollingOutcome
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
-import com.example.whisperandroid.util.AppLog
-import com.example.whisperandroid.util.DeviceUtils
-import com.example.whisperandroid.util.MqttHelper
+import com.example.whisperandroid.utils.AppLog
+import com.example.whisperandroid.utils.DeviceUtils
+import com.example.whisperandroid.utils.MqttHelper
 import com.google.gson.JsonParser
 import java.io.File
 import java.util.UUID
@@ -28,7 +28,7 @@ import kotlinx.coroutines.withTimeout
 
 class BackgroundAssistantCoordinator(
     private val application: Application,
-    private val mqttHelperProvider: () -> com.example.whisperandroid.util.MqttHelper = { NetworkModule.mqttHelper },
+    private val mqttHelperProvider: () -> com.example.whisperandroid.utils.MqttHelper = { NetworkModule.mqttHelper },
     private val audioRecorderProvider: (android.app.Application) -> com.example.whisperandroid.presentation.meeting.AudioRecorder = { com.example.whisperandroid.presentation.meeting.AudioRecorder(it) }
 ) {
     private val TAG = "Coordinator"

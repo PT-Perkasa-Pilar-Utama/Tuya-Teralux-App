@@ -3,11 +3,13 @@ package usecases
 import (
 	"errors"
 	"regexp"
+	"strings"
+	"time"
+
 	"sensio/domain/common/utils"
 	speechUsecases "sensio/domain/speech/usecases"
 	"sensio/domain/terminal/terminal/dtos"
 	"sensio/domain/terminal/terminal/repositories"
-	"strings"
 )
 
 // UpdateTerminalUseCase handles updating an existing terminal
@@ -113,8 +115,8 @@ func (uc *UpdateTerminalUseCase) UpdateTerminal(id string, req *dtos.UpdateTermi
 		Name:         item.Name,
 		DeviceTypeID: item.DeviceTypeID,
 		AiProvider:   item.AiProvider,
-		CreatedAt:    item.CreatedAt,
-		UpdatedAt:    item.UpdatedAt,
+		CreatedAt:    item.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:    item.UpdatedAt.Format(time.RFC3339),
 	}
 
 	return dto, nil

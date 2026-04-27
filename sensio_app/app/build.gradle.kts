@@ -112,6 +112,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -145,6 +146,15 @@ dependencies {
     implementation(libs.paho.android)
     implementation(libs.localbroadcastmanager)
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
+
+    // ZIP encryption
+    implementation("net.lingala.zip4j:zip4j:2.11.5")
+
+    // Argon2 password hashing
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+
+    // DataStore for failed upload tracking
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

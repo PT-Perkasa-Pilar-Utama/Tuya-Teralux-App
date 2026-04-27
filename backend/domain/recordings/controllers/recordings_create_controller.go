@@ -64,8 +64,8 @@ func (c *RecordingsCreateController) CreateRecording(ctx *gin.Context) {
 		ID:           result.ID,
 		Filename:     result.Filename,
 		OriginalName: result.OriginalName,
-		AudioUrl:     result.AudioUrl,
-		CreatedAt:    result.CreatedAt,
+		AudioURL:     result.AudioUrl,
+		CreatedAt:    result.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
 	ctx.JSON(http.StatusCreated, commonDtos.StandardResponse{

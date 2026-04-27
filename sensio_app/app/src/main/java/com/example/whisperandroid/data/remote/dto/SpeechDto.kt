@@ -101,7 +101,62 @@ data class RAGStatusDto(
     @SerializedName("duration_seconds") val durationSeconds: Double? = null,
     @SerializedName("execution_result") val executionResult: com.google.gson.JsonElement? = null,
     @SerializedName("expires_at") val expiresAt: String? = null,
-    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null
+    @SerializedName("expires_in_seconds") val expiresInSeconds: Long? = null,
+    @SerializedName("summary_version") val summaryVersion: String? = null,
+    @SerializedName("summary_mode") val summaryMode: String? = null,
+    @SerializedName("action_items") val actionItems: List<ActionItemDto>? = null,
+    @SerializedName("decisions") val decisions: List<DecisionDto>? = null,
+    @SerializedName("open_issues") val openIssues: List<OpenIssueDto>? = null,
+    @SerializedName("risks") val risks: List<RiskDto>? = null,
+    @SerializedName("coverage_stats") val coverageStats: CoverageStatsDto? = null,
+    @SerializedName("speaker_coverage") val speakerCoverage: SpeakerCoverageDto? = null
+)
+
+/**
+ * Structured summary nested DTOs
+ */
+data class ActionItemDto(
+    @SerializedName("id") val id: Int,
+    @SerializedName("task") val task: String,
+    @SerializedName("pic") val pic: String? = null,
+    @SerializedName("deadline") val deadline: String? = null,
+    @SerializedName("status") val status: String? = null
+)
+
+data class DecisionDto(
+    @SerializedName("id") val id: Int,
+    @SerializedName("description") val description: String,
+    @SerializedName("rationale") val rationale: String? = null
+)
+
+data class OpenIssueDto(
+    @SerializedName("id") val id: Int,
+    @SerializedName("description") val description: String,
+    @SerializedName("owner") val owner: String? = null
+)
+
+data class RiskDto(
+    @SerializedName("id") val id: Int,
+    @SerializedName("description") val description: String,
+    @SerializedName("impact") val impact: String? = null,
+    @SerializedName("mitigation") val mitigation: String? = null
+)
+
+data class CoverageStatsDto(
+    @SerializedName("total_windows") val totalWindows: Int,
+    @SerializedName("processed_windows") val processedWindows: Int,
+    @SerializedName("empty_windows") val emptyWindows: Int,
+    @SerializedName("coverage_ratio") val coverageRatio: Double,
+    @SerializedName("source_chars") val sourceChars: Int,
+    @SerializedName("summary_chars") val summaryChars: Int,
+    @SerializedName("compression_ratio") val compressionRatio: Double
+)
+
+data class SpeakerCoverageDto(
+    @SerializedName("total_speakers") val totalSpeakers: Int? = null,
+    @SerializedName("speakers_with_names") val speakersWithNames: Int? = null,
+    @SerializedName("utterance_count") val utteranceCount: Int? = null,
+    @SerializedName("speaker_breakdown") val speakerBreakdown: Map<String, Int>? = null
 )
 
 /**
@@ -170,14 +225,14 @@ data class CreateUploadSessionRequestDto(
     @SerializedName("file_name") val fileName: String,
     @SerializedName("total_size_bytes") val totalSizeBytes: Long,
     @SerializedName("mime_type") val mimeType: String? = null,
-    @SerializedName("chunk_size_bytes") val chunkSizeByes: Int? = null
+    @SerializedName("chunk_size_bytes") val chunkSizeBytes: Int? = null
 )
 
 data class UploadSessionResponseDto(
     @SerializedName("session_id") val sessionId: String,
     @SerializedName("state") val state: String,
     @SerializedName("total_chunks") val totalChunks: Int,
-    @SerializedName("chunk_size_bytes") val chunkSizeByes: Int,
+    @SerializedName("chunk_size_bytes") val chunkSizeBytes: Int,
     @SerializedName("total_size_bytes") val totalSizeBytes: Long,
     @SerializedName("received_bytes") val receivedBytes: Long? = 0,
     @SerializedName("missing_ranges") val missingRanges: List<String>? = null,
@@ -218,16 +273,20 @@ data class PipelineSubmitByUploadRequestDto(
     @SerializedName("idempotency_key") val idempotencyKey: String? = null
 )
 
-/**
- * Request to create upload intent for signed URL upload
- */
 data class CreateUploadIntentRequestDto(
-    @SerializedName("content_type") val contentType: String? = "audio/wav"
-)
+    @SerializedName("filename") val filename: String,
+    @SerializedName("size") val size: Long,
+    @SerializedName("content_type") val contentType: String,
+    @SerializedName("booking_id") val bookingId: String
+) {
+    constructor(contentType: String) : this(
+        filename = "",
+        size = 0L,
+        contentType = contentType,
+        bookingId = ""
+    )
+}
 
-/**
- * Response with signed upload URL
- */
 data class UploadIntentResponseDto(
     @SerializedName("object_key") val objectKey: String,
     @SerializedName("presigned_url") val presignedUrl: String,

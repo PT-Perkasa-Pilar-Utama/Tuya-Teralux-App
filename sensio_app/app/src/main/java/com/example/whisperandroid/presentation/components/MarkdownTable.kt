@@ -23,19 +23,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.whisperandroid.util.MarkdownBlock
+import com.example.whisperandroid.utils.MarkdownBlock
 
 /**
  * Renders a markdown table in a TV-friendly format.
- * 
- * Features:
+ * * Features:
  * - Responsive layout with clear row separation
  * - Header row with stronger emphasis
  * - Handles empty cells safely
  * - Horizontal scroll fallback for very wide tables
  * - Adequate padding and spacing for TV viewing distance
- * 
- * @param table The table block to render
+ * * @param table The table block to render
  * @param modifier Optional modifier for the table container
  */
 @Composable
@@ -45,14 +43,14 @@ fun MarkdownTable(
 ) {
     val rows = table.rows
     if (rows.isEmpty()) return
-    
+
     val headerRow = rows.first()
     val dataRows = rows.drop(1)
-    
+
     // Determine max columns for consistent layout
     val maxColumns = rows.maxOfOrNull { it.size } ?: 0
     if (maxColumns == 0) return
-    
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -69,7 +67,7 @@ fun MarkdownTable(
                 cells = headerRow,
                 maxColumns = maxColumns
             )
-            
+
             // Render divider
             Spacer(
                 modifier = Modifier
@@ -77,7 +75,7 @@ fun MarkdownTable(
                     .height(1.dp)
                     .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
             )
-            
+
             // Render data rows
             dataRows.forEach { row ->
                 TableRow(
@@ -112,7 +110,7 @@ private fun TableHeaderRow(
                 isHeader = true,
                 modifier = Modifier.weight(1f)
             )
-            
+
             // Add divider between cells (except after last)
             if (i < maxColumns - 1) {
                 Spacer(
@@ -149,7 +147,7 @@ private fun TableRow(
                 isHeader = false,
                 modifier = Modifier.weight(1f)
             )
-            
+
             // Add divider between cells (except after last)
             if (i < maxColumns - 1) {
                 Spacer(
@@ -161,7 +159,7 @@ private fun TableRow(
             }
         }
     }
-    
+
     // Add bottom divider for row separation (except for last row)
     if (!isLastRow) {
         Spacer(
@@ -243,7 +241,7 @@ fun MalformedTableFallback(
                         .removeSuffix("|")
                         .trim()
                         .replace(Regex("\\|"), " → ")
-                    
+
                     Text(
                         text = cleaned,
                         style = MaterialTheme.typography.bodyMedium,

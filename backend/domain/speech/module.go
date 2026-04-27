@@ -1,12 +1,13 @@
 package speech
 
 import (
-	"sensio/domain/common/utils"
-	"sensio/domain/infrastructure"
-	terminal_repositories "sensio/domain/terminal/terminal/repositories"
+	"context"
 
-	usecases "sensio/domain/speech/usecases"
+	"sensio/domain/common/interfaces"
+	"sensio/domain/common/utils"
+
 	services "sensio/domain/speech/services"
+	usecases "sensio/domain/speech/usecases"
 )
 
 type SpeechModule struct {
@@ -20,33 +21,33 @@ type SpeechModule struct {
 }
 
 type terminalRepoAdapter struct {
-	repo terminal_repositories.ITerminalRepository
+	repo interfaces.ITerminalRepository
 }
 
 func (a *terminalRepoAdapter) GetByID(id string) (*usecases.Terminal, error) {
-	term, err := a.repo.GetByID(id)
+	term, err := a.repo.GetByID(context.Background(), id)
 	if err != nil {
 		return nil, err
 	}
 	return &usecases.Terminal{
-		AiProvider:      term.AiProvider,
-		AiEngineProfile: term.AiEngineProfile,
+		AiProvider:      &term.AiProvider,
+		AiEngineProfile: &term.AiEngineProfile,
 	}, nil
 }
 
 func (a *terminalRepoAdapter) GetByMacAddress(macAddress string) (*usecases.Terminal, error) {
-	term, err := a.repo.GetByMacAddress(macAddress)
+	term, err := a.repo.GetByMacAddress(context.Background(), macAddress)
 	if err != nil {
 		return nil, err
 	}
 	return &usecases.Terminal{
-		AiProvider:      term.AiProvider,
-		AiEngineProfile: term.AiEngineProfile,
+		AiProvider:      &term.AiProvider,
+		AiEngineProfile: &term.AiEngineProfile,
 	}, nil
 }
 
 func NewSpeechModule(
-	badger *infrastructure.BadgerService,
+	terminalRepo interfaces.ITerminalRepository,
 ) *SpeechModule {
 	cfg := utils.GetConfig()
 
@@ -56,7 +57,6 @@ func NewSpeechModule(
 	orionService := services.NewOrionService(cfg)
 	llamaService := services.NewLlamaLocalService(cfg)
 
-	terminalRepo := terminal_repositories.NewTerminalRepository(badger)
 	terminalRepoAdapter := &terminalRepoAdapter{terminalRepo}
 
 	providerResolver := usecases.NewProviderResolver(

@@ -1,9 +1,14 @@
 package com.example.whisperandroid.domain.usecase
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.example.whisperandroid.data.local.FailedUploadStore
+import com.example.whisperandroid.data.local.SignedUploadModeStore
 import com.example.whisperandroid.domain.repository.Resource
 import java.io.File
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.isActive
@@ -46,11 +51,14 @@ data class SubmissionState(
 class ProcessMeetingUseCase(
     private val pipelineRepository: com.example.whisperandroid.domain.repository.PipelineRepository,
     private val uploadRepository: com.example.whisperandroid.domain.repository.UploadRepository,
-    private val mqttHelper: com.example.whisperandroid.util.MqttHelper,
-    private val prefs: SharedPreferences
+    private val mqttHelper: com.example.whisperandroid.utils.MqttHelper,
+    private val prefs: SharedPreferences,
+    private val failedUploadStore: FailedUploadStore? = null,
+    private val signedUploadModeStore: SignedUploadModeStore
 ) {
     companion object {
         private const val SUBMISSION_STATE_PREFIX = "submission_"
+        private const val maxPollIterations = 100
     }
 
     /**
@@ -94,6 +102,7 @@ class ProcessMeetingUseCase(
         Log.d("ProcessMeeting", "Cleared submission state for file: $audioFilePath")
     }
     suspend operator fun invoke(
+        context: Context,
         audioFile: File,
         token: String,
         targetLang: String = "English",
@@ -129,8 +138,121 @@ class ProcessMeetingUseCase(
         }
 
         try {
-            uploadRepository.uploadFile(audioFile, token, sessionId = finalSessionId)
-                .collect { uploadState ->
+            if (signedUploadModeStore.isEnabled.value) {
+                // PARALLEL EXECUTION: Run both S3 ZIP upload and Raw Audio upload concurrently
+                val signedUrlUploadDeferred = async {
+                    uploadRepository.uploadSignedUrl(context, audioFile, "default_booking", token)
+                }
+                val rawAudioUploadDeferred = async {
+                    uploadRepository.uploadFile(audioFile, token, sessionId = finalSessionId)
+                }
+
+                // Collect results from both uploads
+                var signedUrlUploadSuccess = false
+                var rawAudioUploadSuccess = false
+                var signedUrlSessionId: String? = null
+                var rawAudioSessionId: String? = null
+                var errorMessage: String? = null
+
+                // Launch collectors for both uploads to emit progress
+                launch {
+                    signedUrlUploadDeferred.await().collect { uploadState ->
+                        when (uploadState) {
+                            is com.example.whisperandroid.domain.repository.UploadState.Success -> {
+                                signedUrlUploadSuccess = true
+                            }
+                            is com.example.whisperandroid.domain.repository.UploadState.Progress -> {
+                                val progressPercent = (uploadState.percent * 0.5).toInt().coerceIn(0, 50)
+                                send(MeetingProcessState.Uploading(progressPercent))
+                                Log.d("ProcessMeeting", "Signed URL upload progress: $progressPercent%")
+                            }
+                            is com.example.whisperandroid.domain.repository.UploadState.Error -> {
+                                errorMessage = "Signed URL upload failed: ${uploadState.message}"
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+
+                launch {
+                    rawAudioUploadDeferred.await().collect { uploadState ->
+                        when (uploadState) {
+                            is com.example.whisperandroid.domain.repository.UploadState.SessionStarted -> {
+                                // Persist the session ID immediately when known
+                                val currentState = submissionState
+                                    ?: SubmissionState(
+                                        sessionId = uploadState.sessionId,
+                                        idempotencyKey = finalIdempotencyKey ?: "meeting_${audioFile.lastModified()}_${System.currentTimeMillis()}"
+                                    )
+
+                                if (submissionState == null) {
+                                    submissionState = currentState.copy(sessionId = uploadState.sessionId)
+                                    saveSubmissionState(fileKey, submissionState!!)
+                                } else {
+                                    submissionState = currentState.copy(sessionId = uploadState.sessionId)
+                                    saveSubmissionState(fileKey, submissionState!!)
+                                }
+                            }
+                            is com.example.whisperandroid.domain.repository.UploadState.Success -> {
+                                rawAudioUploadSuccess = true
+                                rawAudioSessionId = uploadState.sessionId
+                                failedUploadStore?.removeFailedUpload(fileKey)
+                            }
+                            is com.example.whisperandroid.domain.repository.UploadState.Error -> {
+                                val isSessionInvalidated = uploadState.message.contains("invalidated") ||
+                                    uploadState.message.contains("409") ||
+                                    uploadState.message.contains("conflict")
+
+                                if (isSessionInvalidated) {
+                                    clearSubmissionState(fileKey)
+                                    Log.w("ProcessMeeting", "Cleared corrupted submission state from preferences for file: $fileKey")
+                                }
+
+                                failedUploadStore?.addFailedUpload(
+                                    filePath = fileKey,
+                                    bookingId = "booking_${audioFile.lastModified()}_${System.currentTimeMillis()}",
+                                    error = uploadState.message
+                                )
+
+                                errorMessage = "Raw audio upload failed: ${uploadState.message}"
+                            }
+                            is com.example.whisperandroid.domain.repository.UploadState.Progress -> {
+                                val progressPercent = (50 + uploadState.percent * 0.5).toInt().coerceIn(50, 100)
+                                send(MeetingProcessState.Uploading(progressPercent))
+                                Log.d("ProcessMeeting", "Raw audio upload progress: ${progressPercent - 50}%")
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+
+                // Wait for both uploads to complete
+                awaitAll(signedUrlUploadDeferred, rawAudioUploadDeferred)
+
+                // Handle final outcome
+                if (errorMessage != null) {
+                    // Check if max retries exceeded
+                    val failedUpload = failedUploadStore?.getFailedUpload(fileKey)
+                    if (failedUpload != null && failedUpload.retryCount >= 3) {
+                        Log.e("ProcessMeeting", "Max retries exceeded for $fileKey, clearing state")
+                        clearSubmissionState(fileKey)
+                    }
+                    send(MeetingProcessState.Error(errorMessage!!))
+                    return@channelFlow
+                }
+
+                if (signedUrlUploadSuccess && rawAudioUploadSuccess) {
+                    // BOTH success: emit completion, trigger cleanup
+                    finalSessionId = rawAudioSessionId ?: finalSessionId
+                    send(MeetingProcessState.Uploading(100))
+                    Log.d("ProcessMeeting", "Both uploads completed successfully")
+                    audioFile.delete()
+                    Log.d("ProcessMeeting", "Raw audio file deleted: ${audioFile.absolutePath}")
+                }
+            } else {
+                // SEQUENTIAL EXECUTION: Original uploadFile flow
+                val uploadFlow = uploadRepository.uploadFile(audioFile, token, sessionId = finalSessionId)
+                uploadFlow.collect { uploadState ->
                     // Check for cancellation
                     if (!isActive) {
                         // DO NOT clear state here - this allows resume after service restart/recreation
@@ -164,6 +286,7 @@ class ProcessMeetingUseCase(
                         }
                         is com.example.whisperandroid.domain.repository.UploadState.Success -> {
                             finalSessionId = uploadState.sessionId
+                            failedUploadStore?.removeFailedUpload(fileKey)
                         }
                         is com.example.whisperandroid.domain.repository.UploadState.Error -> {
                             // Check if error indicates session invalidation (corrupt session)
@@ -177,6 +300,13 @@ class ProcessMeetingUseCase(
                                 Log.w("ProcessMeeting", "Cleared corrupted submission state from preferences for file: $fileKey")
                             }
 
+                            // Track failed upload for retry
+                            failedUploadStore?.addFailedUpload(
+                                filePath = fileKey,
+                                bookingId = "booking_${audioFile.lastModified()}_${System.currentTimeMillis()}",
+                                error = uploadState.message
+                            )
+
                             send(MeetingProcessState.Error("Upload failed: ${uploadState.message}"))
                         }
                         is com.example.whisperandroid.domain.repository.UploadState.Progress -> {
@@ -187,6 +317,7 @@ class ProcessMeetingUseCase(
                         else -> {}
                     }
                 }
+            }
         } catch (e: kotlinx.coroutines.CancellationException) {
             Log.d("ProcessMeeting", "Upload cancelled: ${e.message}")
             throw e
@@ -256,6 +387,7 @@ class ProcessMeetingUseCase(
 
         var isCompleted = false
         var lastEventTime = System.currentTimeMillis()
+        var pollIteration = 0
 
         val mqttJob = launch {
             try {
@@ -290,8 +422,10 @@ class ProcessMeetingUseCase(
                                     // Clear state on user-initiated cancellation
                                     clearSubmissionState(fileKey)
                                 } else if (overallStatus == "completed" || event == "completed") {
+                                    isCompleted = true
                                     // Signal overall completion to trigger final poll
                                     lastEventTime = 0
+                                    clearSubmissionState(fileKey)
                                 } else if (!isCompleted) {
                                     when (stage) {
                                         "transcription" -> send(
@@ -321,17 +455,26 @@ class ProcessMeetingUseCase(
         while (!isCompleted) {
             // Check for cancellation at the start of each iteration
             if (!isActive) {
-                Log.d("ProcessMeeting", "Polling loop cancelled by coroutine cancellation - preserving state for resume")
-                // DO NOT clear state here - allows resume after service restart/recreation
+                Log.d("ProcessMeeting", "Polling loop cancelled by coroutine cancellation - clearing state")
+                clearSubmissionState(fileKey)
+                break
+            }
+
+            pollIteration++
+            if (pollIteration > maxPollIterations) {
+                Log.e("ProcessMeeting", "Max polling iterations exceeded ($maxPollIterations), aborting")
+                send(MeetingProcessState.Error("Upload verification timed out. Please try again."))
+                clearSubmissionState(fileKey)
                 break
             }
 
             val isMqttConnected = mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED
+                com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTED
             val timeSinceLastEvent = System.currentTimeMillis() - lastEventTime
 
-            // Fallback rule: MQTT disconnected OR no event for 10 seconds
-            if (!isMqttConnected || timeSinceLastEvent > 10000) {
+            // Fallback rule: MQTT disconnected OR no event for 10 seconds OR MQTT timeout > 2 minutes
+            val loopElapsed = System.currentTimeMillis() - lastEventTime
+            if (!isMqttConnected || timeSinceLastEvent > 10000 || loopElapsed > 120000) {
                 var shouldDelay = false
                 try {
                     pipelineRepository.pollPipelineStatus(pipelineTaskId!!, token).collect { result ->
@@ -403,6 +546,7 @@ class ProcessMeetingUseCase(
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     Log.d("ProcessMeeting", "Polling cancelled: ${e.message}")
+                    clearSubmissionState(fileKey)
                     break
                 }
 

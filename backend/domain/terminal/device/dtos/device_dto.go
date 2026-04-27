@@ -1,7 +1,5 @@
 package dtos
 
-import "time"
-
 // CreateDeviceRequestDTO represents the request body for creating a new device
 type CreateDeviceRequestDTO struct {
 	ID         string `json:"id" binding:"required"`
@@ -29,25 +27,25 @@ type DeviceFilterDTO struct {
 
 // DeviceResponseDTO represents the response format for a single device
 type DeviceResponseDTO struct {
-	ID                string    `json:"id"`
-	TerminalID        string    `json:"terminal_id"`
-	Name              string    `json:"name"`
-	RemoteID          string    `json:"remote_id"`
-	Category          string    `json:"category"`
-	RemoteCategory    string    `json:"remote_category"`
-	ProductName       string    `json:"product_name"`
-	RemoteProductName string    `json:"remote_product_name"`
-	Icon              string    `json:"icon"`
-	CustomName        string    `json:"custom_name"`
-	Model             string    `json:"model"`
-	IP                string    `json:"ip"`
-	LocalKey          string    `json:"local_key"`
-	GatewayID         string    `json:"gateway_id"`
-	CreateTime        int64     `json:"create_time"`
-	UpdateTime        int64     `json:"update_time"`
-	Collections       string    `json:"collections"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                string `json:"id"`
+	TerminalID        string `json:"terminal_id"`
+	Name              string `json:"name"`
+	RemoteID          string `json:"remote_id"`
+	Category          string `json:"category"`
+	RemoteCategory    string `json:"remote_category"`
+	ProductName       string `json:"product_name"`
+	RemoteProductName string `json:"remote_product_name"`
+	Icon              string `json:"icon"`
+	CustomName        string `json:"custom_name"`
+	Model             string `json:"model"`
+	IP                string `json:"ip"`
+	LocalKey          string `json:"local_key"`
+	GatewayID         string `json:"gateway_id"`
+	CreateTime        int64  `json:"create_time"`
+	UpdateTime        int64  `json:"update_time"`
+	Collections       string `json:"collections"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
 }
 
 // DeviceStatusDTO represents a device status for responses

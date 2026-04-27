@@ -9,8 +9,8 @@ import (
 	commonUtils "sensio/domain/common/utils"
 	ragUsecases "sensio/domain/models/rag/usecases"
 	whisperdtos "sensio/domain/models/whisper/dtos"
-	speechUsecases "sensio/domain/speech/usecases"
 	speechServices "sensio/domain/speech/services"
+	speechUsecases "sensio/domain/speech/usecases"
 	speechUtils "sensio/domain/speech/utils"
 	"strings"
 	"sync"
@@ -94,7 +94,7 @@ func NewTranscribeUseCase(
 
 // transcribeWithFallback attempts transcription respecting terminal AI preferences first, then gracefully failing over to remote provider candidates
 // Returns both the result and the actual provider name used (may differ from resolvedProvider due to fallback)
-func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, processingPath string, language string, diarize bool, disableFallback bool, isPipeline bool, resolvedProvider string, macAddress string) (*whisperdtos.WhisperResult, string, error) {
+func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, processingPath string, language string, diarize bool, disableFallback bool, _ bool, resolvedProvider string, macAddress string) (*whisperdtos.WhisperResult, string, error) {
 	var finalResult *whisperdtos.WhisperResult
 	var actualProvider string
 
@@ -111,8 +111,8 @@ func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, process
 	}
 
 	var err error
-	if disableFallback && resolvedProvider != "" && resolvedProvider != "unknown" {
-		// Direct execution without fallback - resolve the specific provider
+	switch {
+	case disableFallback && resolvedProvider != "" && resolvedProvider != "unknown":
 		providerSet := uc.providerResolver.ResolveProvider(resolvedProvider)
 		if providerSet != nil && providerSet.ProviderName == resolvedProvider && providerSet.WhisperClient != nil {
 			finalResult, err = providerSet.WhisperClient.Transcribe(ctx, processingPath, language, diarize)
@@ -122,9 +122,9 @@ func (uc *transcribeUseCase) transcribeWithFallback(ctx context.Context, process
 		} else {
 			err = fmt.Errorf("provider %s not available", resolvedProvider)
 		}
-	} else if macAddress != "" {
+	case macAddress != "":
 		err = uc.providerResolver.ExecuteWithFallbackByMac(macAddress, executable)
-	} else {
+	default:
 		err = uc.providerResolver.ExecuteWithFallback(executable)
 	}
 
@@ -341,11 +341,12 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 			resultTranscriptFormat = whisperdtos.TranscriptFormatPlainText
 		} else {
 			segmentSec := uc.config.AudioSegmentSec
-			if opts.ForceSegmentSec > 0 {
+			switch {
+			case opts.ForceSegmentSec > 0:
 				segmentSec = opts.ForceSegmentSec
-			} else if opts.IsPipeline && resolvedProvider == "orion" {
+			case opts.IsPipeline && resolvedProvider == "orion":
 				segmentSec = 180
-			} else if segmentSec < 60 {
+			case segmentSec < 60:
 				segmentSec = 60
 			}
 			overlapSec := uc.config.AudioSegmentOverlapSec

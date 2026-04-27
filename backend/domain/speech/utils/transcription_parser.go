@@ -20,8 +20,6 @@ func ParseUtterancesFromText(transcription string) []dtos.Utterance {
 		return nil
 	}
 
-	var utterances []dtos.Utterance
-
 	// High-confidence speaker label patterns (explicit diarization markers)
 	patterns := []string{
 		`\[Speaker\s*(\d+)\]:?`,       // [Speaker 1]:
@@ -37,6 +35,7 @@ func ParseUtterancesFromText(transcription string) []dtos.Utterance {
 
 	// Find all speaker label matches with their positions
 	matches := re.FindAllStringSubmatchIndex(transcription, -1)
+	utterances := make([]dtos.Utterance, 0, len(matches))
 	if len(matches) == 0 {
 		// NO speaker labels found - return nil, do NOT fabricate utterances
 		// This prevents false-positive diarization reporting
@@ -99,19 +98,16 @@ func BuildConfidenceSummary(utterances []dtos.Utterance, segmentsCount int) *dto
 		}
 	}
 
-	var sum, min, max float64
-	min = 1.0
+	var sum, minConf, maxConf float64
+	minConf = 1.0
 	hasConfidence := false
 
 	for _, u := range utterances {
 		if u.Confidence > 0 {
 			sum += u.Confidence
 			hasConfidence = true
-			if u.Confidence < min {
-				min = u.Confidence
-			}
-			if u.Confidence > max {
-				max = u.Confidence
+			if u.Confidence > maxConf {
+				maxConf = u.Confidence
 			}
 		}
 	}
@@ -123,8 +119,8 @@ func BuildConfidenceSummary(utterances []dtos.Utterance, segmentsCount int) *dto
 
 	return &dtos.ConfidenceSummary{
 		AverageConfidence: avg,
-		MinConfidence:     min,
-		MaxConfidence:     max,
+		MinConfidence:     minConf,
+		MaxConfidence:     maxConf,
 		SegmentsCount:     segmentsCount,
 		UtterancesCount:   len(utterances),
 	}
@@ -165,7 +161,7 @@ func MergeTranscriptions(segments []dtos.TranscriptSegment) string {
 		return segments[0].Text
 	}
 
-	var texts []string
+	texts := make([]string, 0, len(segments))
 	for i, seg := range segments {
 		text := strings.TrimSpace(seg.Text)
 		if text == "" {

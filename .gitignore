@@ -13,7 +13,7 @@
 
 # Common
 *.pyc
-*.log
+# *.log
 .DS_Store
 
 # Backend
@@ -40,11 +40,13 @@ screenshoots/sensio_app/local.properties
 sensio_app/local.properties.example
 screenshoots/
 backend/services/plaud/
-notification
-backend/services/plaud/
 .playwright-mcp/
 backend/sensio
 *.exe
+
+# Node
+node_modules/
+bun.lock
 
 # Sisyphus planning artifacts
 .sisyphus/
@@ -52,3 +54,6 @@ backend/sensio
 # Codex
 .codex/
 backend/.codex/
+
+# Debug logs
+@logs/

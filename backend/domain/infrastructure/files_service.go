@@ -70,13 +70,13 @@ func (s *fileService) MoveFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open source for move: %v", err)
 	}
-	defer sourceFile.Close()
+	defer func() { _ = sourceFile.Close() }()
 
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("failed to create destination for move: %v", err)
 	}
-	defer destFile.Close()
+	defer func() { _ = destFile.Close() }()
 
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *fileService) MoveFile(src, dst string) error {
 	}
 
 	// Success, we can remove the source
-	sourceFile.Close() // Close before removal
+	_ = sourceFile.Close()
 	return os.Remove(src)
 }
 

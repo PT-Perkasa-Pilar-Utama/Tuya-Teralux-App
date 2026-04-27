@@ -2,7 +2,6 @@ package com.example.whisperandroid.domain.model.reminder
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**

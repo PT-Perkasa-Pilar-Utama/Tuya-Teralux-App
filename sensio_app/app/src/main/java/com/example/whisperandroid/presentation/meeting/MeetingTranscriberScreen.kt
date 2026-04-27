@@ -1,6 +1,7 @@
 package com.example.whisperandroid.presentation.meeting
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.webkit.MimeTypeMap
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.example.whisperandroid.data.local.FailedUpload
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
 import com.example.whisperandroid.presentation.components.EmailInputDialog
 import com.example.whisperandroid.presentation.components.LanguagePillToggle
@@ -48,7 +50,8 @@ import com.example.whisperandroid.presentation.meeting.components.MeetingIdleCon
 import com.example.whisperandroid.presentation.meeting.components.MeetingLoadingContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingRecordingContent
 import com.example.whisperandroid.presentation.meeting.components.MeetingSuccessContent
-import com.example.whisperandroid.util.DeviceUtils
+import com.example.whisperandroid.utils.DeviceUtils
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -79,6 +82,8 @@ fun MeetingTranscriberScreen(
         )
     }
     var hasAutoSent by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val failedUploadStore = remember { com.example.whisperandroid.data.di.NetworkModule.failedUploadStore }
+    var failedUploads by remember { mutableStateOf<List<FailedUpload>>(emptyList()) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -264,7 +269,7 @@ fun MeetingTranscriberScreen(
                 uiState = uiState,
                 pulseScale = pulseScale,
                 isEnabled = mqttStatus ==
-                    com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED,
+                    com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTED,
                 onMicClick = {
                     val canRecord = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||
@@ -392,11 +397,20 @@ fun MeetingTranscriberScreen(
         )
     }
 
+    LaunchedEffect(showFilePickerSheet) {
+        if (showFilePickerSheet) {
+            failedUploadStore.getFailedUploadsFlow().collect { uploads ->
+                failedUploads = uploads
+            }
+        }
+    }
+
     if (showFilePickerSheet) {
         val files = remember {
             com.example.whisperandroid.data.local.MeetingAudioFileStore
                 .listMeetingAudioFiles(context)
         }
+        val showFailedOnly = failedUploads.isNotEmpty()
         MeetingFilePickerSheet(
             files = files,
             onFileSelected = { file ->
@@ -420,7 +434,42 @@ fun MeetingTranscriberScreen(
                 showFilePickerSheet = false
                 launcher.launch("audio/*")
             },
-            onDismiss = { showFilePickerSheet = false }
+            onDismiss = { showFilePickerSheet = false },
+            failedUploads = failedUploads,
+            onRetryClick = { failedUpload ->
+                val file = File(failedUpload.localFilePath)
+                if (file.exists() && file.length() > 0) {
+                    showFilePickerSheet = false
+                    audioFile = file
+                    if (token.isNotEmpty()) {
+                        viewModel.processRecording(
+                            context.applicationContext,
+                            file,
+                            token,
+                            summaryLanguage,
+                            DeviceUtils.getDeviceId(context.applicationContext)
+                        )
+                    }
+                } else {
+                    Toast.makeText(context, "File no longer exists", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onOpenExplorerClick = {
+                val meetingsDir = File(context.filesDir, "meetings")
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(Uri.parse("file://${meetingsDir.absolutePath}"), "resource/folder")
+                }
+                if (intent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(intent)
+                } else {
+                    val fallbackIntent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                    if (fallbackIntent.resolveActivity(context.packageManager) != null) {
+                        context.startActivity(fallbackIntent)
+                    } else {
+                        Toast.makeText(context, "No file explorer available", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         )
     }
 }

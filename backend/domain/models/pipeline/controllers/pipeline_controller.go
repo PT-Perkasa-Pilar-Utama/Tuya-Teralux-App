@@ -125,7 +125,7 @@ func (c *PipelineController) ExecuteJob(ctx *gin.Context) {
 		f, err := file.Open()
 		if err == nil {
 			audioHash, _ := utils.HashReader(f)
-			f.Close()
+			_ = f.Close()
 			if taskID, exists := c.pipelineUC.CheckIdempotency(idempotencyKey, audioHash, req); exists {
 				utils.LogInfo("Pipeline.ExecuteJob: Duplicate request detected (pre-save) for key %s. Returning TaskID %s", idempotencyKey, taskID)
 				ctx.JSON(http.StatusAccepted, commonDtos.StandardResponse{

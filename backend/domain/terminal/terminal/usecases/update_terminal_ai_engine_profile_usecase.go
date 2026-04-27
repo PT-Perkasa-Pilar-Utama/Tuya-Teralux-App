@@ -75,15 +75,16 @@ func (uc *UpdateTerminalAIEngineProfileUseCase) Update(id string, req *dtos.Upda
 	var effectiveProvider *string
 	var effectiveMode string
 
-	if term.AiEngineProfile != nil && *term.AiEngineProfile != "" {
+	switch {
+	case term.AiEngineProfile != nil && *term.AiEngineProfile != "":
 		source = "engine_profile"
 		effectiveMode = *term.AiEngineProfile
 		effectiveProvider = nil
-	} else if term.AiProvider != nil && *term.AiProvider != "" {
+	case term.AiProvider != nil && *term.AiProvider != "":
 		source = "legacy_provider"
 		effectiveMode = "legacy"
 		effectiveProvider = term.AiProvider
-	} else {
+	default:
 		source = "default"
 		effectiveMode = "default"
 		effectiveProvider = nil

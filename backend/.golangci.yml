@@ -43,3 +43,9 @@ issues:
   exclude-dirs:
     - tmp
     - vendor
+    - e2e
+  exclude-rules:
+    # Test files: os.Setenv/Unsetenv errors are expected in tests
+    - path: "_test\\.go"
+      linters:
+        - errcheck

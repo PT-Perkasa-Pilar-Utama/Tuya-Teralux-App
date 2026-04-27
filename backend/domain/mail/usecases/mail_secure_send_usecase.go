@@ -7,19 +7,38 @@ import (
 	"sensio/domain/common/utils"
 	"sensio/domain/download_token"
 	"sensio/domain/mail/dtos"
+	"sensio/domain/mail/entities"
+	"sensio/domain/mail/repositories"
 	"sensio/domain/mail/services"
 	"time"
 )
 
+type MetadataStatus int
+
+const (
+	MetadataStatusUnknown MetadataStatus = iota
+	MetadataStatusPending
+	MetadataStatusCompleted
+	MetadataStatusFailed
+)
+
+type MetadataChecker interface {
+	GetS3ZipStatus(ctx context.Context, objectKey string) (MetadataStatus, error)
+	GetS3PdfStatus(ctx context.Context, objectKey string) (MetadataStatus, error)
+}
+
 type SecureMailUseCase interface {
 	SendSecureLinkWithPassword(ctx context.Context, recipient, objectKey, purpose, subject string) (string, error)
+	SetMetadataChecker(checker MetadataChecker)
 }
 
 type secureMailUseCase struct {
-	mailService  *services.MailService
-	tokenService *download_token.DownloadTokenService
-	store        *tasks.StatusStore[dtos.MailStatusDTO]
-	cache        *tasks.BadgerTaskCache
+	mailService     *services.MailService
+	tokenService    *download_token.DownloadTokenService
+	store           *tasks.StatusStore[dtos.MailStatusDTO]
+	cache           *tasks.BadgerTaskCache
+	metadataChecker MetadataChecker
+	outboxRepo      repositories.MailOutboxRepository
 }
 
 func NewSecureMailUseCase(
@@ -33,7 +52,12 @@ func NewSecureMailUseCase(
 		tokenService: tokenService,
 		store:        store,
 		cache:        cache,
+		outboxRepo:   repositories.NewMailOutboxRepository(),
 	}
+}
+
+func (uc *secureMailUseCase) SetMetadataChecker(checker MetadataChecker) {
+	uc.metadataChecker = checker
 }
 
 func (uc *secureMailUseCase) SendSecureLinkWithPassword(ctx context.Context, recipient, objectKey, purpose, subject string) (string, error) {
@@ -42,6 +66,16 @@ func (uc *secureMailUseCase) SendSecureLinkWithPassword(ctx context.Context, rec
 	}
 	if objectKey == "" {
 		return "", fmt.Errorf("object key is required")
+	}
+
+	var existingStatus dtos.MailStatusDTO
+	if _, found, _ := uc.cache.GetIdempotencyTask(recipient, objectKey, &existingStatus); found {
+		if existingStatus.Status == "completed" {
+			return "", fmt.Errorf("email already sent for this recipient and object")
+		}
+		if existingStatus.Status == "pending" {
+			return "", fmt.Errorf("email send already in progress for this recipient and object")
+		}
 	}
 
 	taskID := utils.GenerateUUID()
@@ -53,13 +87,24 @@ func (uc *secureMailUseCase) SendSecureLinkWithPassword(ctx context.Context, rec
 
 	uc.store.Set(taskID, status)
 	_ = uc.cache.Set(taskID, status)
+	_ = uc.cache.SetIdempotencyTask(recipient, objectKey, taskID, status)
+
+	uc.outboxRepo.Create(&entities.MailOutbox{ //nolint:errcheck
+		TaskID:    taskID,
+		Recipient: recipient,
+		ObjectKey: objectKey,
+		Purpose:   purpose,
+		Subject:   subject,
+		Status:    entities.MailOutboxStatusPending,
+		CreatedAt: time.Now(),
+	})
 
 	go uc.processAsync(ctx, taskID, recipient, objectKey, purpose, subject)
 
 	return taskID, nil
 }
 
-func (uc *secureMailUseCase) processAsync(ctx context.Context, taskID, recipient, objectKey, purpose, subject string) {
+func (uc *secureMailUseCase) processAsync(_ context.Context, taskID, recipient, objectKey, purpose, subject string) {
 	defer func() {
 		if r := recover(); r != nil {
 			utils.LogError("SecureMail Task %s: Panic recovered: %v", taskID, r)
@@ -75,9 +120,7 @@ func (uc *secureMailUseCase) processAsync(ctx context.Context, taskID, recipient
 	}
 
 	linkData := map[string]interface{}{
-		"download_link": fmt.Sprintf("/api/download/resolve/%s", token.TokenID),
-		"purpose":       purpose,
-		"expires_at":    token.ExpiresAt.Format(time.RFC3339),
+		"download_link": fmt.Sprintf("/api/download/resolve?state=%s&purpose=%s", token, purpose),
 	}
 
 	utils.LogInfo("SecureMail Task %s: Sending link email to %s", taskID, recipient)
@@ -94,31 +137,8 @@ func (uc *secureMailUseCase) processAsync(ctx context.Context, taskID, recipient
 		return
 	}
 
-	time.Sleep(15 * time.Minute)
-
-	password := token.Password
-	if password == "" {
-		password = "Use your provided password"
-	}
-
-	utils.LogInfo("SecureMail Task %s: Sending password email to %s", taskID, recipient)
-	err = uc.mailService.SendEmailWithTemplate(
-		[]string{recipient},
-		subject+" - Access Password",
-		"secure_password",
-		map[string]interface{}{
-			"password": password,
-		},
-		nil,
-	)
-	if err != nil {
-		utils.LogError("SecureMail Task %s: Failed to send password email: %v", taskID, err)
-		uc.updateStatus(taskID, "partial", err, "Link email sent, password email failed")
-		return
-	}
-
-	utils.LogInfo("SecureMail Task %s: Both emails sent successfully", taskID)
-	uc.updateStatus(taskID, "completed", nil, fmt.Sprintf("Secure emails sent to %s", recipient))
+	utils.LogInfo("SecureMail Task %s: Link email sent successfully", taskID)
+	uc.updateStatus(taskID, "completed", nil, fmt.Sprintf("Secure email link sent to %s", recipient))
 }
 
 func (uc *secureMailUseCase) updateStatus(taskID string, statusStr string, err error, result string) {

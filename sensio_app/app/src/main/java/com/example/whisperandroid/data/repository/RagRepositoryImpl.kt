@@ -26,7 +26,7 @@ class RagRepositoryImpl(
                 val response =
                     api.translate(
                         RAGRequestDto(text = text, language = targetLang, macAddress = macAddress),
-                        "Bearer $token",
+                        token,
                         idempotencyKey
                     )
                 val taskId = response.data?.taskId
@@ -48,7 +48,7 @@ class RagRepositoryImpl(
         flow {
             emit(Resource.Loading())
             try {
-                val response = api.getStatus(taskId, "Bearer $token")
+                val response = api.getStatus(taskId, token)
                 val statusData = response.data
                 val status = statusData?.status?.lowercase()
 
@@ -99,7 +99,7 @@ class RagRepositoryImpl(
                             context = context,
                             macAddress = macAddress
                         ),
-                        "Bearer $token",
+                        token,
                         idempotencyKey
                     )
                 val taskId = response.data?.taskId
@@ -121,7 +121,7 @@ class RagRepositoryImpl(
         flow {
             emit(Resource.Loading())
             try {
-                val response = api.getStatus(taskId, "Bearer $token")
+                val response = api.getStatus(taskId, token)
                 val statusData = response.data
                 val status = statusData?.status?.lowercase()
 
@@ -178,7 +178,7 @@ class RagRepositoryImpl(
                         uid = uid,
                         requestId = requestId
                     ),
-                    "Bearer $token",
+                    token,
                     idempotencyKey
                 )
                 if (response.status && response.data != null) {

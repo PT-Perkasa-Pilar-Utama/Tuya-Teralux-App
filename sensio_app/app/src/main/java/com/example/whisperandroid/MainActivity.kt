@@ -18,14 +18,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.whisperandroid.navigation.AuthChecker
 import androidx.navigation.compose.rememberNavController
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.auth.AuthStateManager
 import com.example.whisperandroid.navigation.AppRoutes
-import com.example.whisperandroid.presentation.bootstrap.AppBootstrapViewModel
+import com.example.whisperandroid.presentation.authenticating.AuthenticatingScreen
+import com.example.whisperandroid.presentation.authenticating.AuthenticatingViewModel
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
+
 import com.example.whisperandroid.ui.theme.SensioTheme
-import com.example.whisperandroid.util.FeatureAvailabilityGuard
+import com.example.whisperandroid.utils.FeatureAvailabilityGuard
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -40,9 +44,9 @@ class MainActivity : ComponentActivity() {
         // Ensure NetworkModule is initialized
         NetworkModule.ensureInitialized(this)
 
-        if (com.example.whisperandroid.util.DeviceUtils.isTerminal()) {
+        if (com.example.whisperandroid.utils.DeviceUtils.isTerminal()) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        } else if (com.example.whisperandroid.util.DeviceUtils.isPhone(this)) {
+        } else if (com.example.whisperandroid.utils.DeviceUtils.isPhone(this)) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
 
@@ -56,21 +60,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen(
-    bootstrapViewModel: AppBootstrapViewModel = viewModel {
-        AppBootstrapViewModel(
-            NetworkModule.authenticateUseCase
-        )
-    }
-) {
+fun MainScreen() {
     val context = LocalContext.current
     val navController = rememberNavController()
-
-    val bootstrapState by bootstrapViewModel.uiState.collectAsState()
-
-    LaunchedEffect(Unit) {
-        bootstrapViewModel.bootstrap()
-    }
 
     // Permission Handling
     val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -106,8 +98,7 @@ fun MainScreen(
     }
 
     // App Navigation & Overlay
-    val token = remember { NetworkModule.tokenManager.getAccessToken() }
-    val startDestination = if (token != null) AppRoutes.Dashboard.route else AppRoutes.Register.route
+    val startDestination = AuthChecker.getStartDestination()
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -122,6 +113,46 @@ fun MainScreen(
                 })
             }
 
+            composable(AppRoutes.Authenticating.route) {
+                val viewModel: AuthenticatingViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                    factory = AuthenticatingViewModelFactory(
+                        application = context.applicationContext as android.app.Application,
+                        onNavigateToDashboard = {
+                            navController.navigate(AppRoutes.Dashboard.route) {
+                                popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                            }
+                        },
+                        onNavigateToRegister = {
+                            navController.navigate(AppRoutes.Register.route) {
+                                popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                            }
+                        },
+                        onAuthError = { error ->
+                            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                        }
+                    )
+                )
+                AuthenticatingScreen(
+                    errorMessage = viewModel.uiState.value.errorMessage,
+                    onRetry = if (viewModel.uiState.value.isRetryEnabled) {
+                        { viewModel.retry() }
+                    } else null,
+                    onAuthError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    },
+                    onNavigateToDashboard = {
+                        navController.navigate(AppRoutes.Dashboard.route) {
+                            popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToRegister = {
+                        navController.navigate(AppRoutes.Register.route) {
+                            popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(AppRoutes.Dashboard.route) {
                 DashboardScreen(
                     onNavigateToRegister = {
@@ -131,20 +162,20 @@ fun MainScreen(
                     },
                     onNavigateToUpload = { },
                     onNavigateToStreaming = {
-                        if (!bootstrapState.isBootstrapped) {
-                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
-                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                        if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
                             navController.navigate(AppRoutes.Meeting.route)
                         }
                     },
                     onNavigateToEdge = {
-                        if (!bootstrapState.isBootstrapped) {
-                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
-                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                        if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
                             navController.navigate(AppRoutes.Assistant.route)
                         }
                     },
-                    bootstrapViewModel = bootstrapViewModel
+                    onNavigateToAuth = {
+                        navController.navigate(AppRoutes.Authenticating.route) {
+                            popUpTo(AppRoutes.Dashboard.route) { inclusive = true }
+                        }
+                    }
                 )
             }
 
@@ -187,5 +218,25 @@ fun MainScreen(
         com.example.whisperandroid.presentation.assistant.BackgroundAssistantModalHost(
             coordinator = coordinator
         )
+    }
+}
+
+class AuthenticatingViewModelFactory(
+    private val application: android.app.Application,
+    private val onNavigateToDashboard: () -> Unit,
+    private val onNavigateToRegister: () -> Unit,
+    private val onAuthError: (String) -> Unit
+) : androidx.lifecycle.ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AuthenticatingViewModel::class.java)) {
+            return AuthenticatingViewModel(
+                application = application,
+                onNavigateToDashboard = onNavigateToDashboard,
+                onNavigateToRegister = onNavigateToRegister,
+                onAuthError = onAuthError
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
