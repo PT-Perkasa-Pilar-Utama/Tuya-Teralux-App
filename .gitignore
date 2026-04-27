@@ -54,3 +54,6 @@ bun.lock
 # Codex
 .codex/
 backend/.codex/
+
+# Debug logs
+@logs/

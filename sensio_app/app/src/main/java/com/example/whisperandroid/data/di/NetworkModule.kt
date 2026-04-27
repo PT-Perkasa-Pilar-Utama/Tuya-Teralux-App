@@ -83,9 +83,9 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .cookieJar(cookieJar)
-            .connectTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }
 

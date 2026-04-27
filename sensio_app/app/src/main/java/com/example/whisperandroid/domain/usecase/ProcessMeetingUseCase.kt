@@ -425,6 +425,7 @@ class ProcessMeetingUseCase(
                                     isCompleted = true
                                     // Signal overall completion to trigger final poll
                                     lastEventTime = 0
+                                    clearSubmissionState(fileKey)
                                 } else if (!isCompleted) {
                                     when (stage) {
                                         "transcription" -> send(
@@ -454,8 +455,8 @@ class ProcessMeetingUseCase(
         while (!isCompleted) {
             // Check for cancellation at the start of each iteration
             if (!isActive) {
-                Log.d("ProcessMeeting", "Polling loop cancelled by coroutine cancellation - preserving state for resume")
-                // DO NOT clear state here - allows resume after service restart/recreation
+                Log.d("ProcessMeeting", "Polling loop cancelled by coroutine cancellation - clearing state")
+                clearSubmissionState(fileKey)
                 break
             }
 
@@ -471,8 +472,9 @@ class ProcessMeetingUseCase(
                 com.example.whisperandroid.utils.MqttHelper.MqttConnectionStatus.CONNECTED
             val timeSinceLastEvent = System.currentTimeMillis() - lastEventTime
 
-            // Fallback rule: MQTT disconnected OR no event for 10 seconds
-            if (!isMqttConnected || timeSinceLastEvent > 10000) {
+            // Fallback rule: MQTT disconnected OR no event for 10 seconds OR MQTT timeout > 2 minutes
+            val loopElapsed = System.currentTimeMillis() - lastEventTime
+            if (!isMqttConnected || timeSinceLastEvent > 10000 || loopElapsed > 120000) {
                 var shouldDelay = false
                 try {
                     pipelineRepository.pollPipelineStatus(pipelineTaskId!!, token).collect { result ->
@@ -544,6 +546,7 @@ class ProcessMeetingUseCase(
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     Log.d("ProcessMeeting", "Polling cancelled: ${e.message}")
+                    clearSubmissionState(fileKey)
                     break
                 }
 

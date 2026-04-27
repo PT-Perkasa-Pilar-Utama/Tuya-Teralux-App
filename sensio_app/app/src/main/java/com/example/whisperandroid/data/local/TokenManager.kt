@@ -27,6 +27,13 @@ class TokenManager(
         }
     }
 
+    fun saveRenewedToken(token: String, expiresAtMillis: Long) {
+        prefs.edit {
+            putString(KEY_ACCESS_TOKEN, token)
+            putLong(KEY_TOKEN_EXPIRES_AT, expiresAtMillis)
+        }
+    }
+
     fun isTokenExpired(): Boolean {
         val token = getAccessToken() ?: return true
         val expiresAt = prefs.getLong(KEY_TOKEN_EXPIRES_AT, 0L)
@@ -37,25 +44,49 @@ class TokenManager(
         prefs.edit { putString(KEY_ACCESS_TOKEN, token) }
     }
 
-    fun getAccessToken(): String? = prefs.getString(KEY_ACCESS_TOKEN, null)
+    fun getAccessToken(): String? {
+        return try {
+            prefs.getString(KEY_ACCESS_TOKEN, null)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     fun saveTerminalId(id: String) {
         prefs.edit { putString(KEY_TERMINAL_ID, id) }
     }
 
-    fun getTerminalId(): String? = prefs.getString(KEY_TERMINAL_ID, null)
+    fun getTerminalId(): String? {
+        return try {
+            prefs.getString(KEY_TERMINAL_ID, null)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     fun saveTuyaUid(uid: String) {
         prefs.edit { putString(KEY_TUYA_UID, uid) }
     }
 
-    fun getTuyaUid(): String? = prefs.getString(KEY_TUYA_UID, null)
+    fun getTuyaUid(): String? {
+        return try {
+            prefs.getString(KEY_TUYA_UID, null)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     fun saveMacAddress(mac: String) {
         prefs.edit { putString(KEY_MAC_ADDRESS, mac) }
     }
 
-    fun getMacAddress(): String? = prefs.getString(KEY_MAC_ADDRESS, null)
+    fun getMacAddress(): String? {
+        return try {
+            prefs.getString(KEY_MAC_ADDRESS, null)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     fun clearToken() {
         prefs.edit {

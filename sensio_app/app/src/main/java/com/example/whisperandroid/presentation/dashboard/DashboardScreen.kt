@@ -198,13 +198,15 @@ fun DashboardScreen(
     onNavigateToUpload: () -> Unit,
     onNavigateToStreaming: () -> Unit,
     onNavigateToEdge: () -> Unit,
+    onNavigateToAuth: () -> Unit,
     viewModel: DashboardViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel {
             DashboardViewModel(
                 NetworkModule.getTuyaDevicesUseCase,
                 NetworkModule.backgroundAssistantModeStore,
                 NetworkModule.terminalRepository,
-                NetworkModule.tokenManager
+                NetworkModule.tokenManager,
+                onNavigateToAuth = onNavigateToAuth
             )
         }
 ) {

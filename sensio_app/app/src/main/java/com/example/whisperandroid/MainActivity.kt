@@ -23,6 +23,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.data.auth.AuthStateManager
 import com.example.whisperandroid.navigation.AppRoutes
+import com.example.whisperandroid.presentation.authenticating.AuthenticatingScreen
+import com.example.whisperandroid.presentation.authenticating.AuthenticatingViewModel
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
 
@@ -111,6 +113,46 @@ fun MainScreen() {
                 })
             }
 
+            composable(AppRoutes.Authenticating.route) {
+                val viewModel: AuthenticatingViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                    factory = AuthenticatingViewModelFactory(
+                        application = context.applicationContext as android.app.Application,
+                        onNavigateToDashboard = {
+                            navController.navigate(AppRoutes.Dashboard.route) {
+                                popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                            }
+                        },
+                        onNavigateToRegister = {
+                            navController.navigate(AppRoutes.Register.route) {
+                                popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                            }
+                        },
+                        onAuthError = { error ->
+                            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                        }
+                    )
+                )
+                AuthenticatingScreen(
+                    errorMessage = viewModel.uiState.value.errorMessage,
+                    onRetry = if (viewModel.uiState.value.isRetryEnabled) {
+                        { viewModel.retry() }
+                    } else null,
+                    onAuthError = { error ->
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    },
+                    onNavigateToDashboard = {
+                        navController.navigate(AppRoutes.Dashboard.route) {
+                            popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToRegister = {
+                        navController.navigate(AppRoutes.Register.route) {
+                            popUpTo(AppRoutes.Authenticating.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(AppRoutes.Dashboard.route) {
                 DashboardScreen(
                     onNavigateToRegister = {
@@ -127,6 +169,11 @@ fun MainScreen() {
                     onNavigateToEdge = {
                         if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
                             navController.navigate(AppRoutes.Assistant.route)
+                        }
+                    },
+                    onNavigateToAuth = {
+                        navController.navigate(AppRoutes.Authenticating.route) {
+                            popUpTo(AppRoutes.Dashboard.route) { inclusive = true }
                         }
                     }
                 )
@@ -171,5 +218,25 @@ fun MainScreen() {
         com.example.whisperandroid.presentation.assistant.BackgroundAssistantModalHost(
             coordinator = coordinator
         )
+    }
+}
+
+class AuthenticatingViewModelFactory(
+    private val application: android.app.Application,
+    private val onNavigateToDashboard: () -> Unit,
+    private val onNavigateToRegister: () -> Unit,
+    private val onAuthError: (String) -> Unit
+) : androidx.lifecycle.ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AuthenticatingViewModel::class.java)) {
+            return AuthenticatingViewModel(
+                application = application,
+                onNavigateToDashboard = onNavigateToDashboard,
+                onNavigateToRegister = onNavigateToRegister,
+                onAuthError = onAuthError
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

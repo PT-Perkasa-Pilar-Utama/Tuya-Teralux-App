@@ -6,4 +6,5 @@ sealed class AppRoutes(val route: String) {
     object Dashboard : AppRoutes("dashboard")
     object Meeting : AppRoutes("meeting")
     object Assistant : AppRoutes("assistant")
+    object Authenticating : AppRoutes("authenticating")
 }

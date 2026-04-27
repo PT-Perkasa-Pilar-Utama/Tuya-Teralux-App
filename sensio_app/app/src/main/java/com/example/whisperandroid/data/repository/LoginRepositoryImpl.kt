@@ -64,7 +64,7 @@ class LoginRepositoryImpl(
                 }
             }
         } catch (e: Exception) {
-            Result.success(AuthState.Error("Network error: ${e.message}"))
+            Result.failure(e)
         }
     }
 

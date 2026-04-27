@@ -38,8 +38,11 @@ class DashboardViewModel(
         com.example.whisperandroid.data.local.BackgroundAssistantModeStore,
     private val terminalRepository: TerminalRepository,
     private val tokenManager: com.example.whisperandroid.data.local.TokenManager,
-    private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady
+    private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady,
+    private val onNavigateToAuth: () -> Unit = {}
 ) : ViewModel() {
+    private var renewalAttemptedThisSession = false
+
     private val _uiState = MutableStateFlow(
         DashboardUiState(
             isBackgroundModeEnabled = backgroundAssistantModeStore.isEnabled.value
@@ -240,10 +243,33 @@ class DashboardViewModel(
                     "Devices synced with backend (Request complete)"
                 )
             }.onFailure { e ->
-                // Keep non-blocking behavior: UI can continue even when sync fails.
-                NetworkModule.setTuyaSyncReady(true)
-                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to sync devices")
-                android.util.Log.e("DashboardViewModel", "Failed to sync devices", e)
+                val errorMsg = e.message ?: ""
+                val is401 = errorMsg.contains("401") || errorMsg.contains("Unauthorized", ignoreCase = true)
+
+                if (is401 && !renewalAttemptedThisSession) {
+                    renewalAttemptedThisSession = true
+                    android.util.Log.w("DashboardViewModel", "Received 401, attempting token renewal")
+
+                    viewModelScope.launch {
+                        val renewed = com.example.whisperandroid.data.auth.AuthStateManager.renewTokenIfNeeded()
+                        if (renewed) {
+                            android.util.Log.w("DashboardViewModel", "Token renewed, retrying fetchDevices")
+                            fetchDevices(force = true)
+                        } else {
+                            android.util.Log.e("DashboardViewModel", "Token renewal failed, redirecting to auth")
+                            onNavigateToAuth()
+                        }
+                    }
+                } else if (is401) {
+                    // Already attempted renewal this session, just redirect
+                    android.util.Log.w("DashboardViewModel", "401 after renewal attempt, redirecting to auth")
+                    onNavigateToAuth()
+                } else {
+                    // Keep non-blocking behavior: UI can continue even when sync fails.
+                    NetworkModule.setTuyaSyncReady(true)
+                    _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to sync devices")
+                    android.util.Log.e("DashboardViewModel", "Failed to sync devices", e)
+                }
             }
         }
     }
