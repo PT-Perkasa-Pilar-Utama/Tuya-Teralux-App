@@ -172,7 +172,7 @@ class MeetingForegroundService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun handleCancel() {
+    private suspend fun handleCancel() {
         // Cancel the processing job immediately
         processingJob?.cancel()
         processingJob = null

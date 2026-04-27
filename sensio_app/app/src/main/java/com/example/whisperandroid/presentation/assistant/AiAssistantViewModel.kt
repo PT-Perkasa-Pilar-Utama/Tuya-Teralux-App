@@ -597,19 +597,73 @@ class AiAssistantViewModel(
                 activeTimingLogger?.markStep("send_chat_invoked")
                 activeTimingLogger?.markStep("request_id_assigned")
 
-                val publishStartMs = System.currentTimeMillis()
-                activeTimingLogger?.markStep("mqtt_publish_started")
-                val result = mqttHelper.publishChat(text, selectedLanguage, requestId)
-                val publishDurationMs = System.currentTimeMillis() - publishStartMs
+                val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+                val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
+                val token = tm.getAccessToken()
+                val terminalId = tm.getTerminalId() ?: username
 
-                if (result.isSuccess) {
-                    activeTimingLogger?.markStep("mqtt_publish_success", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                    activeTimingLogger?.logDelta("mqtt_publish_started", "mqtt_publish_success", mapOf("metric" to "publish_duration"))
-                    startResponseTimeout(requestId)
-                } else {
-                    activeTimingLogger?.markStep("mqtt_publish_failed", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                    completeWithServiceIssue(requestId, "mqtt_publish_fail")
-                    android.util.Log.e("AiAssistantViewModel", "publishChat failed")
+                if (token == null) {
+                    activeTimingLogger?.markStep("http_chat_failed", mapOf("reason" to "auth_error"))
+                    failRequest(requestId, "Authentication error: Token missing")
+                    return@launch
+                }
+
+                activeTimingLogger?.markStep("http_chat_started")
+                val httpChatStartMs = System.currentTimeMillis()
+
+                com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
+                    prompt = text,
+                    language = selectedLanguage,
+                    terminalId = terminalId,
+                    uid = username,
+                    token = token,
+                    requestId = requestId,
+                    idempotencyKey = requestId
+                ).collect { resource ->
+                    if (activeRequestId != requestId) return@collect
+                    when (resource) {
+                        is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                            val httpChatDurationMs = System.currentTimeMillis() - httpChatStartMs
+                            val data = resource.data
+                            if (data != null) {
+                                val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
+                                if (parsedResult.isDupInProgress) {
+                                    activeTimingLogger?.markStep("http_chat_in_progress", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
+                                    android.util.Log.d("AiAssistantViewModel", "HTTP Chat: Request in progress, starting bounded retry")
+                                    launchBoundedRetryForInProgress(
+                                        requestId = requestId,
+                                        text = text,
+                                        selectedLanguage = selectedLanguage,
+                                        terminalId = terminalId,
+                                        username = username,
+                                        token = token,
+                                        fallbackIdempotencyKey = requestId,
+                                        httpChatStartMs = httpChatStartMs
+                                    )
+                                } else if (parsedResult.isDupCached) {
+                                    activeTimingLogger?.markStep("http_chat_dup_drop", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
+                                    android.util.Log.d("AiAssistantViewModel", "HTTP Chat: Silent completion for cached duplicate")
+                                    completeRequest(requestId, null, null, "http_dup")
+                                } else {
+                                    activeTimingLogger?.markStep("http_chat_success", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
+                                    handleHttpChatResponse(parsedResult, requestId)
+                                }
+                            } else {
+                                activeTimingLogger?.markStep("http_chat_failed", mapOf("reason" to "null_data"))
+                                failRequest(requestId, "Invalid response")
+                            }
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                            activeTimingLogger?.markStep("http_chat_error", mapOf("error" to (resource.message ?: "unknown")))
+                            val errorMsg = resource.message
+                            if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
+                                completeRequest(requestId, errorMsg, null, "http_error_msg")
+                            } else {
+                                completeWithServiceIssue(requestId, "http_chat_error")
+                            }
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                    }
                 }
             }
         }
@@ -664,20 +718,54 @@ class AiAssistantViewModel(
                 transitionTo(AssistantState.Processing, "stopRecording(valid)")
                 val requestId = activeRequestId
                 viewModelScope.launch {
-                    val publishStartMs = System.currentTimeMillis()
-                    activeTimingLogger?.markStep("mqtt_publish_started")
-                    val bytes = file.readBytes()
-                    val result = mqttHelper.publishAudio(bytes, selectedLanguage, requestId)
-                    val publishDurationMs = System.currentTimeMillis() - publishStartMs
+                    val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+                    val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
+                    val token = tm.getAccessToken()
+                    val terminalId = tm.getTerminalId() ?: username
+                    val macAddress = tm.getMacAddress() ?: username
 
-                    if (result.isSuccess) {
-                        activeTimingLogger?.markStep("mqtt_publish_success", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                        activeTimingLogger?.logDelta("mqtt_publish_started", "mqtt_publish_success", mapOf("metric" to "publish_duration"))
-                        startResponseTimeout(requestId)
-                    } else {
-                        activeTimingLogger?.markStep("mqtt_publish_failed", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                        completeWithServiceIssue(requestId, "mqtt_audio_publish_fail")
-                        android.util.Log.e("AiAssistantViewModel", "publishAudio failed")
+                    if (token == null) {
+                        activeTimingLogger?.markStep("http_transcribe_failed", mapOf("reason" to "auth_error"))
+                        failRequest(requestId, "Authentication error: Token missing")
+                        return@launch
+                    }
+
+                    activeTimingLogger?.markStep("http_transcribe_started")
+                    val transcribeAudioUseCase =
+                        com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase
+                    val httpTranscribeStartMs = System.currentTimeMillis()
+                    transcribeAudioUseCase.initiate(
+                        audioFile = file,
+                        token = token,
+                        language = selectedLanguage,
+                        macAddress = macAddress,
+                        idempotencyKey = requestId ?: ""
+                    ).collect { result ->
+                        if (activeRequestId != requestId) return@collect
+                        when (result) {
+                            is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                                val httpTranscribeDurationMs = System.currentTimeMillis() - httpTranscribeStartMs
+                                val taskId = result.data
+                                if (taskId != null) {
+                                    activeTimingLogger?.markStep("http_transcribe_success", mapOf("task_id" to taskId, "http_transcribe_duration_ms" to httpTranscribeDurationMs.toString()))
+                                    pollHttpTranscription(
+                                        taskId,
+                                        requestId ?: "",
+                                        token,
+                                        terminalId,
+                                        requestId ?: ""
+                                    )
+                                } else {
+                                    activeTimingLogger?.markStep("http_transcribe_failed", mapOf("reason" to "null_task_id"))
+                                    failRequest(requestId, "Audio trigger failed")
+                                }
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                activeTimingLogger?.markStep("http_transcribe_error", mapOf("error" to (result.message ?: "unknown")))
+                                completeWithServiceIssue(requestId, "http_transcribe_error")
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                        }
                     }
                 }
             } else {
