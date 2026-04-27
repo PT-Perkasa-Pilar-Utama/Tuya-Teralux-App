@@ -59,7 +59,9 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     bootstrapViewModel: AppBootstrapViewModel = viewModel {
         AppBootstrapViewModel(
-            NetworkModule.authenticateUseCase
+            NetworkModule.authenticateUseCase,
+            NetworkModule.terminalRepository,
+            NetworkModule.tokenManager
         )
     }
 ) {
@@ -107,7 +109,9 @@ fun MainScreen(
 
     // App Navigation & Overlay
     val token = remember { NetworkModule.tokenManager.getAccessToken() }
-    val startDestination = if (token != null) AppRoutes.Dashboard.route else AppRoutes.Register.route
+    val startDestination = if (bootstrapState.shouldRedirectToRegister) AppRoutes.Register.route
+        else if (token != null) AppRoutes.Dashboard.route
+        else AppRoutes.Register.route
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
