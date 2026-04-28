@@ -161,6 +161,13 @@ class MqttHelper(
             return
         }
 
+        // Guard: Block connection if MAC address is not registered
+        val macAddress = tokenManager.getMacAddress()
+        if (macAddress.isNullOrEmpty()) {
+            Log.w(tag, "MQTT connect blocked: MAC address not registered")
+            return
+        }
+
         if (!isNetworkAvailable()) {
             Log.w(tag, "No internet connection available. Skipping MQTT connect.")
             _connectionStatus.value = MqttConnectionStatus.NO_INTERNET

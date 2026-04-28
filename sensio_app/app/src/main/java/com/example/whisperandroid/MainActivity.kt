@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.navigation.AppRoutes
+import com.example.whisperandroid.presentation.auth.AuthScreen
 import com.example.whisperandroid.presentation.bootstrap.AppBootstrapViewModel
 import com.example.whisperandroid.presentation.dashboard.DashboardScreen
 import com.example.whisperandroid.presentation.register.RegisterScreen
@@ -119,100 +120,122 @@ fun MainScreen(
     val token = remember { NetworkModule.tokenManager.getAccessToken() }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (bootstrapState.isBootstrapped) {
-            val startDestination = if (bootstrapState.shouldRedirectToRegister) AppRoutes.Register.route
-                else if (token != null) AppRoutes.Dashboard.route
-                else AppRoutes.Register.route
-
-            NavHost(
-                navController = navController,
-                startDestination = startDestination
-            ) {
-            composable(AppRoutes.Register.route) {
-                RegisterScreen(onNavigateToDashboard = {
-                    navController.navigate(AppRoutes.Dashboard.route) {
-                        popUpTo(AppRoutes.Register.route) { inclusive = true }
-                    }
-                })
-            }
-
-            composable(AppRoutes.Dashboard.route) {
-                DashboardScreen(
+        NavHost(
+            navController = navController,
+            startDestination = AppRoutes.Auth.route
+        ) {
+            composable(AppRoutes.Auth.route) {
+                AuthScreen(
                     onNavigateToRegister = {
                         navController.navigate(AppRoutes.Register.route) {
-                            popUpTo(AppRoutes.Dashboard.route) { inclusive = true }
+                            popUpTo(AppRoutes.Auth.route) { inclusive = true }
                         }
                     },
-                    onNavigateToUpload = { },
-                    onNavigateToStreaming = {
-                        if (!bootstrapState.isBootstrapped) {
-                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
-                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
-                            navController.navigate(AppRoutes.Meeting.route)
+                    onNavigateToDashboard = {
+                        navController.navigate(AppRoutes.Dashboard.route) {
+                            popUpTo(AppRoutes.Auth.route) { inclusive = true }
                         }
-                    },
-                    onNavigateToEdge = {
-                        if (!bootstrapState.isBootstrapped) {
-                            Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
-                        } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
-                            navController.navigate(AppRoutes.Assistant.route)
-                        }
-                    },
-                    bootstrapViewModel = bootstrapViewModel
+                    }
                 )
             }
 
-            composable(AppRoutes.Meeting.route) {
-                LaunchedEffect(backgroundModeEnabled) {
-                    if (backgroundModeEnabled) {
-                        Toast.makeText(context, "Feature disabled in Background Mode", Toast.LENGTH_SHORT).show()
+            if (bootstrapState.isBootstrapped) {
+                composable(AppRoutes.Register.route) {
+                    RegisterScreen(onNavigateToDashboard = {
                         navController.navigate(AppRoutes.Dashboard.route) {
-                            popUpTo(AppRoutes.Meeting.route) { inclusive = true }
+                            popUpTo(AppRoutes.Register.route) { inclusive = true }
                         }
+                    })
+                }
+
+                composable(AppRoutes.Dashboard.route) {
+                    DashboardScreen(
+                        onNavigateToRegister = {
+                            navController.navigate(AppRoutes.Register.route) {
+                                popUpTo(AppRoutes.Dashboard.route) { inclusive = true }
+                            }
+                        },
+                        onNavigateToUpload = { },
+                        onNavigateToStreaming = {
+                            if (!bootstrapState.isBootstrapped) {
+                                Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
+                            } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                                navController.navigate(AppRoutes.Meeting.route)
+                            }
+                        },
+                        onNavigateToEdge = {
+                            if (!bootstrapState.isBootstrapped) {
+                                Toast.makeText(context, "Syncing devices, please wait...", Toast.LENGTH_SHORT).show()
+                            } else if (FeatureAvailabilityGuard.canOpenInteractiveScreens(backgroundModeEnabled)) {
+                                navController.navigate(AppRoutes.Assistant.route)
+                            }
+                        },
+                        bootstrapViewModel = bootstrapViewModel
+                    )
+                }
+
+                composable(AppRoutes.Meeting.route) {
+                    LaunchedEffect(backgroundModeEnabled) {
+                        if (backgroundModeEnabled) {
+                            Toast.makeText(context, "Feature disabled in Background Mode", Toast.LENGTH_SHORT).show()
+                            navController.navigate(AppRoutes.Dashboard.route) {
+                                popUpTo(AppRoutes.Meeting.route) { inclusive = true }
+                            }
+                        }
+                    }
+
+                    if (!backgroundModeEnabled) {
+                        com.example.whisperandroid.presentation.meeting.MeetingTranscriberScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
                     }
                 }
 
-                if (!backgroundModeEnabled) {
-                    com.example.whisperandroid.presentation.meeting.MeetingTranscriberScreen(
-                        onNavigateBack = { navController.popBackStack() }
-                    )
-                }
-            }
-
-            composable(AppRoutes.Assistant.route) {
-                LaunchedEffect(backgroundModeEnabled) {
-                    if (backgroundModeEnabled) {
-                        Toast.makeText(context, "Feature disabled in Background Mode", Toast.LENGTH_SHORT).show()
-                        navController.navigate(AppRoutes.Dashboard.route) {
-                            popUpTo(AppRoutes.Assistant.route) { inclusive = true }
+                composable(AppRoutes.Assistant.route) {
+                    LaunchedEffect(backgroundModeEnabled) {
+                        if (backgroundModeEnabled) {
+                            Toast.makeText(context, "Feature disabled in Background Mode", Toast.LENGTH_SHORT).show()
+                            navController.navigate(AppRoutes.Dashboard.route) {
+                                popUpTo(AppRoutes.Assistant.route) { inclusive = true }
+                            }
                         }
                     }
-                }
 
-                if (!backgroundModeEnabled) {
-                    com.example.whisperandroid.presentation.assistant.AiAssistantScreen(
-                        onNavigateBack = { navController.popBackStack() }
-                    )
+                    if (!backgroundModeEnabled) {
+                        com.example.whisperandroid.presentation.assistant.AiAssistantScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
-            }
-        } else {
+        }
+
+        // Only show bootstrap loading/error overlay when NOT on AuthScreen
+        // AuthScreen has its own loading state and handles its own MAC check
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+        if (!bootstrapState.isBootstrapped && currentRoute != AppRoutes.Auth.route) {
             if (bootstrapState.error != null) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = bootstrapState.error ?: "Unknown error",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    androidx.compose.material3.Button(
-                        onClick = { bootstrapViewModel.bootstrap(forceRetry = true) }
+                if (bootstrapState.shouldRedirectToRegister) {
+                    LaunchedEffect(bootstrapState.shouldRedirectToRegister) {
+                        navController.navigate(AppRoutes.Register.route)
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
                     ) {
-                        Text("Retry")
+                        Text(
+                            text = bootstrapState.error ?: "Unknown error",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        androidx.compose.material3.Button(
+                            onClick = { bootstrapViewModel.bootstrap(forceRetry = true) }
+                        ) {
+                            Text("Retry")
+                        }
                     }
                 }
             } else {
