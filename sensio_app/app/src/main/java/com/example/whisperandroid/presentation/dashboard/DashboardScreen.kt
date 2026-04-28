@@ -60,6 +60,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
 import com.example.whisperandroid.util.DeviceUtils
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -230,6 +231,15 @@ fun DashboardScreen(
     }
 
     var wasBackgroundModeEnabled by remember { mutableStateOf(uiState.isBackgroundModeEnabled) }
+    var hasShownBackgroundToast by remember { mutableStateOf(false) }
+    var clickCount by remember { mutableStateOf(0) }
+
+    androidx.compose.runtime.LaunchedEffect(clickCount) {
+        if (clickCount > 0) {
+            delay(2000)
+            clickCount = 0
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -269,7 +279,10 @@ fun DashboardScreen(
     }
 
     androidx.compose.runtime.LaunchedEffect(uiState.isBackgroundModeEnabled) {
-        if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled) {
+        if (uiState.isBackgroundModeEnabled) {
+            hasShownBackgroundToast = false
+        }
+        if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled && !hasShownBackgroundToast) {
             val currentMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                 context,
                 android.Manifest.permission.RECORD_AUDIO
@@ -279,6 +292,7 @@ fun DashboardScreen(
                     message = "Background Assistant turned off because microphone permission is disabled.",
                     duration = androidx.compose.material3.SnackbarDuration.Long
                 )
+                hasShownBackgroundToast = true
             }
         }
         wasBackgroundModeEnabled = uiState.isBackgroundModeEnabled

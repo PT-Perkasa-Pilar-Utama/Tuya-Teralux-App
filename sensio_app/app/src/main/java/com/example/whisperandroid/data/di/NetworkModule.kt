@@ -81,7 +81,12 @@ object NetworkModule {
             .build()
     }
 
-    lateinit var tokenManager: com.example.whisperandroid.data.local.TokenManager
+    val tokenManager: com.example.whisperandroid.data.local.TokenManager by lazy {
+        if (!::appContext.isInitialized) {
+            throw IllegalStateException("NetworkModule not initialized. Call init(context) first.")
+        }
+        com.example.whisperandroid.data.local.TokenManager(appContext)
+    }
     lateinit var mqttHelper: com.example.whisperandroid.util.MqttHelper
     lateinit var backgroundAssistantModeStore: com.example.whisperandroid.data.local.BackgroundAssistantModeStore
 
@@ -106,9 +111,6 @@ object NetworkModule {
     fun init(context: android.content.Context) {
         if (::appContext.isInitialized) return
         appContext = context.applicationContext
-        tokenManager =
-            com.example.whisperandroid.data.local
-                .TokenManager(appContext)
         mqttHelper = com.example.whisperandroid.util.MqttHelper(appContext)
         backgroundAssistantModeStore = com.example.whisperandroid.data.local.BackgroundAssistantModeStore(appContext)
 

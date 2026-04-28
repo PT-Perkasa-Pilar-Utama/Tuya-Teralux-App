@@ -2,11 +2,14 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
+
+const maxSegments = 1000
 
 // AudioSegment represents a split portion of an audio file.
 type AudioSegment struct {
@@ -38,6 +41,11 @@ func SplitAudioSegments(inputPath string, segmentSec int, overlapSec int) ([]Aud
 	for {
 		outPath := filepath.Join(outDir, fmt.Sprintf("seg_%03d%s", index, ext))
 
+		if index >= maxSegments {
+			log.Printf("warning: segment limit reached at index %d, stopping", index)
+			break
+		}
+
 		// Calculate start and duration based on segmentSec and overlapSec
 		start := float64(index * segmentSec)
 		if index > 0 {
@@ -45,6 +53,10 @@ func SplitAudioSegments(inputPath string, segmentSec int, overlapSec int) ([]Aud
 		}
 		if start < 0 {
 			start = 0
+		}
+
+		if start >= totalDuration {
+			break
 		}
 
 		duration := float64(segmentSec)
@@ -77,9 +89,6 @@ func SplitAudioSegments(inputPath string, segmentSec int, overlapSec int) ([]Aud
 		})
 
 		index++
-		if float64(index*segmentSec) >= totalDuration {
-			break
-		}
 	}
 
 	return segments, nil
