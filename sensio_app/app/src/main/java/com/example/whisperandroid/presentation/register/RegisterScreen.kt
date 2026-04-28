@@ -67,7 +67,6 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
             RegisterViewModel(
                 application,
                 NetworkModule.registerUseCase,
-                NetworkModule.getTerminalByMacUseCase,
                 NetworkModule.authenticateUseCase
             )
         }
@@ -167,7 +166,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         Box(
                             modifier = Modifier
                                 .testTag("register_logo")
-                                .clickable { viewModel.checkRegistration() }
+                                .clickable { }
                         ) {
                             SensioLogo()
                         }
@@ -226,7 +225,7 @@ fun RegisterScreen(onNavigateToDashboard: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .testTag("register_logo")
-                            .clickable { viewModel.checkRegistration() }
+                            .clickable { }
                     ) {
                         SensioLogo()
                     }
