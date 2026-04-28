@@ -287,8 +287,7 @@ class AiAssistantViewModel(
             }
         }
 
-        // Auto-connect when the ViewModel is initialized
-        reconnectMqtt()
+        // MQTT connection is handled by Foreground Service, not ViewModel
     }
 
     fun reconnectMqtt() {

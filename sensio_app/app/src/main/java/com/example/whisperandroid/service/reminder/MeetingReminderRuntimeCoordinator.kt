@@ -55,15 +55,15 @@ class MeetingReminderRuntimeCoordinator(
         // Restore pending reminders on startup
         restorePendingReminders()
 
-        // Listen to MQTT messages and ensure connection before subscribing
-        scope.launch {
-            // Wait for MQTT connection with retry logic
-            val connected = waitForMqttConnection()
-            if (!connected) {
-                Log.e(tag, "Failed to establish MQTT connection after retries, proceeding to subscribe so topic is tracked")
-            }
+        // MQTT connection is now managed by Foreground Service
+        // Check connection status and log warning if not connected
+        if (mqttHelper.connectionStatus.value != com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED) {
+            Log.w(tag, "MQTT not yet connected, topic subscription will activate when connection is established")
+        }
 
-            // Subscribe to the topic
+        // Listen to MQTT messages
+        scope.launch {
+            // Subscribe to the topic (MQTT should already be connected via service)
             mqttHelper.subscribe(notificationTopic!!)
 
             // Collect messages
