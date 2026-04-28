@@ -1,6 +1,7 @@
 package com.example.whisperandroid.presentation.dashboard
 
 import android.provider.Settings
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,12 +52,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.example.whisperandroid.R
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
 import com.example.whisperandroid.util.DeviceUtils
@@ -455,29 +458,47 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(top = DashboardLayoutTokens.Spacing24)
+private fun DashboardHeader(
+    onSensioIconClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = DashboardLayoutTokens.Spacing24),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Select Workspace",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-0.5).sp
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.testTag("dashboard_header")
+        // Sensio icon at POJOK KIRI (top-left corner)
+        Image(
+            painter = painterResource(id = R.drawable.sensio_icon),
+            contentDescription = "Sensio",
+            modifier = Modifier
+                .size(48.dp)
+                .clickable(onClick = onSensioIconClick)
         )
-        Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing8))
-        Text(
-            text = "Choose your AI-powered environment",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center
-        )
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Select Workspace",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.testTag("dashboard_header")
+            )
+            Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing8))
+            Text(
+                text = "Choose your AI-powered environment",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
