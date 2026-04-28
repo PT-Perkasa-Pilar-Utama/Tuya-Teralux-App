@@ -6,8 +6,16 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -109,15 +117,17 @@ fun MainScreen(
 
     // App Navigation & Overlay
     val token = remember { NetworkModule.tokenManager.getAccessToken() }
-    val startDestination = if (bootstrapState.shouldRedirectToRegister) AppRoutes.Register.route
-        else if (token != null) AppRoutes.Dashboard.route
-        else AppRoutes.Register.route
 
     Box(modifier = Modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = startDestination
-        ) {
+        if (bootstrapState.isBootstrapped) {
+            val startDestination = if (bootstrapState.shouldRedirectToRegister) AppRoutes.Register.route
+                else if (token != null) AppRoutes.Dashboard.route
+                else AppRoutes.Register.route
+
+            NavHost(
+                navController = navController,
+                startDestination = startDestination
+            ) {
             composable(AppRoutes.Register.route) {
                 RegisterScreen(onNavigateToDashboard = {
                     navController.navigate(AppRoutes.Dashboard.route) {
@@ -182,6 +192,40 @@ fun MainScreen(
                 if (!backgroundModeEnabled) {
                     com.example.whisperandroid.presentation.assistant.AiAssistantScreen(
                         onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            }
+        } else {
+            if (bootstrapState.error != null) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = bootstrapState.error ?: "Unknown error",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    androidx.compose.material3.Button(
+                        onClick = { bootstrapViewModel.bootstrap(forceRetry = true) }
+                    ) {
+                        Text("Retry")
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Checking device...",
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
