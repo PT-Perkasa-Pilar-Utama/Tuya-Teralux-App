@@ -1,6 +1,7 @@
 package com.example.whisperandroid.presentation.dashboard
 
 import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -301,6 +302,13 @@ fun DashboardScreen(
         wasBackgroundModeEnabled = uiState.isBackgroundModeEnabled
     }
 
+    androidx.compose.runtime.LaunchedEffect(uiState.toastMessage) {
+        uiState.toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.clearToastMessage()
+        }
+    }
+
     androidx.compose.material3.Scaffold(
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent,
@@ -418,7 +426,9 @@ fun DashboardScreen(
                         isSavingAiProvider = uiState.isSavingAiProvider,
                         onAiProviderChange = { provider ->
                             viewModel.updateAiProvider(provider)
-                        }
+                        },
+                        isFlushing = uiState.isFlushing,
+                        onSensioIconClick = { viewModel.flushCache() }
                     )
                 }
             } else if (bootstrapState.error != null) {
@@ -459,6 +469,7 @@ fun DashboardScreen(
 
 @Composable
 private fun DashboardHeader(
+    isFlushing: Boolean = false,
     onSensioIconClick: () -> Unit = {}
 ) {
     Row(
@@ -471,9 +482,16 @@ private fun DashboardHeader(
         Image(
             painter = painterResource(id = R.drawable.sensio_icon),
             contentDescription = "Sensio",
+            alpha = if (isFlushing) 0.5f else 1f,
             modifier = Modifier
                 .size(48.dp)
-                .clickable(onClick = onSensioIconClick)
+                .then(
+                    if (!isFlushing) {
+                        Modifier.clickable(onClick = onSensioIconClick)
+                    } else {
+                        Modifier
+                    }
+                )
         )
 
         Column(
@@ -1126,7 +1144,9 @@ fun DashboardContent(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String? = null,
     isSavingAiProvider: Boolean = false,
-    onAiProviderChange: (String?) -> Unit = {}
+    onAiProviderChange: (String?) -> Unit = {},
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     val layoutSpec = rememberDashboardLayoutSpec()
 
@@ -1142,7 +1162,9 @@ fun DashboardContent(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
         DashboardDeviceClass.TABLET -> DashboardTabletLayout(
             layoutSpec = layoutSpec,
@@ -1155,7 +1177,9 @@ fun DashboardContent(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
         DashboardDeviceClass.TERALUX -> DashboardTeraluxLayout(
             layoutSpec = layoutSpec,
@@ -1168,7 +1192,9 @@ fun DashboardContent(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
     }
 }
@@ -1188,7 +1214,9 @@ private fun DashboardPhoneLayout(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String?,
     isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    onAiProviderChange: (String?) -> Unit,
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -1270,7 +1298,9 @@ private fun DashboardTabletLayout(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String?,
     isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    onAiProviderChange: (String?) -> Unit,
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     val contentModifier =
         if (layoutSpec.isScrollable) {
@@ -1282,12 +1312,15 @@ private fun DashboardTabletLayout(
             Modifier.fillMaxSize().padding(horizontal = layoutSpec.outerHorizontalPadding)
         }
 
-    Column(
+Column(
         modifier = contentModifier.widthIn(max = layoutSpec.contentMaxWidth),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
     ) {
-        DashboardHeader()
+        DashboardHeader(
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
+        )
 
         BackgroundAssistantCard(
             isEnabled = isBackgroundModeEnabled,
@@ -1321,11 +1354,6 @@ private fun DashboardTabletLayout(
             )
         }
 
-        // Footer spacer: only effective in non-scrollable layouts
-        if (!layoutSpec.isScrollable) {
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
         // Footer
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1349,8 +1377,7 @@ private fun DashboardTabletLayout(
 }
 
 /**
- * Teralux layout: landscape-first, two-panel composition with control content on left
- * and workspace features on right. Falls back to stacked layout for portrait/narrow.
+ * Teralux layout: landscape-first, wide content, two-panel layout.
  */
 @Composable
 private fun DashboardTeraluxLayout(
@@ -1364,7 +1391,9 @@ private fun DashboardTeraluxLayout(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String?,
     isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    onAiProviderChange: (String?) -> Unit,
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     // Fallback to stacked layout for portrait or narrow width
     if (!layoutSpec.isLandscape || layoutSpec.availableWidth < 800.dp) {
@@ -1379,7 +1408,9 @@ private fun DashboardTeraluxLayout(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
         return
     }
@@ -1403,11 +1434,14 @@ private fun DashboardTeraluxLayout(
         Column(
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
-        ) {
-            DashboardHeader()
+verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
+    ) {
+        DashboardHeader(
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
+        )
 
-            BackgroundAssistantCard(
+        BackgroundAssistantCard(
                 isEnabled = isBackgroundModeEnabled,
                 isOverlayPermissionGranted = isOverlayPermissionGranted,
                 onEnabledChange = onBackgroundModeChange,
