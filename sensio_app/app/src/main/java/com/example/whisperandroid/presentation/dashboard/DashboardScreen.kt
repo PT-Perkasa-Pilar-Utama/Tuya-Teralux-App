@@ -1227,7 +1227,10 @@ private fun DashboardPhoneLayout(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
     ) {
-        DashboardHeader()
+        DashboardHeader(
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
+        )
 
         BackgroundAssistantCard(
             isEnabled = isBackgroundModeEnabled,
