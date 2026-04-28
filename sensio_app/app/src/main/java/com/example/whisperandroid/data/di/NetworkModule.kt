@@ -236,7 +236,6 @@ object NetworkModule {
         com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase(
             pipelineRepository,
             uploadRepository,
-            mqttHelper,
             prefs
         )
     }
