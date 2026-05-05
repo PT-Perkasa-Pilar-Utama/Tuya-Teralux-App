@@ -227,9 +227,9 @@ func TestGetOrCreateMQTTCredentials_ValidationError_EmptyMac(t *testing.T) {
 	invalidMacAddresses := []string{
 		"",
 		"invalid",
-		"AA:BB:CC:DD:EE",        // incomplete
-		"GG:HH:II:JJ:KK:LL",    // invalid hex
-		"AA-BB-CC-DD-EE-FF",    // wrong separator
+		"AA:BB:CC:DD:EE",    // incomplete
+		"GG:HH:II:JJ:KK:LL", // invalid hex
+		"AA-BB-CC-DD-EE-FF", // wrong separator
 	}
 
 	for _, mac := range invalidMacAddresses {

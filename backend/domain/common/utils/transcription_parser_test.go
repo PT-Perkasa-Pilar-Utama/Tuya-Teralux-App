@@ -11,14 +11,14 @@ import (
 
 func TestParseUtterancesFromText(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		wantLen     int
-		wantNil     bool
-		wantErr     bool
-		checkFirst  bool
+		name         string
+		input        string
+		wantLen      int
+		wantNil      bool
+		wantErr      bool
+		checkFirst   bool
 		firstSpeaker string
-		firstText   string
+		firstText    string
 	}{
 		{
 			name:    "empty string returns nil",
@@ -36,60 +36,60 @@ func TestParseUtterancesFromText(t *testing.T) {
 			wantNil: true,
 		},
 		{
-			name:       "single speaker bracket format",
-			input:      "[Speaker 1]: Hello world",
-			wantLen:    1,
-			checkFirst: true,
+			name:         "single speaker bracket format",
+			input:        "[Speaker 1]: Hello world",
+			wantLen:      1,
+			checkFirst:   true,
 			firstSpeaker: "Speaker 1",
-			firstText:   "Hello world",
+			firstText:    "Hello world",
 		},
 		{
-			name:       "single speaker with colon - BUG: returns Unknown (alternation captures wrong group)",
-			input:      "Speaker 1: Hello world",
-			wantLen:    1,
-			checkFirst: true,
+			name:         "single speaker with colon - BUG: returns Unknown (alternation captures wrong group)",
+			input:        "Speaker 1: Hello world",
+			wantLen:      1,
+			checkFirst:   true,
 			firstSpeaker: "Unknown", // Bug: code reads match[2] but alternation puts group at match[6]
-			firstText:   "Hello world",
+			firstText:    "Hello world",
 		},
 		{
-			name:       "multiple speakers",
-			input:      "[Speaker 1]: Hello [Speaker 2]: Hi there",
-			wantLen:    2,
-			checkFirst: true,
+			name:         "multiple speakers",
+			input:        "[Speaker 1]: Hello [Speaker 2]: Hi there",
+			wantLen:      2,
+			checkFirst:   true,
 			firstSpeaker: "Speaker 1",
-			firstText:   "Hello",
+			firstText:    "Hello",
 		},
 		{
-			name:       "speaker with letter label - BUG: returns Unknown",
-			input:      "[Speaker A]: Hello",
-			wantLen:    1,
-			checkFirst: true,
+			name:         "speaker with letter label - BUG: returns Unknown",
+			input:        "[Speaker A]: Hello",
+			wantLen:      1,
+			checkFirst:   true,
 			firstSpeaker: "Unknown", // Bug: code reads match[2] but [A-Za-z]+ captures at match[4]
-			firstText:   "Hello",
+			firstText:    "Hello",
 		},
 		{
-			name:       "speaker with letter label no brackets - BUG: returns Unknown",
-			input:      "Speaker A: Hello",
-			wantLen:    1,
-			checkFirst: true,
+			name:         "speaker with letter label no brackets - BUG: returns Unknown",
+			input:        "Speaker A: Hello",
+			wantLen:      1,
+			checkFirst:   true,
 			firstSpeaker: "Unknown", // Bug: alternation captures wrong group
-			firstText:   "Hello",
+			firstText:    "Hello",
 		},
 		{
-			name:       "speaker labels with spaces",
-			input:      "[Speaker   1]: Hello",
-			wantLen:    1,
-			checkFirst: true,
+			name:         "speaker labels with spaces",
+			input:        "[Speaker   1]: Hello",
+			wantLen:      1,
+			checkFirst:   true,
 			firstSpeaker: "Speaker 1",
-			firstText:   "Hello",
+			firstText:    "Hello",
 		},
 		{
-			name:       "Speaker with colon format - BUG: returns Unknown",
-			input:      "Speaker 2: How are you?",
-			wantLen:    1,
-			checkFirst: true,
+			name:         "Speaker with colon format - BUG: returns Unknown",
+			input:        "Speaker 2: How are you?",
+			wantLen:      1,
+			checkFirst:   true,
 			firstSpeaker: "Unknown", // Bug: alternation captures wrong group
-			firstText:   "How are you?",
+			firstText:    "How are you?",
 		},
 		{
 			name:    "generic name pattern NOT recognized (Agenda:)",
@@ -151,8 +151,8 @@ func TestParseUtterancesFromText_Timing(t *testing.T) {
 		{
 			name:         "timing estimation works",
 			input:        "[Speaker 1]: Hello",
-			checkTiming:   true,
-			firstStartMs: 0, // match[0][0] is 0
+			checkTiming:  true,
+			firstStartMs: 0,    // match[0][0] is 0
 			firstEndMs:   1900, // len("Hello") * 100
 		},
 	}
@@ -211,10 +211,10 @@ func TestParseUtterancesFromText_EmptyTextBetweenLabels(t *testing.T) {
 
 func TestFindOverlapLength(t *testing.T) {
 	tests := []struct {
-		name     string
-		prev     string
-		curr     string
-		want     int
+		name string
+		prev string
+		curr string
+		want int
 	}{
 		{
 			name: "empty prev returns 0",
@@ -276,7 +276,7 @@ func TestFindOverlapLength(t *testing.T) {
 			curr: "world today hello",
 			want: 0,
 		},
-{
+		{
 			name: "last 5 words match",
 			prev: "word1 word2 word3 word4 word5 word6 word7",
 			curr: "word3 word4 word5 word6 word7 word8",

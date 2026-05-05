@@ -11,12 +11,12 @@ import (
 
 // SyncWorker handles synchronization of pending passwords with devices
 type SyncWorker struct {
-	passwordRepo       *tuya.PasswordRepository
+	passwordRepo        *tuya.PasswordRepository
 	pendingPasswordRepo *sqlite.PendingPasswordRepository
-	deviceService      DeviceService
-	interval           time.Duration
-	stopChan           chan struct{}
-	logger             *log.Logger
+	deviceService       DeviceService
+	interval            time.Duration
+	stopChan            chan struct{}
+	logger              *log.Logger
 }
 
 // DeviceService defines the interface for device operations

@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -37,10 +38,10 @@ type TuyaDevicesResponse struct {
 	Code    int    `json:"code"`
 	Msg     string `json:"msg"`
 	Result  []struct {
-		ID       string `json:"id"`
-		Name     string `json:"name"`
-		Category string `json:"category"`
-		Online   bool   `json:"online"`
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		Category  string `json:"category"`
+		Online    bool   `json:"online"`
 		GatewayID string `json:"gateway_id"`
 	} `json:"result"`
 }
@@ -139,7 +140,7 @@ func getDevices(config *Config, accessToken string) error {
 		if !dev.Online {
 			status = "🔴 OFFLINE"
 		}
-		fmt.Printf("   [%d] %s | ID: %s | Category: %s | Gateway: %s\n", 
+		fmt.Printf("   [%d] %s | ID: %s | Category: %s | Gateway: %s\n",
 			i+1, status, dev.ID, dev.Category, dev.GatewayID)
 	}
 
@@ -207,7 +208,7 @@ func main() {
 	fmt.Println("==============================\n")
 
 	config := loadConfig()
-	
+
 	if config.TuyaClientID == "" {
 		fmt.Println("❌ Error: TUYA_CLIENT_ID not set")
 		os.Exit(1)

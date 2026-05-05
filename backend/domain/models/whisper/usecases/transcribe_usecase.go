@@ -223,8 +223,8 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 	if idempotencyHash != "" {
 		// Store the mapping from idempotency hash to task ID
 		if err := uc.cache.Set(idempotencyHash, taskID); err != nil {
-		log.Printf("Cache set error for idempotencyHash %s: %v", idempotencyHash, err)
-	}
+			log.Printf("Cache set error for idempotencyHash %s: %v", idempotencyHash, err)
+		}
 	}
 
 	// Mark terminal as actively transcribing if applicable
