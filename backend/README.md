@@ -8,7 +8,7 @@ Backend service for the Sensio application, built with Go.
 
 - **Go** (for execution and development)
 - **Air** (for hot reload during development)
-- **Docker** & **Docker Compose** (for production deployment only)
+- **Docker** with **Docker Compose v2** (`docker compose`) for local containers and production deployment
 - **Make** (standardized command runner)
 
 ### Setup
@@ -140,10 +140,11 @@ _Alternatively: `go run main.go`_
 To run with hot reload enabled (uses [Air](https://github.com/air-verse/air)):
 
 ```bash
+docker compose version
 make dev
 ```
 
-_Note: If `air` is not installed, the command will attempt to install it for you. You can also manually install it with `make install-watch`._
+_Note: `make dev` requires Docker Compose v2 (`docker compose`) because it starts the development MySQL container before launching Air. If `air` is not installed, the command will attempt to install it for you. You can also manually install it with `make install-watch`._
 
 ---
 

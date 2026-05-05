@@ -11,7 +11,7 @@ Before proceeding, ensure you have the following installed on your system:
 *   **Make** (for executing build commands)
 *   **Android Studio** (for Android development)
 *   **Java Development Kit (JDK) 17** (required for Android build)
-*   **Docker & Docker Compose** (for production deployment only)
+*   **Docker** with **Docker Compose v2** (`docker compose`) for local containers and production deployment
 
 ---
 
@@ -38,8 +38,9 @@ make help
 ```
 
 ### 4. Run Development Server
-To start the server locally with hot-reload enabled (requires `air`):
+To start the server locally with hot-reload enabled (requires `air` and Docker Compose v2 for the MySQL container):
 ```bash
+docker compose version
 make dev
 ```
 If you don't have `air` installed, you can run:
