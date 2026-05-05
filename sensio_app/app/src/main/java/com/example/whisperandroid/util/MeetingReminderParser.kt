@@ -74,8 +74,8 @@ object MeetingReminderParser {
         return try {
             // Handle timezone offset in format like +07:00 or +0700
             val normalized = normalizeTimezone(isoString)
-            val date: Date = iso8601Format.get()!!.parse(normalized)
-            date.time
+            val date: Date? = iso8601Format.get()!!.parse(normalized)
+            date?.time
         } catch (e: ParseException) {
             Log.e(tag, "Failed to parse timestamp '$isoString': ${e.message}")
             null

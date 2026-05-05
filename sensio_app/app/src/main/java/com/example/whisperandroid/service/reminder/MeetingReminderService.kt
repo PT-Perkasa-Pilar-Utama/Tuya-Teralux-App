@@ -69,7 +69,7 @@ class MeetingReminderService : Service() {
             }
             ACTION_STOP_REMINDER -> {
                 performCleanup()
-                stopForeground(true)
+                stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
         }
