@@ -75,8 +75,9 @@ func ParseUtterancesFromText(transcription string) []dtos.Utterance {
 		}
 
 		// Estimate timing (rough heuristic: 1 char ≈ 100ms, 10 chars per second)
-		startMs := int64(startIdx * 100)
-		endMs := int64(textEnd * 100)
+		// Cast to int64 BEFORE multiplication to avoid overflow
+		startMs := int64(startIdx) * 100
+		endMs := int64(textEnd) * 100
 
 		utterances = append(utterances, dtos.Utterance{
 			SpeakerLabel: speakerLabel,

@@ -47,6 +47,18 @@ func TestMergeWithDedup(t *testing.T) {
 			text2:    "what? Yes.",
 			expected: "Wait, what? Yes.",
 		},
+		{
+			name:     "Overlap shorter than text",
+			text1:    "Hello world",
+			text2:    "world world",
+			expected: "Hello world world",
+		},
+		{
+			name:     "Empty second segment",
+			text1:    "Hello world",
+			text2:    "",
+			expected: "Hello world",
+		},
 	}
 
 	uc := &transcribeUseCase{}

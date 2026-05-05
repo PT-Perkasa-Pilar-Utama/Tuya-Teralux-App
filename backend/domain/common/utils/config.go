@@ -263,7 +263,7 @@ func LoadConfig() {
 		AudioSegmentSec:            getEnvAsInt("AUDIO_SEGMENT_SEC", 600),
 		AudioSegmentOverlapSec:     getEnvAsInt("AUDIO_SEGMENT_OVERLAP_SEC", 2),
 		AudioSegmentMaxConcurrency: getEnvAsInt("AUDIO_SEGMENT_MAX_CONCURRENCY", 2),
-		TaskEventPublishEnabled:    os.Getenv("TASK_EVENT_PUBLISH_ENABLED") == "true",
+		TaskEventPublishEnabled:    false,
 		OrionTranscribeTimeout:     getEnvAsDefault("ORION_TRANSCRIBE_TIMEOUT", "360s"),
 	}
 

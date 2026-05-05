@@ -189,15 +189,15 @@ fun AiAssistantScreen(
                             userInput = ""
                         }
                     },
-                    enabled = isMqttOnline
+enabled = true // AI features work via HTTP regardless of MQTT status
                 )
             }
         }
     ) {
         if (transcriptionResults.isEmpty() && !isProcessing) {
-            EmptyAssistantState(
+                EmptyAssistantState(
                 isProcessing = isProcessing,
-                enabled = isMqttOnline,
+                enabled = true, // AI features work via HTTP regardless of MQTT status
                 onSuggestedAction = { prompt ->
                     viewModel.sendChat(prompt)
                 }

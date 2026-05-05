@@ -46,7 +46,6 @@ data class SubmissionState(
 class ProcessMeetingUseCase(
     private val pipelineRepository: com.example.whisperandroid.domain.repository.PipelineRepository,
     private val uploadRepository: com.example.whisperandroid.domain.repository.UploadRepository,
-    private val mqttHelper: com.example.whisperandroid.util.MqttHelper,
     private val prefs: SharedPreferences
 ) {
     companion object {
@@ -251,73 +250,12 @@ class ProcessMeetingUseCase(
             return@channelFlow
         }
 
-        // DO NOT clear submission state here - it must persist during polling/MQTT phase
+        // DO NOT clear submission state here - it must persist during polling phase
         // to allow restart safety. State will be cleared only on terminal outcomes.
 
         var isCompleted = false
-        var lastEventTime = System.currentTimeMillis()
 
-        val mqttJob = launch {
-            try {
-                mqttHelper.messages.collect { (topic, message) ->
-                    // Check for cancellation
-                    if (!isActive) {
-                        // DO NOT clear state here - allows resume after service restart/recreation
-                        Log.d("ProcessMeeting", "MQTT collection cancelled - preserving state for resume")
-                        return@collect
-                    }
-
-                    if (topic.endsWith("/task")) {
-                        try {
-                            val json = JSONObject(message)
-                            val eventTaskId = json.optString("task_id", "")
-                            if (eventTaskId == pipelineTaskId) {
-                                lastEventTime = System.currentTimeMillis()
-                                val event = json.optString("event", "")
-                                val overallStatus = json.optString("overall_status", "")
-                                val stage = json.optString("stage", "")
-                                val stageStatus = json.optString("stage_status", "")
-                                val error = json.optString("error", "")
-
-                                if (overallStatus == "failed") {
-                                    send(MeetingProcessState.Error("Pipeline failed at $stage: $error"))
-                                    isCompleted = true
-                                    // Clear state on terminal failure
-                                    clearSubmissionState(fileKey)
-                                } else if (overallStatus == "cancelled") {
-                                    send(MeetingProcessState.Cancelled)
-                                    isCompleted = true
-                                    // Clear state on user-initiated cancellation
-                                    clearSubmissionState(fileKey)
-                                } else if (overallStatus == "completed" || event == "completed") {
-                                    // Signal overall completion to trigger final poll
-                                    lastEventTime = 0
-                                } else if (!isCompleted) {
-                                    when (stage) {
-                                        "transcription" -> send(
-                                            MeetingProcessState.Transcribing(pipelineTaskId!!)
-                                        )
-                                        "translation" -> send(
-                                            MeetingProcessState.Translating(pipelineTaskId!!)
-                                        )
-                                        "summary" -> send(
-                                            MeetingProcessState.Summarizing(pipelineTaskId!!)
-                                        )
-                                    }
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("ProcessMeeting", "Failed to parse MQTT task event: ${e.message}")
-                        }
-                    }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                Log.d("ProcessMeeting", "MQTT collection cancelled: ${e.message}")
-                throw e
-            }
-        }
-
-        // Multiplexing Loop: Wait for MQTT, fallback to Polling if dead
+        // Polling Loop: Check pipeline status via HTTP
         while (!isCompleted) {
             // Check for cancellation at the start of each iteration
             if (!isActive) {
@@ -326,96 +264,84 @@ class ProcessMeetingUseCase(
                 break
             }
 
-            val isMqttConnected = mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED
-            val timeSinceLastEvent = System.currentTimeMillis() - lastEventTime
+            var shouldDelay = false
+            try {
+                pipelineRepository.pollPipelineStatus(pipelineTaskId!!, token).collect { result ->
+                    // Check for cancellation during polling
+                    if (!isActive) {
+                        // DO NOT clear state here - allows resume after service restart/recreation
+                        Log.d("ProcessMeeting", "Polling cancelled by coroutine cancellation - preserving state for resume")
+                        return@collect
+                    }
 
-            // Fallback rule: MQTT disconnected OR no event for 10 seconds
-            if (!isMqttConnected || timeSinceLastEvent > 10000) {
-                var shouldDelay = false
-                try {
-                    pipelineRepository.pollPipelineStatus(pipelineTaskId!!, token).collect { result ->
-                        // Check for cancellation during polling
-                        if (!isActive) {
-                            // DO NOT clear state here - allows resume after service restart/recreation
-                            Log.d("ProcessMeeting", "Polling cancelled by coroutine cancellation - preserving state for resume")
-                            return@collect
-                        }
+                    when (result) {
+                        is Resource.Success -> {
+                            val statusDto = result.data!!
+                            val stages = statusDto.stages ?: emptyMap()
 
-                        when (result) {
-                            is Resource.Success -> {
-                                val statusDto = result.data!!
-                                val stages = statusDto.stages ?: emptyMap()
+                            val transcribeStatus = stages["transcription"]?.status
+                            val translateStatus = stages["translation"]?.status
+                            val summarizeStatus = stages["summary"]?.status
 
-                                val transcribeStatus = stages["transcription"]?.status
-                                val translateStatus = stages["translation"]?.status
-                                val summarizeStatus = stages["summary"]?.status
-
-                                if (!isCompleted) {
-                                    when {
-                                        summarizeStatus == "processing" -> send(
-                                            MeetingProcessState.Summarizing(pipelineTaskId!!)
-                                        )
-                                        translateStatus == "processing" -> send(
-                                            MeetingProcessState.Translating(pipelineTaskId!!)
-                                        )
-                                        transcribeStatus == "processing" ||
-                                            transcribeStatus == "pending" -> send(
-                                            MeetingProcessState.Transcribing(pipelineTaskId!!)
-                                        )
-                                    }
-                                }
-
-                                if (statusDto.overallStatus == "completed") {
-                                    isCompleted = true
-                                    val summaryStage = stages["summary"]
-                                    if (summaryStage?.status == "completed") {
-                                        val resMap = summaryStage.result as? Map<*, *>
-                                        val summary = resMap?.get("summary") as? String
-                                            ?: "Meeting summary is ready"
-                                        val pdfUrl = resMap?.get("pdf_url") as? String
-                                        send(MeetingProcessState.Success(summary, pdfUrl))
-                                    } else {
-                                        // Handle cases where overall is completed but summary stage is missing/skipped
-                                        send(MeetingProcessState.Success("Processing complete", null))
-                                    }
-                                    // Clear state on terminal success
-                                    clearSubmissionState(fileKey)
-                                } else if (statusDto.overallStatus == "failed") {
-                                    isCompleted = true
-                                    send(MeetingProcessState.Error("Pipeline execution failed"))
-                                    // Clear state on terminal failure
-                                    clearSubmissionState(fileKey)
-                                } else if (statusDto.overallStatus == "cancelled") {
-                                    isCompleted = true
-                                    send(MeetingProcessState.Cancelled)
-                                    // Clear state on user-initiated cancellation
-                                    clearSubmissionState(fileKey)
-                                } else {
-                                    shouldDelay = true
+                            if (!isCompleted) {
+                                when {
+                                    summarizeStatus == "processing" -> send(
+                                        MeetingProcessState.Summarizing(pipelineTaskId!!)
+                                    )
+                                    translateStatus == "processing" -> send(
+                                        MeetingProcessState.Translating(pipelineTaskId!!)
+                                    )
+                                    transcribeStatus == "processing" ||
+                                        transcribeStatus == "pending" -> send(
+                                        MeetingProcessState.Transcribing(pipelineTaskId!!)
+                                    )
                                 }
                             }
-                            is Resource.Error -> {
+
+                            if (statusDto.overallStatus == "completed") {
+                                isCompleted = true
+                                val summaryStage = stages["summary"]
+                                if (summaryStage?.status == "completed") {
+                                    val resMap = summaryStage.result as? Map<*, *>
+                                    val summary = resMap?.get("summary") as? String
+                                        ?: "Meeting summary is ready"
+                                    val pdfUrl = resMap?.get("pdf_url") as? String
+                                    send(MeetingProcessState.Success(summary, pdfUrl))
+                                } else {
+                                    // Handle cases where overall is completed but summary stage is missing/skipped
+                                    send(MeetingProcessState.Success("Processing complete", null))
+                                }
+                                // Clear state on terminal success
+                                clearSubmissionState(fileKey)
+                            } else if (statusDto.overallStatus == "failed") {
+                                isCompleted = true
+                                send(MeetingProcessState.Error("Pipeline execution failed"))
+                                // Clear state on terminal failure
+                                clearSubmissionState(fileKey)
+                            } else if (statusDto.overallStatus == "cancelled") {
+                                isCompleted = true
+                                send(MeetingProcessState.Cancelled)
+                                // Clear state on user-initiated cancellation
+                                clearSubmissionState(fileKey)
+                            } else {
                                 shouldDelay = true
                             }
-                            else -> {}
                         }
+                        is Resource.Error -> {
+                            shouldDelay = true
+                        }
+                        else -> {}
                     }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    Log.d("ProcessMeeting", "Polling cancelled: ${e.message}")
-                    break
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                Log.d("ProcessMeeting", "Polling cancelled: ${e.message}")
+                break
+            }
 
-                if (shouldDelay && !isCompleted) {
-                    kotlinx.coroutines.delay(5000) // Fallback interval 5s
-                }
-            } else {
-                // MQTT healthy, just wait a bit before checking again
-                kotlinx.coroutines.delay(1000)
+            if (shouldDelay && !isCompleted) {
+                kotlinx.coroutines.delay(5000) // Polling interval 5s
             }
         }
-
-        mqttJob.cancel()
     }
 
     /**

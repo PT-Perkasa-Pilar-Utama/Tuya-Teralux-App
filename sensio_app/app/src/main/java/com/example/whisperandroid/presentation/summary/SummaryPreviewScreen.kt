@@ -45,7 +45,6 @@ import com.example.whisperandroid.presentation.components.AnimatedEmailButton
 import com.example.whisperandroid.presentation.components.EmailInputDialog
 import com.example.whisperandroid.presentation.components.FeatureBackground
 import com.example.whisperandroid.presentation.components.FeatureHeader
-import com.example.whisperandroid.presentation.components.MqttStatusBadge
 import com.example.whisperandroid.presentation.components.UiState
 import com.example.whisperandroid.util.normalizeMeetingSummaryMarkdown
 import dev.jeziellago.compose.markdowntext.MarkdownText
@@ -59,7 +58,6 @@ fun SummaryPreviewScreen(
     val context = LocalContext.current
     val summaries by viewModel.summaries.collectAsState()
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
-    val mqttStatus by viewModel.mqttStatus.collectAsState()
     var showEmailDialog by remember { mutableStateOf(false) }
 
     val currentSummary =
@@ -158,11 +156,6 @@ fun SummaryPreviewScreen(
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
-
-                    MqttStatusBadge(
-                        status = mqttStatus,
-                        onReconnectClick = { viewModel.reconnectMqtt() }
-                    )
 
                     Spacer(modifier = Modifier.weight(1f))
 

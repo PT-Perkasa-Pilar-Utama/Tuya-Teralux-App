@@ -1,6 +1,8 @@
 package com.example.whisperandroid.presentation.dashboard
 
 import android.provider.Settings
+import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,15 +53,18 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.example.whisperandroid.R
 import com.example.whisperandroid.data.di.NetworkModule
 import com.example.whisperandroid.presentation.components.DashboardFeatureCard
 import com.example.whisperandroid.util.DeviceUtils
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -230,6 +235,15 @@ fun DashboardScreen(
     }
 
     var wasBackgroundModeEnabled by remember { mutableStateOf(uiState.isBackgroundModeEnabled) }
+    var hasShownBackgroundToast by remember { mutableStateOf(false) }
+    var clickCount by remember { mutableStateOf(0) }
+
+    androidx.compose.runtime.LaunchedEffect(clickCount) {
+        if (clickCount > 0) {
+            delay(2000)
+            clickCount = 0
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -269,7 +283,10 @@ fun DashboardScreen(
     }
 
     androidx.compose.runtime.LaunchedEffect(uiState.isBackgroundModeEnabled) {
-        if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled) {
+        if (uiState.isBackgroundModeEnabled) {
+            hasShownBackgroundToast = false
+        }
+        if (wasBackgroundModeEnabled && !uiState.isBackgroundModeEnabled && !hasShownBackgroundToast) {
             val currentMicPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                 context,
                 android.Manifest.permission.RECORD_AUDIO
@@ -279,9 +296,17 @@ fun DashboardScreen(
                     message = "Background Assistant turned off because microphone permission is disabled.",
                     duration = androidx.compose.material3.SnackbarDuration.Long
                 )
+                hasShownBackgroundToast = true
             }
         }
         wasBackgroundModeEnabled = uiState.isBackgroundModeEnabled
+    }
+
+    androidx.compose.runtime.LaunchedEffect(uiState.toastMessage) {
+        uiState.toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.clearToastMessage()
+        }
     }
 
     androidx.compose.material3.Scaffold(
@@ -401,7 +426,9 @@ fun DashboardScreen(
                         isSavingAiProvider = uiState.isSavingAiProvider,
                         onAiProviderChange = { provider ->
                             viewModel.updateAiProvider(provider)
-                        }
+                        },
+                        isFlushing = uiState.isFlushing,
+                        onSensioIconClick = { viewModel.flushCache() }
                     )
                 }
             } else if (bootstrapState.error != null) {
@@ -441,29 +468,55 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(top = DashboardLayoutTokens.Spacing24)
+private fun DashboardHeader(
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = DashboardLayoutTokens.Spacing24),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Select Workspace",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-0.5).sp
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.testTag("dashboard_header")
+        // Sensio icon at POJOK KIRI (top-left corner)
+        Image(
+            painter = painterResource(id = R.drawable.sensio_icon),
+            contentDescription = "Sensio",
+            alpha = if (isFlushing) 0.5f else 1f,
+            modifier = Modifier
+                .size(48.dp)
+                .then(
+                    if (!isFlushing) {
+                        Modifier.clickable(onClick = onSensioIconClick)
+                    } else {
+                        Modifier
+                    }
+                )
         )
-        Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing8))
-        Text(
-            text = "Choose your AI-powered environment",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center
-        )
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Select Workspace",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.testTag("dashboard_header")
+            )
+            Spacer(modifier = Modifier.height(DashboardLayoutTokens.Spacing8))
+            Text(
+                text = "Choose your AI-powered environment",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -1091,7 +1144,9 @@ fun DashboardContent(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String? = null,
     isSavingAiProvider: Boolean = false,
-    onAiProviderChange: (String?) -> Unit = {}
+    onAiProviderChange: (String?) -> Unit = {},
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     val layoutSpec = rememberDashboardLayoutSpec()
 
@@ -1107,7 +1162,9 @@ fun DashboardContent(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
         DashboardDeviceClass.TABLET -> DashboardTabletLayout(
             layoutSpec = layoutSpec,
@@ -1120,7 +1177,9 @@ fun DashboardContent(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
         DashboardDeviceClass.TERALUX -> DashboardTeraluxLayout(
             layoutSpec = layoutSpec,
@@ -1133,7 +1192,9 @@ fun DashboardContent(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
     }
 }
@@ -1153,7 +1214,9 @@ private fun DashboardPhoneLayout(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String?,
     isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    onAiProviderChange: (String?) -> Unit,
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -1164,7 +1227,10 @@ private fun DashboardPhoneLayout(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
     ) {
-        DashboardHeader()
+        DashboardHeader(
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
+        )
 
         BackgroundAssistantCard(
             isEnabled = isBackgroundModeEnabled,
@@ -1235,7 +1301,9 @@ private fun DashboardTabletLayout(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String?,
     isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    onAiProviderChange: (String?) -> Unit,
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     val contentModifier =
         if (layoutSpec.isScrollable) {
@@ -1247,12 +1315,15 @@ private fun DashboardTabletLayout(
             Modifier.fillMaxSize().padding(horizontal = layoutSpec.outerHorizontalPadding)
         }
 
-    Column(
+Column(
         modifier = contentModifier.widthIn(max = layoutSpec.contentMaxWidth),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
     ) {
-        DashboardHeader()
+        DashboardHeader(
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
+        )
 
         BackgroundAssistantCard(
             isEnabled = isBackgroundModeEnabled,
@@ -1286,11 +1357,6 @@ private fun DashboardTabletLayout(
             )
         }
 
-        // Footer spacer: only effective in non-scrollable layouts
-        if (!layoutSpec.isScrollable) {
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
         // Footer
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1314,8 +1380,7 @@ private fun DashboardTabletLayout(
 }
 
 /**
- * Teralux layout: landscape-first, two-panel composition with control content on left
- * and workspace features on right. Falls back to stacked layout for portrait/narrow.
+ * Teralux layout: landscape-first, wide content, two-panel layout.
  */
 @Composable
 private fun DashboardTeraluxLayout(
@@ -1329,7 +1394,9 @@ private fun DashboardTeraluxLayout(
     onShowDisabledMessage: () -> Unit,
     aiProvider: String?,
     isSavingAiProvider: Boolean,
-    onAiProviderChange: (String?) -> Unit
+    onAiProviderChange: (String?) -> Unit,
+    isFlushing: Boolean = false,
+    onSensioIconClick: () -> Unit = {}
 ) {
     // Fallback to stacked layout for portrait or narrow width
     if (!layoutSpec.isLandscape || layoutSpec.availableWidth < 800.dp) {
@@ -1344,7 +1411,9 @@ private fun DashboardTeraluxLayout(
             onShowDisabledMessage = onShowDisabledMessage,
             aiProvider = aiProvider,
             isSavingAiProvider = isSavingAiProvider,
-            onAiProviderChange = onAiProviderChange
+            onAiProviderChange = onAiProviderChange,
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
         )
         return
     }
@@ -1368,11 +1437,14 @@ private fun DashboardTeraluxLayout(
         Column(
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
-        ) {
-            DashboardHeader()
+verticalArrangement = Arrangement.spacedBy(layoutSpec.sectionSpacing)
+    ) {
+        DashboardHeader(
+            isFlushing = isFlushing,
+            onSensioIconClick = onSensioIconClick
+        )
 
-            BackgroundAssistantCard(
+        BackgroundAssistantCard(
                 isEnabled = isBackgroundModeEnabled,
                 isOverlayPermissionGranted = isOverlayPermissionGranted,
                 onEnabledChange = onBackgroundModeChange,

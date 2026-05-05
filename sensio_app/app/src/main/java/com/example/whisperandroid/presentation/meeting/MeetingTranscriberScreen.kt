@@ -36,7 +36,6 @@ import androidx.core.content.ContextCompat
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
 import com.example.whisperandroid.presentation.components.EmailInputDialog
 import com.example.whisperandroid.presentation.components.LanguagePillToggle
-import com.example.whisperandroid.presentation.components.MqttStatusBadge
 import com.example.whisperandroid.presentation.components.SensioFeatureLayout
 import com.example.whisperandroid.presentation.components.UiState
 import com.example.whisperandroid.presentation.meeting.components.MeetingCancelledContent
@@ -64,7 +63,6 @@ fun MeetingTranscriberScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val emailState by viewModel.emailState.collectAsState()
-    val mqttStatus by viewModel.mqttStatus.collectAsState()
     var summaryLanguage by androidx.compose.runtime.saveable.rememberSaveable {
         mutableStateOf("id")
     }
@@ -82,11 +80,6 @@ fun MeetingTranscriberScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    // Auto-connect to MQTT when screen is mounted
-    LaunchedEffect(Unit) {
-        viewModel.reconnectMqtt(DeviceUtils.getDeviceId(context))
-    }
 
     // Reset auto-send flag when process starts (Idle/Recording)
     LaunchedEffect(uiState) {
@@ -248,13 +241,6 @@ fun MeetingTranscriberScreen(
                     selectedLanguage = summaryLanguage,
                     onLanguageSelected = { summaryLanguage = it }
                 )
-
-                MqttStatusBadge(
-                    status = mqttStatus,
-                    onReconnectClick = {
-                        viewModel.reconnectMqtt(DeviceUtils.getDeviceId(context))
-                    }
-                )
             }
         },
         bottomContent = {
@@ -263,8 +249,7 @@ fun MeetingTranscriberScreen(
                 hasPermission = hasPermission,
                 uiState = uiState,
                 pulseScale = pulseScale,
-                isEnabled = mqttStatus ==
-                    com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED,
+                isEnabled = true,
                 onMicClick = {
                     val canRecord = uiState is MeetingProcessState.Idle ||
                         uiState is MeetingProcessState.Success ||

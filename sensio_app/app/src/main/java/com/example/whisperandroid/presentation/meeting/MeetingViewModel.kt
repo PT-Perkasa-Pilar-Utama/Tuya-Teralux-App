@@ -30,40 +30,12 @@ class MeetingViewModel(
     private val _emailState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val emailState: StateFlow<UiState<Boolean>> = _emailState.asStateFlow()
 
-    private val _mqttStatus = MutableStateFlow(
-        com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.DISCONNECTED
-    )
-    val mqttStatus: StateFlow<com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus> =
-        _mqttStatus
-
-    private val mqttHelper = com.example.whisperandroid.data.di.NetworkModule.mqttHelper
-
     init {
-        viewModelScope.launch {
-            mqttHelper.connectionStatus.collect { status ->
-                _mqttStatus.value = status
-            }
-        }
-
         // Synchronize UI state with MeetingProcessManager
         viewModelScope.launch {
             MeetingProcessManager.processState.collect { state ->
                 _uiState.value = state
             }
-        }
-    }
-
-    fun reconnectMqtt(deviceId: String) {
-        viewModelScope.launch {
-            if (mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED ||
-                mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTING
-            ) {
-                return@launch
-            }
-            // connect() now fetches credentials internally, password is never stored
-            mqttHelper.connect()
         }
     }
 

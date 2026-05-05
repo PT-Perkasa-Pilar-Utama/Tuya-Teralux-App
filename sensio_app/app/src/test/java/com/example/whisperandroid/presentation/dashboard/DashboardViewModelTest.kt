@@ -129,4 +129,70 @@ class DashboardViewModelTest {
         val state = vm.uiState.value
         assertEquals("sync failed", state.error)
     }
+
+    @Test
+    fun `updateAiProvider sets terminalNotFound error with redirect flag on 404`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>()
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>(relaxed = true)
+        coEvery { tokenManager.getTerminalId() } returns "terminal-123"
+
+        // Simulate 404 terminal not found error
+        coEvery { terminalRepository.updateTerminal("terminal-123", "gemini") } returns Result.failure(
+            Exception("Terminal not found")
+        )
+
+        val tuyaSyncReadyFlow = MutableStateFlow(true)
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+
+        vm.updateAiProvider("gemini")
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("Terminal not found. Please register your device.", state.error)
+        assertEquals(true, state.shouldRedirectToRegister)
+        assertEquals(false, state.isSavingAiProvider)
+    }
+
+    @Test
+    fun `updateAiProvider does not re-trigger error on repeated calls when terminal not found`() = runTest {
+        val authUC = mockk<AuthenticateUseCase>(relaxed = true)
+        val devicesUC = mockk<GetTuyaDevicesUseCase>()
+        val modeStore = mockk<BackgroundAssistantModeStore>()
+        val modeFlow = MutableStateFlow(false)
+        io.mockk.every { modeStore.isEnabled } returns modeFlow
+        val terminalRepository = mockk<TerminalRepository>(relaxed = true)
+        val tokenManager = mockk<TokenManager>(relaxed = true)
+        coEvery { tokenManager.getTerminalId() } returns "terminal-123"
+
+        // First call fails with 404
+        coEvery { terminalRepository.updateTerminal("terminal-123", "gemini") } returns Result.failure(
+            Exception("Terminal not found")
+        )
+
+        val tuyaSyncReadyFlow = MutableStateFlow(true)
+        val vm = DashboardViewModel(authUC, devicesUC, modeStore, terminalRepository, tokenManager, tuyaSyncReadyFlow)
+
+        // First call
+        vm.updateAiProvider("gemini")
+        advanceUntilIdle()
+
+        val firstState = vm.uiState.value
+        assertEquals("Terminal not found. Please register your device.", firstState.error)
+        assertEquals(true, firstState.shouldRedirectToRegister)
+
+        // Second call should not change the redirect flag (Toast guard prevents re-trigger)
+        vm.updateAiProvider("gemini")
+        advanceUntilIdle()
+
+        val secondState = vm.uiState.value
+        // The error should still be the terminal-not-found message
+        assertEquals("Terminal not found. Please register your device.", secondState.error)
+        // shouldRedirectToRegister should remain true (not re-triggered)
+        assertEquals(true, secondState.shouldRedirectToRegister)
+    }
 }

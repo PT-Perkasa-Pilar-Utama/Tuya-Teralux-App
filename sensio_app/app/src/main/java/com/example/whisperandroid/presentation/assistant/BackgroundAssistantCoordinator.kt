@@ -8,26 +8,20 @@ import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.presentation.meeting.AudioRecorder
 import com.example.whisperandroid.util.AppLog
 import com.example.whisperandroid.util.DeviceUtils
-import com.example.whisperandroid.util.MqttHelper
-import com.google.gson.JsonParser
 import java.io.File
 import java.util.UUID
-import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withTimeout
 
 class BackgroundAssistantCoordinator(
     private val application: Application,
-    private val mqttHelperProvider: () -> com.example.whisperandroid.util.MqttHelper = { NetworkModule.mqttHelper },
     private val audioRecorderProvider: (android.app.Application) -> com.example.whisperandroid.presentation.meeting.AudioRecorder = { com.example.whisperandroid.presentation.meeting.AudioRecorder(it) }
 ) {
     private val TAG = "Coordinator"
@@ -35,20 +29,14 @@ class BackgroundAssistantCoordinator(
     private val _uiState = MutableStateFlow(BackgroundAssistantUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val mqttHelper by lazy { mqttHelperProvider() }
     private val audioRecorder by lazy { audioRecorderProvider(application) }
     private var currentRecordingFile: File? = null
     private var activeRequestId: String? = null
     private val requestStartedAtMs = mutableMapOf<String, Long>()
     private var selectedLanguage = "id"
 
-    // Fallback gate to prevent overlapping fallback loops for the same request
-    private var fallbackRunningForRequestId: String? = null
-
     private var activeSessionJob: Job? = null
     private var listeningJob: Job? = null
-    private var timeoutJob: Job? = null
-    private var mqttCollectorJob: Job? = null
     private var fallbackJob: Job? = null
     private var autoDismissJob: Job? = null
     private var greetingPlayer: MediaPlayer? = null
@@ -146,10 +134,6 @@ class BackgroundAssistantCoordinator(
 
     fun start(serviceScope: CoroutineScope) {
         this.scope = serviceScope
-        // Auto-connect MQTT in background
-        serviceScope.launch {
-            ensureMqttConnected()
-        }
     }
 
     fun stop() {
@@ -221,15 +205,12 @@ class BackgroundAssistantCoordinator(
                 AppLog.d(TAG, "Listening timeout, stopping")
                 timingLogger?.markStep("listening_timeout_reached")
                 timingLogger?.logDelta("recording_started", "listening_timeout_reached", mapOf("metric" to "listening_duration"))
-                stopRecordingAndPublish(requestId)
+                stopRecordingAndTranscribe(requestId)
             }
         }
-
-        // Dedicated response collector (MQTT)
-        startMqttCollector(requestId)
     }
 
-    private fun stopRecordingAndPublish(requestId: String) {
+    private fun stopRecordingAndTranscribe(requestId: String) {
         listeningJob?.cancel()
         audioRecorder.stop()
 
@@ -243,21 +224,44 @@ class BackgroundAssistantCoordinator(
             transitionTo(BackgroundAssistantUiState.State.Processing, "stopRecording(valid)")
 
             scope?.launch {
-                ensureMqttConnected()
-                val publishStartMs = System.currentTimeMillis()
-                timingLogger?.markStep("mqtt_publish_started")
-                val bytes = file.readBytes()
-                val publishResult = mqttHelper.publishAudio(bytes, selectedLanguage, requestId)
-                val publishDurationMs = System.currentTimeMillis() - publishStartMs
-                if (publishResult.isSuccess) {
-                    timingLogger?.markStep("mqtt_publish_success", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                    timingLogger?.logDelta("mqtt_publish_started", "mqtt_publish_success", mapOf("metric" to "publish_duration"))
-                    AppLog.d(TAG, "Audio published successfully, waiting for response")
-                    startProcessingTimeout(requestId)
-                } else {
-                    timingLogger?.markStep("mqtt_publish_failed", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                    AppLog.e(TAG, "Failed to publish audio via MQTT")
-                    showServiceIssue(requestId, "mqtt_publish_fail")
+                val tm = NetworkModule.tokenManager
+                val token = tm.getAccessToken() ?: return@launch failSession(requestId, "Auth error")
+                val terminalId = tm.getTerminalId() ?: DeviceUtils.getDeviceId(application)
+                val username = DeviceUtils.getDeviceId(application)
+                val macAddress = tm.getMacAddress() ?: username
+                val idempotencyKey = "bg_$requestId"
+
+                val transcribeStartMs = System.currentTimeMillis()
+                timingLogger?.markStep("http_transcribe_started")
+                NetworkModule.transcribeAudioUseCase.initiate(
+                    audioFile = file,
+                    token = token,
+                    language = selectedLanguage,
+                    macAddress = macAddress,
+                    idempotencyKey = idempotencyKey
+                ).collect { result ->
+                    if (activeRequestId != requestId) return@collect
+                    when (result) {
+                        is Resource.Success -> {
+                            val taskId = result.data
+                            if (taskId != null) {
+                                val transcribeDurationMs = System.currentTimeMillis() - transcribeStartMs
+                                timingLogger?.markStep("http_transcribe_success", mapOf("task_id" to taskId, "transcribe_duration_ms" to transcribeDurationMs.toString()))
+                                timingLogger?.logDelta("http_transcribe_started", "http_transcribe_success", mapOf("metric" to "transcribe_duration"))
+                                AppLog.d(TAG, "Audio transcribed successfully, taskId: $taskId, polling for result")
+                                pollTranscription(taskId, requestId, token, terminalId, username, idempotencyKey)
+                            } else {
+                                timingLogger?.markStep("http_transcribe_failed", mapOf("reason" to "null_task_id"))
+                                failSession(requestId, "Gagal memproses (null taskId)")
+                            }
+                        }
+                        is Resource.Error -> {
+                            timingLogger?.markStep("http_transcribe_error")
+                            AppLog.e(TAG, "Failed to transcribe audio via HTTP")
+                            showServiceIssue(requestId, "http_transcribe_error")
+                        }
+                        is Resource.Loading -> {}
+                    }
                 }
             }
         } else {
@@ -267,110 +271,24 @@ class BackgroundAssistantCoordinator(
         }
     }
 
-    private fun startMqttCollector(requestId: String) {
-        mqttCollectorJob?.cancel()
-        mqttCollectorJob = scope?.launch {
-            mqttHelper.messages.collect { (rawTopic, rawMessage) ->
-                val topic = rawTopic as String
-                val message = rawMessage as String
-
-                if (topic.endsWith("chat/answer") || topic.endsWith("chat")) {
-                    handleMqttMessage(topic, message, requestId)
-                }
-            }
-        }
-    }
-
-    private fun handleMqttMessage(topic: String, message: String, currentRequestId: String) {
-        try {
-            if (topic.endsWith("chat")) {
-                // Sync sync user prompt
-                timingLogger?.markStep("mqtt_sync_received", mapOf("topic" to "chat"))
-                val json = JsonParser.parseString(message).asJsonObject
-                val responseRequestId = parseRequestId(json)
-                val prompt = if (json.has("prompt")) json.get("prompt").asString else message
-                if (responseRequestId == currentRequestId) {
-                    _uiState.value = _uiState.value.copy(recognizedText = prompt.trim().removeSurrounding("\""))
-                }
-                return
-            }
-
-            // chat/answer handling
-            val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
-            if (parsedResult == null) {
-                timingLogger?.markStep("response_dropped", mapOf("reason" to "parse_failed"))
-                return
-            }
-
-            // Need to manually check RID because parser doesn't extract it (generic)
-            val json = JsonParser.parseString(message).asJsonObject
-            val responseRequestId = parseRequestId(json)
-
-            if (responseRequestId == null || responseRequestId != currentRequestId) {
-                timingLogger?.markStep("response_dropped", mapOf("reason" to "stale_or_foreign_rid", "expected_rid" to (currentRequestId ?: "null"), "got_rid" to (responseRequestId ?: "null")))
-                AppLog.d(TAG, "Ignored response for foreign/stale RID: $responseRequestId (Current: $currentRequestId)")
-                return
-            }
-
-            // Only drop non-final in-progress acks. IDEMPOTENCY_CACHED is final and must be processed.
-            if (parsedResult.isDupInProgress) {
-                timingLogger?.markStep("response_dropped", mapOf("reason" to "in_progress_ack", "source" to (parsedResult.source ?: "null")))
-                AppLog.d(TAG, "Ignored in-progress ack from ${parsedResult.source} for RID: $currentRequestId")
-                return
-            }
-
-            // IDEMPOTENCY_CACHED: Process as final response (may have payload)
-            if (parsedResult.isDupCached) {
-                timingLogger?.markStep("mqtt_cached_response_received", mapOf("source" to (parsedResult.source ?: "null")))
-                AppLog.d(TAG, "Processing cached final response from ${parsedResult.source}")
-            }
-
-            timingLogger?.markStep("mqtt_answer_received", mapOf("source" to (parsedResult.source ?: "mqtt")))
-
-            val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
-            if (cleanMessage != null) {
-                showResult(currentRequestId, cleanMessage)
-            } else {
-                val reason = if (parsedResult.isDupCached) "mqtt_cached_no_payload" else "mqtt_empty_payload"
-                timingLogger?.markStep("mqtt_empty_payload", mapOf("reason" to reason))
-                showServiceIssue(currentRequestId, reason)
-            }
-        } catch (e: Exception) {
-            timingLogger?.markStep("mqtt_parse_error", mapOf("error" to (e.message ?: "unknown")))
-            AppLog.e(TAG, "Error parsing MQTT response", e)
-        }
-    }
-
     private fun showResult(requestId: String, text: String) {
         if (activeRequestId != requestId) return
-        timeoutJob?.cancel()
         fallbackJob?.cancel()
         timingLogger?.markStep("result_shown")
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "success"))
         transitionTo(BackgroundAssistantUiState.State.Result, "showResult")
         _uiState.value = _uiState.value.copy(assistantText = text)
 
-        // Reset fallback gate on terminal completion
-        if (requestId == fallbackRunningForRequestId) {
-            fallbackRunningForRequestId = null
-        }
-
         scheduleAutoDismiss(requestId)
     }
 
     private fun failSession(requestId: String, error: String) {
         if (activeRequestId != requestId) return
-        timeoutJob?.cancel()
         fallbackJob?.cancel()
         timingLogger?.markStep("session_failed", mapOf("error" to error))
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "failed", "error" to error))
         transitionTo(BackgroundAssistantUiState.State.Error, "failSession")
         _uiState.value = _uiState.value.copy(errorText = error)
-
-        // Reset fallback gate on terminal completion
-        if (requestId == fallbackRunningForRequestId) {
-            fallbackRunningForRequestId = null
-        }
 
         scheduleAutoDismiss(requestId)
     }
@@ -381,16 +299,10 @@ class BackgroundAssistantCoordinator(
      */
     private fun showServiceIssue(requestId: String, source: String, overrideMessage: String? = null) {
         if (activeRequestId != requestId) return
-        timeoutJob?.cancel()
         fallbackJob?.cancel()
         timingLogger?.markStep("service_issue_shown", mapOf("source" to source))
         timingLogger?.logTotal("total_e2e_duration", mapOf("outcome" to "service_issue", "source" to source))
         transitionTo(BackgroundAssistantUiState.State.Result, "showServiceIssue ($source)")
-
-        // Reset fallback gate on terminal completion
-        if (requestId == fallbackRunningForRequestId) {
-            fallbackRunningForRequestId = null
-        }
 
         // Friendly service-issue message (matches backend ServiceIssue skill)
         val serviceIssueMessage = overrideMessage ?: when (selectedLanguage) {
@@ -400,79 +312,6 @@ class BackgroundAssistantCoordinator(
 
         _uiState.value = _uiState.value.copy(assistantText = serviceIssueMessage)
         scheduleAutoDismiss(requestId)
-    }
-
-    private fun startProcessingTimeout(requestId: String) {
-        timeoutJob?.cancel()
-        timeoutJob = scope?.launch {
-            delay(PROCESSING_TIMEOUT_MS)
-            if (activeRequestId == requestId && _uiState.value.state == BackgroundAssistantUiState.State.Processing) {
-                timingLogger?.markStep("processing_timeout_reached", mapOf("threshold_ms" to PROCESSING_TIMEOUT_MS.toString()))
-                AppLog.w(TAG, "Processing timeout, attempting HTTP fallback or failing")
-                runHttpFallback(requestId)
-            }
-        }
-    }
-
-    private fun runHttpFallback(requestId: String) {
-        // Prevent overlapping fallback loops for the same request
-        if (fallbackRunningForRequestId == requestId) {
-            AppLog.w(TAG, "Fallback already running for RID: $requestId")
-            return
-        }
-        fallbackRunningForRequestId = requestId
-
-        val file = currentRecordingFile
-        if (file == null || !file.exists()) {
-            timingLogger?.markStep("http_fallback_failed", mapOf("reason" to "file_not_found"))
-            failSession(requestId, "Batas waktu terlampaui")
-            return
-        }
-
-        fallbackJob?.cancel()
-        timingLogger?.markStep("http_fallback_started")
-        fallbackJob = scope?.launch {
-            try {
-                val tm = NetworkModule.tokenManager
-                val token = tm.getAccessToken() ?: return@launch failSession(requestId, "Auth error")
-                val terminalId = tm.getTerminalId() ?: DeviceUtils.getDeviceId(application)
-                val username = DeviceUtils.getDeviceId(application)
-                val macAddress = tm.getMacAddress() ?: username
-                val fallbackIdempotencyKey = "bg_$requestId"
-
-                timingLogger?.markStep("http_transcribe_initiated")
-                NetworkModule.transcribeAudioUseCase.initiate(
-                    audioFile = file,
-                    token = token,
-                    language = selectedLanguage,
-                    macAddress = macAddress,
-                    idempotencyKey = fallbackIdempotencyKey
-                ).collect { result ->
-                    if (activeRequestId != requestId) return@collect
-                    when (result) {
-                        is Resource.Success -> {
-                            val taskId = result.data
-                            if (taskId != null) {
-                                timingLogger?.markStep("http_transcribe_success", mapOf("task_id" to taskId))
-                                pollTranscription(taskId, requestId, token, terminalId, username, fallbackIdempotencyKey)
-                            } else {
-                                timingLogger?.markStep("http_fallback_failed", mapOf("reason" to "null_task_id"))
-                                failSession(requestId, "Gagal memproses (Fallback error)")
-                            }
-                        }
-                        is Resource.Error -> {
-                            timingLogger?.markStep("http_transcribe_error")
-                            showServiceIssue(requestId, "http_transcribe_error")
-                        }
-                        is Resource.Loading -> {}
-                    }
-                }
-            } catch (e: Exception) {
-                timingLogger?.markStep("http_fallback_exception", mapOf("error" to (e.message ?: "unknown")))
-                AppLog.e(TAG, "HTTP Fallback failed", e)
-                showServiceIssue(requestId, "http_fallback_exception")
-            }
-        }
     }
 
     private fun pollTranscription(
@@ -723,20 +562,20 @@ class BackgroundAssistantCoordinator(
                 val player = MediaPlayer.create(application, R.raw.greeting_sensio_pro_assistant)
                 if (player == null) {
                     AppLog.e(TAG, "Failed to create MediaPlayer for greeting")
-                    if (continuation.isActive) continuation.resume(false)
+                    if (continuation.isActive) continuation.resume(false, null)
                     return@suspendCancellableCoroutine
                 }
                 greetingPlayer = player
                 player.setOnCompletionListener {
                     it.release()
                     if (greetingPlayer == it) greetingPlayer = null
-                    if (continuation.isActive) continuation.resume(true)
+                    if (continuation.isActive) continuation.resume(true, null)
                 }
                 player.setOnErrorListener { it, what, extra ->
                     AppLog.e(TAG, "MediaPlayer error: $what, $extra")
                     it.release()
                     if (greetingPlayer == it) greetingPlayer = null
-                    if (continuation.isActive) continuation.resume(false)
+                    if (continuation.isActive) continuation.resume(false, null)
                     true
                 }
                 player.start()
@@ -752,7 +591,7 @@ class BackgroundAssistantCoordinator(
                 }
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error playing greeting audio", e)
-                if (continuation.isActive) continuation.resume(false)
+                if (continuation.isActive) continuation.resume(false, null)
             }
         }
 
@@ -787,8 +626,6 @@ class BackgroundAssistantCoordinator(
     private fun cancelPerSessionJobs() {
         activeSessionJob?.cancel()
         listeningJob?.cancel()
-        timeoutJob?.cancel()
-        mqttCollectorJob?.cancel()
         fallbackJob?.cancel()
         autoDismissJob?.cancel()
         audioRecorder.stop()
@@ -814,63 +651,5 @@ class BackgroundAssistantCoordinator(
         cancelPerSessionJobs()
         resetState()
         onDismissed()
-    }
-
-    private suspend fun ensureMqttConnected() {
-        val isConnected = try {
-            mqttHelper.connectionStatus.value == MqttHelper.MqttConnectionStatus.CONNECTED
-        } catch (e: Exception) {
-            false
-        }
-
-        if (!isConnected) {
-            // connect() now fetches credentials internally, password is never stored
-            mqttHelper.connect()
-            try {
-                withTimeout(3000L) {
-                    mqttHelper.connectionStatus.first { it == MqttHelper.MqttConnectionStatus.CONNECTED }
-                }
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Failed to reconnect MQTT within timeout")
-            }
-        }
-    }
-
-    private fun parseRequestId(json: com.google.gson.JsonObject): String? {
-        return if (json.has("request_id") && !json.get("request_id").isJsonNull) {
-            json.get("request_id").asString
-        } else if (json.has("data") && !json.get("data").isJsonNull) {
-            val data = json.getAsJsonObject("data")
-            if (data.has("request_id") && !data.get("request_id").isJsonNull) {
-                data.get("request_id").asString
-            } else {
-                null
-            }
-        } else {
-            null
-        }
-    }
-
-    private fun parseSource(json: com.google.gson.JsonObject): String? {
-        val data = if (json.has("data") && !json.get("data").isJsonNull) json.getAsJsonObject("data") else null
-        return if (data != null && data.has("source") && !data.get("source").isJsonNull) data.get("source").asString else null
-    }
-
-    private fun parseResponseText(json: com.google.gson.JsonObject, raw: String): String? {
-        val data = if (json.has("data") && !json.get("data").isJsonNull) json.getAsJsonObject("data") else null
-        return if (data != null && data.has("response") && !data.get("response").isJsonNull) {
-            data.get("response").asString
-        } else if (json.has("message") && !json.get("message").isJsonNull) {
-            json.get("message").asString
-        } else if (raw.contains("Response: \"")) {
-            raw.substringAfter("Response: \"").substringBeforeLast("\"")
-        } else {
-            null
-        }
-    }
-
-    private fun parseIsBlocked(json: com.google.gson.JsonObject): Boolean {
-        val data = if (json.has("data") && !json.get("data").isJsonNull) json.getAsJsonObject("data") else null
-        return data != null && data.has("is_blocked") && !data.get("is_blocked").isJsonNull && data.get("is_blocked").asBoolean
     }
 }

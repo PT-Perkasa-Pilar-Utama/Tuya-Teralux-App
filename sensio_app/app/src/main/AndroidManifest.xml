@@ -58,6 +58,11 @@
             android:name="com.example.whisperandroid.service.reminder.MeetingReminderService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
+        <service
+            android:name="com.example.whisperandroid.service.mqtt.MqttForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
         
         <!-- Meeting reminder receivers -->
         <receiver

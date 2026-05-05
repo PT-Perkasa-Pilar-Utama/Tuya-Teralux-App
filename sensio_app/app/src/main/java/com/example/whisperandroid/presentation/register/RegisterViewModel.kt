@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
-import com.example.whisperandroid.domain.usecase.GetTerminalByMacUseCase
 import com.example.whisperandroid.domain.usecase.RegisterTerminalUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,75 +14,17 @@ import kotlinx.coroutines.launch
 data class RegisterUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val message: String? = null, // Added message field
+    val message: String? = null,
     val isSuccess: Boolean = false
 )
 
 class RegisterViewModel(
     application: Application,
-    private val registerTerminalUseCase:
-        com.example.whisperandroid.domain.usecase.RegisterTerminalUseCase,
-    private val getTerminalByMacUseCase:
-        com.example.whisperandroid.domain.usecase.GetTerminalByMacUseCase,
+    private val registerTerminalUseCase: RegisterTerminalUseCase,
     private val authenticateUseCase: AuthenticateUseCase
 ) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow(RegisterUiState(isLoading = true)) // Start with loading
+    private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
-
-    init {
-        checkRegistration()
-    }
-
-    fun checkRegistration() {
-        viewModelScope.launch {
-            val deviceId =
-                com.example.whisperandroid.util.DeviceUtils
-                    .getDeviceId(getApplication())
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = getTerminalByMacUseCase(deviceId)
-
-            result
-                .onSuccess { registration ->
-                    if (registration != null) {
-                        // Registration exists, now try to authenticate
-                        val authResult = authenticateUseCase()
-                        authResult
-                            .onSuccess {
-                                _uiState.update {
-                                    it.copy(
-                                        isLoading = false,
-                                        isSuccess = true,
-                                        message = "Logged in successfully. Redirecting..."
-                                    )
-                                }
-                            }.onFailure { e ->
-                                // Registration exists but auth failed.
-                                // DO NOT set isSuccess = true to avoid infinite loop.
-                                _uiState.update {
-                                    it.copy(
-                                        isLoading = false,
-                                        isSuccess = false,
-                                        error =
-                                        "Device registered but authentication failed: " +
-                                            "${e.message}. Please check your connection or try " +
-                                            "again."
-                                    )
-                                }
-                            }
-                    } else {
-                        // Not registered, show form
-                        _uiState.update { it.copy(isLoading = false, isSuccess = false) }
-                    }
-                }.onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = "Failed to check registration: ${e.message}"
-                        )
-                    }
-                }
-        }
-    }
 
     fun register(
         name: String,

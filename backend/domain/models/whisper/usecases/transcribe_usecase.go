@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"sensio/domain/common/providers"
 	"sensio/domain/common/services"
@@ -157,7 +158,10 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 	var idempotencyHash string
 	if meta != nil && meta.IdempotencyKey != "" {
 		// Create a deterministic hash based on idempotency key, language, terminal ID, and audio content
-		audioHash, _ := utils.HashFile(inputPath)
+		audioHash, err := utils.HashFile(inputPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to hash audio file: %w", err)
+		}
 		hashInput := fmt.Sprintf("%s_%s_%s_%s", meta.IdempotencyKey, language, meta.TerminalID, audioHash)
 		idempotencyHash = "idemp_transcribe_" + utils.HashString(hashInput)
 
@@ -212,11 +216,15 @@ func (uc *transcribeUseCase) TranscribeAudio(ctx context.Context, inputPath stri
 
 	// 2. Mark as pending and save idempotency key map
 	uc.store.Set(taskID, status)
-	_ = uc.cache.Set(taskID, status)
+	if err := uc.cache.Set(taskID, status); err != nil {
+		log.Printf("Cache set error for taskID %s: %v", taskID, err)
+	}
 
 	if idempotencyHash != "" {
 		// Store the mapping from idempotency hash to task ID
-		_ = uc.cache.Set(idempotencyHash, taskID)
+		if err := uc.cache.Set(idempotencyHash, taskID); err != nil {
+		log.Printf("Cache set error for idempotencyHash %s: %v", idempotencyHash, err)
+	}
 	}
 
 	// Mark terminal as actively transcribing if applicable
@@ -402,7 +410,7 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 				} else {
 					// Use utility merge function that handles overlap detection
 					overlapChars := utils.FindOverlapLength(mergedText, r.text)
-					if overlapChars > 0 {
+					if overlapChars > 0 && overlapChars < len(r.text) {
 						r.text = r.text[overlapChars:]
 					}
 					mergedText = mergedText + " " + strings.TrimSpace(r.text)
@@ -487,9 +495,17 @@ func (uc *transcribeUseCase) TranscribeAudioSync(ctx context.Context, inputPath 
 		}
 		// Pass terminalContext for terminal-specific provider resolution
 		if len(opts.TerminalContext) > 0 && opts.TerminalContext[0] != "" {
-			refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang, opts.TerminalContext[0])
+			refined, err = uc.refineUC.RefineText(ctx, rawTranscription, refineLang, opts.TerminalContext[0])
+			if err != nil {
+				log.Printf("RefineText error with terminal context: %v, falling back to raw transcription", err)
+				refined = rawTranscription
+			}
 		} else {
-			refined, _ = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
+			refined, err = uc.refineUC.RefineText(ctx, rawTranscription, refineLang)
+			if err != nil {
+				log.Printf("RefineText error: %v, falling back to raw transcription", err)
+				refined = rawTranscription
+			}
 		}
 		// Note: Current refine does full paraphrasing, so we don't mark as normalization
 		// Normalization is reserved for safe punctuation/casing-only fixes

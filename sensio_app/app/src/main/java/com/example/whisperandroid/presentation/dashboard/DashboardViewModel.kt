@@ -5,6 +5,8 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.whisperandroid.data.di.NetworkModule
+import com.example.whisperandroid.data.repository.CacheFlushRepository
+import com.example.whisperandroid.data.repository.CacheFlushRepositoryImpl
 import com.example.whisperandroid.domain.repository.TerminalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +19,8 @@ data class DashboardUiState(
     val isTuyaSyncReady: Boolean = false,
     val aiProvider: String? = null,
     val isSavingAiProvider: Boolean = false,
+    val isFlushing: Boolean = false,
+    val toastMessage: String? = null,
     val error: String? = null,
     val shouldRedirectToRegister: Boolean = false
 )
@@ -31,6 +35,12 @@ class DashboardViewModel(
     private val tokenManager: com.example.whisperandroid.data.local.TokenManager,
     private val tuyaSyncReadyFlow: kotlinx.coroutines.flow.StateFlow<Boolean> = NetworkModule.isTuyaSyncReady
 ) : ViewModel() {
+    private val cacheFlushClient = okhttp3.OkHttpClient()
+    private val cacheFlushRepository: CacheFlushRepository = CacheFlushRepositoryImpl(
+        tokenManager = tokenManager,
+        baseUrl = NetworkModule.BASE_URL,
+        okhttpClient = cacheFlushClient
+    )
     private val _uiState = MutableStateFlow(
         DashboardUiState(
             isBackgroundModeEnabled = backgroundAssistantModeStore.isEnabled.value
@@ -173,6 +183,32 @@ class DashboardViewModel(
                 NetworkModule.setTuyaSyncReady(true)
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to sync devices")
                 android.util.Log.e("DashboardViewModel", "Failed to sync devices", e)
+            }
+        }
+    }
+
+    fun clearToastMessage() {
+        _uiState.value = _uiState.value.copy(toastMessage = null)
+    }
+
+    fun flushCache() {
+        if (_uiState.value.isFlushing) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isFlushing = true)
+            try {
+                val result = cacheFlushRepository.flushCache()
+                result.onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        toastMessage = "Cache flushed successfully"
+                    )
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        toastMessage = e.message ?: "Failed to flush cache"
+                    )
+                }
+            } finally {
+                _uiState.value = _uiState.value.copy(isFlushing = false)
             }
         }
     }

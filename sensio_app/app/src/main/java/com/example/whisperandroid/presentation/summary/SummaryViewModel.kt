@@ -23,38 +23,8 @@ class SummaryViewModel(application: Application) : AndroidViewModel(application)
     private val _selectedLanguage = MutableStateFlow("id")
     val selectedLanguage: StateFlow<String> = _selectedLanguage
 
-    private val mqttHelper = com.example.whisperandroid.data.di.NetworkModule.mqttHelper
-
-    private val _mqttStatus = MutableStateFlow(
-        com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.DISCONNECTED
-    )
-    val mqttStatus: StateFlow<
-        com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus
-        > = _mqttStatus
-
     init {
         loadSummaries()
-
-        viewModelScope.launch {
-            mqttHelper.connectionStatus.collect { status ->
-                _mqttStatus.value = status
-            }
-        }
-        reconnectMqtt()
-    }
-
-    fun reconnectMqtt() {
-        viewModelScope.launch {
-            if (mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTED ||
-                mqttHelper.connectionStatus.value ==
-                com.example.whisperandroid.util.MqttHelper.MqttConnectionStatus.CONNECTING
-            ) {
-                return@launch
-            }
-            // connect() now fetches credentials internally, password is never stored
-            mqttHelper.connect()
-        }
     }
 
     private fun loadSummaries() {

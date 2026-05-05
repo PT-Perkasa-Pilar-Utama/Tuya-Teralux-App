@@ -167,9 +167,10 @@ func InitModule(
 	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, nil, cfg, badger, vectorSvc, guardOrch, fastIntentRouter, decisionEngine, providerResolver, controlUC, router)
 
 	chatController := ragControllers.NewRAGChatController(chatUC, mqttSvc, terminalRepo)
-	if err := chatController.StartMqttSubscription(); err != nil {
-		utils.LogError("RAG module MQTT subscription failed: %v", err)
-	}
+	// MQTT subscription disabled - keeping HTTP endpoint only (notifications MQTT remains for meeting reminders)
+	// if err := chatController.StartMqttSubscription(); err != nil {
+	// 	utils.LogError("RAG module MQTT subscription failed: %v", err)
+	// }
 
 	geminiRagRawUC := ragUsecases.NewQueryGeminiModelUseCase(geminiService)
 	openaiRagRawUC := ragUsecases.NewQueryOpenAIModelUseCase(openaiService)
@@ -229,9 +230,10 @@ func InitModule(
 	}
 
 	transcribeController := whisperControllers.NewWhisperTranscribeController(transcribeUC, saveRecordingUC, uploadSessionUC, cfg, mqttSvc)
-	if err := transcribeController.StartMqttSubscription(); err != nil {
-		utils.LogError("Whisper module MQTT subscription failed: %v", err)
-	}
+	// [MQTT_DISABLED] Whisper MQTT subscription disabled - keeping HTTP endpoints only
+	// if err := transcribeController.StartMqttSubscription(); err != nil {
+	// 	utils.LogError("Whisper module MQTT subscription failed: %v", err)
+	// }
 	whisperStatusController := whisperControllers.NewWhisperTranscribeStatusController(whisperStatusUC)
 	whisperUploadSessionController := whisperControllers.NewUploadSessionController(uploadSessionUC, transcribeUC)
 

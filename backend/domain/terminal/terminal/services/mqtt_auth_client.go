@@ -26,6 +26,13 @@ type mqttAuthResponse struct {
 	Data    *MQTTCredentials `json:"data"`
 }
 
+// IMqttAuthClient defines the interface for MQTT auth operations
+type IMqttAuthClient interface {
+	GetMQTTCredentials(username string) (*MQTTCredentials, error)
+	CreateMQTTUser(username, password string) (bool, error)
+	DeleteMQTTUser(username string) error
+}
+
 // MqttAuthClient is an HTTP client for the EMQX Auth Service (Rust)
 type MqttAuthClient struct {
 	baseURL    string

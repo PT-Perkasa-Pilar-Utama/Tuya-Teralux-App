@@ -53,10 +53,6 @@ class AiAssistantViewModel(
     var lastAssistantError by mutableStateOf<String?>(null)
         private set
 
-    val shouldWakeWordListen: Boolean
-        get() = assistantState == AssistantState.Idle &&
-            mqttStatus == MqttHelper.MqttConnectionStatus.CONNECTED
-
     private var lastUserMessageNormalized: String? = null
     private var lastUserMessageAtMs: Long = 0L
 
@@ -285,263 +281,13 @@ class AiAssistantViewModel(
 
     init {
         viewModelScope.launch {
-            mqttHelper.messages.collect { (rawTopic, rawMessage) ->
-                val topic = rawTopic as String
-                val message = rawMessage as String
-                android.util.Log.d(
-                    "AiAssistantViewModel",
-                    "MQTT Message: topic=$topic, message=$message"
-                )
-                try {
-                    when {
-                        topic.endsWith("chat/answer") -> {
-                            android.util.Log.d(
-                                "AiAssistantViewModel",
-                                "Received chat/answer: $message"
-                            )
-                            val responseRequestId = try {
-                                val parsed = com.google.gson.JsonParser
-                                    .parseString(message).asJsonObject
-                                if (parsed.has("request_id") &&
-                                    !parsed.get("request_id").isJsonNull
-                                ) {
-                                    parsed.get("request_id").asString
-                                } else if (parsed.has("data") && !parsed.get("data").isJsonNull) {
-                                    val data = parsed.getAsJsonObject("data")
-                                    if (data.has("request_id") &&
-                                        !data.get("request_id").isJsonNull
-                                    ) {
-                                        data.get("request_id").asString
-                                    } else {
-                                        null
-                                    }
-                                } else {
-                                    null
-                                }
-                            } catch (e: Exception) {
-                                null
-                            }
-
-                            val currentRequestId = activeRequestId
-
-                            // Relaxed RID validation: accept if matches active OR recent request IDs
-                            // This handles late responses after request was completed with error
-                            val isRidMatch = responseRequestId != null &&
-                                (responseRequestId == currentRequestId || recentRequestIds.contains(responseRequestId))
-
-                            // Only drop if NO matching request ID at all
-                            if (!isRidMatch) {
-                                // Check if this might be a late response for a completed request
-                                if (currentRequestId == null && responseRequestId != null && recentRequestIds.contains(responseRequestId)) {
-                                    // Late response for recent request - recover and process
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "Late response for recent request. RID: $responseRequestId, Recent IDs: ${recentRequestIds.toList().joinToString()}"
-                                    )
-                                    // Re-trigger the request state
-                                    activeRequestId = responseRequestId
-                                    activeRequestType = RequestType.Audio  // Default to audio for whisper flow
-                                    transitionTo(AssistantState.Processing, "late_response_recovery")
-                                } else {
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "No active request, dropped chat/answer. Message: $message"
-                                    )
-                                    return@collect
-                                }
-                            }
-
-                            val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
-                            if (parsedResult == null) {
-                                activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "parse_failed"))
-                                return@collect
-                            }
-
-                            // Ignore only non-final in-progress acks to prevent premature transition away from Processing.
-                            // isDupInProgress: non-final in-progress ack (MQTT_SYNC_DROP / IDEMPOTENCY_IN_PROGRESS) - ignored.
-                            // isDupDrop (IDEMPOTENCY_CACHED): cached final response - must be processed normally with payload.
-                            if (parsedResult.isDupInProgress) {
-                                activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "in_progress_ack", "source" to (parsedResult.source ?: "null")))
-                                android.util.Log.d(
-                                    "AiAssistantViewModel",
-                                    "Ignored in-progress ack from ${parsedResult.source} for RID: $currentRequestId"
-                                )
-                                return@collect
-                            }
-
-                            activeTimingLogger?.markStep("mqtt_answer_received", mapOf("source" to (parsedResult.source ?: "mqtt")))
-
-                            val elapsed = currentRequestId?.let { rid ->
-                                requestStartedAtMs[rid]?.let { start ->
-                                    System.currentTimeMillis() - start
-                                }
-                            }
-
-                            if (parsedResult.isBlocked) {
-                                // Remove latest USER bubble for blocked intents to show identity-style fallback
-                                val userMessages = transcriptionResults.filter {
-                                    it.role == MessageRole.USER
-                                }
-                                if (userMessages.isNotEmpty()) {
-                                    transcriptionResults = transcriptionResults
-                                        .toMutableList()
-                                        .apply {
-                                            val lastUserIndex = indexOfLast {
-                                                it.role == MessageRole.USER
-                                            }
-                                            if (lastUserIndex >= 0) removeAt(lastUserIndex)
-                                        }
-                                }
-
-                                android.util.Log.d(
-                                    "AiAssistantViewModel",
-                                    "Guard blocked prompt: $message, showing identity fallback"
-                                )
-                            }
-
-                            val cleanMessage = AssistantResponseParser.getCleanMessage(parsedResult, selectedLanguage)
-
-                            // Handle empty terminal payload - convert to service-issue instead of silent complete
-                            if (cleanMessage == null && !parsedResult.isBlocked && !parsedResult.isControl) {
-                                activeTimingLogger?.markStep("empty_terminal_payload", mapOf("source" to (parsedResult.source ?: "null")))
-                                android.util.Log.w(
-                                    "AiAssistantViewModel",
-                                    "Empty terminal payload detected, completing with service-issue. RID: $currentRequestId, source: ${parsedResult.source}"
-                                )
-                                completeWithServiceIssue(currentRequestId, "empty_terminal_payload")
-                            } else {
-                                completeRequest(currentRequestId, cleanMessage, elapsed, "mqtt")
-                            }
-                        }
-
-                        topic.endsWith("chat") -> {
-                            android.util.Log.d(
-                                "AiAssistantViewModel",
-                                "Received chat (sync): $message"
-                            )
-                            // Extract prompt if it's JSON, otherwise use raw message
-                            val prompt =
-                                try {
-                                    val parsed = com.google.gson.JsonParser.parseString(message)
-                                    val jsonObj = parsed.asJsonObject
-                                    if (jsonObj.has("prompt") &&
-                                        !jsonObj.get("prompt").isJsonNull
-                                    ) {
-                                        jsonObj.get("prompt").asString
-                                    } else {
-                                        message
-                                    }
-                                } catch (e: Exception) {
-                                    message
-                                }
-
-                            val cleanPrompt = prompt.trim().removeSurrounding("\"")
-
-                            if (cleanPrompt.isNotBlank()) {
-                                appendUserMessageIfNeeded(cleanPrompt)
-                            }
-                        }
-
-                        topic.endsWith("whisper/answer") -> {
-                            android.util.Log.d("AiAssistantViewModel", "Received whisper/answer: $message")
-                            val responseRequestId = try {
-                                val parsed = com.google.gson.JsonParser
-                                    .parseString(message).asJsonObject
-                                if (parsed.has("request_id") &&
-                                    !parsed.get("request_id").isJsonNull
-                                ) {
-                                    parsed.get("request_id").asString
-                                } else if (parsed.has("data") && !parsed.get("data").isJsonNull) {
-                                    val data = parsed.getAsJsonObject("data")
-                                    if (data.has("request_id") &&
-                                        !data.get("request_id").isJsonNull
-                                    ) {
-                                        data.get("request_id").asString
-                                    } else {
-                                        null
-                                    }
-                                } else {
-                                    null
-                                }
-                            } catch (e: Exception) {
-                                null
-                            }
-
-                            val currentRequestId = activeRequestId
-
-                            // Relaxed RID validation: accept if matches active OR recent request IDs
-                            // This handles late responses after request was completed with error
-                            val isRidMatch = responseRequestId != null &&
-                                (responseRequestId == currentRequestId || recentRequestIds.contains(responseRequestId))
-
-                            // Only drop if NO matching request ID at all
-                            if (!isRidMatch) {
-                                // Check if this might be a late response for a completed request
-                                if (currentRequestId == null && responseRequestId != null && recentRequestIds.contains(responseRequestId)) {
-                                    // Late response for recent request - recover and process
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "Late response for recent request. RID: $responseRequestId, Recent IDs: ${recentRequestIds.toList().joinToString()}"
-                                    )
-                                    // Re-trigger the request state
-                                    activeRequestId = responseRequestId
-                                    activeRequestType = RequestType.Audio  // Default to audio for whisper flow
-                                    transitionTo(AssistantState.Processing, "late_response_recovery")
-                                } else {
-                                    android.util.Log.w(
-                                        "AiAssistantViewModel",
-                                        "No active request, dropped chat/answer. Message: $message"
-                                    )
-                                    return@collect
-                                }
-                            }
-
-                            val parsedResult = AssistantResponseParser.parseMqttAssistantResult(message)
-                            if (parsedResult == null) {
-                                activeTimingLogger?.markStep("response_dropped", mapOf("reason" to "parse_failed"))
-                                return@collect
-                            }
-
-                            // WHISPER ANSWER is explicitly an ACK/progress or ERROR.
-                            // DO NOT call completeRequest gracefully here; wait for chat/answer for final text.
-                            try {
-                                val json = com.google.gson.JsonParser.parseString(message).asJsonObject
-                                val isSuccess = json.has("status") && json.get("status").asBoolean
-                                if (!isSuccess) {
-                                    val errMessage = if (json.has("message") && !json.get("message").isJsonNull) {
-                                        json.get("message").asString
-                                    } else {
-                                        "Voice transcription failed"
-                                    }
-                                    activeTimingLogger?.markStep("whisper_failed", mapOf("error" to errMessage))
-                                    android.util.Log.e("AiAssistantViewModel", "Whisper failed from backend: $errMessage")
-                                    failRequest(currentRequestId, errMessage)
-                                    return@collect
-                                }
-                            } catch (e: Exception) {
-                                // Ignore json parsing error here since it's already caught by outer try-catch
-                            }
-
-                            activeTimingLogger?.markStep("whisper_ack_received", mapOf("source" to (parsedResult.source ?: "mqtt")))
-                            android.util.Log.d("AiAssistantViewModel", "Whisper ACK received for RID: $currentRequestId. Waiting for final chat/answer...")
-                        }
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("AiAssistantViewModel", "Error parsing MQTT message", e)
-                    failRequest(activeRequestId, "Error parsing response")
-                }
-            }
-        }
-
-        viewModelScope.launch {
             mqttHelper.connectionStatus.collect { status ->
                 android.util.Log.d("AiAssistantViewModel", "MQTT Status Changed: $status")
                 mqttStatus = status
             }
         }
 
-        // Auto-connect when the ViewModel is initialized
-        reconnectMqtt()
+        // MQTT connection is handled by Foreground Service, not ViewModel
     }
 
     fun reconnectMqtt() {
@@ -597,19 +343,73 @@ class AiAssistantViewModel(
                 activeTimingLogger?.markStep("send_chat_invoked")
                 activeTimingLogger?.markStep("request_id_assigned")
 
-                val publishStartMs = System.currentTimeMillis()
-                activeTimingLogger?.markStep("mqtt_publish_started")
-                val result = mqttHelper.publishChat(text, selectedLanguage, requestId)
-                val publishDurationMs = System.currentTimeMillis() - publishStartMs
+                val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+                val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
+                val token = tm.getAccessToken()
+                val terminalId = tm.getTerminalId() ?: username
 
-                if (result.isSuccess) {
-                    activeTimingLogger?.markStep("mqtt_publish_success", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                    activeTimingLogger?.logDelta("mqtt_publish_started", "mqtt_publish_success", mapOf("metric" to "publish_duration"))
-                    startResponseTimeout(requestId)
-                } else {
-                    activeTimingLogger?.markStep("mqtt_publish_failed", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                    completeWithServiceIssue(requestId, "mqtt_publish_fail")
-                    android.util.Log.e("AiAssistantViewModel", "publishChat failed")
+                if (token == null) {
+                    activeTimingLogger?.markStep("http_chat_failed", mapOf("reason" to "auth_error"))
+                    failRequest(requestId, "Authentication error: Token missing")
+                    return@launch
+                }
+
+                activeTimingLogger?.markStep("http_chat_started")
+                val httpChatStartMs = System.currentTimeMillis()
+
+                com.example.whisperandroid.data.di.NetworkModule.ragRepository.chat(
+                    prompt = text,
+                    language = selectedLanguage,
+                    terminalId = terminalId,
+                    uid = username,
+                    token = token,
+                    requestId = requestId,
+                    idempotencyKey = requestId
+                ).collect { resource ->
+                    if (activeRequestId != requestId) return@collect
+                    when (resource) {
+                        is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                            val httpChatDurationMs = System.currentTimeMillis() - httpChatStartMs
+                            val data = resource.data
+                            if (data != null) {
+                                val parsedResult = AssistantResponseParser.parseHttpAssistantResult(data)
+                                if (parsedResult.isDupInProgress) {
+                                    activeTimingLogger?.markStep("http_chat_in_progress", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
+                                    android.util.Log.d("AiAssistantViewModel", "HTTP Chat: Request in progress, starting bounded retry")
+                                    launchBoundedRetryForInProgress(
+                                        requestId = requestId,
+                                        text = text,
+                                        selectedLanguage = selectedLanguage,
+                                        terminalId = terminalId,
+                                        username = username,
+                                        token = token,
+                                        fallbackIdempotencyKey = requestId,
+                                        httpChatStartMs = httpChatStartMs
+                                    )
+                                } else if (parsedResult.isDupCached) {
+                                    activeTimingLogger?.markStep("http_chat_dup_drop", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
+                                    android.util.Log.d("AiAssistantViewModel", "HTTP Chat: Silent completion for cached duplicate")
+                                    completeRequest(requestId, null, null, "http_dup")
+                                } else {
+                                    activeTimingLogger?.markStep("http_chat_success", mapOf("http_chat_duration_ms" to httpChatDurationMs.toString()))
+                                    handleHttpChatResponse(parsedResult, requestId)
+                                }
+                            } else {
+                                activeTimingLogger?.markStep("http_chat_failed", mapOf("reason" to "null_data"))
+                                failRequest(requestId, "Invalid response")
+                            }
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                            activeTimingLogger?.markStep("http_chat_error", mapOf("error" to (resource.message ?: "unknown")))
+                            val errorMsg = resource.message
+                            if (errorMsg != null && (errorMsg.contains("Maaf") || errorMsg.contains("Sorry"))) {
+                                completeRequest(requestId, errorMsg, null, "http_error_msg")
+                            } else {
+                                completeWithServiceIssue(requestId, "http_chat_error")
+                            }
+                        }
+                        is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                    }
                 }
             }
         }
@@ -664,20 +464,54 @@ class AiAssistantViewModel(
                 transitionTo(AssistantState.Processing, "stopRecording(valid)")
                 val requestId = activeRequestId
                 viewModelScope.launch {
-                    val publishStartMs = System.currentTimeMillis()
-                    activeTimingLogger?.markStep("mqtt_publish_started")
-                    val bytes = file.readBytes()
-                    val result = mqttHelper.publishAudio(bytes, selectedLanguage, requestId)
-                    val publishDurationMs = System.currentTimeMillis() - publishStartMs
+                    val username = com.example.whisperandroid.util.DeviceUtils.getDeviceId(getApplication())
+                    val tm = com.example.whisperandroid.data.di.NetworkModule.tokenManager
+                    val token = tm.getAccessToken()
+                    val terminalId = tm.getTerminalId() ?: username
+                    val macAddress = tm.getMacAddress() ?: username
 
-                    if (result.isSuccess) {
-                        activeTimingLogger?.markStep("mqtt_publish_success", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                        activeTimingLogger?.logDelta("mqtt_publish_started", "mqtt_publish_success", mapOf("metric" to "publish_duration"))
-                        startResponseTimeout(requestId)
-                    } else {
-                        activeTimingLogger?.markStep("mqtt_publish_failed", mapOf("publish_duration_ms" to publishDurationMs.toString()))
-                        completeWithServiceIssue(requestId, "mqtt_audio_publish_fail")
-                        android.util.Log.e("AiAssistantViewModel", "publishAudio failed")
+                    if (token == null) {
+                        activeTimingLogger?.markStep("http_transcribe_failed", mapOf("reason" to "auth_error"))
+                        failRequest(requestId, "Authentication error: Token missing")
+                        return@launch
+                    }
+
+                    activeTimingLogger?.markStep("http_transcribe_started")
+                    val transcribeAudioUseCase =
+                        com.example.whisperandroid.data.di.NetworkModule.transcribeAudioUseCase
+                    val httpTranscribeStartMs = System.currentTimeMillis()
+                    transcribeAudioUseCase.initiate(
+                        audioFile = file,
+                        token = token,
+                        language = selectedLanguage,
+                        macAddress = macAddress,
+                        idempotencyKey = requestId ?: ""
+                    ).collect { result ->
+                        if (activeRequestId != requestId) return@collect
+                        when (result) {
+                            is com.example.whisperandroid.domain.repository.Resource.Success -> {
+                                val httpTranscribeDurationMs = System.currentTimeMillis() - httpTranscribeStartMs
+                                val taskId = result.data
+                                if (taskId != null) {
+                                    activeTimingLogger?.markStep("http_transcribe_success", mapOf("task_id" to taskId, "http_transcribe_duration_ms" to httpTranscribeDurationMs.toString()))
+                                    pollHttpTranscription(
+                                        taskId,
+                                        requestId ?: "",
+                                        token,
+                                        terminalId,
+                                        requestId ?: ""
+                                    )
+                                } else {
+                                    activeTimingLogger?.markStep("http_transcribe_failed", mapOf("reason" to "null_task_id"))
+                                    failRequest(requestId, "Audio trigger failed")
+                                }
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Error -> {
+                                activeTimingLogger?.markStep("http_transcribe_error", mapOf("error" to (result.message ?: "unknown")))
+                                completeWithServiceIssue(requestId, "http_transcribe_error")
+                            }
+                            is com.example.whisperandroid.domain.repository.Resource.Loading -> {}
+                        }
                     }
                 }
             } else {
