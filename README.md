@@ -17,9 +17,11 @@ The project is divided into two main components:
     *   Manages device connectivity, state synchronization, and integration with third-party platforms like Tuya.
 
 ### Installation & User Guide
-For detailed instructions on how to configure, build, and run both the Backend and Android applications (using `Makefile`), please consult the dedicated documentation:
+For detailed instructions on how to configure, build, and run both the Backend and Android applications (using `Makefile`), please consult the dedicated documentation.
 
-👉 **[Read the Installation Guide](backend/docs/manual/installation_guide.md)**
+Backend local development now uses Docker Compose v2 (`docker compose`) to start supporting containers such as MySQL before `make dev` launches the Go server.
+
+👉 **[Read the Installation Guide](backend/docs/manual/INSTALLATIONS/1_installation_guide.md)**
 
 ## 🛠️ Key Technologies
 

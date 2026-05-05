@@ -1,6 +1,9 @@
 # Sensio App Backend - Makefile for Development Automation
 
-.PHONY: help dev dev-compose dev-server build-docker push pull update run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint lint-strict vet push-remote
+.PHONY: help dev dev-compose dev-server build-docker push pull update run stop-docker start-docker test clean kill migrate-up migrate-down migrate-version migrate-force start-compose stop-compose stop lint lint-strict vet push-remote check-compose require-compose
+
+COMPOSE := docker compose
+COMPOSE_DEV := $(COMPOSE) -f docker-compose.dev.yml
 
 # Default target
 help:
@@ -39,46 +42,57 @@ help:
 	@echo "  make adb-reverse      - Expose backend port (8081) to Android device via ADB"
 	@echo ""
 
+# Verify Docker Compose v2 is available
+check-compose:
+	@if ! $(COMPOSE) version >/dev/null 2>&1; then \
+		echo "❌ Docker Compose v2 is required, but 'docker compose' is not available on this machine."; \
+		echo "   Install/enable the Docker Compose v2 plugin, then verify with: docker compose version"; \
+		exit 1; \
+	fi
+
+require-compose: check-compose
+	@echo "✅ Docker Compose v2 detected"
+
 # Start only MySQL for development
-start-mysql-dev:
-	docker compose -f docker-compose.dev.yml up -d --wait mysql
+start-mysql-dev: require-compose
+	$(COMPOSE_DEV) up -d --wait mysql
 
 # Start ALL services in dev-compose (Milvus, etcd, minio, mysql)
-start-full-dev:
-	docker compose -f docker-compose.dev.yml up -d --wait
+start-full-dev: require-compose
+	$(COMPOSE_DEV) up -d --wait
 
 # Stop all running containers (App, Compose, Dev DB) without deleting volumes
-stop: stop-docker stop-compose stop-mysql-dev
+stop: stop-docker kill-compose
 
 # Stop MySQL for development
-stop-mysql-dev:
-	docker compose -f docker-compose.dev.yml down
+stop-mysql-dev: require-compose
+	$(COMPOSE_DEV) down
 
 # Start only MySQL for development
 dev-mysql: start-mysql-dev
 	@echo "🟢 MySQL started"
 
 # Run MySQL and Backend only (Go + Air)
-dev: kill
+dev: kill require-compose
 	@trap 'echo "🛑 Stopping services..."; \
 	  [ -n "$$AIR_PID" ] && kill $$AIR_PID 2>/dev/null || true; \
-	  make stop-mysql-dev' EXIT INT TERM; \
+	  make kill-compose' EXIT INT TERM; \
 	set -e; \
 	make start-mysql-dev; \
 	echo "🟢 MySQL started"; \
 	make dev-backend
 
 # Run full development stack with hot reload (Full Docker Stack + Backend + RAG)
-dev-full: kill
+dev-full: kill require-compose
 	@trap 'echo "🛑 Stopping all services..."; \
 	  [ -n "$$AIR_PID" ] && kill $$AIR_PID 2>/dev/null || true; \
 	  [ -n "$$LOGS_PID" ] && kill $$LOGS_PID 2>/dev/null || true; \
-	  make stop-mysql-dev' EXIT INT TERM; \
+	  make kill-compose' EXIT INT TERM; \
 	set -e; \
 	make start-full-dev; \
 	echo "🟢 Full Docker stack (Milvus + MySQL) started"; \
 	echo "📂 Following Docker logs..."; \
-	docker compose -f docker-compose.dev.yml & LOGS_PID=$$!; \
+	$(COMPOSE_DEV) & LOGS_PID=$$!; \
 	make dev-server
 
 # Start only compose services
@@ -210,30 +224,30 @@ push-remote:
 	@bash ../scripts/backend/push_remote_arch.sh
 
 # Pull latest image from Registry
-pull:
+pull: require-compose
 	@echo "📥 Pulling latest images from $(REGISTRY)..."
-	docker compose pull
+	$(COMPOSE) pull
 
 # Update production stack (Pull + Restart with Orphan Cleanup)
-update:
+update: require-compose
 	@echo "📥 Pulling latest images from GHCR..."
-	docker compose pull
+	$(COMPOSE) pull
 	@echo "🚀 Restarting production stack and cleaning orphans..."
-	docker compose up -d --remove-orphans
+	$(COMPOSE) up -d --remove-orphans
 	@echo "✅ Update complete!"
 
 # Run production stack
-run:
+run: require-compose
 	@echo "🚀 Starting Sensio Backend stack..."
-	docker compose up -d
+	$(COMPOSE) up -d
 
 # Start Docker Compose (Production/Latest)
 start-compose: run
 
 # Stop Docker Compose
-stop-compose:
+stop-compose: require-compose
 	@echo "🛑 Stopping Docker Compose production stack..."
-	docker compose down
+	$(COMPOSE) down
 
 # Stop dev/local container
 stop-docker:
@@ -333,8 +347,10 @@ kill-server:
 # Kill and cleanup Docker Compose services
 kill-compose:
 	@echo "🐳 Cleaning up Docker containers..."
-	@docker compose down --remove-orphans 2>/dev/null || true
-	@docker compose -f docker-compose.dev.yml down --remove-orphans 2>/dev/null || true
+	@if $(COMPOSE) version >/dev/null 2>&1; then \
+		$(COMPOSE) down --remove-orphans 2>/dev/null || true; \
+		$(COMPOSE_DEV) down --remove-orphans 2>/dev/null || true; \
+	fi
 	@docker stop sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@docker rm sensio-backend sensio-db dev-mysql 2>/dev/null || true
 	@echo "✅ Docker cleanup completed"

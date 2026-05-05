@@ -127,7 +127,7 @@ class BackgroundAssistantService : Service() {
             }
             ACTION_STOP_ASSISTANT -> {
                 performCleanup()
-                stopForeground(true)
+                stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
         }
@@ -177,7 +177,7 @@ class BackgroundAssistantService : Service() {
             "Microphone permission was removed. Re-enable permission to turn it on again."
         )
         performCleanup()
-        stopForeground(true)
+        stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 

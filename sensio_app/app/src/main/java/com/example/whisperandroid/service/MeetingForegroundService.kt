@@ -141,7 +141,7 @@ class MeetingForegroundService : Service() {
                         state is MeetingProcessState.Cancelled
                     ) {
                         showFinalNotification(state)
-                        stopForeground(false)
+                        stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
                         stopSelf()
                     }
                 }
@@ -149,13 +149,13 @@ class MeetingForegroundService : Service() {
                 // User-initiated cancellation - don't show error state
                 Log.d("MeetingForegroundService", "Processing cancelled: ${e.message}")
                 MeetingProcessManager.updateState(MeetingProcessState.Cancelled)
-                stopForeground(false)
+                stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
                 stopSelf()
             } catch (e: Exception) {
                 val errorState = MeetingProcessState.Error(e.message ?: "Unknown error")
                 MeetingProcessManager.updateState(errorState)
                 showFinalNotification(errorState)
-                stopForeground(false)
+                stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
                 stopSelf()
             } finally {
                 // Clear the job reference when processing completes
@@ -230,7 +230,7 @@ class MeetingForegroundService : Service() {
         }
 
         // Stop the service
-        stopForeground(false)
+        stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 

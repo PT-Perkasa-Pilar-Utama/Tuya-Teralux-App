@@ -97,7 +97,6 @@ class MarkdownUtilsTest {
 
         val result = normalizeMeetingSummaryMarkdown(input)
 
-        // Should collapse 3+ newlines to 2
         assertTrue("Should not have 3+ consecutive newlines", !result.contains("\n\n\n"))
         assertTrue("Should preserve paragraph separation", result.contains("\n\n"))
     }
@@ -158,14 +157,46 @@ class MarkdownUtilsTest {
         """.trimIndent()
 
         val result = normalizeMeetingSummaryMarkdown(input)
+        val blocks = parseMarkdownIntoBlocks(result)
 
-        // Verify all structural elements are preserved
         assertTrue("Should preserve H1", result.contains("# Meeting Summary"))
         assertTrue("Should preserve H2", result.contains("## Key Decisions"))
         assertTrue("Should preserve table header", result.contains("| Decision | Owner | Deadline |"))
         assertTrue("Should preserve table separator", result.contains("| --- | --- | --- |"))
         assertTrue("Should preserve numbered list", result.contains("1. Complete the initial draft"))
         assertTrue("Should preserve line with en-dash", result.contains("–"))
+        assertFalse(
+            "Should not flatten notes paragraph into list content",
+            result.contains("3. Deploy to staging ## Notes"),
+        )
+        assertTrue("Should have at least heading, table, heading, list, paragraph blocks", blocks.size >= 4)
+        val notesParagraph = blocks.findLast { it is MarkdownBlock.Paragraph && it.text.contains("team discussed") }
+        assertTrue("Should keep notes as a paragraph block", notesParagraph is MarkdownBlock.Paragraph)
+    }
+
+    @Test
+    fun `normalizeMeetingSummaryMarkdown preserves malformed but common markdown readability`() {
+        val input = """
+            ##Decisions
+            -First bullet
+            - Second bullet
+            1.First step
+            2. Second step
+            | Owner | Status |
+            | --- | --- |
+            | Alex | Ready |
+
+            Closing paragraph line one
+            closing paragraph line two
+        """.trimIndent()
+
+        val result = normalizeMeetingSummaryMarkdown(input)
+
+        assertTrue("Should keep malformed heading text readable", result.contains("##Decisions"))
+        assertTrue("Should keep compact bullet readable", result.contains("-First bullet"))
+        assertTrue("Should keep compact numbered item readable", result.contains("1.First step"))
+        assertTrue("Should preserve valid table rows inside malformed content", result.contains("| Owner | Status |"))
+        assertTrue("Should preserve multiline closing paragraph", result.contains("Closing paragraph line one\nclosing paragraph line two"))
     }
 
     @Test

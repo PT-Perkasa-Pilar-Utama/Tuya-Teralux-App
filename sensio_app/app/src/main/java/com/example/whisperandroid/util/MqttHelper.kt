@@ -110,6 +110,17 @@ class MqttHelper(
     }
 
     private fun subscribeInternal(topic: String) {
+        val isConnected = try {
+            mqttAndroidClient.isConnected
+        } catch (e: Exception) {
+            false
+        }
+
+        if (!isConnected) {
+            Log.w(tag, "Skipping subscribe to $topic: MQTT client is not connected yet")
+            return
+        }
+
         try {
             mqttAndroidClient.subscribe(
                 topic,
@@ -124,12 +135,12 @@ class MqttHelper(
                         asyncActionToken: IMqttToken,
                         exception: Throwable
                     ) {
-                        Log.e(tag, "Failed to subscribe to $topic")
+                        Log.e(tag, "Failed to subscribe to $topic", exception)
                     }
                 }
             )
-        } catch (e: MqttException) {
-            e.printStackTrace()
+        } catch (e: Exception) {
+            Log.e(tag, "Error subscribing to $topic", e)
         }
     }
 

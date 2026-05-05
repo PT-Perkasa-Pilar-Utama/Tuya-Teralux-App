@@ -27,7 +27,7 @@ FastAPI-based service for RAG (Retrieval-Augmented Generation) and Whisper trans
 
 ## Local Development (Milvus)
 
-Use the provided `docker-compose.yml` to start a local Milvus instance:
+Use the provided `docker-compose.yml` to start a local Milvus instance with Docker Compose v2:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
