@@ -143,6 +143,12 @@ func run() error {
 		defer mqttService.Close()
 	}
 
+	defaultS3Service, err := infrastructure.NewS3ServiceFromConfig(*utils.GetConfig())
+	if err != nil {
+		utils.LogError("Warning: Failed to initialize S3 service: %v", err)
+	}
+	infrastructure.DefaultS3Service = defaultS3Service
+
 	// Shared Repositories
 	deviceRepo := device_repositories.NewDeviceRepository(badgerService)
 	terminalRepo := terminal_repositories.NewTerminalRepository(badgerService)
@@ -175,7 +181,7 @@ func run() error {
 	mailModule.RegisterRoutes(protected)
 
 	// 4. Recordings Module
-	recordingsModule := recordings.NewRecordingsModule(badgerService)
+	recordingsModule := recordings.NewRecordingsModule(badgerService, infrastructure.DefaultS3Service)
 	recordingsModule.RegisterRoutes(router, protected)
 
 	// 5. Speech & RAG Modules (migrated from stt-service)
