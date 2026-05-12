@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"sensio/domain/common/infrastructure"
 	"sensio/domain/recordings/repositories"
 )
 
@@ -13,29 +14,32 @@ type DeleteRecordingUseCase interface {
 }
 
 type deleteRecordingUseCase struct {
-	repo repositories.RecordingRepository
+	repo       repositories.RecordingRepository
+	s3Service  *infrastructure.S3Service
 }
 
-func NewDeleteRecordingUseCase(repo repositories.RecordingRepository) DeleteRecordingUseCase {
-	return &deleteRecordingUseCase{repo: repo}
+func NewDeleteRecordingUseCase(repo repositories.RecordingRepository, s3Service *infrastructure.S3Service) DeleteRecordingUseCase {
+	return &deleteRecordingUseCase{repo: repo, s3Service: s3Service}
 }
 
 func (uc *deleteRecordingUseCase) DeleteRecording(id string) error {
-	// 1. Get recording to find filename
 	recording, err := uc.repo.GetByID(id)
 	if err != nil {
 		return fmt.Errorf("recording not found: %v", err)
 	}
 
-	// 2. Delete metadata from DB
+	if recording.S3ObjectKey != "" && uc.s3Service != nil {
+		if err := uc.s3Service.DeleteObject(recording.S3ObjectKey); err != nil {
+			return fmt.Errorf("failed to delete S3 object: %v", err)
+		}
+	}
+
 	if err := uc.repo.Delete(id); err != nil {
 		return fmt.Errorf("failed to delete metadata: %v", err)
 	}
 
-	// 3. Delete physical file (Hard Delete)
-	// Filename is stored as UUID.EXT
 	filePath := filepath.Join("uploads", "audio", recording.Filename)
-	_ = os.Remove(filePath) // Ignore error if file doesn't exist, metadata is gone anyway
+	_ = os.Remove(filePath)
 
 	return nil
 }

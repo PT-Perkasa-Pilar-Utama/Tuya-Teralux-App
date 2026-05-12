@@ -20,3 +20,9 @@ type GetAllRecordingsResponseDto struct {
 	Page       int                    `json:"page"`
 	Limit      int                    `json:"limit"`
 }
+
+type UploadURLResponseDto struct {
+	UploadURL string `json:"upload_url"`
+	ObjectKey string `json:"object_key"`
+	Filename  string `json:"filename"`
+}
