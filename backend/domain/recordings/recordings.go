@@ -15,33 +15,40 @@ type RecordingsModule struct {
 	GetByIDController    *controllers.RecordingsGetByIDController
 	CreateController     *controllers.RecordingsCreateController
 	DeleteController     *controllers.RecordingsDeleteController
+	PresignController    *controllers.RecordingsPresignController
+	FinalizeController   *controllers.RecordingsFinalizeController
 	SaveRecordingUseCase usecases.SaveRecordingUseCase
 	GetAllUseCase        usecases.GetAllRecordingsUseCase
 	GetByIDUseCase       usecases.GetRecordingByIDUseCase
 	DeleteUseCase        usecases.DeleteRecordingUseCase
 }
 
-func NewRecordingsModule(badger *infrastructure.BadgerService) *RecordingsModule {
+
+func NewRecordingsModule(badger *infrastructure.BadgerService, s3Service *infrastructure.S3Service) *RecordingsModule {
 	repo := repositories.NewRecordingRepository(badger)
 
 	// Inject DefaultFileService
 	fileService := infrastructure.DefaultFileService
 	bigAudioService := services.NewBIGRoomAudioUpdateService()
-	saveUseCase := usecases.NewSaveRecordingUseCase(repo, fileService, bigAudioService)
+	saveUseCase := usecases.NewSaveRecordingUseCase(repo, fileService, s3Service, bigAudioService)
 
-	getAllUseCase := usecases.NewGetAllRecordingsUseCase(repo)
-	getByIDUseCase := usecases.NewGetRecordingByIDUseCase(repo)
-	deleteUseCase := usecases.NewDeleteRecordingUseCase(repo)
+	getAllUseCase := usecases.NewGetAllRecordingsUseCase(repo, s3Service)
+	getByIDUseCase := usecases.NewGetRecordingByIDUseCase(repo, s3Service)
+	deleteUseCase := usecases.NewDeleteRecordingUseCase(repo, s3Service)
 	listController := controllers.NewRecordingsListController(getAllUseCase)
 	getByIDController := controllers.NewRecordingsGetByIDController(getByIDUseCase)
 	createController := controllers.NewRecordingsCreateController(saveUseCase)
 	deleteController := controllers.NewRecordingsDeleteController(deleteUseCase)
+	presignController := controllers.NewRecordingsPresignController(s3Service)
+	finalizeController := controllers.NewRecordingsFinalizeController(repo, s3Service, bigAudioService)
 
 	return &RecordingsModule{
 		ListController:       listController,
 		GetByIDController:    getByIDController,
 		CreateController:     createController,
 		DeleteController:     deleteController,
+		PresignController:    presignController,
+		FinalizeController:   finalizeController,
 		SaveRecordingUseCase: saveUseCase,
 		GetAllUseCase:        getAllUseCase,
 		GetByIDUseCase:       getByIDUseCase,
@@ -56,5 +63,7 @@ func (m *RecordingsModule) RegisterRoutes(router *gin.Engine, protected *gin.Rou
 		api.GET("/recordings/:id", m.GetByIDController.GetRecordingByID)
 		api.POST("/recordings", m.CreateController.CreateRecording)
 		api.DELETE("/recordings/:id", m.DeleteController.DeleteRecording)
+		api.POST("/recordings/upload-url", m.PresignController.CreateUploadURL)
+		api.POST("/recordings/finalize", m.FinalizeController.FinalizeRecording)
 	}
 }

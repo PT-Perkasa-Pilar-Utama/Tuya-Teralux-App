@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"sensio/domain/common/infrastructure"
 	recordings_dtos "sensio/domain/recordings/dtos"
 	"sensio/domain/recordings/repositories"
 )
@@ -10,11 +11,12 @@ type GetAllRecordingsUseCase interface {
 }
 
 type getAllRecordingsUseCase struct {
-	repo repositories.RecordingRepository
+	repo      repositories.RecordingRepository
+	s3Service *infrastructure.S3Service
 }
 
-func NewGetAllRecordingsUseCase(repo repositories.RecordingRepository) GetAllRecordingsUseCase {
-	return &getAllRecordingsUseCase{repo: repo}
+func NewGetAllRecordingsUseCase(repo repositories.RecordingRepository, s3Service *infrastructure.S3Service) GetAllRecordingsUseCase {
+	return &getAllRecordingsUseCase{repo: repo, s3Service: s3Service}
 }
 
 func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*recordings_dtos.GetAllRecordingsResponseDto, error) {
@@ -25,11 +27,22 @@ func (uc *getAllRecordingsUseCase) ListRecordings(page, limit int) (*recordings_
 
 	recordingDtos := make([]recordings_dtos.RecordingResponseDto, 0, len(recordings))
 	for _, r := range recordings {
+		audioURL := r.AudioUrl
+		if r.S3ObjectKey != "" && uc.s3Service != nil {
+			presignedURL, err := uc.s3Service.GeneratePresignedGetURL(r.S3ObjectKey)
+			if err != nil {
+				return nil, err
+			}
+			if presignedURL != "" {
+				audioURL = presignedURL
+			}
+		}
+
 		recordingDtos = append(recordingDtos, recordings_dtos.RecordingResponseDto{
 			ID:           r.ID,
 			Filename:     r.Filename,
 			OriginalName: r.OriginalName,
-			AudioUrl:     r.AudioUrl,
+			AudioUrl:     audioURL,
 			CreatedAt:    r.CreatedAt,
 		})
 	}

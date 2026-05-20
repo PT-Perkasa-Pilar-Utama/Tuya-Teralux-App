@@ -13,6 +13,7 @@ class SendEmailByMacUseCase(
         template: String,
         token: String,
         attachmentPath: String? = null,
+        audioUrl: String? = null,
         overrideEmails: List<String>? = null
     ): Flow<Resource<Boolean>> {
         return emailRepository.sendEmailByMac(
@@ -21,6 +22,7 @@ class SendEmailByMacUseCase(
             template,
             token,
             attachmentPath,
+            audioUrl,
             overrideEmails
         )
     }

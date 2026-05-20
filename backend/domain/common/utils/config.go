@@ -78,6 +78,7 @@ type Config struct {
 
 	// Runtime & Networking
 	LogLevel string
+	BackendPublicBaseURL string // Public base URL for generating absolute URLs in email (e.g. "https://api.sensio.app")
 
 	// Database
 	DBHost     string
@@ -111,6 +112,15 @@ type Config struct {
 	AudioSegmentMaxConcurrency int
 	TaskEventPublishEnabled    bool
 	OrionTranscribeTimeout     string
+
+	// S3 / AWS
+	S3Enabled              bool
+	S3Bucket               string
+	S3Region               string
+	S3Prefix               string
+	S3SignedURLTTLSeconds  int
+	AWS_ACCESS_KEY_ID      string
+	AWS_SECRET_ACCESS_KEY  string
 }
 
 // AppConfig is the global configuration instance.
@@ -172,6 +182,7 @@ func LoadConfig() {
 		ApiKey:                 os.Getenv("API_KEY"),
 		JWTSecret:              os.Getenv("JWT_SECRET"),
 		LogLevel:               os.Getenv("LOG_LEVEL"),
+		BackendPublicBaseURL:   os.Getenv("BACKEND_PUBLIC_BASE_URL"),
 		ApplicationEnvironment: os.Getenv("APPLICATION_ENVIRONMENT"),
 		LLMProvider:            os.Getenv("LLM_PROVIDER"),
 
@@ -265,6 +276,15 @@ func LoadConfig() {
 		AudioSegmentMaxConcurrency: getEnvAsInt("AUDIO_SEGMENT_MAX_CONCURRENCY", 2),
 		TaskEventPublishEnabled:    false,
 		OrionTranscribeTimeout:     getEnvAsDefault("ORION_TRANSCRIBE_TIMEOUT", "360s"),
+
+		// S3 / AWS
+		S3Enabled:             os.Getenv("S3_ENABLED") == "true",
+		S3Bucket:              os.Getenv("S3_BUCKET"),
+		S3Region:              os.Getenv("S3_REGION"),
+		S3Prefix:              getEnvAsDefault("S3_PREFIX", "Sensio/"),
+		S3SignedURLTTLSeconds: getEnvAsInt("S3_SIGNED_URL_TTL_SECONDS", 300),
+		AWS_ACCESS_KEY_ID:     os.Getenv("AWS_ACCESS_KEY_ID"),
+		AWS_SECRET_ACCESS_KEY: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 	}
 
 	// Defaults are removed to enforce explicit configuration via environment variables

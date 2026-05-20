@@ -9,6 +9,7 @@ interface EmailRepository {
         template: String,
         token: String,
         attachmentPath: String? = null,
+        audioUrl: String? = null,
         overrideEmails: List<String>? = null
     ): Flow<Resource<Boolean>>
 
@@ -17,7 +18,8 @@ interface EmailRepository {
         subject: String,
         template: String,
         token: String,
-        attachmentPath: String? = null
+        attachmentPath: String? = null,
+        audioUrl: String? = null
     ): Flow<Resource<Boolean>> // true = success (task submitted + completed)
 
     suspend fun pollEmailStatus(

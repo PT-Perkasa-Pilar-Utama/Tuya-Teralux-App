@@ -69,6 +69,8 @@ func (c *MailSendByMacController) SendMailByMac(ctx *gin.Context) {
 		return
 	}
 
+	req.BaseURL = utils.GetBaseURL(ctx)
+
 	taskID, err := c.useCase.SendMailByMac(macAddress, &req)
 	if err != nil {
 		utils.LogError("MailSendByMacController.SendMailByMac: %v", err)

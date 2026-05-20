@@ -57,7 +57,8 @@ fun MeetingTranscriberScreen(
     onNavigateBack: () -> Unit,
     viewModel: MeetingViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = MeetingViewModelFactory(
-            com.example.whisperandroid.data.di.NetworkModule.processMeetingUseCase
+            com.example.whisperandroid.data.di.NetworkModule.processMeetingUseCase,
+            com.example.whisperandroid.data.di.NetworkModule.uploadRecordingUseCase
         )
     )
 ) {
@@ -278,6 +279,19 @@ fun MeetingTranscriberScreen(
                         showFilePickerSheet = true
                     }
                 },
+                onCloudUploadClick = {
+                    val canUpload = uiState is MeetingProcessState.Idle ||
+                        uiState is MeetingProcessState.Success ||
+                        uiState is MeetingProcessState.Error ||
+                        uiState is MeetingProcessState.Cancelled
+                    if (canUpload && audioFile != null && token.isNotEmpty()) {
+                        viewModel.uploadRecordingToCloud(
+                            audioFile = audioFile!!,
+                            token = token,
+                            macAddress = DeviceUtils.getDeviceId(context)
+                        )
+                    }
+                },
                 onStopClick = {
                     audioRecorder.stop()
                     audioFile?.let { file -> audioRecorder.finalizeWav(file) }
@@ -300,7 +314,6 @@ fun MeetingTranscriberScreen(
                         audioFile?.let { file -> audioRecorder.finalizeWav(file) }
                     }
                     isRecording = false
-                    // Cancel any ongoing processing
                     viewModel.cancelProcessing(context)
                 },
                 modifier = Modifier.align(Alignment.BottomCenter)
@@ -311,35 +324,6 @@ fun MeetingTranscriberScreen(
             MeetingHeaderControls(
                 uiState = uiState,
                 emailState = emailState,
-                onDownloadClick = { url ->
-                    val isLegacyStorage =
-                        android.os.Build.VERSION.SDK_INT <
-                            android.os.Build.VERSION_CODES.TIRAMISU
-                    if (isLegacyStorage) {
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                            ) ==
-                            PackageManager.PERMISSION_GRANTED
-                        ) {
-                            downloadPdf(
-                                context,
-                                url,
-                                "Meeting_Summary_${System.currentTimeMillis()}"
-                            )
-                        } else {
-                            storagePermissionLauncher.launch(
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                            )
-                        }
-                    } else {
-                        downloadPdf(
-                            context,
-                            url,
-                            "Meeting_Summary_${System.currentTimeMillis()}"
-                        )
-                    }
-                },
                 onEmailClick = { showEmailDialog = true }
             )
 

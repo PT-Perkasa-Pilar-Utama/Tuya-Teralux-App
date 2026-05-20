@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sensio/domain/common/infrastructure"
 	"sensio/domain/common/providers"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
-	"sensio/domain/models/rag/dtos"
+"sensio/domain/models/rag/dtos"
 	"sensio/domain/models/rag/services"
 	"sensio/domain/models/rag/skills"
+	reportingUsecases "sensio/domain/reports/usecases"
 	"strings"
 	"time"
 
@@ -80,6 +82,8 @@ type summaryUseCase struct {
 	renderer                  services.SummaryPDFRenderer
 	bigExternal               *commonServices.DeviceInfoExternalService
 	mqttSvc                   mqttPublisher
+	s3Svc                     *infrastructure.S3Service
+	saveReportUC              reportingUsecases.SaveReportUseCase
 	llmTimeout                time.Duration
 	renderTimeout             time.Duration
 	skill                     skills.Skill
@@ -97,10 +101,12 @@ func NewSummaryUseCase(
 	renderer services.SummaryPDFRenderer,
 	bigExternal *commonServices.DeviceInfoExternalService,
 	mqttSvc mqttPublisher,
+	s3Svc *infrastructure.S3Service,
 	skill skills.Skill,
 	chunkSkill skills.Skill,
 	structuredExtractionSkill skills.Skill,
 	providerResolver providers.ProviderResolver,
+	saveReportUC reportingUsecases.SaveReportUseCase,
 ) SummaryUseCase {
 	return &summaryUseCase{
 		llm:                       llm,
@@ -111,12 +117,14 @@ func NewSummaryUseCase(
 		renderer:                  renderer,
 		bigExternal:               bigExternal,
 		mqttSvc:                   mqttSvc,
+		s3Svc:                     s3Svc,
 		llmTimeout:                5 * time.Minute,
 		renderTimeout:             30 * time.Second,
 		skill:                     skill,
 		chunkSkill:                chunkSkill,
 		structuredExtractionSkill: structuredExtractionSkill,
 		providerResolver:          providerResolver,
+		saveReportUC:              saveReportUC,
 	}
 }
 
@@ -291,7 +299,7 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 		meetingContext = inferredAgenda
 	}
 
-	// PDF Generation
+// PDF Generation
 	uuidStr, _ := uuid.NewV7()
 	pdfFilename := fmt.Sprintf("summary_%s.pdf", uuidStr.String())
 	basePath := "."
@@ -301,28 +309,33 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	pdfPath := filepath.Join(basePath, "uploads", "reports", pdfFilename)
 	_ = os.MkdirAll(filepath.Dir(pdfPath), 0755)
 
-	pdfUrl := ""
+	var reportID string
+	var downloadURL string
 	if u.renderer != nil {
-		meta := services.SummaryPDFMeta{
-			Language:     targetLangName,
-			Context:      meetingContext,
-			Style:        style,
-			Date:         date,
-			Location:     location,
-			Room:         room,
-			Participants: participants,
-			CustomerName: "Internal User",
-			CompanyName:  "Sensio",
+			meta := services.SummaryPDFMeta{
+				Language:     targetLangName,
+				Context:      meetingContext,
+				Style:        style,
+				Date:         date,
+				Location:     location,
+				Room:        room,
+				Participants: participants,
+				CustomerName: "Internal User",
+				CompanyName:  "Sensio",
+			}
+			if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
+				utils.LogWarn("SummaryUseCase: PDF render failed: %v", err)
+			} else if u.saveReportUC != nil {
+				report, saveErr := u.saveReportUC.SaveReportFromPath(pdfPath, pdfFilename)
+				if saveErr != nil {
+					utils.LogWarn("SummaryUseCase: SaveReport failed: %v", saveErr)
+					reportID = ""
+				} else {
+					reportID = report.ID
+					downloadURL = fmt.Sprintf("/api/reports/%s/download", report.ID)
+				}
+			}
 		}
-		if err := u.renderer.Render(trimmedSummary, pdfPath, meta); err != nil {
-			// Log warning but don't fail the entire operation
-			// PDF generation is optional for platforms without Chromium support
-			fmt.Printf("[WARNING] PDF generation skipped: %v\n", err)
-			pdfUrl = "" // No PDF available
-		} else {
-			pdfUrl = fmt.Sprintf("/uploads/reports/%s", pdfFilename)
-		}
-	}
 
 	// Cache inferred agenda
 	if macAddress != "" && inferredAgenda != "" {
@@ -332,7 +345,8 @@ func (u *summaryUseCase) summaryInternal(ctx context.Context, text string, langu
 	// Build response with structured fields (backward compatible)
 	response := &dtos.RAGSummaryResponseDTO{
 		Summary:       trimmedSummary,
-		PDFUrl:        pdfUrl,
+		ReportID:      reportID,
+		DownloadURL:   downloadURL,
 		AgendaContext: meetingContext,
 		SummaryMode:   summaryMode,
 	}
@@ -973,9 +987,9 @@ func (u *summaryUseCase) runSummaryAsync(ctx context.Context, taskID string, tex
 		status.Error = err.Error()
 	} else {
 		status.Status = "completed"
-		// Propagate ALL structured summary fields for E2E consistency
 		status.Summary = res.Summary
-		status.PDFUrl = res.PDFUrl
+		status.ReportID = res.ReportID
+		status.DownloadURL = res.DownloadURL
 		status.AgendaContext = res.AgendaContext
 		status.SummaryVersion = res.SummaryVersion
 		status.SummaryMode = res.SummaryMode

@@ -2,8 +2,6 @@ package usecases
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	commonServices "sensio/domain/common/services"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
@@ -13,7 +11,6 @@ import (
 	"time"
 )
 
-// MailSendByMacUseCase defines the interface for sending emails by MAC address.
 type MailSendByMacUseCase interface {
 	SendMailByMac(macAddress string, req *dtos.SendMailByMacRequestDTO) (string, error)
 }
@@ -25,7 +22,15 @@ type mailSendByMacUseCase struct {
 	cache              *tasks.BadgerTaskCache
 }
 
-// NewMailSendByMacUseCase initializes a new mailSendByMacUseCase.
+func normalizeReportURL(path string, baseURL string) string {
+	if strings.HasPrefix(path, "/api/reports/") && !strings.Contains(path, "://") {
+		if baseURL != "" {
+			return baseURL + path
+		}
+	}
+	return path
+}
+
 func NewMailSendByMacUseCase(
 	mailService *services.MailService,
 	bigExternalService *commonServices.DeviceInfoExternalService,
@@ -41,10 +46,8 @@ func NewMailSendByMacUseCase(
 }
 
 func (uc *mailSendByMacUseCase) SendMailByMac(macAddress string, req *dtos.SendMailByMacRequestDTO) (string, error) {
-	// Normalization
 	macAddress = strings.ToUpper(strings.TrimSpace(macAddress))
 
-	// Validation
 	if macAddress == "" {
 		return "", utils.NewValidationError("Validation Error", []utils.ValidationErrorDetail{
 			{Field: "mac_address", Message: "mac_address is required"},
@@ -64,9 +67,12 @@ func (uc *mailSendByMacUseCase) SendMailByMac(macAddress string, req *dtos.SendM
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
 
-	// Mark as pending
 	uc.store.Set(taskID, status)
 	_ = uc.cache.Set(taskID, status)
+
+	if req.BaseURL == "" {
+		req.BaseURL = utils.GetConfig().BackendPublicBaseURL
+	}
 
 	utils.LogInfo("MailSendByMacUseCase: Started task %s for MAC %s", taskID, macAddress)
 
@@ -83,7 +89,6 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 		}
 	}()
 
-	// Fetch device/customer info
 	utils.LogDebug("MailSendByMacUseCase: Fetching device info for MAC %s", macAddress)
 	info, err := uc.bigExternalService.GetDeviceInfoByMac(macAddress)
 	if err != nil {
@@ -92,42 +97,42 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 		return
 	}
 
-	// Extract email from external API
 	rawRecipientEmail, ok := info["SDTGetRoomTeraluxItemCustomerEmail"].(string)
 
-	// Override email if provided in req.Data
 	var overriddenRecipients []string
-	if overrideData, hasOverride := req.Data["email"]; hasOverride {
-		switch v := overrideData.(type) {
-		case string:
-			trimmed := strings.TrimSpace(v)
-			if trimmed != "" {
-				if strings.Contains(trimmed, ",") {
-					parts := strings.Split(trimmed, ",")
-					for _, p := range parts {
-						tp := strings.TrimSpace(p)
-						if tp != "" {
-							overriddenRecipients = append(overriddenRecipients, tp)
+	if req.Data != nil {
+		if overrideData, hasOverride := req.Data["email"]; hasOverride {
+			switch v := overrideData.(type) {
+			case string:
+				trimmed := strings.TrimSpace(v)
+				if trimmed != "" {
+					if strings.Contains(trimmed, ",") {
+						parts := strings.Split(trimmed, ",")
+						for _, p := range parts {
+							tp := strings.TrimSpace(p)
+							if tp != "" {
+								overriddenRecipients = append(overriddenRecipients, tp)
+							}
+						}
+					} else {
+						overriddenRecipients = append(overriddenRecipients, trimmed)
+					}
+				}
+			case []interface{}:
+				for _, item := range v {
+					if s, ok := item.(string); ok {
+						trimmed := strings.TrimSpace(s)
+						if trimmed != "" {
+							overriddenRecipients = append(overriddenRecipients, trimmed)
 						}
 					}
-				} else {
-					overriddenRecipients = append(overriddenRecipients, trimmed)
 				}
-			}
-		case []interface{}:
-			for _, item := range v {
-				if s, ok := item.(string); ok {
+			case []string:
+				for _, s := range v {
 					trimmed := strings.TrimSpace(s)
 					if trimmed != "" {
 						overriddenRecipients = append(overriddenRecipients, trimmed)
 					}
-				}
-			}
-		case []string:
-			for _, s := range v {
-				trimmed := strings.TrimSpace(s)
-				if trimmed != "" {
-					overriddenRecipients = append(overriddenRecipients, trimmed)
 				}
 			}
 		}
@@ -151,10 +156,8 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 		templateName = "test"
 	}
 
-	// Extract brand name from config or default
 	brandName := "Sensio"
 
-	// Parsing booking time start/stop if possible
 	bookingTime := fmt.Sprintf("%v", info["SDTGetRoomTeraluxBookingtimeChar"])
 	timeStart := ""
 	timeStop := ""
@@ -173,39 +176,48 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	}
 
 	if timeStart == "" {
-		timeStart = bookingTime // Fallback
+		timeStart = bookingTime
 	}
 
-	// Map external data to template variables
 	templateData := map[string]interface{}{
 		"brand_name":       brandName,
 		"customer_name":    info["SDTGetRoomTeraluxCustomerName"],
 		"customer_company": info["SDTGetRoomTeraluxItemCompanyName"],
 		"booking_date": func() interface{} {
 			date := info["SDTGetRoomTeraluxByendDate"]
-			if date == nil || date == "" || date == "<nil>" {
-				return info["SDTGetRoomTeraluxtimeendDate"]
+			if date != nil && date != "" && date != "<nil>" {
+				return date
 			}
-			return date
+
+			fallback := info["SDTGetRoomTeraluxtimeendDate"]
+			if fallback != nil && fallback != "" && fallback != "<nil>" {
+				return fallback
+			}
+
+			return time.Now().Format("02 Jan 2006")
 		}(),
 		"booking_time_start": timeStart,
 		"booking_time_stop":  timeStop,
 		"booking_place": func() interface{} {
 			building := info["SDTGetRoomTeraluxBuildingsName"]
-			if building == nil || building == "" || building == "<nil>" {
-				return info["SDTGetRoomTeraluxRoomName"]
+			if building != nil && building != "" && building != "<nil>" {
+				return building
 			}
-			return building
+
+			roomName := info["SDTGetRoomTeraluxRoomName"]
+			if roomName != nil && roomName != "" && roomName != "<nil>" {
+				return roomName
+			}
+
+			return "Lokasi belum tersedia"
 		}(),
 		"booking_room": info["SDTGetRoomTeraluxRoomName"],
 		"agenda_context": func() interface{} {
-			// 1. Try external API
 			apiAgenda := info["SDTGetRoomTeraluxMeetingAgenda"]
 			if apiAgenda != nil && apiAgenda != "" && apiAgenda != "<nil>" {
 				return apiAgenda
 			}
 
-			// 2. Try cache (inferred from recent summary)
 			cacheKey := fmt.Sprintf("cache:agenda_mac_%s", macAddress)
 			var cachedAgenda string
 			_, found, err := uc.cache.GetWithTTL(cacheKey, &cachedAgenda)
@@ -216,50 +228,24 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 
 			return ""
 		}(),
-		"has_attachment": req.AttachmentPath != nil && *req.AttachmentPath != "",
 	}
 
-	// Merge with custom data from request (request data takes precedence)
 	for k, v := range req.Data {
 		templateData[k] = v
 	}
 
-	attachmentPath := req.AttachmentPath
-	if attachmentPath != nil && *attachmentPath != "" && (strings.HasPrefix(*attachmentPath, "/uploads") || strings.HasPrefix(*attachmentPath, "http")) {
-		// Resolve to local disk path
-		wd, _ := os.Getwd()
-		baseDir := wd
-		if !strings.HasSuffix(wd, "backend") {
-			if _, err := os.Stat("backend"); err == nil {
-				baseDir = filepath.Join(wd, "backend")
-			}
+	attachment := resolveMailAttachment(req.AttachmentPath)
+	defer func() {
+		if attachment.cleanup != nil {
+			attachment.cleanup()
 		}
-
-		var relPath string
-		if strings.HasPrefix(*attachmentPath, "http") {
-			// Full URL — extract relative path after /uploads
-			if idx := strings.Index(*attachmentPath, "/uploads"); idx != -1 {
-				relPath = (*attachmentPath)[idx+1:] // e.g. "uploads/reports/f.pdf"
-			}
-		} else {
-			relPath = strings.TrimPrefix(*attachmentPath, "/") // e.g. "uploads/reports/f.pdf"
-		}
-
-		if relPath == "" {
-			attachmentPath = nil
-		} else {
-			fullPath := filepath.Join(baseDir, relPath)
-			if _, err := os.Stat(fullPath); err == nil {
-				attachmentPath = &fullPath
-				utils.LogDebug("MailSendByMacUseCase: Resolved attachment path to %s", *attachmentPath)
-			} else {
-				utils.LogWarn("MailSendByMacUseCase: Attachment file not found at %s", fullPath)
-				attachmentPath = nil
-			}
-		}
+	}()
+	templateData["download_url"] = normalizeReportURL(attachment.downloadURL, req.BaseURL)
+	templateData["has_attachment"] = attachment.path != nil && attachment.downloadURL == ""
+	if req.AudioURL != nil && strings.TrimSpace(*req.AudioURL) != "" {
+		templateData["audio_url"] = strings.TrimSpace(*req.AudioURL)
 	}
 
-	// Dynamic Subject Generation if empty or placeholder
 	finalSubject := req.Subject
 	if finalSubject == "" || strings.EqualFold(finalSubject, "Auto-generated") || strings.EqualFold(finalSubject, "Meeting Summary") {
 		roomName := fmt.Sprintf("%v", info["SDTGetRoomTeraluxRoomName"])
@@ -277,7 +263,7 @@ func (uc *mailSendByMacUseCase) processAsync(taskID string, macAddress string, r
 	}
 
 	utils.LogDebug("MailSendByMacUseCase: Sending email to %v for MAC %s with subject: %s", recipients, macAddress, finalSubject)
-	err = uc.mailService.SendEmailWithTemplate(recipients, finalSubject, templateName, templateData, attachmentPath)
+	err = uc.mailService.SendEmailWithTemplate(recipients, finalSubject, templateName, templateData, attachment.path)
 	if err != nil {
 		utils.LogError("Mail Task %s (MAC): Failed to send email: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", err, "")
@@ -306,7 +292,6 @@ func (uc *mailSendByMacUseCase) updateStatus(taskID string, statusStr string, er
 		status.HTTPStatusCode = 200
 	}
 
-	// Calculate duration
 	if statusStr == "completed" || statusStr == "failed" {
 		if existing.StartedAt != "" {
 			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)

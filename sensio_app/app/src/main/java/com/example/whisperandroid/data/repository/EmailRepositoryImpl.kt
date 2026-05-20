@@ -20,6 +20,7 @@ class EmailRepositoryImpl(
         template: String,
         token: String,
         attachmentPath: String?,
+        audioUrl: String?,
         overrideEmails: List<String>?
     ): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
@@ -34,7 +35,8 @@ class EmailRepositoryImpl(
                 subject = subject,
                 template = template,
                 data = dataMap,
-                attachmentPath = attachmentPath
+                attachmentPath = attachmentPath,
+                audioUrl = audioUrl
             )
             val response = api.sendEmailByMac("Bearer $token", macAddress, request)
 
@@ -58,7 +60,8 @@ class EmailRepositoryImpl(
         subject: String,
         template: String,
         token: String,
-        attachmentPath: String?
+        attachmentPath: String?,
+        audioUrl: String?
     ): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         try {
@@ -66,7 +69,8 @@ class EmailRepositoryImpl(
                 to = to,
                 subject = subject,
                 template = template,
-                attachmentPath = attachmentPath
+                attachmentPath = attachmentPath,
+                audioUrl = audioUrl
             )
             val response = api.sendEmail("Bearer $token", request)
 

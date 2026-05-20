@@ -6,7 +6,8 @@ type MailSendRequestDTO struct {
 	Subject        string                 `json:"subject" binding:"required" example:"Notification"`
 	Template       string                 `json:"template" binding:"omitempty" example:"test"`
 	Data           map[string]interface{} `json:"data,omitempty"`
-	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
+	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/api/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37/download"`
+	AudioURL       *string                `json:"audio_url,omitempty" example:"https://s3.amazonaws.com/bucket/recordings/abc.wav"`
 }
 
 // SendMailByMacRequestDTO represents the request body for sending an email by MAC address
@@ -14,7 +15,9 @@ type SendMailByMacRequestDTO struct {
 	Subject        string                 `json:"subject" binding:"required" example:"Booking Confirmation"`
 	Template       string                 `json:"template" binding:"omitempty" example:"test"`
 	Data           map[string]interface{} `json:"data,omitempty"`
-	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
+	AttachmentPath *string                `json:"attachment_path,omitempty" example:"/api/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37/download"`
+	AudioURL       *string                `json:"audio_url,omitempty" example:"https://s3.amazonaws.com/bucket/recordings/abc.wav"`
+	BaseURL        string                 `json:"-"`
 }
 
 // MailTaskResponseDTO represents the immediate response for a mail task
@@ -61,7 +64,8 @@ type SwaggerMailSendRequestDTO struct {
 	Subject        string                   `json:"subject" binding:"required" example:"Notification"`
 	Template       string                   `json:"template" example:"summary"`
 	Data           SwaggerEmailTemplateData `json:"data,omitempty"`
-	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
+	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/api/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37/download"`
+	AudioURL       *string                  `json:"audio_url,omitempty" example:"https://s3.amazonaws.com/bucket/recordings/abc.wav"`
 }
 
 // SwaggerSendMailByMacRequestDTO is used to generate proper Swagger documentation for the generic map
@@ -69,5 +73,6 @@ type SwaggerSendMailByMacRequestDTO struct {
 	Subject        string                   `json:"subject" binding:"required" example:"Booking Confirmation"`
 	Template       string                   `json:"template" example:"summary"`
 	Data           SwaggerEmailTemplateData `json:"data,omitempty"`
-	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/uploads/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37.pdf"`
+	AttachmentPath *string                  `json:"attachment_path,omitempty" example:"/api/reports/019c981c-d7ec-7dd2-a642-9f6e5dbe7e37/download"`
+	AudioURL       *string                  `json:"audio_url,omitempty" example:"https://s3.amazonaws.com/bucket/recordings/abc.wav"`
 }
