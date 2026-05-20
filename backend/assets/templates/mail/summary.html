@@ -107,6 +107,17 @@
             font-size: 14px;
             color: #744210;
         }
+        .download-link-notice {
+            background-color: #fffaf0;
+            border: 1px solid #feebc8;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #744210;
+        }
         .footer {
             background-color: #edf2f7;
             padding: 32px 40px;
@@ -175,10 +186,8 @@
             </div>
             
             <div class="content">
-                <div class="greeting">
-                    Halo <strong>{{.customer_name}}</strong>,
-                    <p>Terima kasih telah menggunakan layanan <strong>{{.brand_name}}</strong>. Berikut adalah ringkasan detail pertemuan Anda di <strong>{{.customer_company}}</strong>:</p>
-                </div>
+<p>Hai <strong>{{if .customer_name}}{{.customer_name}}{{else}}Pelanggan{{end}}</strong>,</p>
+                <p>Berikut ringkasan hasil meeting Anda{{if .customer_company}} di <strong>{{.customer_company}}</strong>{{end}} pada {{.booking_date}}:</p>
 
                 <div class="summary-card">
                     <span class="summary-title">Informasi Pesanan</span>
@@ -203,9 +212,15 @@
                     </table>
                 </div>
 
-                {{if .has_attachment}}
-                <div class="attachment-notice">
-                    <span>📎 <strong>Informasi Tambahan:</strong> Kami telah melampirkan laporan ringkasan lengkap untuk referensi Anda.</span>
+                {{if .download_url}}
+                <div class="download-link-notice">
+                    <span>Dokumen ringkasan meeting Anda telah tersedia. Silakan akses melalui tautan berikut: <a href="{{.download_url}}" style="color: #2b6cb0; text-decoration: underline; font-weight: 600;">Lihat Hasil Summary Meeting</a>.</span>
+                </div>
+                {{end}}
+
+                {{if .audio_url}}
+                <div class="download-link-notice">
+                    <span>Rekaman audio meeting Anda telah tersedia. Silakan akses melalui tautan berikut: <a href="{{.audio_url}}" style="color: #2b6cb0; text-decoration: underline; font-weight: 600;">Lihat &amp; Dengarkan Audio Meeting</a>.</span>
                 </div>
                 {{end}}
 
