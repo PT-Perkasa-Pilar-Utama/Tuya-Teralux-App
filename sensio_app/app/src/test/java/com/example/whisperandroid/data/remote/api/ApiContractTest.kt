@@ -10,20 +10,23 @@ import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
-import java.lang.reflect.Method
 
 /**
  * Contract tests for Retrofit API interfaces.
- * 
+ *
  * These tests ensure that:
  * 1. API endpoint paths match the expected contract
  * 2. HTTP methods are correctly annotated
  * 3. Required headers are present
  * 4. Response envelope structure is consistent
- * 
+ *
  * Run with: ./gradlew test --tests "*ApiContractTest*"
  */
 class ApiContractTest {
+
+    private fun findMethodByName(clazz: Class<*>, name: String): java.lang.reflect.Method? {
+        return clazz.declaredMethods.find { it.name == name }
+    }
 
     // ========================================================================
     // Terminal API Contract Tests
@@ -31,15 +34,17 @@ class ApiContractTest {
 
     @Test
     fun terminalApi_registerTerminal_hasCorrectPath() {
-        val method = TerminalApi::class.java.getMethod("registerTerminal", String::class.java, com.example.whisperandroid.data.remote.dto.TerminalRequestDto::class.java)
-        val post = method.getAnnotation(POST::class.java)
+        val method = findMethodByName(TerminalApi::class.java, "registerTerminal")
+        assertTrue(method != null)
+        val post = method!!.getAnnotation(POST::class.java)
         assertEquals("/api/terminal", post?.value)
     }
 
     @Test
     fun terminalApi_registerTerminal_requiresApiKeyHeader() {
-        val method = TerminalApi::class.java.getMethod("registerTerminal", String::class.java, com.example.whisperandroid.data.remote.dto.TerminalRequestDto::class.java)
-        val hasHeader = method.parameterAnnotations.any { paramAnnotation ->
+        val method = findMethodByName(TerminalApi::class.java, "registerTerminal")
+        assertTrue(method != null)
+        val hasHeader = method!!.parameterAnnotations.any { paramAnnotation ->
             paramAnnotation.filterIsInstance<Header>().any { it.value == "X-API-KEY" }
         }
         assertTrue(hasHeader)
@@ -47,22 +52,25 @@ class ApiContractTest {
 
     @Test
     fun terminalApi_getTerminalByMac_hasCorrectPath() {
-        val method = TerminalApi::class.java.getMethod("getTerminalByMac", String::class.java, String::class.java)
-        val get = method.getAnnotation(retrofit2.http.GET::class.java)
+        val method = findMethodByName(TerminalApi::class.java, "getTerminalByMac")
+        assertTrue(method != null)
+        val get = method!!.getAnnotation(retrofit2.http.GET::class.java)
         assertEquals("/api/terminal/mac/{mac}", get?.value)
     }
 
     @Test
     fun terminalApi_updateTerminal_hasCorrectPath() {
-        val method = TerminalApi::class.java.getMethod("updateTerminal", String::class.java, String::class.java, com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto::class.java)
-        val put = method.getAnnotation(PUT::class.java)
+        val method = findMethodByName(TerminalApi::class.java, "updateTerminal")
+        assertTrue(method != null)
+        val put = method!!.getAnnotation(PUT::class.java)
         assertEquals("/api/terminal/{id}", put?.value)
     }
 
     @Test
     fun terminalApi_updateTerminal_requiresAuthHeader() {
-        val method = TerminalApi::class.java.getMethod("updateTerminal", String::class.java, String::class.java, com.example.whisperandroid.data.remote.dto.UpdateTerminalRequestDto::class.java)
-        val hasHeader = method.parameterAnnotations.any { paramAnnotation ->
+        val method = findMethodByName(TerminalApi::class.java, "updateTerminal")
+        assertTrue(method != null)
+        val hasHeader = method!!.parameterAnnotations.any { paramAnnotation ->
             paramAnnotation.filterIsInstance<Header>().any { it.value == "Authorization" }
         }
         assertTrue(hasHeader)
@@ -70,8 +78,9 @@ class ApiContractTest {
 
     @Test
     fun terminalApi_getMqttCredentials_hasCorrectPath() {
-        val method = TerminalApi::class.java.getMethod("getMqttCredentials", String::class.java, String::class.java)
-        val get = method.getAnnotation(GET::class.java)
+        val method = findMethodByName(TerminalApi::class.java, "getMqttCredentials")
+        assertTrue(method != null)
+        val get = method!!.getAnnotation(GET::class.java)
         assertEquals("/api/mqtt/users/{username}", get?.value)
     }
 
@@ -81,43 +90,33 @@ class ApiContractTest {
 
     @Test
     fun pipelineApi_executeJob_hasCorrectPath() {
-        val method = PipelineApi::class.java.getMethod("executePipeline", 
-            okhttp3.MultipartBody.Part::class.java,
-            String::class.java, String::class.java, Boolean::class.java,
-            Boolean::class.java, Boolean::class.java, String::class.java,
-            String::class.java, String::class.java, String::class.java,
-            String::class.java, String::class.java, String::class.java,
-            String::class.java
-        )
-        val post = method.getAnnotation(POST::class.java)
+        val method = findMethodByName(PipelineApi::class.java, "executePipeline")
+        assertTrue(method != null)
+        val post = method!!.getAnnotation(POST::class.java)
         assertEquals("/api/models/pipeline/job", post?.value)
     }
 
     @Test
     fun pipelineApi_executeJob_isMultipart() {
-        val method = PipelineApi::class.java.getMethod("executePipeline", 
-            okhttp3.MultipartBody.Part::class.java,
-            String::class.java, String::class.java, Boolean::class.java,
-            Boolean::class.java, Boolean::class.java, String::class.java,
-            String::class.java, String::class.java, String::class.java,
-            String::class.java, String::class.java, String::class.java,
-            String::class.java
-        )
-        val multipart = method.getAnnotation(Multipart::class.java)
+        val method = findMethodByName(PipelineApi::class.java, "executePipeline")
+        assertTrue(method != null)
+        val multipart = method!!.getAnnotation(Multipart::class.java)
         assertTrue(multipart != null)
     }
 
     @Test
     fun pipelineApi_getPipelineStatus_hasCorrectPath() {
-        val method = PipelineApi::class.java.getMethod("getPipelineStatus", String::class.java, String::class.java)
-        val get = method.getAnnotation(GET::class.java)
+        val method = findMethodByName(PipelineApi::class.java, "getPipelineStatus")
+        assertTrue(method != null)
+        val get = method!!.getAnnotation(GET::class.java)
         assertEquals("/api/models/pipeline/status/{task_id}", get?.value)
     }
 
     @Test
     fun pipelineApi_cancelPipelineTask_hasCorrectPath() {
-        val method = PipelineApi::class.java.getMethod("cancelPipelineTask", String::class.java, String::class.java)
-        val delete = method.getAnnotation(DELETE::class.java)
+        val method = findMethodByName(PipelineApi::class.java, "cancelPipelineTask")
+        assertTrue(method != null)
+        val delete = method!!.getAnnotation(DELETE::class.java)
         assertEquals("/api/models/pipeline/status/{task_id}", delete?.value)
     }
 
@@ -127,17 +126,12 @@ class ApiContractTest {
 
     @Test
     fun responseEnvelope_hasRequiredFields() {
-        // This test verifies that our response DTOs have the expected structure
-        // All API responses should follow the StandardResponse pattern:
-        // { "status": boolean, "message": string, "data": T? }
-        
         val statusField = com.example.whisperandroid.data.remote.dto.TerminalResponseDto::class.java.getDeclaredField("status")
         val messageField = com.example.whisperandroid.data.remote.dto.TerminalResponseDto::class.java.getDeclaredField("message")
         val dataField = com.example.whisperandroid.data.remote.dto.TerminalResponseDto::class.java.getDeclaredField("data")
-        
+
         assertEquals(Boolean::class.java, statusField.type)
         assertEquals(String::class.java, messageField.type)
-        // data field can be nullable
     }
 
     // ========================================================================
@@ -163,16 +157,17 @@ class ApiContractTest {
             "/api/notification",
             "/api/big",
             "/api/cache",
-            "/api/health"
+            "/api/health",
+            "/api/recordings"
         )
 
         for (apiClass in apiClasses) {
             for (method in apiClass.declaredMethods) {
                 val pathAnnotation = method.annotations
-                    .firstOrNull { 
-                        it is POST || it is GET || it is PUT || it is DELETE || it is HTTP 
+                    .firstOrNull {
+                        it is POST || it is GET || it is PUT || it is DELETE || it is HTTP
                     }
-                
+
                 val path = when (pathAnnotation) {
                     is POST -> pathAnnotation.value
                     is GET -> pathAnnotation.value
