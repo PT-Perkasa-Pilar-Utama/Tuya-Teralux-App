@@ -78,6 +78,7 @@ type Config struct {
 
 	// Runtime & Networking
 	LogLevel string
+	BackendPublicBaseURL string // Public base URL for generating absolute URLs in email (e.g. "https://api.sensio.app")
 
 	// Database
 	DBHost     string
@@ -181,6 +182,7 @@ func LoadConfig() {
 		ApiKey:                 os.Getenv("API_KEY"),
 		JWTSecret:              os.Getenv("JWT_SECRET"),
 		LogLevel:               os.Getenv("LOG_LEVEL"),
+		BackendPublicBaseURL:   os.Getenv("BACKEND_PUBLIC_BASE_URL"),
 		ApplicationEnvironment: os.Getenv("APPLICATION_ENVIRONMENT"),
 		LLMProvider:            os.Getenv("LLM_PROVIDER"),
 

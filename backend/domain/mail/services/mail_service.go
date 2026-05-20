@@ -117,43 +117,51 @@ func (s *MailService) sendEmailDirect(addr string, host string, auth smtp.Auth, 
 	return client.Quit()
 }
 
+// buildMultipartMessage constructs a MIME email.
+// Structure:
+//   - multipart/mixed (root)
+//     - multipart/related
+//       - text/html
+//       - image/png (inline, cid:logo)
+//     - application/pdf (attachment, if any)
 func (s *MailService) buildMultipartMessage(to []string, subject string, body string, attachmentPath string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	writer := multipart.NewWriter(buf)
+	mixed := multipart.NewWriter(buf)
+	mixedBoundary := mixed.Boundary()
 
-	// Headers
 	fmt.Fprintf(buf, "From: %s\r\n", s.config.SMTPFrom)
 	fmt.Fprintf(buf, "To: %s\r\n", strings.Join(to, ","))
 	fmt.Fprintf(buf, "Subject: %s\r\n", subject)
 	fmt.Fprintf(buf, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
 	fmt.Fprintf(buf, "Message-ID: <%d.%d@sensio.app>\r\n", time.Now().UnixNano(), os.Getpid())
 	fmt.Fprintf(buf, "MIME-Version: 1.0\r\n")
+	fmt.Fprintf(buf, "Content-Type: multipart/mixed; boundary=%s\r\n\r\n", mixedBoundary)
 
-	// If we have an attachment, we use multipart/mixed.
-	fmt.Fprintf(buf, "Content-Type: multipart/mixed; boundary=%s\r\n", writer.Boundary())
-	fmt.Fprintf(buf, "\r\n") // Empty line indicates end of headers
-
-	// 1. Text/HTML Body Part
-	bodyPartHeader := make(textproto.MIMEHeader)
-	bodyPartHeader.Set("Content-Type", "text/html; charset=\"UTF-8\"")
-	bodyPartHeader.Set("Content-Transfer-Encoding", "quoted-printable")
-	bodyPartWriter, err := writer.CreatePart(bodyPartHeader)
+	relatedBuffer := new(bytes.Buffer)
+	related := multipart.NewWriter(relatedBuffer)
+	relatedHeader := make(textproto.MIMEHeader)
+	relatedHeader.Set("Content-Type", fmt.Sprintf("multipart/related; boundary=%s", related.Boundary()))
+	relatedPartWriter, err := mixed.CreatePart(relatedHeader)
 	if err != nil {
 		return nil, err
 	}
 
+	bodyPartHeader := make(textproto.MIMEHeader)
+	bodyPartHeader.Set("Content-Type", "text/html; charset=\"UTF-8\"")
+	bodyPartHeader.Set("Content-Transfer-Encoding", "quoted-printable")
+	bodyPartWriter, err := related.CreatePart(bodyPartHeader)
+	if err != nil {
+		return nil, err
+	}
 	qp := quotedprintable.NewWriter(bodyPartWriter)
 	if _, err := qp.Write([]byte(body)); err != nil {
-		return nil, fmt.Errorf("failed to write body to quotedprintable: %w", err)
+		return nil, fmt.Errorf("failed to write body: %w", err)
 	}
 	if err := qp.Close(); err != nil {
 		return nil, fmt.Errorf("failed to close quotedprintable: %w", err)
 	}
 
-	// 2. Logo Part (CID embedding)
-	// Try to find logo in assets/images/logo.png
 	logoPath := utils.GetAssetPath("images/logo.png")
-
 	if _, err := os.Stat(logoPath); err == nil {
 		logoData, err := os.ReadFile(logoPath)
 		if err == nil {
@@ -161,27 +169,37 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 			logoHeader.Set("Content-Type", "image/png")
 			logoHeader.Set("Content-Transfer-Encoding", "base64")
 			logoHeader.Set("Content-ID", "<logo>")
-			logoHeader.Set("Content-Disposition", "inline; filename=\"logo.png\"")
-
-			logoWriter, err := writer.CreatePart(logoHeader)
+			logoHeader.Set("Content-Disposition", "inline")
+			logoWriter, err := related.CreatePart(logoHeader)
 			if err == nil {
 				encoded := base64.StdEncoding.EncodeToString(logoData)
 				if _, err := logoWriter.Write([]byte(chunkBase64(encoded))); err != nil {
-					utils.LogError("MailService: failed to write logo to multipart: %v", err)
+					utils.LogWarn("Failed to write logo inline image: %v", err)
 				}
+			} else {
+				utils.LogWarn("Failed to create logo MIME part: %v", err)
 			}
+		} else {
+			utils.LogWarn("Failed to read logo file: %v", err)
 		}
+	} else {
+		utils.LogDebug("Logo file not found at %s, skipping inline embedding", logoPath)
 	}
 
-	// 3. Attachment Part
+	if err := related.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close related multipart: %w", err)
+	}
+
+	if _, err := relatedPartWriter.Write(relatedBuffer.Bytes()); err != nil {
+		return nil, fmt.Errorf("failed to write related part: %w", err)
+	}
+
 	if attachmentPath != "" {
 		file, err := os.Open(attachmentPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open attachment: %w", err)
 		}
-		defer func() {
-			_ = file.Close()
-		}()
+		defer func() { _ = file.Close() }()
 
 		fileName := filepath.Base(attachmentPath)
 		attachmentHeader := make(textproto.MIMEHeader)
@@ -189,7 +207,7 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 		attachmentHeader.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 		attachmentHeader.Set("Content-Transfer-Encoding", "base64")
 
-		attachmentWriter, err := writer.CreatePart(attachmentHeader)
+		attachmentWriter, err := mixed.CreatePart(attachmentHeader)
 		if err != nil {
 			return nil, err
 		}
@@ -201,11 +219,11 @@ func (s *MailService) buildMultipartMessage(to []string, subject string, body st
 
 		encoded := base64.StdEncoding.EncodeToString(attachmentData)
 		if _, err := attachmentWriter.Write([]byte(chunkBase64(encoded))); err != nil {
-			return nil, fmt.Errorf("failed to write attachment to multipart: %w", err)
+			return nil, fmt.Errorf("failed to write attachment: %w", err)
 		}
 	}
 
-	if err := writer.Close(); err != nil {
+	if err := mixed.Close(); err != nil {
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 	return buf.Bytes(), nil
