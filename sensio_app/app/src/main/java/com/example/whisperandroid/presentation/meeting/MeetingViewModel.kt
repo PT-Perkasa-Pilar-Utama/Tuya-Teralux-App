@@ -11,6 +11,8 @@ import com.example.whisperandroid.data.manager.MeetingProcessManager
 import com.example.whisperandroid.domain.repository.Resource
 import com.example.whisperandroid.domain.usecase.MeetingProcessState
 import com.example.whisperandroid.domain.usecase.ProcessMeetingUseCase
+import com.example.whisperandroid.domain.usecase.RecordingProcessState
+import com.example.whisperandroid.domain.usecase.UploadRecordingUseCase
 import com.example.whisperandroid.presentation.components.UiState
 import com.example.whisperandroid.service.MeetingForegroundService
 import java.io.File
@@ -22,10 +24,16 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MeetingViewModel(
-    private val processMeetingUseCase: ProcessMeetingUseCase
+    private val processMeetingUseCase: ProcessMeetingUseCase,
+    private val uploadRecordingUseCase: UploadRecordingUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<MeetingProcessState>(MeetingProcessState.Idle)
     val uiState: StateFlow<MeetingProcessState> = _uiState.asStateFlow()
+
+    private val _recordingUploadState = MutableStateFlow<RecordingProcessState>(
+        RecordingProcessState.Idle
+    )
+    val recordingUploadState: StateFlow<RecordingProcessState> = _recordingUploadState.asStateFlow()
 
     private val _emailState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val emailState: StateFlow<UiState<Boolean>> = _emailState.asStateFlow()
@@ -81,6 +89,8 @@ class MeetingViewModel(
             return
         }
 
+        val uploadedAudioUrl = (_recordingUploadState.value as? RecordingProcessState.Success)?.audioUrl
+
         viewModelScope.launch {
             NetworkModule
                 .sendEmailUseCase(
@@ -88,7 +98,8 @@ class MeetingViewModel(
                     subject = subject,
                     template = "summary",
                     token = token,
-                    attachmentPath = state.pdfUrl
+                    attachmentPath = state.downloadUrl,
+                    audioUrl = uploadedAudioUrl ?: state.audioUrl
                 ).collectLatest { resource ->
                     when (resource) {
                         is Resource.Loading -> {
@@ -128,6 +139,8 @@ class MeetingViewModel(
             null
         }
 
+        val uploadedAudioUrl = (_recordingUploadState.value as? RecordingProcessState.Success)?.audioUrl
+
         viewModelScope.launch {
             NetworkModule
                 .sendEmailByMacUseCase(
@@ -135,7 +148,8 @@ class MeetingViewModel(
                     subject = subject,
                     template = "summary",
                     token = token,
-                    attachmentPath = state.pdfUrl,
+                    attachmentPath = state.downloadUrl,
+                    audioUrl = uploadedAudioUrl ?: state.audioUrl,
                     overrideEmails = overrideEmails
                 ).collectLatest { resource ->
                     when (resource) {
@@ -152,6 +166,18 @@ class MeetingViewModel(
                         }
                     }
                 }
+        }
+    }
+
+    fun uploadRecordingToCloud(
+        audioFile: File,
+        token: String,
+        macAddress: String
+    ) {
+        viewModelScope.launch {
+            uploadRecordingUseCase(audioFile, token, macAddress).collect { state ->
+                _recordingUploadState.value = state
+            }
         }
     }
 

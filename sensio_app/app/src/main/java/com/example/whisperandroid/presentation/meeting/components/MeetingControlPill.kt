@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.Icon
@@ -32,11 +33,12 @@ import com.example.whisperandroid.presentation.components.MicButton
 fun MeetingControlPill(
     isRecording: Boolean,
     hasPermission: Boolean,
-    uiState: MeetingProcessState,
+    uiState: com.example.whisperandroid.domain.usecase.MeetingProcessState,
     pulseScale: Float,
     isEnabled: Boolean = true,
     onMicClick: () -> Unit,
     onUploadClick: () -> Unit,
+    onCloudUploadClick: () -> Unit,
     onStopClick: () -> Unit,
     onClearClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -97,6 +99,23 @@ fun MeetingControlPill(
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                            },
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onCloudUploadClick,
+                        enabled = isEnabled,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudUpload,
+                            contentDescription = "Upload to Cloud",
+                            tint = if (isEnabled) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
                             },
                             modifier = Modifier.size(24.dp)
                         )
