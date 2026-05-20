@@ -12,8 +12,9 @@ class SendEmailUseCase(
         subject: String,
         template: String,
         token: String,
-        attachmentPath: String? = null
+        attachmentPath: String? = null,
+        audioUrl: String? = null
     ): Flow<Resource<Boolean>> {
-        return emailRepository.sendEmail(to, subject, template, token, attachmentPath)
+        return emailRepository.sendEmail(to, subject, template, token, attachmentPath, audioUrl)
     }
 }
