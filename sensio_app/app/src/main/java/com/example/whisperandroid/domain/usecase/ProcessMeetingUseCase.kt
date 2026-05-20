@@ -23,7 +23,8 @@ sealed class MeetingProcessState {
 
     data class Success(
         val summary: String,
-        val pdfUrl: String?
+        val downloadUrl: String?,
+        val audioUrl: String? = null
     ) : MeetingProcessState()
 
     data class Error(
@@ -302,11 +303,16 @@ class ProcessMeetingUseCase(
                                 isCompleted = true
                                 val summaryStage = stages["summary"]
                                 if (summaryStage?.status == "completed") {
+                                    // Read from result map (summary text + legacy fields)
                                     val resMap = summaryStage.result as? Map<*, *>
                                     val summary = resMap?.get("summary") as? String
                                         ?: "Meeting summary is ready"
-                                    val pdfUrl = resMap?.get("pdf_url") as? String
-                                    send(MeetingProcessState.Success(summary, pdfUrl))
+                                    // download_url lives at PipelineStageStatus top-level (set by backend)
+                                    // Fallback to legacy pdf_url inside result for backward compat
+                                    val downloadUrl = summaryStage.downloadUrl
+                                        ?: (resMap?.get("download_url") as? String)
+                                        ?: (resMap?.get("pdf_url") as? String)
+                                    send(MeetingProcessState.Success(summary, downloadUrl))
                                 } else {
                                     // Handle cases where overall is completed but summary stage is missing/skipped
                                     send(MeetingProcessState.Success("Processing complete", null))

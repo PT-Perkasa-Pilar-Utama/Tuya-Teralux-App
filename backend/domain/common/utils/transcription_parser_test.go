@@ -307,6 +307,108 @@ func TestFindOverlapLength(t *testing.T) {
 }
 
 // =============================================================================
+// FindOverlapLength Edge Case Tests (Crash Reproducers)
+// =============================================================================
+
+func TestFindOverlapLength_CrashReproducers(t *testing.T) {
+	// Reproduces: panic: runtime error: slice bounds out of range [:5] with capacity 4
+	// Bug: currWords[:n] called without checking len(currWords) >= n
+	tests := []struct {
+		name  string
+		prev  string
+		curr  string
+		want  int
+		desc  string // description of what's being tested
+	}{
+		{
+			name:  "panic prev5+ curr4 - exact crash reproducer",
+			prev:  "word1 word2 word3 word4 word5 extra",
+			curr:  "word3 word4 word5 word6", // 4 words, n capped to 4 (no 4-word match, no 3-word overlap)
+			want:  0, // Only 3-word overlap exists between prev-end and curr-start, but requires full curr match at n=3 too
+			desc:  "prevWords >= 5, currWords == 4 - no 4-word or 3-word match, returns 0",
+		},
+		{
+			name:  "panic prev6 curr4 overlap",
+			prev:  "a b c d e f g h",
+			curr:  "e f g h", // 4 words, n capped to 4, full match at n=4
+			want:  len("e f g h"), // 7 chars - full 4-word overlap
+			desc:  "6-word prev, 4-word curr, full 4-word overlap at end",
+		},
+		{
+			name:  "panic prev5 curr4 no overlap",
+			prev:  "one two three four five",
+			curr:  "six seven eight nine", // 4 words, n=5 fails
+			want:  0,
+			desc:  "prev >= 5 words, curr 4 words, no overlap - should not panic",
+		},
+		{
+			name:  "panic prev7 curr4 no overlap",
+			prev:  "alpha beta gamma delta epsilon zeta eta theta",
+			curr:  "kappa lambda mu nu", // 4 words
+			want:  0,
+			desc:  "7-word prev, 4-word curr, no overlap",
+		},
+		// Edge cases: empty/single-word curr against longer prev
+		{
+			name:  "empty curr against long prev",
+			prev:  "long phrase with many words here",
+			curr:  "",
+			want:  0,
+			desc:  "empty curr should return 0 without panic",
+		},
+		{
+			name:  "single word curr against long prev",
+			prev:  "this is a very long previous phrase",
+			curr:  "phrase",
+			want:  0,
+			desc:  "single word curr, prev > 3 words, no match possible",
+		},
+		{
+			name:  "two word curr against long prev",
+			prev:  "the quick brown fox jumps over the lazy dog",
+			curr:  "fox jumps",
+			want:  0,
+			desc:  "2-word curr cannot match (needs 3+)",
+		},
+		{
+			name:  "three word curr against long prev exact match",
+			prev:  "hello world testing something else",
+			curr:  "testing something else", // 3 words match end of prev
+			want:  len("testing something else"),
+			desc:  "3-word curr matches last 3 of longer prev",
+		},
+		{
+			name:  "four word curr against 5 word prev match 3",
+			prev:  "a b c d e",
+			curr:  "c d e f",
+			want:  len("c d e"), // 5 - 2 = 3 overlap
+			desc:  "5-word prev, 4-word curr, 3-word overlap",
+		},
+		{
+			name:  "four word curr against 6 word prev match 4",
+			prev:  "a b c d e f",
+			curr:  "c d e f g",
+			want:  len("c d e f"), // 4 words overlap
+			desc:  "6-word prev, 4-word curr, full 4-word overlap",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("FindOverlapLength(%q, %q) panicked: %v", tt.prev, tt.curr, r)
+				}
+			}()
+			got := FindOverlapLength(tt.prev, tt.curr)
+			if got != tt.want {
+				t.Errorf("FindOverlapLength(%q, %q) = %d, want %d // %s", tt.prev, tt.curr, got, tt.want, tt.desc)
+			}
+		})
+	}
+}
+
+// =============================================================================
 // MergeTranscriptions Tests
 // =============================================================================
 
@@ -337,12 +439,12 @@ func TestMergeTranscriptions(t *testing.T) {
 			want: "Hello World",
 		},
 		{
-			name: "segments with overlap removed - BUG: leaves leading space",
+			name: "segments with overlap removed",
 			segments: []dtos.TranscriptSegment{
 				{Text: "the quick brown fox"},
 				{Text: "the quick brown fox jumps"},
 			},
-			want: "the quick brown fox  jumps", // Bug: overlap removal leaves leading space
+			want: "the quick brown fox jumps",
 		},
 		{
 			name: "segments trimmed",
@@ -362,13 +464,13 @@ func TestMergeTranscriptions(t *testing.T) {
 			want: "Hello World",
 		},
 		{
-			name: "three segments - BUG: fragment tracking causes incorrect output",
+			name: "three overlapping segments",
 			segments: []dtos.TranscriptSegment{
 				{Text: "the quick brown fox"},
 				{Text: "the quick brown fox jumps"},
 				{Text: "the quick brown fox jumps over"},
 			},
-			want: "the quick brown fox  jumps the quick brown fox jumps over", // Bug: fragment tracking
+			want: "the quick brown fox jumps over",
 		},
 		{
 			name: "no overlap segments concatenated",

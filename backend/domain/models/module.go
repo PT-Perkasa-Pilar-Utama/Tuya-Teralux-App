@@ -16,9 +16,11 @@ import (
 	ragRoutes "sensio/domain/models/rag/routes"
 	ragServices "sensio/domain/models/rag/services"
 	ragSkills "sensio/domain/models/rag/skills"
-	ragOrchestrator "sensio/domain/models/rag/skills/orchestrator"
+	ragOrchestrator 	"sensio/domain/models/rag/skills/orchestrator"
 	ragUsecases "sensio/domain/models/rag/usecases"
+	"sensio/domain/reports"
 	whisperControllers "sensio/domain/models/whisper/controllers"
+
 	whisperDtos "sensio/domain/models/whisper/dtos"
 	whisperRoutes "sensio/domain/models/whisper/routes"
 	whisperUsecases "sensio/domain/models/whisper/usecases"
@@ -161,7 +163,8 @@ func InitModule(
 	router := ragOrchestrator.NewRouter(skillRegistry, translateUC, guardOrch)
 	pdfRenderer := ragServices.NewHTMLSummaryPDFRenderer()
 	bigExternalService := commonServices.NewDeviceInfoExternalService()
-	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver)
+	reportsModule := reports.NewReportsModule(badger, infrastructure.DefaultS3Service)
+	summaryUC := ragUsecases.NewSummaryUseCase(ragLlmClient, nil, cfg, ragCache, ragStore, pdfRenderer, bigExternalService, mqttSvc, infrastructure.DefaultS3Service, summarySkill, chunkSkill, structuredExtractionSkill, providerResolver, reportsModule.SaveReportUseCase)
 	ragStatusUC := tasks.NewGenericStatusUseCase(ragCache, ragStore)
 	controlUC := ragUsecases.NewControlUseCase(ragLlmClient, nil, cfg, vectorSvc, badger, tuyaExecutor, tuyaAuth, controlSkill, providerResolver)
 	chatUC := ragUsecases.NewChatUseCase(ragLlmClient, nil, cfg, badger, vectorSvc, guardOrch, fastIntentRouter, decisionEngine, providerResolver, controlUC, router)

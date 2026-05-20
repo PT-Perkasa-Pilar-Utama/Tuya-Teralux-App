@@ -85,7 +85,8 @@ type RAGStatusDTO struct {
 	Status          string            `json:"status" example:"completed"`
 	Result          string            `json:"result,omitempty" example:"The meeting discussed..."`
 	Summary         string            `json:"summary,omitempty"` // Alias for Result in summary tasks
-	PDFUrl          string            `json:"pdf_url,omitempty"`
+	ReportID        string            `json:"report_id,omitempty"`
+	DownloadURL     string            `json:"download_url,omitempty"`
 	AgendaContext   string            `json:"agenda_context,omitempty"`
 	MeetingContext  string            `json:"meeting_context,omitempty"`
 	Language        string            `json:"language,omitempty"`
@@ -132,7 +133,8 @@ type RAGProcessResponseDTO struct {
 
 type RAGSummaryResponseDTO struct {
 	Summary       string `json:"summary"`
-	PDFUrl        string `json:"pdf_url,omitempty"`
+	ReportID      string `json:"report_id,omitempty"`
+	DownloadURL   string `json:"download_url,omitempty"`
 	AgendaContext string `json:"agenda_context,omitempty"`
 
 	// Optional structured summary artifacts (backward compatible - empty when not available)

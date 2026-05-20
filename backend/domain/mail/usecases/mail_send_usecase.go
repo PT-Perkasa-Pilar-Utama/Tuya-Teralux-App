@@ -2,8 +2,6 @@ package usecases
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"sensio/domain/common/tasks"
 	"sensio/domain/common/utils"
 	"sensio/domain/mail/dtos"
@@ -12,7 +10,6 @@ import (
 	"time"
 )
 
-// MailSendUseCase defines the interface for sending emails.
 type MailSendUseCase interface {
 	SendMail(req *dtos.MailSendRequestDTO) (string, error)
 }
@@ -23,7 +20,6 @@ type mailSendUseCase struct {
 	cache       *tasks.BadgerTaskCache
 }
 
-// NewMailSendUseCase initializes a new mailSendUseCase.
 func NewMailSendUseCase(mailService *services.MailService, store *tasks.StatusStore[dtos.MailStatusDTO], cache *tasks.BadgerTaskCache) MailSendUseCase {
 	return &mailSendUseCase{
 		mailService: mailService,
@@ -32,8 +28,17 @@ func NewMailSendUseCase(mailService *services.MailService, store *tasks.StatusSt
 	}
 }
 
+func (uc *mailSendUseCase) toPublicDownloadURL(path string) string {
+	if strings.HasPrefix(path, "/api/reports/") && !strings.Contains(path, "://") {
+		base := utils.GetConfig().BackendPublicBaseURL
+		if base != "" {
+			return base + path
+		}
+	}
+	return path
+}
+
 func (uc *mailSendUseCase) SendMail(req *dtos.MailSendRequestDTO) (string, error) {
-	// Validation
 	if len(req.To) == 0 {
 		return "", fmt.Errorf("to field is required")
 	}
@@ -48,7 +53,6 @@ func (uc *mailSendUseCase) SendMail(req *dtos.MailSendRequestDTO) (string, error
 		ExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 	}
 
-	// Mark as pending
 	uc.store.Set(taskID, status)
 	_ = uc.cache.Set(taskID, status)
 
@@ -72,48 +76,23 @@ func (uc *mailSendUseCase) processAsync(taskID string, req *dtos.MailSendRequest
 		templateName = "test"
 	}
 
-	attachmentPath := req.AttachmentPath
-	if attachmentPath != nil && *attachmentPath != "" && (strings.HasPrefix(*attachmentPath, "/uploads") || strings.HasPrefix(*attachmentPath, "http")) {
-		// Resolve to local disk path
-		wd, _ := os.Getwd()
-		baseDir := wd
-		if !strings.HasSuffix(wd, "backend") {
-			if _, err := os.Stat("backend"); err == nil {
-				baseDir = filepath.Join(wd, "backend")
-			}
+	attachment := resolveMailAttachment(req.AttachmentPath)
+	defer func() {
+		if attachment.cleanup != nil {
+			attachment.cleanup()
 		}
+	}()
 
-		var relPath string
-		if strings.HasPrefix(*attachmentPath, "http") {
-			// Full URL — extract relative path after /uploads
-			if idx := strings.Index(*attachmentPath, "/uploads"); idx != -1 {
-				relPath = (*attachmentPath)[idx+1:] // e.g. "uploads/reports/f.pdf"
-			}
-		} else {
-			relPath = strings.TrimPrefix(*attachmentPath, "/") // e.g. "uploads/reports/f.pdf"
-		}
-
-		if relPath == "" {
-			attachmentPath = nil
-		} else {
-			fullPath := filepath.Join(baseDir, relPath)
-			if _, err := os.Stat(fullPath); err == nil {
-				attachmentPath = &fullPath
-				utils.LogDebug("MailSendUseCase: Resolved attachment path to %s", *attachmentPath)
-			} else {
-				utils.LogWarn("MailSendUseCase: Attachment file not found at %s", fullPath)
-				attachmentPath = nil
-			}
-		}
-	}
-
-	// Add has_attachment to data if it's a map
 	if req.Data == nil {
 		req.Data = make(map[string]interface{})
 	}
-	req.Data["has_attachment"] = attachmentPath != nil && *attachmentPath != ""
+	req.Data["download_url"] = uc.toPublicDownloadURL(attachment.downloadURL)
+	req.Data["has_attachment"] = attachment.path != nil && attachment.downloadURL == ""
+	if req.AudioURL != nil && strings.TrimSpace(*req.AudioURL) != "" {
+		req.Data["audio_url"] = strings.TrimSpace(*req.AudioURL)
+	}
 
-	err := uc.mailService.SendEmailWithTemplate(req.To, req.Subject, templateName, req.Data, attachmentPath)
+	err := uc.mailService.SendEmailWithTemplate(req.To, req.Subject, templateName, req.Data, attachment.path)
 	if err != nil {
 		utils.LogError("Mail Task %s: Failed to send email: %v", taskID, err)
 		uc.updateStatus(taskID, "failed", err, "")
@@ -142,7 +121,6 @@ func (uc *mailSendUseCase) updateStatus(taskID string, statusStr string, err err
 		status.HTTPStatusCode = 200
 	}
 
-	// Calculate duration
 	if statusStr == "completed" || statusStr == "failed" {
 		if existing.StartedAt != "" {
 			startTime, _ := time.Parse(time.RFC3339, existing.StartedAt)

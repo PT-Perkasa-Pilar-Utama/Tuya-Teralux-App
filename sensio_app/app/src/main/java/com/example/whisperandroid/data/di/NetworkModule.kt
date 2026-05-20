@@ -1,11 +1,14 @@
 package com.example.whisperandroid.data.di
 
 import com.example.whisperandroid.data.remote.api.PipelineApi
+import com.example.whisperandroid.data.remote.api.RecordingsApi
 import com.example.whisperandroid.data.remote.api.TerminalApi
 import com.example.whisperandroid.data.repository.PipelineRepositoryImpl
+import com.example.whisperandroid.data.repository.RecordingUploadRepositoryImpl
 import com.example.whisperandroid.data.repository.TerminalRepositoryImpl
 import com.example.whisperandroid.data.repository.UploadRepositoryImpl
 import com.example.whisperandroid.domain.repository.PipelineRepository
+import com.example.whisperandroid.domain.repository.RecordingUploadRepository
 import com.example.whisperandroid.domain.repository.TerminalRepository
 import com.example.whisperandroid.domain.repository.UploadRepository
 import com.example.whisperandroid.domain.usecase.AuthenticateUseCase
@@ -17,6 +20,7 @@ import com.example.whisperandroid.domain.usecase.SendEmailByMacUseCase
 import com.example.whisperandroid.domain.usecase.SummarizeTextUseCase
 import com.example.whisperandroid.domain.usecase.TranscribeAudioUseCase
 import com.example.whisperandroid.domain.usecase.TranslateTextUseCase
+import com.example.whisperandroid.domain.usecase.UploadRecordingUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
@@ -152,6 +156,10 @@ object NetworkModule {
         retrofit.create(com.example.whisperandroid.data.remote.api.WhisperApi::class.java)
     }
 
+    private val recordingsApi: com.example.whisperandroid.data.remote.api.RecordingsApi by lazy {
+        retrofit.create(com.example.whisperandroid.data.remote.api.RecordingsApi::class.java)
+    }
+
     // Dedicated WhisperApi for upload operations with bounded timeout
     private val uploadWhisperApi: com.example.whisperandroid.data.remote.api.WhisperApi by lazy {
         uploadRetrofit.create(com.example.whisperandroid.data.remote.api.WhisperApi::class.java)
@@ -199,6 +207,14 @@ object NetworkModule {
 
     val uploadRepository: UploadRepository by lazy {
         UploadRepositoryImpl(uploadWhisperApi)
+    }
+
+    val recordingUploadRepository: com.example.whisperandroid.domain.repository.RecordingUploadRepository by lazy {
+        com.example.whisperandroid.data.repository.RecordingUploadRepositoryImpl(recordingsApi, uploadClient)
+    }
+
+    val uploadRecordingUseCase: com.example.whisperandroid.domain.usecase.UploadRecordingUseCase by lazy {
+        com.example.whisperandroid.domain.usecase.UploadRecordingUseCase(recordingUploadRepository)
     }
 
     val registerUseCase: RegisterTerminalUseCase by lazy {

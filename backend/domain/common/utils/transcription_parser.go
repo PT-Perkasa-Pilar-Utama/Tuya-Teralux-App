@@ -167,23 +167,23 @@ func MergeTranscriptions(segments []dtos.TranscriptSegment) string {
 	}
 
 	var texts []string
+	var originalTexts []string
 	for i, seg := range segments {
 		text := strings.TrimSpace(seg.Text)
 		if text == "" {
 			continue
 		}
 
-		// Check for overlap with previous segment
 		if i > 0 && len(texts) > 0 {
-			prevText := texts[len(texts)-1]
-			overlap := findOverlap(prevText, text)
+			joined := strings.Join(originalTexts, " ")
+			overlap := findOverlap(joined, text)
 			if overlap > 0 {
-				// Remove overlapping portion from current text
-				text = text[overlap:]
+				text = strings.TrimSpace(text[overlap:])
 			}
 		}
 
 		texts = append(texts, text)
+		originalTexts = append(originalTexts, text)
 	}
 
 	return strings.Join(texts, " ")
@@ -253,6 +253,13 @@ func FindOverlapLength(prev, curr string) int {
 	}
 
 	for n := maxCheck; n >= 3; n-- {
+		// Cap n to available words in curr to prevent panic on slice bounds
+		if n > len(currWords) {
+			n = len(currWords)
+			if n < 3 {
+				break // Not enough words in curr for minimum 3-word match
+			}
+		}
 		prevEnd := prevWords[len(prevWords)-n:]
 		currStart := currWords[:n]
 

@@ -2,8 +2,10 @@ package usecases
 
 import (
 	"fmt"
+	"mime"
 	"mime/multipart"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,13 +30,15 @@ type SaveRecordingOption struct {
 type saveRecordingUseCase struct {
 	repo        repositories.RecordingRepository
 	fileService infrastructure.FileService
+	s3Service   *infrastructure.S3Service
 	bigService  services.BIGRoomAudioUpdateService
 }
 
-func NewSaveRecordingUseCase(repo repositories.RecordingRepository, fileService infrastructure.FileService, bigService services.BIGRoomAudioUpdateService) SaveRecordingUseCase {
+func NewSaveRecordingUseCase(repo repositories.RecordingRepository, fileService infrastructure.FileService, s3Service *infrastructure.S3Service, bigService services.BIGRoomAudioUpdateService) SaveRecordingUseCase {
 	return &saveRecordingUseCase{
 		repo:        repo,
 		fileService: fileService,
+		s3Service:   s3Service,
 		bigService:  bigService,
 	}
 }
@@ -162,48 +166,59 @@ func (uc *saveRecordingUseCase) SaveRecordingFromBytes(data []byte, originalName
 }
 
 func (uc *saveRecordingUseCase) SaveRecordingFromPath(srcPath, originalName, macAddress, baseURL string, opts ...SaveRecordingOption) (*entities.Recording, error) {
-	// 1. Generate UUIDv7 for filename
 	fileExt := filepath.Ext(originalName)
 	if fileExt == "" {
-		fileExt = ".wav" // default
+		fileExt = ".wav"
 	}
 	uuidFilename, _ := uuid.NewV7()
 	newFilename := uuidFilename.String() + fileExt
 
-	// 2. Define paths
-	uploadPath := filepath.Join("uploads", "audio", newFilename)
+	var audioURL string
+	var s3ObjectKey string
 
-	// 3. Move physical file
-	if err := uc.fileService.MoveFile(srcPath, uploadPath); err != nil {
-		return nil, fmt.Errorf("failed to move file: %v", err)
-	}
-
-	// 4. Construct Public URL
-	publicUrl := fmt.Sprintf("/uploads/audio/%s", newFilename)
-	if baseURL != "" {
-		publicUrl = fmt.Sprintf("%s%s", baseURL, publicUrl)
+	if uc.s3Service != nil {
+		objectKey := uc.s3Service.BuildObjectKey("recordings", newFilename)
+		contentType := mime.TypeByExtension(fileExt)
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		if _, err := uc.s3Service.UploadFile(srcPath, objectKey, contentType); err != nil {
+			return nil, fmt.Errorf("failed to upload to S3: %w", err)
+		}
+		s3ObjectKey = objectKey
+		audioURL, _ = uc.s3Service.GeneratePresignedGetURL(objectKey)
+		if err := uc.fileService.MoveFile(srcPath, filepath.Join("uploads", "audio", newFilename)); err != nil {
+			utils.LogWarn("SaveRecordingFromPath: S3 upload succeeded but local move failed: %v", err)
+		}
+	} else {
+		uploadPath := filepath.Join("uploads", "audio", newFilename)
+		if err := uc.fileService.MoveFile(srcPath, uploadPath); err != nil {
+			return nil, fmt.Errorf("failed to move file: %v", err)
+		}
+		audioURL = fmt.Sprintf("/uploads/audio/%s", newFilename)
+		if baseURL != "" {
+			audioURL = strings.TrimSuffix(baseURL, "/") + audioURL
+		}
 	}
 
 	uuidEntity, _ := uuid.NewV7()
-	// 5. Create Entity
 	recording := &entities.Recording{
 		ID:           uuidEntity.String(),
 		Filename:     newFilename,
 		OriginalName: originalName,
-		AudioUrl:     publicUrl,
+		AudioUrl:     audioURL,
+		S3ObjectKey:  s3ObjectKey,
 		MacAddress:   macAddress,
 		CreatedAt:    time.Now(),
 	}
 
-	// 6. Save Metadata
 	if err := uc.repo.Save(recording); err != nil {
 		return nil, err
 	}
 
-	// 7. Trigger BIG Room Audio Update
 	if macAddress != "" && shouldNotifyBIG(opts) {
 		go func() {
-			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, publicUrl); err != nil {
+			if err := uc.bigService.UpdateRoomOccupiedAudio(macAddress, audioURL); err != nil {
 				utils.LogError("SaveRecordingUseCase.SaveRecordingFromPath: Failed to update room occupied audio: %v", err)
 			}
 		}()

@@ -49,18 +49,18 @@ class CacheFlushRepositoryImplTest {
 
     @Test
     fun `flushCache constructs URL without double-slash when baseUrl has trailing slash`() = runTest {
-        // Given
         val baseUrlWithTrailingSlash = "https://api.example.com/"
         val expectedUrl = "https://api.example.com/api/cache/flush"
         var capturedRequestUrl: String? = null
+        var capturedEncodedPath: String? = null
 
-        // Mock the OkHttpClient to capture the request URL
-        every { okhttpClient.newCall(any<Request>()) } answers { mockedCall }
-        every { mockedCall.execute() } answers {
-            val request = this.invocation.args[0] as Request
+        every { okhttpClient.newCall(any<Request>()) } answers {
+            val request = firstArg<Request>()
             capturedRequestUrl = request.url.toString()
-            response
+            capturedEncodedPath = request.url.encodedPath
+            mockedCall
         }
+        every { mockedCall.execute() } returns response
         every { response.isSuccessful } returns true
         every { response.close() } returns Unit
 
@@ -70,14 +70,11 @@ class CacheFlushRepositoryImplTest {
             okhttpClient = okhttpClient
         )
 
-        // When
         val result = repository.flushCache()
 
-        // Then
         assertTrue(result.isSuccess)
         assertEquals(expectedUrl, capturedRequestUrl)
-        // Ensure no double-slash in the URL path
-        assertTrue("URL should not contain double-slash", capturedRequestUrl?.contains("//api") == false)
+        assertEquals("/api/cache/flush", capturedEncodedPath)
     }
 
     @Test
@@ -87,12 +84,12 @@ class CacheFlushRepositoryImplTest {
         val expectedUrl = "https://api.example.com/api/cache/flush"
         var capturedRequestUrl: String? = null
 
-        every { okhttpClient.newCall(any<Request>()) } answers { mockedCall }
-        every { mockedCall.execute() } answers {
-            val request = this.invocation.args[0] as Request
+        every { okhttpClient.newCall(any<Request>()) } answers {
+            val request = firstArg<Request>()
             capturedRequestUrl = request.url.toString()
-            response
+            mockedCall
         }
+        every { mockedCall.execute() } returns response
         every { response.isSuccessful } returns true
         every { response.close() } returns Unit
 
@@ -229,12 +226,12 @@ class CacheFlushRepositoryImplTest {
         // Given
         var capturedAuthHeader: String? = null
 
-        every { okhttpClient.newCall(any<Request>()) } answers { mockedCall }
-        every { mockedCall.execute() } answers {
-            val request = this.invocation.args[0] as Request
+        every { okhttpClient.newCall(any<Request>()) } answers {
+            val request = firstArg<Request>()
             capturedAuthHeader = request.header("Authorization")
-            response
+            mockedCall
         }
+        every { mockedCall.execute() } returns response
         every { response.isSuccessful } returns true
         every { response.close() } returns Unit
 
@@ -253,15 +250,14 @@ class CacheFlushRepositoryImplTest {
 
     @Test
     fun `flushCache uses DELETE method with JSON body`() = runTest {
-        // Given
         var capturedMethod: String? = null
 
-        every { okhttpClient.newCall(any<Request>()) } answers { mockedCall }
-        every { mockedCall.execute() } answers {
-            val request = this.invocation.args[0] as Request
+        every { okhttpClient.newCall(any<Request>()) } answers {
+            val request = firstArg<Request>()
             capturedMethod = request.method
-            response
+            mockedCall
         }
+        every { mockedCall.execute() } returns response
         every { response.isSuccessful } returns true
         every { response.close() } returns Unit
 
@@ -271,10 +267,8 @@ class CacheFlushRepositoryImplTest {
             okhttpClient = okhttpClient
         )
 
-        // When
         repository.flushCache()
 
-        // Then
         assertEquals("DELETE", capturedMethod)
     }
 
