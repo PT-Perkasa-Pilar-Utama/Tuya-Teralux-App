@@ -135,6 +135,8 @@ class RagRepositoryImpl(
                                 Resource.Success(
                                     RAGSummaryResponseDto(
                                         summary = summary,
+                                        reportId = statusData.reportId,
+                                        downloadUrl = statusData.downloadUrl ?: statusData.pdfUrl,
                                         pdfUrl = statusData.pdfUrl
                                     )
                                 )
