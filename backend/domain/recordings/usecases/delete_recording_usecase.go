@@ -38,8 +38,10 @@ func (uc *deleteRecordingUseCase) DeleteRecording(id string) error {
 		return fmt.Errorf("failed to delete metadata: %v", err)
 	}
 
-	filePath := filepath.Join("uploads", "audio", recording.Filename)
-	_ = os.Remove(filePath)
+	if recording.Filename != "" {
+		filePath := filepath.Join("uploads", "audio", filepath.Base(recording.Filename))
+		_ = os.Remove(filePath)
+	}
 
 	return nil
 }

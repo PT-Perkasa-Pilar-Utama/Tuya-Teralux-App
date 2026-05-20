@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -71,6 +73,15 @@ func (c *RecordingsFinalizeController) FinalizeRecording(ctx *gin.Context) {
 		return
 	}
 
+	expectedPrefix := strings.TrimSuffix(c.s3Service.BuildObjectKey("recordings", "placeholder"), "placeholder")
+	if !strings.HasPrefix(req.ObjectKey, expectedPrefix) {
+		ctx.JSON(http.StatusBadRequest, commonDtos.StandardResponse{
+			Status:  false,
+			Message: "invalid object key",
+		})
+		return
+	}
+
 	presignedGETURL, err := c.s3Service.GeneratePresignedGetURL(req.ObjectKey)
 	if err != nil {
 		utils.LogError("RecordingsFinalizeController.FinalizeRecording: %v", err)
@@ -81,9 +92,11 @@ func (c *RecordingsFinalizeController) FinalizeRecording(ctx *gin.Context) {
 		return
 	}
 
+	storedFilename := filepath.Base(req.ObjectKey)
+
 	recording := entities.Recording{
 		ID:           uuid.New().String(),
-		Filename:     req.ObjectKey,
+		Filename:     storedFilename,
 		OriginalName: req.Filename,
 		AudioUrl:     presignedGETURL,
 		S3ObjectKey:  req.ObjectKey,

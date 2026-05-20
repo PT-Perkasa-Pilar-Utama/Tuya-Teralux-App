@@ -19,6 +19,8 @@ import (
 	models_v1 "sensio/domain/models-v1"
 	"sensio/domain/recordings"
 	recordings_entities "sensio/domain/recordings/entities"
+	"sensio/domain/reports"
+	reports_entities "sensio/domain/reports/entities"
 	"sensio/domain/scene"
 	scene_entities "sensio/domain/scene/entities"
 	"sensio/domain/terminal"
@@ -115,6 +117,7 @@ func run() error {
 		&device_entities.Device{},
 		&scene_entities.Scene{},
 		&recordings_entities.Recording{},
+		&reports_entities.Report{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate entities: %w", err)
 	}
@@ -164,9 +167,10 @@ func run() error {
 	protected.Use(middlewares.AuthMiddleware(tuyaModule.AuthUseCase))
 	protected.Use(middlewares.TuyaErrorMiddleware())
 
-	// Static File Serving (for audio uploads)
-	// Access via: /uploads/audio/filename.ext
+	// Static File Serving (for uploads and public email assets)
+	// Access via: /uploads/audio/filename.ext and /assets/logo.png
 	router.Static("/uploads", "./uploads")
+	router.Static("/assets", "./assets/images")
 
 	// 1. Common Routes (Health, Cache)
 	commonModule.RegisterRoutes(router, protected)
@@ -183,6 +187,10 @@ func run() error {
 	// 4. Recordings Module
 	recordingsModule := recordings.NewRecordingsModule(badgerService, infrastructure.DefaultS3Service)
 	recordingsModule.RegisterRoutes(router, protected)
+
+	// 4b. Reports Module
+	reportsModule := reports.NewReportsModule(badgerService, infrastructure.DefaultS3Service)
+	reportsModule.RegisterRoutes(router, protected)
 
 	// 5. Speech & RAG Modules (migrated from stt-service)
 	scfg := utils.GetConfig()
